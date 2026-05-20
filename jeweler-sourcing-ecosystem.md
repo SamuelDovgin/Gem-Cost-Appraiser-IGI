@@ -142,6 +142,64 @@ Surat, India is the world's #1 diamond cutting city. Most lab-grown roughs grown
 
 ---
 
+## Off-Catalog Grades — The Jeweler Secondary / Liquidation Market
+
+**This is a distinct sourcing channel that does not appear in the Alibaba or importer tiers above.** Standard factory and importer stock covers DEF color + VVS/VS clarity. Outside that band — VS2 at odd sizes, G/H/I color, SI1, SI2, stones with treatment notes — you are not ordering from a catalog. You are buying from a jeweler who already owns a stone and needs to liquidate it.
+
+### Why these stones exist as backstock
+
+- Jeweler bought speculatively and the customer changed their mind
+- Estate or pawnshop buy-in came as a package deal (had to take the whole lot)
+- Memo return was rejected or went unsold
+- Ordered for a custom piece that fell through
+- Impulse buy at a trade show that didn't move at retail
+
+The selling jeweler paid **US importer price** (20–35% above Alibaba). They need cash. They cannot return the stone. They will take a loss, but they don't always know how big a loss is fair — which creates a buying opportunity if you know the real market price.
+
+### What qualifies as secondary-market / off-catalog
+
+| Grade | Alibaba listed? | Primary channel |
+|-------|----------------|-----------------|
+| DEF / VVS1–VS1 / Round or popular fancy | ✓ Yes — standard catalog | Factory direct or importer |
+| VS2 / DEF / Round | ✓ Yes — listed (Messi data shows it) | Factory or importer; secondary also available |
+| VS2 / G–H color | ✗ No — off-DEF-catalog | **Jeweler secondary** |
+| SI1 / any color | ✗ No — not stocked | **Jeweler secondary** |
+| SI2 / any color | ✗ No — distressed lot | **Jeweler secondary** |
+| Any clarity / I–Z color | ✗ No | **Jeweler secondary** |
+
+### What to pay — relative to model wholesale price
+
+The app's `ws` output for off-catalog grades reflects the jeweler secondary market **ceiling** — what a fair price looks like given the stone's grade. A motivated seller will often accept below model.
+
+| Stone type | Target buy vs model ws | Notes |
+|------------|------------------------|-------|
+| VS2 (G–H color) | 0.75–0.90× model | Double-discounted stone; seller knows it's not DEF/VS1 |
+| SI1 (any color) | 0.70–0.85× model | No factory comp exists; model is the ceiling, not the floor |
+| SI2 (any color) | 0.60–0.80× model | Very distressed; few retail buyers; negotiate hard |
+| G/H color + VS1–VS2 | 0.80–0.90× model | Off-DEF; seller may not know how much their color grade costs them |
+| Any grade with treatment note | 0.75–0.90× model | CVD post-treatment or color treatment adds buyer skepticism |
+
+### Where to find secondary/liquidation stock
+
+- **Polygon.net** — US jeweler trade network with member-to-member listings
+- **RapNet** "Trading" section — includes distressed and liquidation lots
+- **Jewelers of America (JA) member network** — regional chapters, trade shows, WhatsApp groups
+- **Facebook groups** — "Diamond Dealers" and regional jewelry trade groups
+- **Local jeweler outreach** — simply asking; most jewelers don't advertise backstock
+- **Estate dealers / pawnshop wholesale** — often have off-grade lab-grown from bulk acquisitions
+- **Trade shows** — JCK Las Vegas, JA New York; floor deals with quick-sale pricing
+
+### Buying strategy for secondary stock
+
+1. Use the app's model price as your reference ceiling. Never open above it.
+2. Point out the off-catalog status directly: *"This isn't a DEF/VS standard piece — there's no Alibaba comp for it."*
+3. For SI1/SI2: target 15–25% below model. For lower color: 10–20% below model.
+4. Request a loupe video or in-person inspection. Inclusions and color are harder to evaluate from cert alone at SI grades.
+5. Verify IGI at igi.world before any payment — backstock sometimes carries certs from old grading standards, is mismatched to the stone, or is a different stone than advertised.
+6. Factor in: you will also have to sell this at a discount. Build your exit into the buy price.
+
+---
+
 ## Alibaba — Why Only One Good IGI Source?
 
 IGI certification is expensive (~$50–$150 per stone depending on size). Most Alibaba sellers avoid the cost and sell uncertified or with lesser certifications (SGL, IGI India domestic, HRD).

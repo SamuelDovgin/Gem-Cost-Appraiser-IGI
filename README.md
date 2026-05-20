@@ -2,6 +2,8 @@
 
 A single-page lab-grown diamond price calculator for loose IGI-certified stones. It estimates wholesale cost, fair direct/auction pricing, and traditional retail range from carat, color, clarity, shape, cut, seller channel, growth method, and optional asking price.
 
+**v3.1 (May 2026):** White diamonds re-anchored to **E/VS1** with steeper SI1/SI2 discounts, cert-auto modifiers (CVD, post-treatment, no cut grade), and IGI **LG563297279** calibration (**2.01ct F SI1 pear**, ~$100 TikTok). See `white-diamond-igi-wholesale-pricing.md`.
+
 ## Live Site
 
 After GitHub Pages is enabled, the app will be available at:

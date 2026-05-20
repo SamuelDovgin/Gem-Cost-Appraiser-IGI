@@ -1,11 +1,13 @@
 # Alibaba IGI Wholesale Comps
 
-Research date: 2026-05-18
+Research date: 2026-05-18 (v3.1 note: 2026-05-20)
 
 Scope: Alibaba listings and Alibaba showroom pages for loose lab-grown diamonds that explicitly mention IGI or IGI certificate. Prices are supplier/listing prices, usually before final negotiated quote, shipping, payment fees, inspection risk, and platform variance. Treat these as factory-direct upper-limit signals, not retail appraisals.
 
 ## Practical Takeaways
 
+- **Alibaba white IGI commodity floor = E/VS1 (DEF + VVS/VS).** You will not reliably find G/H/I or SI1/SI2 as standard factory SKUs — those trade at steeper discounts (see `white-diamond-igi-wholesale-pricing.md` v3.1).
+- **Calibration:** IGI **LG563297279** — **2.01ct F SI1 pear CVD** (post-growth treatment, no cut grade) sold on TikTok for **$100**. v3.1 model target ~$105–$120 trade cost; v3 was ~$300+ (wrong spec assumption and shallow SI1 discount).
 - White IGI lab stones on Alibaba are extremely low at factory-direct pricing. Generic D/VS-VVS listings commonly show low hundreds per stone for 1-3ct goods, with broader ranges around $40-$900 depending on size, color, shape, and supplier.
 - The live Wuzhou Messi Gems product selector gives a useful exact D-color round IGI ladder. For VVS2 it shows 0.3ct $50, 0.5ct $61, 1ct $123.50, 1.5ct $216.50, 2ct $329.50, 3ct $535, 4ct $960, 5ct $1,300, and 6ct $1,620. For VVS1 it shows 0.3ct $68, 0.5ct $72, 1ct $129, 1.5ct $284.50, 2ct $580, 3ct $999, 4ct $1,320, 5ct $1,750, and 6ct $2,100.
 - The same selector also shows VS2 at 0.3ct $41, 0.5ct $64, 1ct $140, 1.5ct $216, 2ct $312, 3ct $487, 4ct $760, 5ct $1,044, and 6ct $1,380; VS1 at 0.3ct $45, 0.5ct $58, 1ct $121.50, 1.5ct $206, 2ct $293.50, 3ct $467.50, 4ct $832, 5ct $1,173, and 6ct $1,500.
@@ -19,7 +21,8 @@ Scope: Alibaba listings and Alibaba showroom pages for loose lab-grown diamonds 
 
 | Category | Alibaba listing signal | Attributes shown | Price signal | Use in app |
 |---|---|---:|---:|---|
-| White IGI round exact | Wuzhou Messi Gems Co., Ltd. Factory Prices Lab Created VVS VS1 0.3CT-6CT HPHT/CVD Synthetic IGI Certified Lab Grown Diamond | D/white, Round Brilliant Cut, IGI, VS2/VS1/VVS2/VVS1, MOQ 1, model MSD-00365, certificate sample LG573308852 | Exact ladder: VS2 $41-$1,380; VS1 $45-$1,500; VVS2 $50-$1,620; VVS1 $68-$2,100 for 0.3-6ct | Named exact ceiling when app sees D white round IGI at a standard size |
+| White IGI round exact | Wuzhou Messi Gems Co., Ltd. Factory Prices Lab Created VVS VS1 0.3CT-6CT HPHT/CVD Synthetic IGI Certified Lab Grown Diamond | D/white, Round Brilliant Cut, IGI, VS2/VS1/VVS2/VVS1, MOQ 1, model MSD-00365, certificate sample LG573308852 | Exact ladder: VS2 $41-$1,380; VS1 $45-$1,500; VVS2 $50-$1,620; VVS1 $68-$2,100 for 0.3-6ct | Named exact ceiling for round white IGI; D ladder color-adjusted to E/F/G in app (÷1.08 for E, etc.) |
+| White IGI E/VS1 SKU | Messi Gems 1.0CT E/VS1 Round EX VG (messigems.com + Alibaba storefront) | E, VS1, round, 1ct, IGI, in stock | Listing price not always public; factory band ~$105-$125 vs D/VS1 $121.50 | Commodity-floor reference for v3.1 baseline ($100 importer @ 1ct) |
 | White IGI loose | IGI Certified Lab Grown Diamond Loose Oval Cut DEF VVS VS 1CT 2CT 3CT 5CT HPHT/CVD | DEF, VVS/VS, oval/fancy, 1-5ct | $18.50-$1,080 / piece range | Hard ceiling for ordinary white lab direct buys |
 | White IGI loose | Factory Prices Lab Created VVS VS1 0.3CT-6CT HPHT/CVD IGI Certified | D/white, VS1/VVS, mixed shapes, 0.3-6ct | $41-$2,100 / piece range | Broad factory ceiling |
 | White IGI loose | Lab grown diamond manufacturer 0.5CT 1CT 1.5CT D VS1 IGI round | D, VS1, round, 0.5-1.7ct | Attribute listing; price not reliably parsed | Use as verification-only comp |

@@ -240,7 +240,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 <div class="wrapper">
 
 <header>
-  <div class="eyebrow">Lab-Grown Diamond Pricer — v3</div>
+  <div class="eyebrow">Lab-Grown Diamond Pricer — v3.1</div>
   <h1>What is that stone <em>actually</em> worth?</h1>
   <p class="subtitle">Loose IGI-certified lab diamonds — white &amp; fancy color. Priced against verified 2026 wholesale data from Alibaba supplier selectors, Washington Diamond, Edahn Golan, LuxeGem, PriceScope, and Rosec Jewels. Adjust every relevant variable below.</p>
   <div class="callout">Sanity check — not an appraisal. Always verify cert at <strong>igi.org</strong> before buying. Ask for measurements, video, and table/depth specs on sight-unseen purchases.</div>
@@ -269,9 +269,9 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
       <select id="color-select">
         <optgroup label="White / near colorless">
           <option value="white:D">D</option>
-          <option value="white:E">E</option>
+          <option value="white:E" selected>E</option>
           <option value="white:F">F</option>
-          <option value="white:G" selected>G</option>
+          <option value="white:G">G</option>
           <option value="white:H">H</option>
           <option value="white:I">I</option>
           <option value="white:J">J</option>
@@ -545,6 +545,10 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
     <div class="market-dot" id="market-dot"></div>
     <div class="market-text" id="market-text"></div>
   </div>
+  <div class="market-bar" id="floor-bar" style="background:rgba(224,144,64,0.04)">
+    <div class="market-dot" id="floor-dot" style="background:var(--orange)"></div>
+    <div class="market-text" id="floor-text"></div>
+  </div>
 </div>
 
 <!-- SOURCE VERIFICATION PANEL -->
@@ -614,11 +618,12 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 <!-- METHODOLOGY -->
 <div class="methodology">
   <div class="meth-title">Pricing model methodology</div>
-  <div class="meth-item"><strong>White baseline</strong>: Anchored to research Section 3 — estimated US jeweler all-in cost (G/VS1/Round/Ideal) including IGI cert, importer margin 15–25%, shipping and insurance. Verified against Edahn Golan Q2 2025 comps ($76–$95/ct GH/VS at 1ct) and StoneAlgo May 2026 retail index. Wuzhou Messi Gems Alibaba exact selector is shown separately as the factory-direct ceiling signal.</div>
+  <div class="meth-item"><strong>White baseline (v3.1)</strong>: Rebased to E/VS1/Round/Ideal — the Alibaba commodity floor (most IGI listings are DEF + VVS/VS). 1ct E/VS1 ≈ $100 trade cost, calibrated to direct-sale signal IGI LG563297279 and Messi 1ct D VS1 ($121.50 factory → E-adjusted). Wuzhou Messi D-color selector is converted to your color grade for the ceiling row.</div>
   <div class="meth-item"><strong>Fancy color baseline</strong>: Rebased to 2026 direct/auction lab-grown signals across yellow, pink, blue, green, orange, purple, brown, black, and red. Fancy Vivid Pink was specifically pinned to 5ct marquise comps around $1.6k auction and ~$2.9k direct-sale retail. Clarity matters less for fancy color — saturation and seller channel drive most of the spread.</div>
   <div class="meth-item"><strong>Magic-weight continuity</strong>: The model applies a smooth approach-discount for stones within 0.15–0.22ct below a major carat threshold (1, 1.5, 2, 3, 4, 5ct). A 2.9ct stone does not command the "3-carat diamond" demand premium — it is discounted relative to a 3.0ct stone. A 3.09ct stone fully captures the 3ct tier. The discount tapers to zero exactly at each threshold (no hard price step).</div>
-  <div class="meth-item"><strong>Color grade mult (white only)</strong>: Compressed vs natural rates given lab-grown oversupply. D +12%, E +8%, F +4%, G baseline, H −6%, I −12%, J −20%, with steeper discounts below J.</div>
-  <div class="meth-item"><strong>Clarity mult (carat-dependent)</strong>: Research Table 5A. At 1ct: VVS1 +9%, VVS2 +5%, VS2 −7%, SI1 −15%, SI2 −27%. At 3ct: VVS1 +32%, VVS2 +12%, VS2 −10%, SI1 −22%, SI2 −37%. At 5ct: VVS1 +48%, VVS2 +16%, SI2 −47%. Clarity matters exponentially more at large sizes. For fancy color, clarity impact compressed to ~50% (color saturation dominates).</div>
+  <div class="meth-item"><strong>Color grade mult (white only)</strong>: vs E = 1.00. D +8%, F −8%, G −12%, H −20%, I −28%, J −37%, steeper below J. Grades worse than E are off-catalog on most Alibaba IGI white listings.</div>
+  <div class="meth-item"><strong>Clarity mult (carat-dependent)</strong>: Table 5B (v3.1). At 1ct: SI1 −32%, SI2 −42%. At 2ct: SI1 −52%, SI2 −62% (LG563297279 anchor). At 3ct: VVS1 +36%, SI2 −60%. Below VS1 is off-catalog on Alibaba. Fancy color clarity stays compressed (~50%).</div>
+  <div class="meth-item"><strong>Cert-derived modifiers (auto from IGI PDF)</strong>: CVD (not as-grown) −10% ws. Post-growth treatment −6%. No cut grade on cert −12% (polish/sym only). Pear/oval/marquise/emerald + SI1/SI2 −10%. 3EX premium only applies when cut grade is Excellent on the cert.</div>
   <div class="meth-item"><strong>Shape mult</strong>: Round baseline 1.0. Oval/pear +5–8% (demand premium, per PriceScope 2026 data showing 6% YoY oval increase). Step cuts (emerald, asscher) −15–17% (inclusion-visible, surplus Indian cutting). Specialty cuts (rose, briolette) −28–30% (niche demand, limited resale market).</div>
   <div class="meth-item"><strong>Toggle modifiers</strong>: Chinese factory: −22% wholesale, fair price 1.3–1.6× ws. High-volume auction seller: fair price 1.2–1.45× ws (thin margins, fast turns). 3EX: +6% ws. HPHT: +8% ws. As-grown: +5% ws. GIA cert: +12% retail only.</div>
   <div class="meth-item"><strong>Fair price markup</strong>: Standard seller 1.55–2.05× ws (covers IGI cert $80–150, shipping, platform fees, returns buffer, thin margin). Auction jeweler running volume 1.2–1.45× ws. Chinese factory 1.3–1.6× ws. Traditional retail 3.8–7× ws (per Tenoris 74% gross margin data).</div>
@@ -634,7 +639,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 const state = {
   carat: 3.0,
   colorFamily: 'white',
-  whiteGrade: 'G',
+  whiteGrade: 'E',
   clarity: 'VS1',
   shape: 'round',
   cut: 'ideal',
@@ -645,6 +650,9 @@ const state = {
   hpht: false,
   asgrown: false,
   gia: false,
+  cvd: false,
+  postTreatment: false,
+  hasCutGrade: true,
   ratio: null,
   ratioAssessment: null,
 };
@@ -654,28 +662,28 @@ const state = {
 // ══════════════════════════════════════════════════════════════════════════════
 function lerp(a,b,t){ return a+(b-a)*t; }
 
-// White diamond baseline per carat (round, G, VS1, ideal) — 2026 verified
-// Anchors from research Section 3: US jeweler all-in cost including IGI cert, shipping,
-// insurance, and typical importer margin (15–25%). Verified against Edahn Golan Q2 2025
-// wholesale comps ($76–$95/ct GH/VS at 1ct ✓) and StoneAlgo May 2026 retail index.
+// White diamond baseline per carat (round, E, VS1, ideal) — recalibrated May 2026
+// Alibaba/Messi factory stock is overwhelmingly DEF color and VS1+ clarity; E/VS1 is the
+// practical commodity floor (see white-diamond-igi-wholesale-pricing.md §4–5).
+// 1ct E/VS1 anchored to ~$100 direct-sale signal (IGI LG563297279 / TikTok volume comps).
 function baseWhitePerCt(ct) {
-  // Anchor points (G / VS1 / Round / Ideal — jeweler all-in trade cost)
+  // Anchor points (E / VS1 / Round / Ideal — jeweler all-in trade cost)
   const pts = [
-    [0.50,  65],   // ~$32 total; Edahn Golan sub-1ct range
-    [1.00,  91],   // $91 total; Edahn Golan GH/VS 1ct = $76–$95 ✓
-    [1.50, 130],   // $195 total
-    [2.00, 175],   // $350 total; Edahn Golan 2ct = $184–$230 ✓
-    [2.50, 173],   // $433 total — slight per-ct dip (oversupply pressure)
-    [3.00, 163],   // $489 total — per-ct dips further but total rises
-    [3.50, 178],   // $623 total — per-ct recovers as production complexity rises
-    [4.00, 198],   // $792 total
-    [4.50, 222],   // $999 total
-    [5.00, 248],   // $1,240 total
-    [6.00, 298],   // $1,788 total
-    [7.00, 330],   // $2,310 total — extrapolated from growth-curve data
-    [8.00, 380],   // $3,040 total
-    [9.00, 430],   // $3,870 total
-    [10.00, 480],  // $4,800 total
+    [0.50,  70],   // ~$35 total; Messi 0.5ct D VS1 $58 → E factory ~$54 + import
+    [1.00, 100],   // $100 total; LG563297279 calibration + Messi 1ct D VS1 $121.5 E-equiv
+    [1.50, 143],   // $214 total
+    [2.00, 193],   // $386 total; Edahn Golan 2ct GH/VS band ✓
+    [2.50, 190],   // $475 total — slight per-ct dip (oversupply pressure)
+    [3.00, 179],   // $537 total
+    [3.50, 195],   // $683 total
+    [4.00, 217],   // $868 total
+    [4.50, 244],   // $1,098 total
+    [5.00, 272],   // $1,360 total
+    [6.00, 327],   // $1,962 total
+    [7.00, 362],   // $2,534 total — extrapolated from growth-curve data
+    [8.00, 417],   // $3,336 total
+    [9.00, 472],   // $4,248 total
+    [10.00, 527],  // $5,270 total
   ];
 
   let basePc;
@@ -769,27 +777,31 @@ const fancyColorBase = {
   red_fv:    { ws1:  950, scale:1.25, rMult:5.5, label:'Fancy Vivid Red' },
 };
 
-// Color grade multipliers (white only)
+// Color grade multipliers (white only) — vs E = 1.00 (Alibaba commodity floor).
+// Grades below E or above F are thin factory stock; discounts are steeper than the old
+// G-centered model because suppliers list DEF + VVS/VS, not H/I or SI lots.
 const whiteGradeMult = {
-  D:1.12, E:1.08, F:1.04, G:1.00, H:0.94, I:0.88, J:0.80,
-  K:0.72, L:0.66, M:0.60, 'N-P':0.50, 'Q-R':0.40, 'S-Z':0.32
+  D:1.08, E:1.00, F:0.92, G:0.88, H:0.80, I:0.72, J:0.63,
+  K:0.55, L:0.49, M:0.43, 'N-P':0.35, 'Q-R':0.27, 'S-Z':0.21
 };
 
-// Clarity multipliers — WHITE diamonds: carat-weighted (research Table 5A, May 2026).
-// Based on Wuzhou Messi Gems Alibaba ladder + industry production-difficulty data,
-// calibrated to actual price ratios observed across the size spectrum.
-// Knots: [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0] ct
+// Clarity multipliers — WHITE diamonds: carat-weighted (research Table 5B, May 2026 v3.1).
+// Wider spreads than v3: below-VS1 is off-catalog on most Alibaba IGI listings; above-VS1
+// premiums matter even at 1ct when buying US importer stock.
 const CLARITY_CARAT_KNOTS_W = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0];
-// Each row = multiplier vs VS1 baseline at knot carats above.
 const CLARITY_CARAT_MULTS_W = {
-  IF:   [1.10, 1.14, 1.20, 1.25, 1.38, 1.47, 1.55, 1.65, 1.85],
-  VVS1: [1.08, 1.09, 1.12, 1.16, 1.32, 1.40, 1.48, 1.58, 1.75],
-  VVS2: [1.03, 1.05, 1.06, 1.09, 1.12, 1.14, 1.16, 1.19, 1.22],
+  IF:   [1.14, 1.18, 1.22, 1.28, 1.42, 1.50, 1.58, 1.68, 1.88],
+  VVS1: [1.10, 1.14, 1.16, 1.20, 1.36, 1.44, 1.52, 1.62, 1.78],
+  VVS2: [1.05, 1.08, 1.09, 1.12, 1.14, 1.16, 1.18, 1.21, 1.24],
   VS1:  [1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00],
-  VS2:  [0.94, 0.93, 0.92, 0.91, 0.90, 0.88, 0.87, 0.84, 0.80],
-  SI1:  [0.88, 0.85, 0.83, 0.81, 0.78, 0.74, 0.71, 0.66, 0.60],
-  SI2:  [0.76, 0.73, 0.71, 0.69, 0.63, 0.58, 0.53, 0.47, 0.42],
+  VS2:  [0.92, 0.88, 0.86, 0.84, 0.84, 0.82, 0.80, 0.77, 0.73],
+  SI1:  [0.84, 0.68, 0.62, 0.48, 0.50, 0.48, 0.46, 0.42, 0.38],
+  SI2:  [0.72, 0.58, 0.52, 0.38, 0.40, 0.38, 0.36, 0.32, 0.28],
 };
+const ELONGATED_SI_SHAPES = new Set(['pear','oval','marquise','emerald','asscher','radiant','heart']);
+const CVD_WS = 0.90;
+const POST_TREAT_WS = 0.94;
+const ELONGATED_SI_WS = 0.90;
 function getClarityMult(clarity, ct) {
   const vals = CLARITY_CARAT_MULTS_W[clarity];
   if (!vals) return 1.00;
@@ -830,7 +842,7 @@ const shapeMultColor = {
   emerald:0.96, asscher:1.02, baguette:0.78, tapered_baguette:0.76, carre:0.86,
   rose:0.75, briolette:0.72, portuguese:0.88, flanders:0.85,
 };
-const cutMult = { ideal:1.00, vg:0.94, good:0.87 };
+const cutMult = { ideal:1.00, vg:0.94, good:0.87, unset:0.88 };
 
 const ratioGuides = {
   round: { lo:0.98, hi:1.02, idealLo:0.99, idealHi:1.01, label:'round outline' },
@@ -882,6 +894,11 @@ const messiDWhiteRoundLadder = {
   VVS1: { 0.3:68,   0.5:72,  1:129,   1.5:284.5, 2:580,   3:999,   4:1320,  5:1750, 6:2100, 7:2580, 8:3060 },
 };
 
+function getEffectiveCutMult() {
+  if (!state.hasCutGrade) return cutMult.unset;
+  return cutMult[state.cut] ?? cutMult.good;
+}
+
 function compute(ct) {
   ct = ct || state.carat;
   const sh = (shapeMult[state.shape] || 1.0);
@@ -894,7 +911,7 @@ function compute(ct) {
   if (isWhite()) {
     wsPerCt = baseWhitePerCt(ct)
       * (whiteGradeMult[state.whiteGrade] ?? 0.70)
-      * cl * sh * cutMult[state.cut];
+      * cl * sh * getEffectiveCutMult();
     // Retail multiplier recalibrated to Section 3 base prices + StoneAlgo May 2026 retail index.
     // StoneAlgo: 1ct ~$585 (×6.4 ws), 2ct ~$1,223 (×3.5 ws), 3ct ~$1,751 (×3.6 ws), 5ct ~$2,530 (×2.0 ws)
     retailMult = ct>=7 ? [2.0,3.5] : ct>=5 ? [2.2,4.0] : ct>=4 ? [2.5,4.5] : ct>=3 ? [2.8,5.0] : ct>=2 ? [3.0,5.5] : ct>=1 ? [4.0,6.5] : [4.5,7.0];
@@ -909,9 +926,16 @@ function compute(ct) {
   // Toggle modifiers on wholesale cost
   let wsMultiplier = 1.0;
   if (state.china) wsMultiplier *= CHINA_WS;
-  if (state.tri3ex) wsMultiplier *= 1.06;
+  if (state.tri3ex && state.hasCutGrade) wsMultiplier *= 1.06;
   if (state.hpht) wsMultiplier *= 1.08;
   if (state.asgrown) wsMultiplier *= 1.05;
+  if (isWhite()) {
+    if (state.cvd && !state.asgrown) wsMultiplier *= CVD_WS;
+    if (state.postTreatment) wsMultiplier *= POST_TREAT_WS;
+    if (ELONGATED_SI_SHAPES.has(state.shape) && (state.clarity === 'SI1' || state.clarity === 'SI2')) {
+      wsMultiplier *= ELONGATED_SI_WS;
+    }
+  }
 
   const ws = wsPerCt * wsMultiplier * ct;
 
@@ -962,7 +986,7 @@ function compPriceToTotal(comp, ct) {
 }
 
 function getMessiExactComp(ct = state.carat) {
-  if (!isWhite() || state.whiteGrade !== 'D' || state.shape !== 'round') return null;
+  if (!isWhite() || state.shape !== 'round') return null;
   const ladder = messiDWhiteRoundLadder[state.clarity];
   if (!ladder) return null;
 
@@ -975,9 +999,12 @@ function getMessiExactComp(ct = state.carat) {
   const tolerance = target.size <= 2 ? 0.08 : target.size <= 6 ? 0.18 : 0.25;
   if (target.diff > tolerance) return null;
 
-  const price = ladder[target.size];
+  const dPrice = ladder[target.size];
+  const colorFactor = (whiteGradeMult[state.whiteGrade] ?? 1) / whiteGradeMult.D;
+  const price = Math.round(dPrice * colorFactor);
+  const gradeLabel = state.whiteGrade === 'D' ? 'D' : `${state.whiteGrade} (D ladder ÷ ${(whiteGradeMult.D / (whiteGradeMult[state.whiteGrade] || 1)).toFixed(2)}×)`;
   return {
-    id:`messi-d-round-${state.clarity.toLowerCase()}-${target.size}ct`,
+    id:`messi-${state.whiteGrade.toLowerCase()}-round-${state.clarity.toLowerCase()}-${target.size}ct`,
     group:'white',
     shapes:['round'],
     ctMin:target.size - tolerance,
@@ -985,13 +1012,36 @@ function getMessiExactComp(ct = state.carat) {
     lo:price,
     hi:price,
     unit:'piece',
-    label:`Wuzhou Messi Gems exact Alibaba IGI D ${state.clarity} round ${target.size}ct ladder`,
+    label:`Wuzhou Messi Gems Alibaba IGI ${gradeLabel} ${state.clarity} round ${target.size}ct`,
     url:MESSI_D_ROUND_URL,
-    note:'Live Alibaba selector price captured 2026-05-18.',
+    note: state.whiteGrade === 'D'
+      ? 'Live Alibaba D-color selector price captured 2026-05-18.'
+      : `Messi posts D-color; ${state.whiteGrade} adjusted using model color spread vs D.`,
     totalLo:price,
     totalHi:price,
     exact:true,
   };
+}
+
+const WHITE_ALIBABA_FLOOR = { color:'E', clarity:'VS1' };
+const WHITE_COLOR_RANK = { D:0, E:1, F:2, G:3, H:4, I:5, J:6, K:7, L:8, M:9, 'N-P':10, 'Q-R':11, 'S-Z':12 };
+const WHITE_CLARITY_RANK = { IF:0, VVS1:1, VVS2:2, VS1:3, VS2:4, SI1:5, SI2:6 };
+
+function getAlibabaFloorNote() {
+  if (!isWhite()) return '';
+  const notes = [];
+  const colorRank = WHITE_COLOR_RANK[state.whiteGrade];
+  const clarityRank = WHITE_CLARITY_RANK[state.clarity];
+  if (colorRank != null && colorRank > WHITE_COLOR_RANK[WHITE_ALIBABA_FLOOR.color]) {
+    notes.push(`${state.whiteGrade} color is below the usual Alibaba DEF floor — expect thinner supply and a larger discount vs E.`);
+  }
+  if (clarityRank != null && clarityRank > WHITE_CLARITY_RANK[WHITE_ALIBABA_FLOOR.clarity]) {
+    notes.push(`${state.clarity} is below the usual Alibaba VS1+ floor — most IGI white listings are VVS/VS, not SI.`);
+  }
+  if (colorRank != null && colorRank < WHITE_COLOR_RANK[WHITE_ALIBABA_FLOOR.color]) {
+    notes.push(`${state.whiteGrade} is above the E commodity floor — factory D-color stock is common but still commands a premium.`);
+  }
+  return notes.join(' ');
 }
 
 function getAlibabaCeiling(ct = state.carat) {
@@ -1030,7 +1080,7 @@ const shapeNames = {
   baguette:'Baguette Cut',tapered_baguette:'Tapered Baguette Cut',carre:'Carre Cut',
   rose:'Rose Cut',briolette:'Briolette',portuguese:'Portuguese Cut',flanders:'Flanders Cut',
 };
-const capCut = c => c==='ideal'?'3EX/Ideal':c==='vg'?'Very Good':'Good';
+const capCut = c => c==='unset'?'Pol/Sym only (no cut grade)':c==='ideal'?'3EX/Ideal':c==='vg'?'Very Good':'Good';
 
 function colorLabel() {
   if (isWhite()) return state.whiteGrade+' color';
@@ -1075,6 +1125,7 @@ function update() {
   updateVerdict(m);
   updateRatioBar();
   updateMarketBar(m);
+  updateAlibabaFloorBar();
   drawChart();
 }
 
@@ -1086,6 +1137,9 @@ function updateBadges(){
   if (state.tri3ex) badges.push(`<span class="bdg bdg-blue">3EX make</span>`);
   if (state.hpht) badges.push(`<span class="bdg bdg-purple">HPHT grown</span>`);
   if (state.asgrown) badges.push(`<span class="bdg bdg-accent">As-grown</span>`);
+  if (state.cvd && !state.asgrown) badges.push(`<span class="bdg bdg-purple">CVD</span>`);
+  if (state.postTreatment) badges.push(`<span class="bdg bdg-orange">Post-growth treated</span>`);
+  if (!state.hasCutGrade) badges.push(`<span class="bdg bdg-orange">No cut grade on cert</span>`);
   if (state.gia) badges.push(`<span class="bdg bdg-red">GIA cert</span>`);
   if (state.ratio) {
     const bdgClass = state.ratioAssessment?.level === 'strong' ? 'bdg-green'
@@ -1130,7 +1184,29 @@ function updateMarketBar(m){
   const ceiling = comp.totalHi;
   const unitText = comp.exact ? `${fmt(comp.hi)} exact selector price`
     : comp.unit === 'ct' ? `${fmt(comp.lo)}-${fmt(comp.hi)}/ct` : `${fmt(comp.lo)}-${fmt(comp.hi)} total`;
-  txt.innerHTML = `<strong>Alibaba IGI ceiling: ${fmt(ceiling)}.</strong> Matched ${escapeHTML(comp.label)} (${unitText}). Treat this as the factory-direct upper limit before any beauty/video premium. <a href="${escapeAttr(comp.url)}" target="_blank" rel="noopener" style="color:var(--blue)">source ↗</a>`;
+  let mismatch = '';
+  if (isWhite()) {
+    const colorRank = WHITE_COLOR_RANK[state.whiteGrade];
+    const clarityRank = WHITE_CLARITY_RANK[state.clarity];
+    if ((colorRank != null && colorRank > WHITE_COLOR_RANK['E']) || (clarityRank != null && clarityRank > WHITE_CLARITY_RANK['VS1'])) {
+      mismatch = ' This comp is for DEF/VVS–VS stock — your grade is below that Alibaba floor, so the ceiling is not a fair match.';
+    }
+  }
+  txt.innerHTML = `<strong>Alibaba IGI ceiling: ${fmt(ceiling)}.</strong> Matched ${escapeHTML(comp.label)} (${unitText}). Treat this as the factory-direct upper limit before any beauty/video premium.${mismatch} <a href="${escapeAttr(comp.url)}" target="_blank" rel="noopener" style="color:var(--blue)">source ↗</a>`;
+  bar.classList.add('on');
+}
+
+function updateAlibabaFloorBar() {
+  const bar = document.getElementById('floor-bar');
+  const txt = document.getElementById('floor-text');
+  if (!bar || !txt) return;
+  const note = getAlibabaFloorNote();
+  if (!note) {
+    bar.classList.remove('on');
+    txt.innerHTML = '';
+    return;
+  }
+  txt.innerHTML = `<strong>Off-catalog grade.</strong> ${escapeHTML(note)}`;
   bar.classList.add('on');
 }
 
@@ -1247,6 +1323,7 @@ document.querySelectorAll('.pill').forEach(pill=>{
     document.querySelectorAll(`.pill[data-group="${g}"]`).forEach(p=>p.classList.remove('active'));
     pill.classList.add('active');
     state[g]=pill.dataset.val;
+    if (g === 'cut') state.hasCutGrade = true;
     syncWhiteSection();
     update();
   });
@@ -1413,16 +1490,13 @@ async function pasteIGINumberFromClipboard() {
     }
     const text = await navigator.clipboard.readText();
     const clean = setIGINumberFromText(text);
-    input.focus();
-    input.select();
     if (hasLookupableIGINumber(clean)) {
       await lookupIGI();
     } else if (!clean) {
       setIGIStatus('warn', 'Clipboard is empty or does not contain an IGI report number.');
     }
   } catch (err) {
-    input.focus();
-    setIGIStatus('warn', 'Clipboard access was blocked. Use Cmd+V in the IGI field instead.');
+    setIGIStatus('warn', 'Clipboard access was blocked. Tap the IGI field and paste (Cmd+V) instead.');
   }
 }
 
@@ -2056,25 +2130,32 @@ function applyIGIReport(options = {}) {
   state.ratio = r.ratio || calculateRatio(r.measurements);
   state.ratioAssessment = state.ratio ? assessRatio(state.ratio, state.shape) : null;
 
-  // Map cut
+  // Map cut — many IGI lab reports omit Cut Grade (polish/sym only)
   const cut = (r.cut || '').toLowerCase();
+  state.hasCutGrade = !!(r.cut && cut);
   if (cut.includes('excellent') || cut.includes('ideal')) { state.cut = 'ideal'; setActivePill('cut', 'ideal'); }
   else if (cut.includes('very good'))                      { state.cut = 'vg';    setActivePill('cut', 'vg'); }
   else if (cut.includes('good'))                           { state.cut = 'good';  setActivePill('cut', 'good'); }
+  else {
+    state.cut = 'unset';
+    document.querySelectorAll('.pill[data-group="cut"]').forEach(p => p.classList.remove('active'));
+  }
 
   // Map growth method toggles
   const growth = (r.growthMethod || '').toUpperCase();
+  state.cvd = growth.includes('CVD');
   state.hpht = growth.includes('HPHT');
   document.getElementById('tog-hpht').classList.toggle('on', state.hpht);
 
   const treat = (r.treatment || '').toLowerCase();
-  state.asgrown = treat.includes('as grown') || treat.includes('as-grown') || treat.includes('none detected');
+  state.postTreatment = treat.includes('post-growth') || treat.includes('post growth');
+  state.asgrown = treat.includes('as grown') || treat.includes('as-grown') || treat.includes('no indication of post-growth');
   document.getElementById('tog-asgrown').classList.toggle('on', state.asgrown);
 
-  // Check if 3EX
+  // 3EX requires an actual cut grade on the cert — not polish/sym alone
   const polish = (r.polish || '').toLowerCase();
   const sym = (r.symmetry || '').toLowerCase();
-  state.tri3ex = cut.includes('excellent') && polish.includes('excellent') && sym.includes('excellent');
+  state.tri3ex = state.hasCutGrade && cut.includes('excellent') && polish.includes('excellent') && sym.includes('excellent');
   document.getElementById('tog-3ex').classList.toggle('on', state.tri3ex);
 
   syncWhiteSection();
@@ -2095,6 +2176,7 @@ function setActivePill(group, val) {
 
 // Wire up IGI events
 document.getElementById('igi-lookup-btn').addEventListener('click', lookupIGI);
+document.getElementById('igi-paste-btn').addEventListener('mousedown', e => e.preventDefault());
 document.getElementById('igi-paste-btn').addEventListener('click', pasteIGINumberFromClipboard);
 const igiNumberInput = document.getElementById('igi-number');
 const igiInputRow = document.querySelector('.igi-input-row');
