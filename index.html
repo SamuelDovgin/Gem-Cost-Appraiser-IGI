@@ -1133,7 +1133,17 @@ function getMessiRoundBenchmarkHtml(ct = state.carat) {
     ? 'Verified Messi round IGI selector — same shape as your stone.'
     : `Round benchmark for ${ct.toFixed(1)}ct — use to sanity-check ${shapeNames[state.shape] || state.shape} factory asks.`;
 
-  return `<br><strong>Messi round on Alibaba${sizeNote}:</strong> ${yours} ≈ <strong>${fmt(bench.price)}</strong> (${fmt(bench.perCt)}/ct at ${bench.ladderSize}ct). ${escapeHTML(shapeNote)} Full ladder: ${escapeHTML(ladderBits)}. <a href="${escapeAttr(MESSI_D_ROUND_URL)}" target="_blank" rel="noopener" style="color:var(--blue)">Messi round listing ↗</a>`;
+  const adj = getAlibabaOffCatalogAdjust(ct);
+  const catalog = getMessiCatalogRoundCeiling(ct);
+  let gradeLine = '';
+  if (adj && catalog) {
+    const fromCatalog = Math.round(catalog.price * adj.combined);
+    gradeLine = `<br><strong>Below Alibaba floor (${WHITE_ALIBABA_FLOOR.color}/${WHITE_ALIBABA_FLOOR.clarity}):</strong> catalog round ≈ ${fmt(catalog.price)} × ${adj.combined.toFixed(2)} = <strong>${fmt(fromCatalog)}</strong> (${escapeHTML(adj.label)}). Messi ${bench.clarity} row: ${fmt(bench.price)}.`;
+  } else if (adj) {
+    gradeLine = `<br><strong>Below Alibaba floor:</strong> apply ×${adj.combined.toFixed(2)} to any DEF/VVS–VS listing (${escapeHTML(adj.label)}).`;
+  }
+
+  return `<br><strong>Messi round on Alibaba${sizeNote}:</strong> ${yours} ≈ <strong>${fmt(bench.price)}</strong> (${fmt(bench.perCt)}/ct at ${bench.ladderSize}ct). ${escapeHTML(shapeNote)}${gradeLine} Full ladder: ${escapeHTML(ladderBits)}. <a href="${escapeAttr(MESSI_D_ROUND_URL)}" target="_blank" rel="noopener" style="color:var(--blue)">Messi round listing ↗</a>`;
 }
 
 function getMessiExactComp(ct = state.carat) {
@@ -1166,15 +1176,66 @@ const WHITE_ALIBABA_FLOOR = { color:'E', clarity:'VS1' };
 const WHITE_COLOR_RANK = { D:0, E:1, F:2, G:3, H:4, I:5, J:6, K:7, L:8, M:9, 'N-P':10, 'Q-R':11, 'S-Z':12 };
 const WHITE_CLARITY_RANK = { IF:0, VVS1:1, VVS2:2, VS1:3, VS2:4, SI1:5, SI2:6 };
 
+/** Multipliers vs Alibaba commodity floor (E color, VS1 clarity) — same basis as model ws. */
+function getAlibabaOffCatalogAdjust(ct = state.carat) {
+  if (!isWhite()) return null;
+  const colorRank = WHITE_COLOR_RANK[state.whiteGrade];
+  const clarityRank = WHITE_CLARITY_RANK[state.clarity];
+  const colorBelow = colorRank != null && colorRank > WHITE_COLOR_RANK[WHITE_ALIBABA_FLOOR.color];
+  const clarityBelow = clarityRank != null && clarityRank > WHITE_CLARITY_RANK[WHITE_ALIBABA_FLOOR.clarity];
+  if (!colorBelow && !clarityBelow) return null;
+
+  const colorMult = colorBelow
+    ? (whiteGradeMult[state.whiteGrade] ?? 0.70) / whiteGradeMult[WHITE_ALIBABA_FLOOR.color]
+    : 1;
+  const clarityMult = clarityBelow
+    ? getClarityMult(state.clarity, ct) / getClarityMult(WHITE_ALIBABA_FLOOR.clarity, ct)
+    : 1;
+  const combined = colorMult * clarityMult;
+  const parts = [];
+  if (colorBelow) parts.push(`color ×${colorMult.toFixed(2)} (${state.whiteGrade} vs ${WHITE_ALIBABA_FLOOR.color})`);
+  if (clarityBelow) parts.push(`clarity ×${clarityMult.toFixed(2)} (${state.clarity} vs ${WHITE_ALIBABA_FLOOR.clarity})`);
+
+  return { colorBelow, clarityBelow, colorMult, clarityMult, combined, parts, label: parts.join(' · ') };
+}
+
+function getMessiCatalogRoundCeiling(ct = state.carat) {
+  return lookupMessiRoundLadder(ct, WHITE_ALIBABA_FLOOR.clarity, WHITE_ALIBABA_FLOOR.color);
+}
+
+/** Apply floor multipliers to a DEF/VVS–VS listing ceiling when your grade is off-catalog. */
+function adjustAlibabaCeilingPrice(rawHi, ct, opts = {}) {
+  const adj = getAlibabaOffCatalogAdjust(ct);
+  if (!adj) return { hi: rawHi, lo: opts.rawLo ?? rawHi, adj: null, adjusted: false };
+
+  if (opts.exact) {
+    return { hi: rawHi, lo: opts.rawLo ?? rawHi, adj, adjusted: false, alreadyInLadder: true };
+  }
+
+  const lo = Math.round((opts.rawLo ?? rawHi) * adj.combined);
+  return {
+    hi: Math.round(rawHi * adj.combined),
+    lo,
+    adj,
+    adjusted: true,
+    catalogHi: rawHi,
+    catalogLo: opts.rawLo ?? rawHi,
+  };
+}
+
 function getAlibabaFloorNote() {
   if (!isWhite()) return '';
   const notes = [];
+  const adj = getAlibabaOffCatalogAdjust();
   const colorRank = WHITE_COLOR_RANK[state.whiteGrade];
   const clarityRank = WHITE_CLARITY_RANK[state.clarity];
-  if (colorRank != null && colorRank > WHITE_COLOR_RANK[WHITE_ALIBABA_FLOOR.color]) {
+  if (adj) {
+    notes.push(`Off-catalog vs Alibaba ${WHITE_ALIBABA_FLOOR.color}/${WHITE_ALIBABA_FLOOR.clarity} floor — ceiling and round benchmark use ×${adj.combined.toFixed(2)} (${adj.label}).`);
+  }
+  if (colorRank != null && colorRank > WHITE_COLOR_RANK[WHITE_ALIBABA_FLOOR.color] && !adj) {
     notes.push(`${state.whiteGrade} color is below the usual Alibaba DEF floor — expect thinner supply and a larger discount vs E.`);
   }
-  if (clarityRank != null && clarityRank > WHITE_CLARITY_RANK[WHITE_ALIBABA_FLOOR.clarity]) {
+  if (clarityRank != null && clarityRank > WHITE_CLARITY_RANK[WHITE_ALIBABA_FLOOR.clarity] && !adj) {
     notes.push(`${state.clarity} is below the usual Alibaba VS1+ floor — most IGI white listings are VVS/VS, not SI.`);
   }
   if (colorRank != null && colorRank < WHITE_COLOR_RANK[WHITE_ALIBABA_FLOOR.color]) {
@@ -1369,19 +1430,36 @@ function updateMarketBar(m){
   let html = '';
 
   if (comp) {
-    const ceiling = comp.totalHi;
     const unitText = comp.exact ? `${fmt(comp.hi)} exact selector price`
       : comp.unit === 'ct' ? `${fmt(comp.lo)}-${fmt(comp.hi)}/ct` : `${fmt(comp.lo)}-${fmt(comp.hi)} total`;
-    let mismatch = '';
-    if (isWhite()) {
-      const colorRank = WHITE_COLOR_RANK[state.whiteGrade];
-      const clarityRank = WHITE_CLARITY_RANK[state.clarity];
-      if ((colorRank != null && colorRank > WHITE_COLOR_RANK['E']) || (clarityRank != null && clarityRank > WHITE_CLARITY_RANK['VS1'])) {
-        mismatch = ' This comp is for DEF/VVS–VS stock — your grade is below that Alibaba floor, so the ceiling is not a fair match.';
-      }
-    }
+    const adj = getAlibabaOffCatalogAdjust(state.carat);
+    const catalogRound = getMessiCatalogRoundCeiling(state.carat);
+    const priceAdj = adjustAlibabaCeilingPrice(comp.totalHi, state.carat, {
+      exact: comp.exact,
+      rawLo: comp.totalLo,
+    });
+
     const shapeTag = state.shape === 'round' && comp.exact ? '' : ` (${shapeNames[state.shape] || state.shape} comp)`;
-    html = `<strong>Alibaba IGI ceiling${shapeTag}: ${fmt(ceiling)}.</strong> Matched ${escapeHTML(comp.label)} (${unitText}). Treat this as the factory-direct upper limit before any beauty/video premium.${mismatch} <a href="${escapeAttr(comp.url)}" target="_blank" rel="noopener" style="color:var(--blue)">source ↗</a>`;
+    let ceilingBlock = '';
+
+    if (priceAdj.adjusted) {
+      const rangeText = comp.unit === 'ct'
+        ? `${fmt(priceAdj.lo)}-${fmt(priceAdj.hi)}/ct adjusted`
+        : `${fmt(priceAdj.lo)}-${fmt(priceAdj.hi)} adjusted`;
+      ceilingBlock = `<strong>Alibaba IGI ceiling${shapeTag} (grade-adjusted): ${fmt(priceAdj.hi)}.</strong> Listing band ${fmt(comp.totalLo)}-${fmt(comp.totalHi)} × ${priceAdj.adj.combined.toFixed(2)} → ${rangeText} (${escapeHTML(priceAdj.adj.label)}).`;
+      if (catalogRound) {
+        ceilingBlock += ` Messi ${WHITE_ALIBABA_FLOOR.color}/${WHITE_ALIBABA_FLOOR.clarity} round at ${catalogRound.ladderSize}ct ≈ ${fmt(catalogRound.price)} → <strong>${fmt(Math.round(catalogRound.price * priceAdj.adj.combined))}</strong> for your grade.`;
+      }
+    } else if (priceAdj.alreadyInLadder && adj) {
+      ceilingBlock = `<strong>Alibaba IGI ceiling${shapeTag}: ${fmt(priceAdj.hi)}.</strong> Messi selector at your ${state.clarity} (already below VS1 catalog tier).`;
+      if (catalogRound && catalogRound.price !== priceAdj.hi) {
+        ceilingBlock += ` ${WHITE_ALIBABA_FLOOR.color}/${WHITE_ALIBABA_FLOOR.clarity} catalog ≈ ${fmt(catalogRound.price)}; your row is ${fmt(priceAdj.hi)}.`;
+      }
+    } else {
+      ceilingBlock = `<strong>Alibaba IGI ceiling${shapeTag}: ${fmt(priceAdj.hi)}.</strong>`;
+    }
+
+    html = `${ceilingBlock} Matched ${escapeHTML(comp.label)} (${unitText}). Treat as factory-direct upper limit before beauty/video premium. <a href="${escapeAttr(comp.url)}" target="_blank" rel="noopener" style="color:var(--blue)">source ↗</a>`;
     if (roundBench) html += roundBench;
   } else if (roundBench) {
     html = `<strong>No shape-specific Alibaba comp</strong> for this ${escapeHTML(shapeNames[state.shape] || state.shape)} / grade combo. Factory ceiling below uses the verified Messi <em>round</em> ladder at the same carat — elongated cuts are often near parity at 3ct+, not cheaper than round.${roundBench}`;
