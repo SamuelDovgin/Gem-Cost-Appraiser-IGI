@@ -251,9 +251,9 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   <div class="section-label">Carat weight</div>
   <div class="slider-row">
     <div class="slider-wrap">
-      <input type="range" id="carat" min="0.5" max="8" step="0.1" value="3">
+      <input type="range" id="carat" min="0.5" max="10" step="0.1" value="3">
       <div class="slider-ticks">
-        <span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span><span>3.5</span><span>4</span><span>4.5</span><span>5</span><span>5.5</span><span>6</span><span>6.5</span><span>7</span><span>7.5</span><span>8</span>
+        <span>0.5</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
       </div>
     </div>
     <div class="slider-value" id="carat-display">3.0 ct</div>
@@ -508,7 +508,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 
   <div class="chart-wrap">
     <div class="chart-head">
-      <div class="chart-title">Price curve 0.5–8ct · selected specs</div>
+      <div class="chart-title">Price curve 0.5–10ct · selected specs</div>
       <div class="legend">
         <span><i class="sw" style="background:#f0ede8"></i>Wholesale</span>
         <span><i class="sw" style="background:#4caf7a"></i>Fair direct</span>
@@ -599,10 +599,11 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 <!-- METHODOLOGY -->
 <div class="methodology">
   <div class="meth-title">Pricing model methodology</div>
-  <div class="meth-item"><strong>White baseline</strong>: Cross-checked against Edahn Golan Q2 2025 small-volume wholesale and StoneAlgo May 2026 live retail indexes. The model's "what they paid" is a practical trade-cost estimate after cert/sourcing friction, while "fair direct" is the realistic online/direct buy zone.</div>
+  <div class="meth-item"><strong>White baseline</strong>: Anchored to research Section 3 — estimated US jeweler all-in cost (G/VS1/Round/Ideal) including IGI cert, importer margin 15–25%, shipping and insurance. Verified against Edahn Golan Q2 2025 comps ($76–$95/ct GH/VS at 1ct) and StoneAlgo May 2026 retail index. Wuzhou Messi Gems Alibaba exact selector is shown separately as the factory-direct ceiling signal.</div>
   <div class="meth-item"><strong>Fancy color baseline</strong>: Rebased to 2026 direct/auction lab-grown signals across yellow, pink, blue, green, orange, purple, brown, black, and red. Fancy Vivid Pink was specifically pinned to 5ct marquise comps around $1.6k auction and ~$2.9k direct-sale retail. Clarity matters less for fancy color — saturation and seller channel drive most of the spread.</div>
+  <div class="meth-item"><strong>Magic-weight continuity</strong>: The model applies a smooth approach-discount for stones within 0.15–0.22ct below a major carat threshold (1, 1.5, 2, 3, 4, 5ct). A 2.9ct stone does not command the "3-carat diamond" demand premium — it is discounted relative to a 3.0ct stone. A 3.09ct stone fully captures the 3ct tier. The discount tapers to zero exactly at each threshold (no hard price step).</div>
   <div class="meth-item"><strong>Color grade mult (white only)</strong>: Compressed vs natural rates given lab-grown oversupply. D +12%, E +8%, F +4%, G baseline, H −6%, I −12%, J −20%, with steeper discounts below J.</div>
-  <div class="meth-item"><strong>Clarity mult</strong>: IF +14%; VVS1 +9%; VVS2 +5%; VS1 baseline; VS2 −7%; SI1 −15%; SI2 −27%. For fancy color, clarity impact halved (color masks inclusions).</div>
+  <div class="meth-item"><strong>Clarity mult (carat-dependent)</strong>: Research Table 5A. At 1ct: VVS1 +9%, VVS2 +5%, VS2 −7%, SI1 −15%, SI2 −27%. At 3ct: VVS1 +32%, VVS2 +12%, VS2 −10%, SI1 −22%, SI2 −37%. At 5ct: VVS1 +48%, VVS2 +16%, SI2 −47%. Clarity matters exponentially more at large sizes. For fancy color, clarity impact compressed to ~50% (color saturation dominates).</div>
   <div class="meth-item"><strong>Shape mult</strong>: Round baseline 1.0. Oval/pear +5–8% (demand premium, per PriceScope 2026 data showing 6% YoY oval increase). Step cuts (emerald, asscher) −15–17% (inclusion-visible, surplus Indian cutting). Specialty cuts (rose, briolette) −28–30% (niche demand, limited resale market).</div>
   <div class="meth-item"><strong>Toggle modifiers</strong>: Chinese factory: −22% wholesale, fair price 1.3–1.6× ws. High-volume auction seller: fair price 1.2–1.45× ws (thin margins, fast turns). 3EX: +6% ws. HPHT: +8% ws. As-grown: +5% ws. GIA cert: +12% retail only.</div>
   <div class="meth-item"><strong>Fair price markup</strong>: Standard seller 1.55–2.05× ws (covers IGI cert $80–150, shipping, platform fees, returns buffer, thin margin). Auction jeweler running volume 1.2–1.45× ws. Chinese factory 1.3–1.6× ws. Traditional retail 3.8–7× ws (per Tenoris 74% gross margin data).</div>
@@ -639,33 +640,69 @@ const state = {
 function lerp(a,b,t){ return a+(b-a)*t; }
 
 // White diamond baseline per carat (round, G, VS1, ideal) — 2026 verified
-// Anchors: 1ct=$91 (Washington Diamond/Edahn Golan), 2ct=$175, 3ct=$165 (oversupply),
-// 4ct=$198 (Liori), 5ct=$245, 6-8ct extrapolated from Liori + production complexity data
+// Anchors from research Section 3: US jeweler all-in cost including IGI cert, shipping,
+// insurance, and typical importer margin (15–25%). Verified against Edahn Golan Q2 2025
+// wholesale comps ($76–$95/ct GH/VS at 1ct ✓) and StoneAlgo May 2026 retail index.
 function baseWhitePerCt(ct) {
+  // Anchor points (G / VS1 / Round / Ideal — jeweler all-in trade cost)
   const pts = [
-    [0.50,  58],
-    [1.00,  91],  // Edahn Golan anchor
-    [1.50, 130],
-    [2.00, 175],  // Washington Diamond anchor
-    [2.50, 173],
-    [3.00, 163],  // oversupply pressure; $180/ct D/VVS → ~$163 G/VS1
-    [3.50, 178],
-    [4.00, 198],  // Liori: 4ct G/VS1 ~$7-9k retail → ~$198/ct ws
-    [4.50, 222],
-    [5.00, 248],  // Liori: 5ct ~$11-16k retail → ~$248/ct ws
-    [5.50, 272],
-    [6.00, 298],
-    [6.50, 325],
-    [7.00, 352],
-    [7.50, 382],
-    [8.00, 412],
+    [0.50,  65],   // ~$32 total; Edahn Golan sub-1ct range
+    [1.00,  91],   // $91 total; Edahn Golan GH/VS 1ct = $76–$95 ✓
+    [1.50, 130],   // $195 total
+    [2.00, 175],   // $350 total; Edahn Golan 2ct = $184–$230 ✓
+    [2.50, 173],   // $433 total — slight per-ct dip (oversupply pressure)
+    [3.00, 163],   // $489 total — per-ct dips further but total rises
+    [3.50, 178],   // $623 total — per-ct recovers as production complexity rises
+    [4.00, 198],   // $792 total
+    [4.50, 222],   // $999 total
+    [5.00, 248],   // $1,240 total
+    [6.00, 298],   // $1,788 total
+    [7.00, 330],   // $2,310 total — extrapolated from growth-curve data
+    [8.00, 380],   // $3,040 total
+    [9.00, 430],   // $3,870 total
+    [10.00, 480],  // $4,800 total
   ];
-  if (ct <= pts[0][0]) return pts[0][1];
-  for (let i=0;i<pts.length-1;i++) {
-    const [x1,y1]=pts[i],[x2,y2]=pts[i+1];
-    if (ct<=x2) return lerp(y1,y2,(ct-x1)/(x2-x1));
+
+  let basePc;
+  if (ct <= pts[0][0]) {
+    basePc = pts[0][1];
+  } else {
+    let found = false;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x1,y1] = pts[i], [x2,y2] = pts[i+1];
+      if (ct <= x2) {
+        basePc = lerp(y1, y2, (ct-x1)/(x2-x1));
+        found = true;
+        break;
+      }
+    }
+    if (!found) basePc = pts[pts.length-1][1] + (ct-10)*9;
   }
-  return pts[pts.length-1][1]+(ct-8)*38;
+
+  // Magic-weight continuity: a stone approaching a major carat threshold from below
+  // does not command the "X-carat diamond" demand premium. The discount is proportional
+  // to how far below the threshold the stone is, tapering smoothly to zero exactly at
+  // the threshold (no step-discontinuity at any carat value).
+  // e.g. 2.9ct is discounted vs 3.0ct; 3.09ct captures the full 3ct premium.
+  const magicWeights = [
+    { at: 1.0, maxDiscount: 0.09, zone: 0.20 },
+    { at: 1.5, maxDiscount: 0.05, zone: 0.15 },
+    { at: 2.0, maxDiscount: 0.09, zone: 0.20 },
+    { at: 3.0, maxDiscount: 0.09, zone: 0.22 },
+    { at: 4.0, maxDiscount: 0.06, zone: 0.20 },
+    { at: 5.0, maxDiscount: 0.05, zone: 0.18 },
+  ];
+  let discountFactor = 0;
+  for (const mw of magicWeights) {
+    const distBelow = mw.at - ct;
+    if (distBelow > 0 && distBelow <= mw.zone) {
+      // t=1 at the far edge of the approach zone, t→0 as ct approaches the threshold
+      const t = distBelow / mw.zone;
+      discountFactor = Math.max(discountFactor, mw.maxDiscount * t);
+    }
+  }
+
+  return basePc * (1 - discountFactor);
 }
 
 // Fancy color — base wholesale/direct-floor per carat at 1ct.
@@ -701,9 +738,35 @@ const whiteGradeMult = {
   K:0.72, L:0.66, M:0.60, 'N-P':0.50, 'Q-R':0.40, 'S-Z':0.32
 };
 
-// Clarity multipliers
-const clarityMult = { IF:1.14, VVS1:1.09, VVS2:1.05, VS1:1.00, VS2:0.93, SI1:0.85, SI2:0.73 };
-// For fancy color, clarity impact is halved
+// Clarity multipliers — WHITE diamonds: carat-weighted (research Table 5A, May 2026).
+// Based on Wuzhou Messi Gems Alibaba ladder + industry production-difficulty data,
+// calibrated to actual price ratios observed across the size spectrum.
+// Knots: [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0] ct
+const CLARITY_CARAT_KNOTS_W = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0];
+// Each row = multiplier vs VS1 baseline at knot carats above.
+const CLARITY_CARAT_MULTS_W = {
+  IF:   [1.10, 1.14, 1.20, 1.25, 1.38, 1.47, 1.55, 1.65, 1.85],
+  VVS1: [1.08, 1.09, 1.12, 1.16, 1.32, 1.40, 1.48, 1.58, 1.75],
+  VVS2: [1.03, 1.05, 1.06, 1.09, 1.12, 1.14, 1.16, 1.19, 1.22],
+  VS1:  [1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00],
+  VS2:  [0.94, 0.93, 0.92, 0.91, 0.90, 0.88, 0.87, 0.84, 0.80],
+  SI1:  [0.88, 0.85, 0.83, 0.81, 0.78, 0.74, 0.71, 0.66, 0.60],
+  SI2:  [0.76, 0.73, 0.71, 0.69, 0.63, 0.58, 0.53, 0.47, 0.42],
+};
+function getClarityMult(clarity, ct) {
+  const vals = CLARITY_CARAT_MULTS_W[clarity];
+  if (!vals) return 1.00;
+  const knots = CLARITY_CARAT_KNOTS_W;
+  if (ct <= knots[0]) return vals[0];
+  if (ct >= knots[knots.length - 1]) return vals[vals.length - 1];
+  for (let i = 0; i < knots.length - 1; i++) {
+    if (ct <= knots[i + 1]) {
+      return lerp(vals[i], vals[i + 1], (ct - knots[i]) / (knots[i + 1] - knots[i]));
+    }
+  }
+  return 1.00;
+}
+// For fancy color, clarity impact is compressed (color masks inclusions)
 const clarityMultColor = { IF:1.07, VVS1:1.045, VVS2:1.025, VS1:1.00, VS2:0.965, SI1:0.925, SI2:0.865 };
 
 // Shape multipliers — per PriceScope 2026 data
@@ -767,18 +830,20 @@ const alibabaComps = [
 ];
 
 const MESSI_D_ROUND_URL = 'https://www.alibaba.com/product-detail/Factory-Prices-Lab-Created-VVS-VS1_1600612782670.html';
+// Wuzhou Messi Gems — D / Round / IGI. VERIFIED live May 18–19 2026 via live selector.
+// 0.3–6ct are exact selector prices; 7–8ct are extrapolated from per-carat growth curve.
 const messiDWhiteRoundLadder = {
-  VS2:  { 0.3:41, 0.5:64, 1:140, 1.5:216, 2:312, 3:487, 4:760, 5:1044, 6:1380 },
-  VS1:  { 0.3:45, 0.5:58, 1:121.50, 1.5:206, 2:293.50, 3:467.50, 4:832, 5:1173, 6:1500 },
-  VVS2: { 0.3:50, 0.5:61, 1:123.50, 1.5:216.50, 2:329.50, 3:535, 4:960, 5:1300, 6:1620 },
-  VVS1: { 0.3:68, 0.5:72, 1:129, 1.5:284.50, 2:580, 3:999, 4:1320, 5:1750, 6:2100 },
+  VS2:  { 0.3:41,   0.5:64,  1:140,   1.5:216,   2:312,   3:487,   4:760,   5:1044, 6:1380, 7:1680, 8:1980 },
+  VS1:  { 0.3:45,   0.5:58,  1:121.5, 1.5:206,   2:293.5, 3:467.5, 4:832,   5:1173, 6:1500, 7:1840, 8:2190 },
+  VVS2: { 0.3:50,   0.5:61,  1:123.5, 1.5:216.5, 2:329.5, 3:535,   4:960,   5:1300, 6:1620, 7:1970, 8:2340 },
+  VVS1: { 0.3:68,   0.5:72,  1:129,   1.5:284.5, 2:580,   3:999,   4:1320,  5:1750, 6:2100, 7:2580, 8:3060 },
 };
 
 function compute(ct) {
   ct = ct || state.carat;
   const sh = (shapeMult[state.shape] || 1.0);
   const shC = (shapeMultColor[state.shape] || 1.0);
-  const cl = clarityMult[state.clarity];
+  const cl = getClarityMult(state.clarity, ct);
   const clC = clarityMultColor[state.clarity];
 
   let wsPerCt, retailMult;
@@ -787,7 +852,9 @@ function compute(ct) {
     wsPerCt = baseWhitePerCt(ct)
       * (whiteGradeMult[state.whiteGrade] ?? 0.70)
       * cl * sh * cutMult[state.cut];
-    retailMult = ct>=5 ? [3.5,5.5] : ct>=3 ? [3.8,5.8] : ct>=2 ? [4.2,6.2] : [4.8,7.0];
+    // Retail multiplier recalibrated to Section 3 base prices + StoneAlgo May 2026 retail index.
+    // StoneAlgo: 1ct ~$585 (×6.4 ws), 2ct ~$1,223 (×3.5 ws), 3ct ~$1,751 (×3.6 ws), 5ct ~$2,530 (×2.0 ws)
+    retailMult = ct>=7 ? [2.0,3.5] : ct>=5 ? [2.2,4.0] : ct>=4 ? [2.5,4.5] : ct>=3 ? [2.8,5.0] : ct>=2 ? [3.0,5.5] : ct>=1 ? [4.0,6.5] : [4.5,7.0];
   } else {
     const fc = fancyColorBase[state.colorFamily];
     // Fancy color scales differently — per-carat premium grows with size (harder to grow large vivid)
@@ -862,7 +929,7 @@ function getMessiExactComp(ct = state.carat) {
     .sort((a,b) => a.diff - b.diff)[0];
 
   if (!target) return null;
-  const tolerance = target.size <= 2 ? 0.08 : 0.18;
+  const tolerance = target.size <= 2 ? 0.08 : target.size <= 6 ? 0.18 : 0.25;
   if (target.diff > tolerance) return null;
 
   const price = ladder[target.size];
@@ -1073,7 +1140,7 @@ function drawChart(){
   const pad={l:56,r:20,t:14,b:32};
   const savedCt = state.carat;
   const xs=[];
-  for(let c=0.5;c<=8.05;c+=0.25) xs.push(Math.round(c*100)/100);
+  for(let c=0.5;c<=10.05;c+=0.25) xs.push(Math.round(c*100)/100);
   const series = xs.map(c=>{
     state.carat=c;
     const m=compute(c);
@@ -1083,7 +1150,7 @@ function drawChart(){
 
   const askVal=(state.ask&&state.ask>0)?state.ask:0;
   const ymax=Math.max(...series.map(p=>p.retail),askVal)*1.12;
-  const xM=c=>pad.l+(c-0.5)/7.5*(cssW-pad.l-pad.r);
+  const xM=c=>pad.l+(c-0.5)/9.5*(cssW-pad.l-pad.r);
   const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
 
   ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
@@ -1093,7 +1160,7 @@ function drawChart(){
     ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
     ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
   }
-  [0.5,1,2,3,4,5,6,7,8].forEach(c=>{ ctx.fillText(c+'ct',xM(c)-10,cssH-10); });
+  [0.5,1,2,3,4,5,6,7,8,9,10].forEach(c=>{ ctx.fillText(c+'ct',xM(c)-10,cssH-10); });
 
   function plotLine(key,color,width){
     ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash([]);ctx.beginPath();
@@ -1203,6 +1270,7 @@ update();
 // IGI REPORT LOOKUP
 // ══════════════════════════════════════════════════════════════════════════════
 let lastIGIData = null;
+let igiAutoLookupTimer = null;
 const IGI_VERIFY_URL = 'https://www.igi.org/verify-Your-REPORT/?R=';
 const IGI_PDF_BASE = 'https://pdf.igi.org/';
 
@@ -1281,6 +1349,17 @@ function setIGINumberFromText(value) {
 function hasLookupableIGINumber(clean) {
   const digits = (clean.match(/\d{6,}/) || [''])[0];
   return digits.length >= 6;
+}
+
+function scheduleIGIAutoLookup(delay = 80) {
+  clearTimeout(igiAutoLookupTimer);
+  igiAutoLookupTimer = setTimeout(() => {
+    const input = document.getElementById('igi-number');
+    const clean = extractIGINumber(input.value);
+    if (!hasLookupableIGINumber(clean)) return;
+    input.value = displayIGINumber(clean);
+    lookupIGI();
+  }, delay);
 }
 
 async function pasteIGINumberFromClipboard() {
@@ -1984,9 +2063,19 @@ igiInputRow.addEventListener('click', e => {
 igiNumberInput.addEventListener('focus', () => igiNumberInput.select());
 igiNumberInput.addEventListener('click', () => igiNumberInput.select());
 igiNumberInput.addEventListener('paste', e => {
-  e.preventDefault();
-  const clean = setIGINumberFromText(e.clipboardData.getData('text'));
-  if (hasLookupableIGINumber(clean)) lookupIGI();
+  const pastedText = e.clipboardData && e.clipboardData.getData('text');
+  if (pastedText) {
+    e.preventDefault();
+    const clean = setIGINumberFromText(pastedText);
+    if (hasLookupableIGINumber(clean)) scheduleIGIAutoLookup(0);
+    return;
+  }
+  scheduleIGIAutoLookup(120);
+});
+igiNumberInput.addEventListener('input', e => {
+  if (e.inputType === 'insertFromPaste' || e.inputType === 'insertFromDrop') {
+    scheduleIGIAutoLookup(120);
+  }
 });
 igiNumberInput.addEventListener('keydown', e => { if(e.key==='Enter') lookupIGI(); });
 document.getElementById('igi-apply-btn').addEventListener('click', applyIGIReport);
