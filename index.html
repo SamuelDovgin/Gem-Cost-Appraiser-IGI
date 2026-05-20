@@ -300,16 +300,31 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <option value="blue_fi">Fancy Intense Blue</option>
           <option value="blue_fv">Fancy Vivid Blue</option>
         </optgroup>
-        <optgroup label="Other fancy colors">
+        <optgroup label="Green">
+          <option value="green_fl">Fancy Light / Greyish Green</option>
           <option value="green_f">Fancy Green</option>
           <option value="green_fi">Fancy Intense Green</option>
+          <option value="green_fv">Fancy Vivid Green</option>
+        </optgroup>
+        <optgroup label="Orange (limited data)">
+          <option value="orange_fl">Fancy Light Orange</option>
           <option value="orange_f">Fancy Orange</option>
           <option value="orange_fi">Fancy Intense Orange</option>
+          <option value="orange_fv">Fancy Vivid Orange</option>
+        </optgroup>
+        <optgroup label="Purple / Violet (limited data)">
+          <option value="purple_fl">Fancy Light Purple/Violet</option>
           <option value="purple_f">Fancy Purple/Violet</option>
           <option value="purple_fi">Fancy Intense Purple/Violet</option>
+        </optgroup>
+        <optgroup label="Red (verify IGI cert grade)">
+          <option value="red_purp">Fancy Purplish / Brownish Red</option>
+          <option value="red_f">Fancy Red (IGI, no modifier)</option>
+          <option value="red_fv">Fancy Vivid Red</option>
+        </optgroup>
+        <optgroup label="Other">
           <option value="brown_f">Fancy Brown / Champagne</option>
           <option value="black">Black Diamond</option>
-          <option value="red_f">Fancy Red</option>
         </optgroup>
       </select>
     </label>
@@ -705,31 +720,53 @@ function baseWhitePerCt(ct) {
   return basePc * (1 - discountFactor);
 }
 
-// Fancy color — base wholesale/direct-floor per carat at 1ct.
-// Rebased in 2026 against direct retail, public aggregator, and recent auction comps.
+// Fancy color — base wholesale/jeweler cost per carat at 1ct.
+// Calibrated to Alibaba IGI-certified showroom comps, Messi Gems verified listings,
+// and research cross-reference — May 2026 (see fancy-color-diamond-pricing.md).
+// ws1  = midpoint of verified 1ct $/ct wholesale range from research
+// scale = carat-scaling exponent: <1 means per-ct decreases with size (abundant supply),
+//         >1 means per-ct increases with size (genuinely scarce, harder to grow large)
+//         formula: wsPerCt = ws1 * ct^(scale-1)  → total ws = ws1 * ct^scale
+// rMult = retail multiplier center; actual range = [rMult×0.85, rMult×1.15]
 const fancyColorBase = {
-  // [wsPerCtAt1ct, wsCurveScaling, retailMult]
-  yellow_fl: { ws1:   80, scale:1.08, rMult:2.8, label:'Fancy Light Yellow' },
-  yellow_f:  { ws1:  110, scale:1.10, rMult:3.0, label:'Fancy Yellow' },
-  yellow_fi: { ws1:  145, scale:1.12, rMult:3.2, label:'Fancy Intense Yellow' },
-  yellow_fv: { ws1:  185, scale:1.14, rMult:3.6, label:'Fancy Vivid Yellow' },
-  pink_fl:   { ws1:   95, scale:1.08, rMult:2.9, label:'Fancy Light Pink' },
-  pink_f:    { ws1:  130, scale:1.10, rMult:3.2, label:'Fancy Pink' },
-  pink_fi:   { ws1:  165, scale:1.12, rMult:3.8, label:'Fancy Intense Pink' },
-  pink_fv:   { ws1:  205, scale:1.12, rMult:4.8, label:'Fancy Vivid Pink' },
-  blue_fl:   { ws1:  110, scale:1.08, rMult:3.0, label:'Fancy Light Blue' },
-  blue_f:    { ws1:  150, scale:1.10, rMult:3.3, label:'Fancy Blue' },
-  blue_fi:   { ws1:  195, scale:1.12, rMult:3.8, label:'Fancy Intense Blue' },
-  blue_fv:   { ws1:  250, scale:1.14, rMult:4.4, label:'Fancy Vivid Blue' },
-  green_f:   { ws1:  145, scale:1.10, rMult:3.4, label:'Fancy Green' },
-  green_fi:  { ws1:  225, scale:1.13, rMult:4.2, label:'Fancy Intense Green' },
-  orange_f:  { ws1:  135, scale:1.10, rMult:3.2, label:'Fancy Orange' },
-  orange_fi: { ws1:  200, scale:1.12, rMult:3.9, label:'Fancy Intense Orange' },
-  purple_f:  { ws1:  125, scale:1.09, rMult:3.0, label:'Fancy Purple/Violet' },
-  purple_fi: { ws1:  180, scale:1.11, rMult:3.6, label:'Fancy Intense Purple/Violet' },
-  brown_f:   { ws1:   75, scale:1.05, rMult:2.0, label:'Fancy Brown / Champagne' },
-  black:     { ws1:   70, scale:1.04, rMult:1.8, label:'Black Diamond' },
-  red_f:     { ws1:  320, scale:1.15, rMult:5.0, label:'Fancy Red' },
+  // — YELLOW (deepest supply of all colors; per-ct is flat-to-declining with size) —
+  yellow_fl: { ws1:   95, scale:0.91, rMult:2.6, label:'Fancy Light Yellow' },
+  yellow_f:  { ws1:  140, scale:0.91, rMult:2.9, label:'Fancy Yellow' },
+  yellow_fi: { ws1:  255, scale:1.00, rMult:3.2, label:'Fancy Intense Yellow' },
+  yellow_fv: { ws1:  375, scale:0.87, rMult:3.4, label:'Fancy Vivid Yellow' },
+  // — PINK (strong retail demand; supply thinner than yellow; modest per-ct decline with size) —
+  pink_fl:   { ws1:  150, scale:0.91, rMult:3.0, label:'Fancy Light Pink' },
+  pink_f:    { ws1:  220, scale:0.91, rMult:3.4, label:'Fancy Pink' },
+  pink_fi:   { ws1:  330, scale:0.90, rMult:3.8, label:'Fancy Intense Pink' },
+  pink_fv:   { ws1:  500, scale:0.88, rMult:4.2, label:'Fancy Vivid Pink' },
+  // — BLUE (cushion/radiant preferred; similar curve to pink) —
+  blue_fl:   { ws1:  175, scale:0.92, rMult:3.0, label:'Fancy Light Blue' },
+  blue_f:    { ws1:  240, scale:0.92, rMult:3.3, label:'Fancy Blue' },
+  blue_fi:   { ws1:  330, scale:0.92, rMult:3.8, label:'Fancy Intense Blue' },
+  blue_fv:   { ws1:  450, scale:0.90, rMult:4.2, label:'Fancy Vivid Blue' },
+  // — GREEN (scarcer than pink/yellow; grey modifier = significant discount) —
+  green_fl:  { ws1:  155, scale:0.90, rMult:2.8, label:'Fancy Light / Greyish Green' },
+  green_f:   { ws1:  220, scale:0.92, rMult:3.2, label:'Fancy Green' },
+  green_fi:  { ws1:  400, scale:0.92, rMult:3.8, label:'Fancy Intense Green' },
+  green_fv:  { ws1:  525, scale:0.90, rMult:4.2, label:'Fancy Vivid Green' },
+  // — ORANGE (very thin market; sparse verified data — treat as estimates) —
+  orange_fl: { ws1:  140, scale:0.95, rMult:2.8, label:'Fancy Light Orange' },
+  orange_f:  { ws1:  275, scale:1.00, rMult:3.2, label:'Fancy Orange' },
+  orange_fi: { ws1:  475, scale:1.02, rMult:3.8, label:'Fancy Intense Orange' },
+  orange_fv: { ws1:  700, scale:1.00, rMult:4.5, label:'Fancy Vivid Orange' },
+  // — PURPLE / VIOLET (rarest reliably producible color; near-no Alibaba data) —
+  purple_fl: { ws1:  225, scale:1.02, rMult:3.2, label:'Fancy Light Purple/Violet' },
+  purple_f:  { ws1:  450, scale:1.05, rMult:3.8, label:'Fancy Purple/Violet' },
+  purple_fi: { ws1:  900, scale:1.08, rMult:4.5, label:'Fancy Intense Purple/Violet' },
+  // — BROWN / CHAMPAGNE (near-commodity; flat pricing) —
+  brown_f:   { ws1:   60, scale:0.95, rMult:2.0, label:'Fancy Brown / Champagne' },
+  // — BLACK (opaque; no clarity grade; price driven by size and polish only) —
+  black:     { ws1:   45, scale:1.00, rMult:1.8, label:'Black Diamond' },
+  // — RED (rarest of all; per-ct increases steeply with size; most "red" listings are
+  //        actually Purplish/Brownish Red — verify exact IGI color grade field) —
+  red_purp:  { ws1:  390, scale:1.10, rMult:4.2, label:'Fancy Purplish / Brownish Red' },
+  red_f:     { ws1:  625, scale:1.20, rMult:5.0, label:'Fancy Red (IGI, no modifier)' },
+  red_fv:    { ws1:  950, scale:1.25, rMult:5.5, label:'Fancy Vivid Red' },
 };
 
 // Color grade multipliers (white only)
@@ -766,8 +803,11 @@ function getClarityMult(clarity, ct) {
   }
   return 1.00;
 }
-// For fancy color, clarity impact is compressed (color masks inclusions)
-const clarityMultColor = { IF:1.07, VVS1:1.045, VVS2:1.025, VS1:1.00, VS2:0.965, SI1:0.925, SI2:0.865 };
+// For fancy color, clarity impact is compressed (color masks inclusions).
+// Midpoints of research ranges from fancy-color-diamond-pricing.md, May 2026:
+// IF 1.10–1.20, VVS1 1.05–1.12, VVS2 1.02–1.06, VS1 1.00 (baseline),
+// VS2 0.93–0.97, SI1 0.85–0.92, SI2 0.72–0.82.
+const clarityMultColor = { IF:1.12, VVS1:1.08, VVS2:1.04, VS1:1.00, VS2:0.95, SI1:0.89, SI2:0.77 };
 
 // Shape multipliers — per PriceScope 2026 data
 const shapeMult = {
@@ -778,13 +818,16 @@ const shapeMult = {
   emerald:0.83, asscher:0.84, baguette:0.76, tapered_baguette:0.74, carre:0.80,
   rose:0.72, briolette:0.70, portuguese:0.85, flanders:0.83,
 };
-// Fancy color shapes — cutters optimize for color not brilliance
+// Fancy color shapes — cutters optimize for color not brilliance.
+// Heart commands a documented premium for pink and blue (verified Alibaba comps).
+// Asscher shows ~parity with radiant for yellow (observed comp premium, May 2026).
+// Marquise is popular for vivid pink; oval is preferred for yellow.
 const shapeMultColor = {
-  round:0.90, oval:1.05, pear:1.03, marquise:0.88, heart:0.85, trilliant:0.84,
+  round:0.90, oval:1.05, pear:1.03, marquise:0.93, heart:0.96, trilliant:0.84,
   old_european:0.88, old_mine:0.86,
   cushion:1.00, cushion_brilliant:1.00, square_cushion:1.00, radiant:1.02, sq_radiant:1.00,
   princess:0.90, half_moon:0.82, shield:0.80, hexagonal:0.81,
-  emerald:0.96, asscher:0.94, baguette:0.78, tapered_baguette:0.76, carre:0.86,
+  emerald:0.96, asscher:1.02, baguette:0.78, tapered_baguette:0.76, carre:0.86,
   rose:0.75, briolette:0.72, portuguese:0.88, flanders:0.85,
 };
 const cutMult = { ideal:1.00, vg:0.94, good:0.87 };
