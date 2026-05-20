@@ -807,11 +807,11 @@ const fancyColorBase = {
 // Grades below E or above F are thin factory stock; discounts are steeper than the old
 // G-centered model because suppliers list DEF + VVS/VS, not H/I or SI lots.
 const whiteGradeMult = {
-  D:1.08, E:1.00, F:0.92, G:0.88, H:0.80, I:0.72, J:0.63,
-  K:0.55, L:0.49, M:0.43, 'N-P':0.35, 'Q-R':0.27, 'S-Z':0.21
+  D:1.08, E:1.00, F:0.92, G:0.88, H:0.82, I:0.71, J:0.60,
+  K:0.50, L:0.42, M:0.35, 'N-P':0.28, 'Q-R':0.21, 'S-Z':0.16
 };
 
-// Clarity multipliers — WHITE diamonds: carat-weighted (research Table 5B, May 2026 v3.1).
+// Clarity multipliers — WHITE diamonds: carat-weighted (research Table 5A, May 2026 v3.1).
 // Wider spreads than v3: below-VS1 is off-catalog on most Alibaba IGI listings; above-VS1
 // premiums matter even at 1ct when buying US importer stock.
 const CLARITY_CARAT_KNOTS_W = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0];
@@ -820,9 +820,9 @@ const CLARITY_CARAT_MULTS_W = {
   VVS1: [1.10, 1.14, 1.16, 1.20, 1.36, 1.44, 1.52, 1.62, 1.78],
   VVS2: [1.05, 1.08, 1.09, 1.12, 1.14, 1.16, 1.18, 1.21, 1.24],
   VS1:  [1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00],
-  VS2:  [0.92, 0.88, 0.86, 0.84, 0.84, 0.82, 0.80, 0.77, 0.73],
-  SI1:  [0.84, 0.68, 0.62, 0.48, 0.50, 0.48, 0.46, 0.42, 0.38],
-  SI2:  [0.72, 0.58, 0.52, 0.38, 0.40, 0.38, 0.36, 0.32, 0.28],
+  VS2:  [0.92, 0.88, 0.87, 0.86, 0.84, 0.82, 0.80, 0.76, 0.70],
+  SI1:  [0.84, 0.72, 0.60, 0.44, 0.38, 0.34, 0.30, 0.26, 0.22],
+  SI2:  [0.72, 0.58, 0.46, 0.34, 0.28, 0.24, 0.20, 0.16, 0.12],
 };
 const ELONGATED_SI_SHAPES = new Set(['pear','oval','marquise','emerald','asscher','radiant','heart']);
 const CVD_WS = 0.90;

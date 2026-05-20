@@ -327,13 +327,13 @@ Lab-grown diamond price per carat is **NOT linear**. It falls at 2.5–3ct (over
 Do not use flat clarity multipliers. A VVS1 at 1ct is **+14%** over VS1. At 5ct it is **+52%**. At 10ct it is **+78%**. Below VS1 (VS2/SI) is off-catalog on most Alibaba IGI listings. **SI1 at 2ct is −56% below VS1** (not −15% as in old v3). SI2 at 2ct is −66%. These are distressed-lot prices, not standard catalog goods.
 
 ### Rule 3: Color — E is the Floor, Not G
-Alibaba white IGI stock is **DEF + VVS/VS**. E/VS1 is the commodity baseline. D is +8% over E. **G is −12%** — not "basically the same." **H is −18%** (code: ×0.88 vs G). I/J/K are −29%/−40%/−50% respectively — lab buyers can always source DEF stock, making H-Z off-catalog carry much steeper discounts than the legacy G-centered model implied.
+Alibaba white IGI stock is **DEF + VVS/VS**. E/VS1 is the commodity baseline. D is +8% over E. **G is −12%** — not "basically the same." **H is −18% vs E**. I/J/K are −29%/−40%/−50% respectively — lab buyers can always source DEF stock, making H-Z off-catalog carry much steeper discounts than the legacy G-centered model implied.
 
 ### Rule 4: Shape Discount is Real Money at Scale
 Choosing emerald over round saves ~17% at wholesale. That's $83 per stone at 1ct, but $203 per stone at 3ct. The savings are real — but emerald requires higher clarity to look good (inclusions visible through the open table).
 
 ### Rule 5: SI2 is Unmarketable at Large Sizes
-A 5ct SI2 round lab-grown with a visible inclusion under the table is extremely hard to resell. Discount from VS1 is ~47% at 5ct and ~58% at 10ct — but there's almost no retail buyer for the large SI2 grade. Avoid SI2 above 3ct unless the inclusion is confirmed peripheral and eye-clean.
+A 5ct SI2 round lab-grown with a visible inclusion under the table is extremely hard to resell. Discount from VS1 is ~80% at 5ct and ~88% at 10ct — but there's almost no retail buyer for the large SI2 grade. Avoid SI2 above 3ct unless the inclusion is confirmed peripheral and eye-clean.
 
 ### Rule 6: The Alibaba Ceiling Test
 For any white IGI lab-grown, the Wuzhou Messi Gems Alibaba price (D color, round) is the factory-floor ceiling for **D** at that carat/clarity. Convert to your color: **E ≈ D ÷ 1.08**, **G ≈ D ÷ 1.23**. A US jeweler buying E/VS1 should pay ~15–25% above the Alibaba E-equivalent. TikTok/direct at **$100 for ~1ct E/VS1** is at factory exit — not importer stock. If asked to pay far above the color-adjusted Messi ceiling with no beauty premium, walk away.
