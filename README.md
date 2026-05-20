@@ -12,7 +12,16 @@ https://samueldovgin.github.io/Gem-Cost-Appraiser-IGI/
 
 - `index.html` - the full calculator app.
 - `alibaba-igi-wholesale-comps.md` - research notes and Alibaba IGI wholesale comparison data.
-- `.github/workflows/pages.yml` - GitHub Pages deployment workflow.
+
+## GitHub Pages Setup
+
+In the GitHub repository, go to **Settings -> Pages** and use:
+
+- Source: `Deploy from a branch`
+- Branch: `main`
+- Folder: `/ (root)`
+
+Save the setting, then GitHub will publish the site at the URL above.
 
 ## Local Preview
 
