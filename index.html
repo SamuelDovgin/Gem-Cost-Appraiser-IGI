@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab Diamond Price Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--surface:#141414;--surface2:#1c1c1c;--surface3:#222;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#f0ede8;--muted:#6b6460;--muted2:#9a9490;
+  --accent:#d4af72;--accent-dim:rgba(212,175,114,0.1);--accent-dim2:rgba(212,175,114,0.06);
+  --green:#4caf7a;--green-dim:rgba(76,175,122,0.1);
+  --blue:#5b9bd5;--blue-dim:rgba(91,155,213,0.1);
+  --orange:#e09040;--orange-dim:rgba(224,144,64,0.1);
+  --red:#e06060;--red-dim:rgba(224,96,96,0.09);
+  --pink:#e070a0;--pink-dim:rgba(220,100,150,0.1);
+  --yellow:#d4c040;--yellow-dim:rgba(212,192,64,0.1);
+  --purple:#9b70d4;--purple-dim:rgba(155,112,212,0.1);
+  --teal:#40b4b4;
+}
+body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.35}
+.wrapper{position:relative;z-index:1;width:100%;max-width:980px;padding:44px 24px 80px}
+
+/* ── HEADER ── */
+header{margin-bottom:36px}
+.eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+h1{font-family:'DM Serif Display',serif;font-size:clamp(26px,4.5vw,42px);font-weight:400;line-height:1.08;margin-bottom:10px}
+h1 em{font-style:italic;color:var(--accent)}
+.subtitle{font-size:13px;color:var(--muted2);line-height:1.65;max-width:720px}
+.callout{margin-top:13px;padding:11px 14px;border:0.5px solid rgba(212,175,114,0.22);background:var(--accent-dim2);border-radius:10px;color:#c0aa80;font-size:12px;line-height:1.6}
+
+/* ── SECTIONS ── */
+.section{margin-bottom:22px}
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.section-label::after{content:'';flex:1;height:.5px;background:var(--border)}
+.sub-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:8px 0 6px;opacity:.7}
+
+/* ── PILLS ── */
+.pills{display:flex;flex-wrap:wrap;gap:7px}
+.pill{cursor:pointer;border:.5px solid var(--border);background:var(--surface);color:var(--muted2);padding:6px 14px;border-radius:100px;font-size:12.5px;font-family:'Instrument Sans',sans-serif;font-weight:500;transition:all .13s;user-select:none;white-space:nowrap}
+.pill:hover{border-color:var(--border2);color:var(--text)}
+.pill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+
+/* ── SELECTS ── */
+.select-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.select-grid.single{grid-template-columns:1fr}
+.select-field{display:flex;flex-direction:column;gap:7px}
+.select-field span{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.select-field select{width:100%;border:.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:11px 38px 11px 14px;font-family:'Instrument Sans',sans-serif;font-size:13px;line-height:1.35;outline:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--accent) 50%),linear-gradient(135deg,var(--accent) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.select-field select:focus{border-color:var(--accent)}
+.select-note{font-size:11px;color:var(--muted2);line-height:1.55;margin-top:8px}
+@media(max-width:640px){.select-grid{grid-template-columns:1fr}}
+
+/* Color-specific pill active states */
+.pill.active[data-color-type="white"]{background:rgba(240,237,232,0.1);border-color:#f0ede8;color:#f0ede8}
+.pill.active[data-color-type="yellow"]{background:var(--yellow-dim);border-color:var(--yellow);color:var(--yellow)}
+.pill.active[data-color-type="pink"]{background:var(--pink-dim);border-color:var(--pink);color:var(--pink)}
+.pill.active[data-color-type="blue"]{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+.pill.active[data-color-type="green"]{background:rgba(80,180,80,0.1);border-color:#50b450;color:#50b450}
+.pill.active[data-color-type="orange"]{background:var(--orange-dim);border-color:var(--orange);color:var(--orange)}
+.pill.active[data-color-type="purple"]{background:var(--purple-dim);border-color:var(--purple);color:var(--purple)}
+.pill.active[data-color-type="brown"]{background:rgba(160,100,60,0.12);border-color:#a0643c;color:#c08060}
+.pill.active[data-color-type="black"]{background:rgba(180,180,180,0.08);border-color:#888;color:#aaa}
+.pill.active[data-color-type="red"]{background:var(--red-dim);border-color:var(--red);color:var(--red)}
+
+/* Intensity pills */
+.pill.active[data-group="intensity"]{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+
+/* ── SLIDER ── */
+.slider-row{display:flex;align-items:center;gap:16px}
+.slider-wrap{flex:1}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:var(--border2);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--bg);box-shadow:0 0 0 1px var(--accent);transition:transform .1s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.slider-value{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--accent);min-width:74px;text-align:right}
+.slider-ticks{display:flex;justify-content:space-between;margin-top:5px}
+.slider-ticks span{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted)}
+
+/* ── ASK INPUT ── */
+.ask-row{display:flex;align-items:center;gap:14px}
+.ask-input{width:150px;border:.5px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:14px;outline:none;transition:border-color .15s}
+.ask-input:focus{border-color:var(--accent)}
+.ask-help{font-size:12px;color:var(--muted2);line-height:1.5}
+
+/* ── TOGGLES ── */
+.toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.toggle-grid{grid-template-columns:1fr}}
+.trow{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--surface2);border:.5px solid var(--border);border-radius:10px;cursor:pointer;transition:border-color .15s}
+.trow:hover{border-color:var(--border2)}
+.trow.on{border-color:rgba(212,175,114,0.4);background:var(--accent-dim2)}
+.trow.on.color-seller{border-color:rgba(224,144,64,0.4);background:var(--orange-dim)}
+.trow.on.color-vol{border-color:rgba(76,175,122,0.35);background:var(--green-dim)}
+.trow.on.color-igi{border-color:rgba(91,155,213,0.35);background:var(--blue-dim)}
+.trow.on.color-cvd{border-color:rgba(155,112,212,0.35);background:var(--purple-dim)}
+.trow.on.color-as-grown{border-color:rgba(212,175,114,0.4);background:var(--accent-dim)}
+.trow.on.color-cert-upgrade{border-color:rgba(224,96,96,0.3);background:var(--red-dim)}
+.tsw{flex-shrink:0;width:34px;height:19px;border-radius:10px;background:rgba(255,255,255,0.08);border:.5px solid rgba(255,255,255,0.1);position:relative;transition:background .18s;margin-top:2px}
+.tsw::after{content:'';position:absolute;top:3px;left:3px;width:13px;height:13px;border-radius:50%;background:var(--muted);transition:all .18s}
+.trow.on .tsw{background:var(--accent)}
+.trow.on.color-seller .tsw{background:var(--orange)}
+.trow.on.color-vol .tsw{background:var(--green)}
+.trow.on.color-igi .tsw{background:var(--blue)}
+.trow.on.color-cvd .tsw{background:var(--purple)}
+.trow.on.color-cert-upgrade .tsw{background:var(--red)}
+.trow.on .tsw::after{left:18px;background:#fff}
+.t-title{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.3;margin-bottom:2px}
+.t-desc{font-size:11px;color:var(--muted2);line-height:1.5}
+.t-impact{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;font-weight:500;padding:1px 6px;border-radius:3px;margin-left:6px;vertical-align:middle}
+.i-orange{color:var(--orange);background:var(--orange-dim);border:.5px solid rgba(224,144,64,.25)}
+.i-green{color:var(--green);background:var(--green-dim);border:.5px solid rgba(76,175,122,.25)}
+.i-blue{color:var(--blue);background:var(--blue-dim);border:.5px solid rgba(91,155,213,.25)}
+.i-purple{color:var(--purple);background:var(--purple-dim);border:.5px solid rgba(155,112,212,.25)}
+.i-accent{color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25)}
+.i-red{color:var(--red);background:var(--red-dim);border:.5px solid rgba(224,96,96,.25)}
+
+/* ── RESULTS ── */
+.results{margin-top:30px;border:.5px solid var(--border);border-radius:16px;overflow:hidden;background:var(--surface)}
+.results-header{padding:16px 22px 13px;border-bottom:.5px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.stone-summary{font-family:'DM Serif Display',serif;font-size:16px;line-height:1.35}
+.stone-summary .color-tag{font-style:italic}
+.badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.bdg{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.07em;border-radius:4px;padding:3px 7px;white-space:nowrap}
+.bdg-blue{color:var(--blue);background:var(--blue-dim);border:.5px solid rgba(91,155,213,.2)}
+.bdg-orange{color:var(--orange);background:var(--orange-dim);border:.5px solid rgba(224,144,64,.25)}
+.bdg-green{color:var(--green);background:var(--green-dim);border:.5px solid rgba(76,175,122,.25)}
+.bdg-purple{color:var(--purple);background:var(--purple-dim);border:.5px solid rgba(155,112,212,.25)}
+.bdg-accent{color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25)}
+.bdg-red{color:var(--red);background:var(--red-dim);border:.5px solid rgba(224,96,96,.25)}
+
+.price-grid{display:grid;grid-template-columns:1fr 1fr 1fr}
+.pcell{padding:20px 22px}
+.pcell:not(:last-child){border-right:.5px solid var(--border)}
+.pcl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}
+.pcl.ws{color:var(--muted2)}
+.pcl.fair{color:var(--green)}
+.pcl.retail{color:var(--muted)}
+.pa{font-family:'DM Serif Display',serif;font-size:25px;font-weight:400;line-height:1.05;margin-bottom:4px;transition:all .2s}
+.pa.ws{color:var(--text)}
+.pa.fair{color:var(--green)}
+.pa.retail{color:var(--muted2)}
+.ppc{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.5}
+
+/* ── CHART ── */
+.chart-wrap{border-top:.5px solid var(--border);padding:16px 22px 20px}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.chart-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.legend{display:flex;gap:13px;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:14px;height:2px;border-radius:2px;display:inline-block}
+#price-chart{width:100%;height:200px;display:block;background:#0d0d0d;border:.5px solid var(--border);border-radius:10px}
+
+/* ── VERDICT ── */
+.verdict-bar{padding:13px 22px;border-top:.5px solid var(--border);display:flex;align-items:flex-start;gap:10px}
+.vdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.vtext{font-size:12px;line-height:1.6;color:var(--muted2)}
+.vtext strong{font-weight:600;color:var(--text)}
+.ratio-bar{padding:12px 22px;border-top:.5px solid var(--border);display:none;align-items:flex-start;gap:10px;background:rgba(255,255,255,0.015)}
+.ratio-bar.on{display:flex}
+.ratio-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--accent)}
+.ratio-text{font-size:12px;line-height:1.6;color:var(--muted2)}
+.ratio-text strong{font-weight:600;color:var(--text)}
+.ratio-questions{display:block;margin-top:7px;color:rgba(240,237,232,0.84)}
+.ratio-questions strong{color:var(--text);font-weight:700}
+.ratio-questions>strong{display:block;margin-bottom:3px}
+.ratio-questions ul{margin:0;padding-left:16px}
+.ratio-questions li{margin:2px 0}
+.market-bar{padding:12px 22px;border-top:.5px solid var(--border);display:none;align-items:flex-start;gap:10px;background:rgba(91,155,213,0.025)}
+.market-bar.on{display:flex}
+.market-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--blue)}
+.market-text{font-size:12px;line-height:1.6;color:var(--muted2)}
+.market-text strong{font-weight:600;color:var(--text)}
+
+/* ── SOURCE PANEL ── */
+.sources-panel{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:680px){.sources-panel{grid-template-columns:1fr}}
+.src-card{background:var(--surface2);border:.5px solid var(--border);border-radius:12px;padding:14px 16px}
+.src-name{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.src-item{font-size:11px;color:var(--muted2);line-height:1.55;display:flex;gap:7px;margin-bottom:5px}
+.src-item:last-child{margin-bottom:0}
+.src-item::before{content:'→';flex-shrink:0;color:var(--muted);font-size:10px;margin-top:1px}
+
+/* ── METHODOLOGY ── */
+.methodology{margin-top:12px;background:var(--surface2);border:.5px solid var(--border);border-radius:12px;padding:16px}
+.meth-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.meth-item{font-size:11px;color:var(--muted2);line-height:1.55;display:flex;gap:7px;margin-bottom:6px}
+.meth-item:last-child{margin-bottom:0}
+.meth-item::before{content:'✓';flex-shrink:0;color:var(--accent);font-size:10px;margin-top:2px}
+
+@media(max-width:640px){
+  .price-grid{grid-template-columns:1fr}
+  .pcell:not(:last-child){border-right:none;border-bottom:.5px solid var(--border)}
+  .pcell{padding:15px 18px}
+  .results-header{flex-direction:column;align-items:flex-start}
+  .ask-row{flex-direction:column;align-items:flex-start}
+  .ask-input{width:100%}
+}
+
+/* ── IGI LOOKUP ── */
+.igi-section{margin-bottom:22px}
+.igi-box{background:var(--surface2);border:.5px solid var(--border);border-radius:12px;overflow:hidden}
+.igi-input-row{display:flex;gap:0;align-items:stretch}
+.igi-number-input{flex:1;border:none;background:transparent;color:var(--text);padding:13px 16px;font-family:'DM Mono',monospace;font-size:14px;outline:none;min-width:0}
+.igi-number-input::placeholder{color:var(--muted)}
+.igi-btn{flex-shrink:0;background:var(--accent-dim);border:none;border-left:.5px solid var(--border);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;padding:0 18px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.igi-btn:hover{background:rgba(212,175,114,0.18)}
+.igi-btn:disabled{opacity:.4;cursor:not-allowed}
+.igi-status{padding:11px 16px;border-top:.5px solid var(--border);font-size:12px;line-height:1.6;min-height:44px;display:flex;align-items:flex-start;gap:10px}
+.igi-status.idle{color:var(--muted)}
+.igi-status.loading{color:var(--muted2)}
+.igi-status.success{color:var(--green);border-top-color:rgba(76,175,122,0.2);background:rgba(76,175,122,0.04)}
+.igi-status.error{color:var(--red);border-top-color:rgba(224,96,96,0.2);background:rgba(224,96,96,0.04)}
+.igi-status.warn{color:var(--orange);border-top-color:rgba(224,144,64,0.2);background:rgba(224,144,64,0.04)}
+.igi-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.igi-report-card{margin-top:0;border-top:.5px solid var(--border);padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;background:rgba(76,175,122,0.03)}
+.irc-field{display:flex;flex-direction:column;gap:2px}
+.irc-label{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.irc-value{font-family:'DM Mono',monospace;font-size:12px;color:var(--text);font-weight:500}
+.irc-value.highlight{color:var(--accent)}
+.igi-apply-btn{display:flex;margin:0 16px 14px;padding:9px 0;background:var(--green-dim);border:.5px solid rgba(76,175,122,0.3);border-radius:8px;color:var(--green);font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;text-align:center;justify-content:center;cursor:pointer;transition:all .15s;gap:6px}
+.igi-apply-btn:hover{background:rgba(76,175,122,0.18)}
+.spin{display:inline-block;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<header>
+  <div class="eyebrow">Lab-Grown Diamond Pricer — v3</div>
+  <h1>What is that stone <em>actually</em> worth?</h1>
+  <p class="subtitle">Loose IGI-certified lab diamonds — white &amp; fancy color. Priced against verified 2026 wholesale data from Alibaba supplier selectors, Washington Diamond, Edahn Golan, LuxeGem, PriceScope, and Rosec Jewels. Adjust every relevant variable below.</p>
+  <div class="callout">Sanity check — not an appraisal. Always verify cert at <strong>igi.org</strong> before buying. Ask for measurements, video, and table/depth specs on sight-unseen purchases.</div>
+</header>
+
+<!-- CARAT -->
+<div class="section">
+  <div class="section-label">Carat weight</div>
+  <div class="slider-row">
+    <div class="slider-wrap">
+      <input type="range" id="carat" min="0.5" max="8" step="0.1" value="3">
+      <div class="slider-ticks">
+        <span>0.5</span><span>1</span><span>1.5</span><span>2</span><span>2.5</span><span>3</span><span>3.5</span><span>4</span><span>4.5</span><span>5</span><span>5.5</span><span>6</span><span>6.5</span><span>7</span><span>7.5</span><span>8</span>
+      </div>
+    </div>
+    <div class="slider-value" id="carat-display">3.0 ct</div>
+  </div>
+</div>
+
+<!-- COLOR FAMILY -->
+<div class="section">
+  <div class="section-label">Diamond color</div>
+  <div class="select-grid single">
+    <label class="select-field">
+      <span>IGI color grade</span>
+      <select id="color-select">
+        <optgroup label="White / near colorless">
+          <option value="white:D">D</option>
+          <option value="white:E">E</option>
+          <option value="white:F">F</option>
+          <option value="white:G" selected>G</option>
+          <option value="white:H">H</option>
+          <option value="white:I">I</option>
+          <option value="white:J">J</option>
+          <option value="white:K">K</option>
+          <option value="white:L">L</option>
+          <option value="white:M">M</option>
+          <option value="white:N-P">N-P</option>
+          <option value="white:Q-R">Q-R</option>
+          <option value="white:S-Z">S-Z</option>
+        </optgroup>
+        <optgroup label="Yellow">
+          <option value="yellow_fl">Fancy Light Yellow</option>
+          <option value="yellow_f">Fancy Yellow</option>
+          <option value="yellow_fi">Fancy Intense Yellow</option>
+          <option value="yellow_fv">Fancy Vivid Yellow</option>
+        </optgroup>
+        <optgroup label="Pink">
+          <option value="pink_fl">Fancy Light Pink</option>
+          <option value="pink_f">Fancy Pink</option>
+          <option value="pink_fi">Fancy Intense Pink</option>
+          <option value="pink_fv">Fancy Vivid Pink</option>
+        </optgroup>
+        <optgroup label="Blue">
+          <option value="blue_fl">Fancy Light Blue</option>
+          <option value="blue_f">Fancy Blue</option>
+          <option value="blue_fi">Fancy Intense Blue</option>
+          <option value="blue_fv">Fancy Vivid Blue</option>
+        </optgroup>
+        <optgroup label="Other fancy colors">
+          <option value="green_f">Fancy Green</option>
+          <option value="green_fi">Fancy Intense Green</option>
+          <option value="orange_f">Fancy Orange</option>
+          <option value="orange_fi">Fancy Intense Orange</option>
+          <option value="purple_f">Fancy Purple/Violet</option>
+          <option value="purple_fi">Fancy Intense Purple/Violet</option>
+          <option value="brown_f">Fancy Brown / Champagne</option>
+          <option value="black">Black Diamond</option>
+          <option value="red_f">Fancy Red</option>
+        </optgroup>
+      </select>
+    </label>
+  </div>
+  <div class="select-note">The options use the same common wording you will usually see in IGI's Color Grade field.</div>
+</div>
+
+<!-- CLARITY -->
+<div class="section">
+  <div class="section-label">Clarity</div>
+  <div class="pills">
+    <div class="pill" data-group="clarity" data-val="IF">IF</div>
+    <div class="pill" data-group="clarity" data-val="VVS1">VVS1</div>
+    <div class="pill" data-group="clarity" data-val="VVS2">VVS2</div>
+    <div class="pill active" data-group="clarity" data-val="VS1">VS1</div>
+    <div class="pill" data-group="clarity" data-val="VS2">VS2</div>
+    <div class="pill" data-group="clarity" data-val="SI1">SI1</div>
+    <div class="pill" data-group="clarity" data-val="SI2">SI2</div>
+  </div>
+</div>
+
+<!-- SHAPE -->
+<div class="section">
+  <div class="section-label">Shape</div>
+  <div class="select-grid single">
+    <label class="select-field">
+      <span>IGI shape and cutting style</span>
+      <select id="shape-select">
+        <optgroup label="Common brilliant cuts">
+          <option value="round" selected>Round Brilliant</option>
+          <option value="oval">Oval Brilliant</option>
+          <option value="pear">Pear Modified Brilliant</option>
+          <option value="marquise">Marquise Brilliant</option>
+          <option value="heart">Heart Modified Brilliant</option>
+        </optgroup>
+        <optgroup label="Cushion / radiant / princess">
+          <option value="cushion_brilliant">Cushion Brilliant</option>
+          <option value="cushion">Cushion Modified Brilliant</option>
+          <option value="square_cushion">Square Cushion Modified Brilliant</option>
+          <option value="radiant">Cut Cornered Rectangular Modified Brilliant</option>
+          <option value="sq_radiant">Cut Cornered Square Modified Brilliant</option>
+          <option value="princess">Princess Cut</option>
+        </optgroup>
+        <optgroup label="Step cuts">
+          <option value="emerald">Emerald Cut</option>
+          <option value="asscher">Square Emerald Cut</option>
+          <option value="baguette">Baguette Cut</option>
+          <option value="tapered_baguette">Tapered Baguette Cut</option>
+          <option value="carre">Carre Cut</option>
+        </optgroup>
+        <optgroup label="Unique / specialty cuts">
+          <option value="trilliant">Trilliant Cut</option>
+          <option value="half_moon">Half Moon Modified Brilliant</option>
+          <option value="shield">Shield Modified Brilliant</option>
+          <option value="hexagonal">Hexagonal Modified Brilliant</option>
+          <option value="old_european">Old European Brilliant</option>
+          <option value="old_mine">Old Mine Brilliant</option>
+          <option value="rose">Rose Cut</option>
+          <option value="briolette">Briolette</option>
+          <option value="portuguese">Portuguese Cut</option>
+          <option value="flanders">Flanders Cut</option>
+        </optgroup>
+      </select>
+    </label>
+  </div>
+</div>
+
+<!-- CUT -->
+<div class="section">
+  <div class="section-label">Cut grade</div>
+  <div class="pills">
+    <div class="pill active" data-group="cut" data-val="ideal">Ideal / Excellent / 3EX</div>
+    <div class="pill" data-group="cut" data-val="vg">Very Good</div>
+    <div class="pill" data-group="cut" data-val="good">Good</div>
+  </div>
+</div>
+
+<!-- IGI LOOKUP -->
+<div class="section igi-section">
+  <div class="section-label">IGI report lookup <span style="font-size:9px;color:var(--muted);margin-left:4px;letter-spacing:0">(optional — auto-fills all fields)</span></div>
+  <div class="igi-box">
+    <div class="igi-input-row">
+      <input class="igi-number-input" id="igi-number" type="text" inputmode="text" placeholder="Enter IGI report number e.g. LG630467873 or 630467873" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button class="igi-btn" id="igi-lookup-btn">LOOK UP REPORT ↗</button>
+    </div>
+    <div class="igi-status idle" id="igi-status">
+      <div class="igi-dot" style="background:var(--muted)"></div>
+      <span>Paste the IGI certificate number. The report will be read and all specs auto-filled — then scored against this model.</span>
+    </div>
+    <div id="igi-report-card" style="display:none"></div>
+    <div id="igi-apply-row" style="display:none">
+      <div class="igi-apply-btn" id="igi-apply-btn">✓ Apply report specs to calculator</div>
+    </div>
+  </div>
+</div>
+
+<!-- ASK PRICE -->
+<div class="section">
+  <div class="section-label">Seller asking price <span style="font-size:9px;color:var(--muted);margin-left:4px;letter-spacing:0">(optional)</span></div>
+  <div class="ask-row">
+    <input class="ask-input" id="ask-price" inputmode="decimal" placeholder="e.g. 500">
+    <div class="ask-help">Enter the TikTok / eBay / auction price to score it against this model.</div>
+  </div>
+</div>
+
+<!-- TOGGLES -->
+<div class="section">
+  <div class="section-label">Seller &amp; market modifiers</div>
+  <div class="toggle-grid">
+
+    <div class="trow color-seller" id="tog-china">
+      <div class="tsw"></div>
+      <div>
+        <div class="t-title">Chinese factory direct <span class="t-impact i-orange">−20–30% cost</span></div>
+        <div class="t-desc">Henan / Wuzhou HPHT/CVD factory selling on TikTok Shop or Alibaba. Eliminates Indian cutter, US importer. China = 40–50% global production at ~$0.04/kWh. Adds TikTok fee ~5%.</div>
+      </div>
+    </div>
+
+    <div class="trow color-vol" id="tog-auction">
+      <div class="tsw"></div>
+      <div>
+        <div class="t-title">High-volume auction seller <span class="t-impact i-green">−10–20% ask</span></div>
+        <div class="t-desc">Jeweler running 50+ lots/day (eBay, Worthy, I Do Now I Don't, etc.) operates on thin margin, fast turns. Lower overhead, lower hold cost, needs volume throughput.</div>
+      </div>
+    </div>
+
+    <div class="trow color-igi" id="tog-3ex">
+      <div class="tsw"></div>
+      <div>
+        <div class="t-title">IGI Triple Excellent (3EX) <span class="t-impact i-blue">+5–8% ws</span></div>
+        <div class="t-desc">Excellent cut + excellent polish + excellent symmetry. The gold standard for lab-grown. Adds measurable premium over standard Ideal at wholesale.</div>
+      </div>
+    </div>
+
+    <div class="trow color-cvd" id="tog-hpht">
+      <div class="tsw"></div>
+      <div>
+        <div class="t-title">HPHT grown (not CVD) <span class="t-impact i-purple">+5–12% ws</span></div>
+        <div class="t-desc">HPHT avoids CVD's striation/haziness issue; "as-grown" HPHT stones are cleaner. Wholesale commands slight premium, especially for D–F colors. (Most Chinese factory stones are HPHT.)</div>
+      </div>
+    </div>
+
+    <div class="trow color-as-grown" id="tog-asgrown">
+      <div class="tsw"></div>
+      <div>
+        <div class="t-title">As-grown (no post-treatment) <span class="t-impact i-accent">+3–8% ws</span></div>
+        <div class="t-desc">CVD stones often need HPHT post-treatment to fix color. An untreated "as-grown" stone is noted on the cert and commands a premium from buyers who care.</div>
+      </div>
+    </div>
+
+    <div class="trow color-cert-upgrade" id="tog-gia">
+      <div class="tsw"></div>
+      <div>
+        <div class="t-title">GIA certified (not IGI) <span class="t-impact i-red">+8–15% retail</span></div>
+        <div class="t-desc">GIA no longer grades lab-grown 4Cs (as of 2023) but still issues origin reports. IGI is the standard for lab-grown. A GIA cert on a lab stone is unusual and adds resale comfort.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="results">
+  <div class="results-header">
+    <div class="stone-summary" id="stone-summary">3.0ct · Round · G · VS1 · Ideal</div>
+    <div class="badges" id="badge-row">
+      <span class="bdg bdg-blue">IGI cert + inscription</span>
+    </div>
+  </div>
+  <div class="price-grid">
+    <div class="pcell">
+      <div class="pcl ws">What they paid</div>
+      <div class="pa ws" id="price-ws">—</div>
+      <div class="ppc" id="price-ws-sub">wholesale estimate</div>
+    </div>
+    <div class="pcell">
+      <div class="pcl fair">Fair direct / auction price</div>
+      <div class="pa fair" id="price-fair">—</div>
+      <div class="ppc" id="price-fair-sub">TikTok / direct / auction</div>
+    </div>
+    <div class="pcell">
+      <div class="pcl retail">Traditional retail</div>
+      <div class="pa retail" id="price-retail">—</div>
+      <div class="ppc" id="price-retail-sub">mall / big-box ask</div>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-head">
+      <div class="chart-title">Price curve 0.5–8ct · selected specs</div>
+      <div class="legend">
+        <span><i class="sw" style="background:#f0ede8"></i>Wholesale</span>
+        <span><i class="sw" style="background:#4caf7a"></i>Fair direct</span>
+        <span><i class="sw" style="background:#4a4540"></i>Retail</span>
+      </div>
+    </div>
+    <canvas id="price-chart" height="200"></canvas>
+  </div>
+
+  <div class="verdict-bar" id="verdict-bar">
+    <div class="vdot" id="vdot" style="background:var(--accent)"></div>
+    <div class="vtext" id="vtext">Enter a seller price above to score the deal.</div>
+  </div>
+  <div class="ratio-bar" id="ratio-bar">
+    <div class="ratio-dot" id="ratio-dot"></div>
+    <div class="ratio-text" id="ratio-text"></div>
+  </div>
+  <div class="market-bar" id="market-bar">
+    <div class="market-dot" id="market-dot"></div>
+    <div class="market-text" id="market-text"></div>
+  </div>
+</div>
+
+<!-- SOURCE VERIFICATION PANEL -->
+<div class="section" style="margin-top:28px">
+  <div class="section-label">Price verification — multiple sources</div>
+  <div class="sources-panel">
+
+    <div class="src-card">
+      <div class="src-name">StoneAlgo live retail index (May 16, 2026)</div>
+      <div class="src-item">All-shape online retail index: 1ct ~$585; 2ct ~$1,223; 3ct ~$1,751; 5ct ~$2,530.</div>
+      <div class="src-item">One-month price trend still negative for most sizes: 1ct −8.6%, 2ct −2.1%, 4ct −2.9%.</div>
+      <div class="src-item">Shape snapshot: round 1ct ~$564, pear 1ct ~$531, oval 1ct ~$590.</div>
+      <div class="src-item">StoneAlgo states its index reflects current online retail, not wholesale.</div>
+    </div>
+
+    <div class="src-card">
+      <div class="src-name">Edahn Golan wholesale list (Q2 2025)</div>
+      <div class="src-item">Small-volume IGI wholesale per ct: 1ct GH/VS round ~$76; 1.5ct GH/VS round ~$85; 2ct GH/VS round ~$92.</div>
+      <div class="src-item">3ct GH/VS round listed around ~$95/ct; fancy and square shapes vary by cut family.</div>
+      <div class="src-item">List notes goods are IGI-certified nice makes and small-volume transactions.</div>
+      <div class="src-item">Model keeps a 2026 buffer above pure memo/wholesale to account for cert, sourcing, and seller channel.</div>
+    </div>
+
+    <div class="src-card">
+      <div class="src-name">White lab audit outcome</div>
+      <div class="src-item">The wholesale floor remains very low; online retail is now often only ~2–3× trade, not old 5–10× spreads.</div>
+      <div class="src-item">D–F / VVS premiums are compressed; cut, growth notes, and video matter more than tiny clarity jumps.</div>
+      <div class="src-item">Large white stones are cheap online, so the model treats traditional retail as an ask ceiling, not a target.</div>
+      <div class="src-item">Chinese/direct and high-volume auction toggles should be used for real deal checks.</div>
+    </div>
+
+    <div class="src-card">
+      <div class="src-name">Alibaba exact supplier ladder (May 18, 2026)</div>
+      <div class="src-item">Wuzhou Messi Gems Co., Ltd. D/white Round Brilliant IGI selector: VS2 5ct $1,044; VS1 5ct $1,173; VVS2 5ct $1,300; VVS1 5ct $1,750.</div>
+      <div class="src-item">Same listing shows 1ct D/IGI at $121.50-$140 across VS1/VS2/VVS1/VVS2, and 6ct at $1,380-$2,100.</div>
+      <div class="src-item">The app now uses this named supplier ladder as the Alibaba ceiling when a D white round IGI stone lands near a listed size.</div>
+      <div class="src-item">Supplier page attributes: Wuzhou Messi Gems, 12 years, 4.9 rating, 124 sold, certificate type IGI, model MSD-00365.</div>
+    </div>
+
+    <div class="src-card">
+      <div class="src-name">Fancy color audit outcome</div>
+      <div class="src-item">Fancy color wholesale is thin and inconsistent; direct-sale comps are more useful than old natural-color analogies.</div>
+      <div class="src-item">Yellow and brown/black sit closest to white-lab pricing; vivid pink/blue/red keep the strongest premiums.</div>
+      <div class="src-item">Green/orange/purple premiums are modeled between yellow and vivid pink/blue due to lower demand depth.</div>
+      <div class="src-item">Intensity drives more value than VVS vs VS in lab fancy colors.</div>
+    </div>
+
+    <div class="src-card">
+      <div class="src-name">Fancy vivid pink comps</div>
+      <div class="src-item">Friendly Diamonds lists a 5.00ct Fancy Vivid Pink VS1 marquise at $2,898 sale / $4,830 crossed-out retail.</div>
+      <div class="src-item">Recent 5ct Fancy Vivid Pink VS1 marquise auction close: $1,585.</div>
+      <div class="src-item">This pins the model's 5ct vivid-pink auction/direct fair zone to low-four-figures, not legacy $5k–$10k retail.</div>
+      <div class="src-item">Above that, beauty/video can justify a premium, but it is no longer automatic scarcity pricing.</div>
+    </div>
+
+    <div class="src-card">
+      <div class="src-name">Ratio / shape demand</div>
+      <div class="src-item">Current buyer preference favors balanced rounds/squares and elegant elongated ovals, pears, radiants, emeralds, and marquises.</div>
+      <div class="src-item">Ratio does not grade light performance, but it affects face-up desirability and resale friction.</div>
+      <div class="src-item">Out-of-range ratios should be discounted unless color saturation, spread, and video are clearly strong.</div>
+      <div class="src-item">The ratio badge is advisory; measurements and actual video still win.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- METHODOLOGY -->
+<div class="methodology">
+  <div class="meth-title">Pricing model methodology</div>
+  <div class="meth-item"><strong>White baseline</strong>: Cross-checked against Edahn Golan Q2 2025 small-volume wholesale and StoneAlgo May 2026 live retail indexes. The model's "what they paid" is a practical trade-cost estimate after cert/sourcing friction, while "fair direct" is the realistic online/direct buy zone.</div>
+  <div class="meth-item"><strong>Fancy color baseline</strong>: Rebased to 2026 direct/auction lab-grown signals across yellow, pink, blue, green, orange, purple, brown, black, and red. Fancy Vivid Pink was specifically pinned to 5ct marquise comps around $1.6k auction and ~$2.9k direct-sale retail. Clarity matters less for fancy color — saturation and seller channel drive most of the spread.</div>
+  <div class="meth-item"><strong>Color grade mult (white only)</strong>: Compressed vs natural rates given lab-grown oversupply. D +12%, E +8%, F +4%, G baseline, H −6%, I −12%, J −20%, with steeper discounts below J.</div>
+  <div class="meth-item"><strong>Clarity mult</strong>: IF +14%; VVS1 +9%; VVS2 +5%; VS1 baseline; VS2 −7%; SI1 −15%; SI2 −27%. For fancy color, clarity impact halved (color masks inclusions).</div>
+  <div class="meth-item"><strong>Shape mult</strong>: Round baseline 1.0. Oval/pear +5–8% (demand premium, per PriceScope 2026 data showing 6% YoY oval increase). Step cuts (emerald, asscher) −15–17% (inclusion-visible, surplus Indian cutting). Specialty cuts (rose, briolette) −28–30% (niche demand, limited resale market).</div>
+  <div class="meth-item"><strong>Toggle modifiers</strong>: Chinese factory: −22% wholesale, fair price 1.3–1.6× ws. High-volume auction seller: fair price 1.2–1.45× ws (thin margins, fast turns). 3EX: +6% ws. HPHT: +8% ws. As-grown: +5% ws. GIA cert: +12% retail only.</div>
+  <div class="meth-item"><strong>Fair price markup</strong>: Standard seller 1.55–2.05× ws (covers IGI cert $80–150, shipping, platform fees, returns buffer, thin margin). Auction jeweler running volume 1.2–1.45× ws. Chinese factory 1.3–1.6× ws. Traditional retail 3.8–7× ws (per Tenoris 74% gross margin data).</div>
+</div>
+
+</div><!-- /wrapper -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════════
+const state = {
+  carat: 3.0,
+  colorFamily: 'white',
+  whiteGrade: 'G',
+  clarity: 'VS1',
+  shape: 'round',
+  cut: 'ideal',
+  ask: null,
+  china: false,
+  auction: false,
+  tri3ex: false,
+  hpht: false,
+  asgrown: false,
+  gia: false,
+  ratio: null,
+  ratioAssessment: null,
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRICING MODEL
+// ══════════════════════════════════════════════════════════════════════════════
+function lerp(a,b,t){ return a+(b-a)*t; }
+
+// White diamond baseline per carat (round, G, VS1, ideal) — 2026 verified
+// Anchors: 1ct=$91 (Washington Diamond/Edahn Golan), 2ct=$175, 3ct=$165 (oversupply),
+// 4ct=$198 (Liori), 5ct=$245, 6-8ct extrapolated from Liori + production complexity data
+function baseWhitePerCt(ct) {
+  const pts = [
+    [0.50,  58],
+    [1.00,  91],  // Edahn Golan anchor
+    [1.50, 130],
+    [2.00, 175],  // Washington Diamond anchor
+    [2.50, 173],
+    [3.00, 163],  // oversupply pressure; $180/ct D/VVS → ~$163 G/VS1
+    [3.50, 178],
+    [4.00, 198],  // Liori: 4ct G/VS1 ~$7-9k retail → ~$198/ct ws
+    [4.50, 222],
+    [5.00, 248],  // Liori: 5ct ~$11-16k retail → ~$248/ct ws
+    [5.50, 272],
+    [6.00, 298],
+    [6.50, 325],
+    [7.00, 352],
+    [7.50, 382],
+    [8.00, 412],
+  ];
+  if (ct <= pts[0][0]) return pts[0][1];
+  for (let i=0;i<pts.length-1;i++) {
+    const [x1,y1]=pts[i],[x2,y2]=pts[i+1];
+    if (ct<=x2) return lerp(y1,y2,(ct-x1)/(x2-x1));
+  }
+  return pts[pts.length-1][1]+(ct-8)*38;
+}
+
+// Fancy color — base wholesale/direct-floor per carat at 1ct.
+// Rebased in 2026 against direct retail, public aggregator, and recent auction comps.
+const fancyColorBase = {
+  // [wsPerCtAt1ct, wsCurveScaling, retailMult]
+  yellow_fl: { ws1:   80, scale:1.08, rMult:2.8, label:'Fancy Light Yellow' },
+  yellow_f:  { ws1:  110, scale:1.10, rMult:3.0, label:'Fancy Yellow' },
+  yellow_fi: { ws1:  145, scale:1.12, rMult:3.2, label:'Fancy Intense Yellow' },
+  yellow_fv: { ws1:  185, scale:1.14, rMult:3.6, label:'Fancy Vivid Yellow' },
+  pink_fl:   { ws1:   95, scale:1.08, rMult:2.9, label:'Fancy Light Pink' },
+  pink_f:    { ws1:  130, scale:1.10, rMult:3.2, label:'Fancy Pink' },
+  pink_fi:   { ws1:  165, scale:1.12, rMult:3.8, label:'Fancy Intense Pink' },
+  pink_fv:   { ws1:  205, scale:1.12, rMult:4.8, label:'Fancy Vivid Pink' },
+  blue_fl:   { ws1:  110, scale:1.08, rMult:3.0, label:'Fancy Light Blue' },
+  blue_f:    { ws1:  150, scale:1.10, rMult:3.3, label:'Fancy Blue' },
+  blue_fi:   { ws1:  195, scale:1.12, rMult:3.8, label:'Fancy Intense Blue' },
+  blue_fv:   { ws1:  250, scale:1.14, rMult:4.4, label:'Fancy Vivid Blue' },
+  green_f:   { ws1:  145, scale:1.10, rMult:3.4, label:'Fancy Green' },
+  green_fi:  { ws1:  225, scale:1.13, rMult:4.2, label:'Fancy Intense Green' },
+  orange_f:  { ws1:  135, scale:1.10, rMult:3.2, label:'Fancy Orange' },
+  orange_fi: { ws1:  200, scale:1.12, rMult:3.9, label:'Fancy Intense Orange' },
+  purple_f:  { ws1:  125, scale:1.09, rMult:3.0, label:'Fancy Purple/Violet' },
+  purple_fi: { ws1:  180, scale:1.11, rMult:3.6, label:'Fancy Intense Purple/Violet' },
+  brown_f:   { ws1:   75, scale:1.05, rMult:2.0, label:'Fancy Brown / Champagne' },
+  black:     { ws1:   70, scale:1.04, rMult:1.8, label:'Black Diamond' },
+  red_f:     { ws1:  320, scale:1.15, rMult:5.0, label:'Fancy Red' },
+};
+
+// Color grade multipliers (white only)
+const whiteGradeMult = {
+  D:1.12, E:1.08, F:1.04, G:1.00, H:0.94, I:0.88, J:0.80,
+  K:0.72, L:0.66, M:0.60, 'N-P':0.50, 'Q-R':0.40, 'S-Z':0.32
+};
+
+// Clarity multipliers
+const clarityMult = { IF:1.14, VVS1:1.09, VVS2:1.05, VS1:1.00, VS2:0.93, SI1:0.85, SI2:0.73 };
+// For fancy color, clarity impact is halved
+const clarityMultColor = { IF:1.07, VVS1:1.045, VVS2:1.025, VS1:1.00, VS2:0.965, SI1:0.925, SI2:0.865 };
+
+// Shape multipliers — per PriceScope 2026 data
+const shapeMult = {
+  round:1.00, oval:1.08, pear:1.05, marquise:0.87, heart:0.86, trilliant:0.82,
+  old_european:0.92, old_mine:0.88,
+  cushion:0.90, cushion_brilliant:0.91, square_cushion:0.90, radiant:0.87, sq_radiant:0.88,
+  princess:0.86, half_moon:0.80, shield:0.78, hexagonal:0.79,
+  emerald:0.83, asscher:0.84, baguette:0.76, tapered_baguette:0.74, carre:0.80,
+  rose:0.72, briolette:0.70, portuguese:0.85, flanders:0.83,
+};
+// Fancy color shapes — cutters optimize for color not brilliance
+const shapeMultColor = {
+  round:0.90, oval:1.05, pear:1.03, marquise:0.88, heart:0.85, trilliant:0.84,
+  old_european:0.88, old_mine:0.86,
+  cushion:1.00, cushion_brilliant:1.00, square_cushion:1.00, radiant:1.02, sq_radiant:1.00,
+  princess:0.90, half_moon:0.82, shield:0.80, hexagonal:0.81,
+  emerald:0.96, asscher:0.94, baguette:0.78, tapered_baguette:0.76, carre:0.86,
+  rose:0.75, briolette:0.72, portuguese:0.88, flanders:0.85,
+};
+const cutMult = { ideal:1.00, vg:0.94, good:0.87 };
+
+const ratioGuides = {
+  round: { lo:0.98, hi:1.02, idealLo:0.99, idealHi:1.01, label:'round outline' },
+  oval: { lo:1.30, hi:1.50, idealLo:1.35, idealHi:1.45, label:'oval' },
+  pear: { lo:1.50, hi:1.75, idealLo:1.55, idealHi:1.70, label:'pear' },
+  marquise: { lo:1.80, hi:2.20, idealLo:1.90, idealHi:2.10, label:'marquise' },
+  heart: { lo:0.90, hi:1.10, idealLo:0.95, idealHi:1.05, label:'heart' },
+  cushion: { lo:1.00, hi:1.30, idealLo:1.00, idealHi:1.20, label:'cushion' },
+  cushion_brilliant: { lo:1.00, hi:1.30, idealLo:1.00, idealHi:1.20, label:'cushion' },
+  square_cushion: { lo:0.98, hi:1.05, idealLo:0.99, idealHi:1.03, label:'square cushion' },
+  radiant: { lo:1.25, hi:1.55, idealLo:1.30, idealHi:1.45, label:'rectangular radiant' },
+  sq_radiant: { lo:0.98, hi:1.08, idealLo:1.00, idealHi:1.05, label:'square radiant' },
+  emerald: { lo:1.30, hi:1.60, idealLo:1.35, idealHi:1.50, label:'emerald' },
+  asscher: { lo:0.98, hi:1.08, idealLo:1.00, idealHi:1.05, label:'asscher' },
+  princess: { lo:0.98, hi:1.08, idealLo:1.00, idealHi:1.05, label:'princess' },
+};
+
+const CHINA_WS = 0.78;
+const CHINA_FAIR_LO = 1.30, CHINA_FAIR_HI = 1.60;
+const STD_FAIR_LO = 1.55, STD_FAIR_HI = 2.05;
+const AUC_FAIR_LO = 1.20, AUC_FAIR_HI = 1.45;
+
+function isWhite(){ return state.colorFamily === 'white'; }
+
+const alibabaComps = [
+  { id:'ali-white-def-oval-1-5', group:'white', shapes:['oval','pear','radiant','cushion','emerald','round','marquise'], ctMin:1, ctMax:5, lo:18.50, hi:1080, unit:'piece', label:'Alibaba IGI DEF VVS/VS oval/fancy loose 1-5ct', url:'https://www.alibaba.com/showroom/lab-grown-pink-diamond.html', note:'Broad factory listing range; verify exact IGI report.' },
+  { id:'ali-white-igi-0-6', group:'white', shapes:['round','oval','pear','radiant','cushion','emerald','marquise','princess'], ctMin:0.3, ctMax:6, lo:41, hi:2100, unit:'piece', label:'Alibaba IGI HPHT/CVD D/white VS1-VVS 0.3-6ct', url:'https://www.alibaba.com/showroom/price-yellow-diamond.html', note:'Broad white-lab factory ceiling.' },
+  { id:'ali-white-marquise-0-5', group:'white', shapes:['marquise'], ctMin:0.5, ctMax:5, lo:60, hi:480, unit:'piece', label:'Alibaba IGI DEF VVS/VS marquise 0.5-5ct', url:'https://www.alibaba.com/showroom/5-ct-marquise-diamond.html', note:'Very low marquise factory range; confirm size-specific quote.' },
+  { id:'ali-pink-general-0-5', group:'pink', shapes:['pear','oval','radiant','cushion','princess','marquise','heart'], ctMin:0.1, ctMax:5, lo:180, hi:260, unit:'ct', label:'Alibaba real fancy-color IGI pink CVD 0.1-5ct', url:'https://www.alibaba.com/showroom/lab-grown-pink-diamond.html', note:'Useful pink per-carat wholesale anchor.' },
+  { id:'ali-pink-vivid-fancy', group:'pink', shapes:['pear','oval','radiant','cushion','marquise','heart'], ctMin:1, ctMax:5, lo:330, hi:380, unit:'ct', label:'Alibaba IGI vivid pink pear/oval/radiant listing', url:'https://www.alibaba.com/showroom/lab-grown-pink-diamond.html', note:'Vivid pink ceiling when saturation is strong.' },
+  { id:'ali-pink-marquise-vivid', group:'pink', shapes:['marquise'], ctMin:1, ctMax:2.5, lo:198, hi:1398, unit:'piece', label:'Alibaba IGI Fancy Vivid Pink marquise 1-2ct', url:'https://www.alibaba.com/showroom/lab-grown-pink-diamond-price-per-carat.html', note:'Marquise vivid pink piece listing.' },
+  { id:'ali-pink-pear-3ct', group:'pink', shapes:['pear'], ctMin:2.5, ctMax:3.5, lo:270, hi:340, unit:'ct', label:'Alibaba IGI 3ct Fancy Pink pear VS', url:'https://www.alibaba.com/showroom/lab-grown-pink-diamond-price-per-carat.html', note:'Low 3ct pink pear anchor.' },
+  { id:'ali-yellow-vivid-oval', group:'yellow', shapes:['oval','pear','radiant','cushion','heart'], ctMin:1, ctMax:5, lo:105, hi:950, unit:'piece', label:'Alibaba IGI Fancy Vivid Yellow oval 1-5ct', url:'https://www.alibaba.com/showroom/price-yellow-diamond.html', note:'Broad yellow piece range.' },
+  { id:'ali-yellow-heart-1-3', group:'yellow', shapes:['heart'], ctMin:1, ctMax:3, lo:211, hi:1021, unit:'piece', label:'Alibaba IGI yellow/intense/vivid heart 1-3ct', url:'https://www.alibaba.com/showroom/vivid-yellow-diamonds.html', note:'Heart vivid yellow ceiling.' },
+  { id:'ali-yellow-radiant-intense', group:'yellow', shapes:['radiant'], ctMin:1, ctMax:5, lo:398, hi:1599, unit:'ct', label:'Alibaba IGI Fancy Intense Yellow radiant', url:'https://www.alibaba.com/showroom/price-yellow-diamond.html', note:'Higher radiant ask; use as top-end warning only.' },
+  { id:'ali-blue-vivid-round-3ct', group:'blue', shapes:['round'], ctMin:2, ctMax:3.5, lo:744, hi:744, unit:'piece', label:'Alibaba IGI Fancy Vivid Blue round VS2', url:'https://www.alibaba.com/product-detail/3CT-Fancy-Vivid-Blue-Round-Brilliant_10000040201984.html', note:'Specific blue vivid listing.' },
+  { id:'ali-blue-vivid-1ct', group:'blue', shapes:['round','oval','pear','radiant','heart','cushion'], ctMin:0.8, ctMax:1.5, lo:315, hi:541, unit:'piece', label:'Alibaba IGI Fancy Vivid Blue 1ct VS1', url:'https://www.alibaba.com/showroom/lab-grown-blue-diamond.html', note:'Converted from GBP range at rough 1.27 USD/GBP.' },
+  { id:'ali-blue-emerald-2-5', group:'blue', shapes:['emerald'], ctMin:2, ctMax:3, lo:423, hi:451, unit:'piece', label:'Alibaba IGI 2.5ct Fancy Blue emerald VS1', url:'https://www.alibaba.com/showroom/lab-grown-blue-diamond.html', note:'Converted from GBP range at rough 1.27 USD/GBP.' },
+  { id:'ali-black-loose', group:'black', shapes:['round','oval','pear','marquise','radiant','cushion'], ctMin:0.5, ctMax:5, lo:19, hi:58, unit:'ct', label:'Alibaba loose black lab-created diamond', url:'https://www.alibaba.com/showroom/lab-grown-pink-diamond-price-per-carat.html', note:'Black diamond low-premium benchmark.' },
+];
+
+const MESSI_D_ROUND_URL = 'https://www.alibaba.com/product-detail/Factory-Prices-Lab-Created-VVS-VS1_1600612782670.html';
+const messiDWhiteRoundLadder = {
+  VS2:  { 0.3:41, 0.5:64, 1:140, 1.5:216, 2:312, 3:487, 4:760, 5:1044, 6:1380 },
+  VS1:  { 0.3:45, 0.5:58, 1:121.50, 1.5:206, 2:293.50, 3:467.50, 4:832, 5:1173, 6:1500 },
+  VVS2: { 0.3:50, 0.5:61, 1:123.50, 1.5:216.50, 2:329.50, 3:535, 4:960, 5:1300, 6:1620 },
+  VVS1: { 0.3:68, 0.5:72, 1:129, 1.5:284.50, 2:580, 3:999, 4:1320, 5:1750, 6:2100 },
+};
+
+function compute(ct) {
+  ct = ct || state.carat;
+  const sh = (shapeMult[state.shape] || 1.0);
+  const shC = (shapeMultColor[state.shape] || 1.0);
+  const cl = clarityMult[state.clarity];
+  const clC = clarityMultColor[state.clarity];
+
+  let wsPerCt, retailMult;
+
+  if (isWhite()) {
+    wsPerCt = baseWhitePerCt(ct)
+      * (whiteGradeMult[state.whiteGrade] ?? 0.70)
+      * cl * sh * cutMult[state.cut];
+    retailMult = ct>=5 ? [3.5,5.5] : ct>=3 ? [3.8,5.8] : ct>=2 ? [4.2,6.2] : [4.8,7.0];
+  } else {
+    const fc = fancyColorBase[state.colorFamily];
+    // Fancy color scales differently — per-carat premium grows with size (harder to grow large vivid)
+    const scaledWs = fc.ws1 * Math.pow(ct, fc.scale - 1.0);
+    wsPerCt = scaledWs * clC * shC;
+    retailMult = [fc.rMult * 0.85, fc.rMult * 1.15];
+  }
+
+  // Toggle modifiers on wholesale cost
+  let wsMultiplier = 1.0;
+  if (state.china) wsMultiplier *= CHINA_WS;
+  if (state.tri3ex) wsMultiplier *= 1.06;
+  if (state.hpht) wsMultiplier *= 1.08;
+  if (state.asgrown) wsMultiplier *= 1.05;
+
+  const ws = wsPerCt * wsMultiplier * ct;
+
+  const certCost = Math.min(140, 85 + ct * 7);
+
+  // Fair price — uses lowest multiplier from all active toggles
+  let fairLo, fairHi;
+  if (state.china) {
+    fairLo = ws * CHINA_FAIR_LO + certCost + 55;
+    fairHi = ws * CHINA_FAIR_HI + certCost + 55;
+  } else if (state.auction) {
+    fairLo = ws * AUC_FAIR_LO + certCost;
+    fairHi = ws * AUC_FAIR_HI + certCost;
+  } else {
+    fairLo = ws * STD_FAIR_LO + certCost;
+    fairHi = ws * STD_FAIR_HI + certCost;
+  }
+
+  // Retail uses base ws (not china-discounted) — retail is independent of seller's cost
+  const baseWsRetail = wsPerCt * ct; // no china discount — retail uses market wholesale
+  const retailLo = baseWsRetail * retailMult[0] * (state.gia ? 1.12 : 1.0);
+  const retailHi = baseWsRetail * retailMult[1] * (state.gia ? 1.12 : 1.0);
+
+  const alibabaMatch = getAlibabaCeiling(ct);
+
+  return { ws, wsPerCt:wsPerCt*wsMultiplier, fairLo, fairHi, fairMid:(fairLo+fairHi)/2,
+           retailLo, retailHi, retailMid:(retailLo+retailHi)/2, alibabaMatch };
+}
+
+function colorCompGroup() {
+  if (isWhite()) return 'white';
+  if (state.colorFamily.includes('pink')) return 'pink';
+  if (state.colorFamily.includes('yellow')) return 'yellow';
+  if (state.colorFamily.includes('blue')) return 'blue';
+  if (state.colorFamily.includes('black')) return 'black';
+  if (state.colorFamily.includes('brown')) return 'brown';
+  if (state.colorFamily.includes('green')) return 'green';
+  if (state.colorFamily.includes('orange')) return 'orange';
+  if (state.colorFamily.includes('purple')) return 'purple';
+  if (state.colorFamily.includes('red')) return 'red';
+  return state.colorFamily;
+}
+
+function compPriceToTotal(comp, ct) {
+  const lo = comp.unit === 'ct' ? comp.lo * ct : comp.lo;
+  const hi = comp.unit === 'ct' ? comp.hi * ct : comp.hi;
+  return { lo, hi };
+}
+
+function getMessiExactComp(ct = state.carat) {
+  if (!isWhite() || state.whiteGrade !== 'D' || state.shape !== 'round') return null;
+  const ladder = messiDWhiteRoundLadder[state.clarity];
+  if (!ladder) return null;
+
+  const target = Object.keys(ladder)
+    .map(Number)
+    .map(size => ({ size, diff: Math.abs(size - ct) }))
+    .sort((a,b) => a.diff - b.diff)[0];
+
+  if (!target) return null;
+  const tolerance = target.size <= 2 ? 0.08 : 0.18;
+  if (target.diff > tolerance) return null;
+
+  const price = ladder[target.size];
+  return {
+    id:`messi-d-round-${state.clarity.toLowerCase()}-${target.size}ct`,
+    group:'white',
+    shapes:['round'],
+    ctMin:target.size - tolerance,
+    ctMax:target.size + tolerance,
+    lo:price,
+    hi:price,
+    unit:'piece',
+    label:`Wuzhou Messi Gems exact Alibaba IGI D ${state.clarity} round ${target.size}ct ladder`,
+    url:MESSI_D_ROUND_URL,
+    note:'Live Alibaba selector price captured 2026-05-18.',
+    totalLo:price,
+    totalHi:price,
+    exact:true,
+  };
+}
+
+function getAlibabaCeiling(ct = state.carat) {
+  const exact = getMessiExactComp(ct);
+  if (exact) return exact;
+
+  const group = colorCompGroup();
+  const matches = alibabaComps
+    .filter(comp => comp.group === group)
+    .filter(comp => !comp.shapes || comp.shapes.includes(state.shape))
+    .filter(comp => ct >= comp.ctMin && ct <= comp.ctMax)
+    .map(comp => {
+      const total = compPriceToTotal(comp, ct);
+      return { ...comp, totalLo: total.lo, totalHi: total.hi };
+    })
+    .sort((a,b) => a.totalHi - b.totalHi);
+
+  return matches[0] || null;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DISPLAY HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+function fmt(n){ return '$'+Math.round(n).toLocaleString(); }
+function fmtR(a,b){ return fmt(a)+'–'+fmt(b); }
+
+const shapeNames = {
+  round:'Round Brilliant',oval:'Oval Brilliant',pear:'Pear Modified Brilliant',
+  marquise:'Marquise Brilliant',heart:'Heart Modified Brilliant',
+  trilliant:'Trilliant Cut',old_european:'Old European Brilliant',old_mine:'Old Mine Brilliant',
+  cushion:'Cushion Modified Brilliant',cushion_brilliant:'Cushion Brilliant',
+  square_cushion:'Square Cushion Modified Brilliant',
+  radiant:'Cut Cornered Rectangular Modified Brilliant',sq_radiant:'Cut Cornered Square Modified Brilliant',
+  princess:'Princess Cut',half_moon:'Half Moon Modified Brilliant',shield:'Shield Modified Brilliant',
+  hexagonal:'Hexagonal Modified Brilliant',emerald:'Emerald Cut',asscher:'Square Emerald Cut',
+  baguette:'Baguette Cut',tapered_baguette:'Tapered Baguette Cut',carre:'Carre Cut',
+  rose:'Rose Cut',briolette:'Briolette',portuguese:'Portuguese Cut',flanders:'Flanders Cut',
+};
+const capCut = c => c==='ideal'?'3EX/Ideal':c==='vg'?'Very Good':'Good';
+
+function colorLabel() {
+  if (isWhite()) return state.whiteGrade+' color';
+  return fancyColorBase[state.colorFamily]?.label || state.colorFamily;
+}
+
+function colorSelectValue() {
+  return isWhite() ? 'white:' + state.whiteGrade : state.colorFamily;
+}
+
+function applyColorSelectValue(value) {
+  if (value.startsWith('white:')) {
+    state.colorFamily = 'white';
+    state.whiteGrade = value.split(':')[1] || 'G';
+  } else {
+    state.colorFamily = value;
+  }
+}
+
+function syncSelectControls() {
+  const colorSelect = document.getElementById('color-select');
+  if (colorSelect) colorSelect.value = colorSelectValue();
+  const shapeSelect = document.getElementById('shape-select');
+  if (shapeSelect) shapeSelect.value = state.shape;
+}
+
+function update() {
+  const ct = state.carat;
+  const m = compute(ct);
+
+  document.getElementById('stone-summary').textContent =
+    ct.toFixed(1)+'ct · '+(shapeNames[state.shape]||state.shape)+' · '+colorLabel()+' · '+state.clarity+' · '+capCut(state.cut);
+
+  document.getElementById('price-ws').textContent    = fmtR(m.ws*0.87, m.ws*1.13);
+  document.getElementById('price-ws-sub').textContent = fmt(m.wsPerCt)+'/ct est. trade cost';
+  document.getElementById('price-fair').textContent   = fmtR(m.fairLo, m.fairHi);
+  document.getElementById('price-fair-sub').textContent = fmt(m.fairLo/ct)+'–'+fmt(m.fairHi/ct).replace('$','')+'/ct';
+  document.getElementById('price-retail').textContent  = fmtR(m.retailLo, m.retailHi);
+  document.getElementById('price-retail-sub').textContent = fmt(m.retailLo/ct)+'–'+fmt(m.retailHi/ct).replace('$','')+'/ct';
+
+  updateBadges();
+  updateVerdict(m);
+  updateRatioBar();
+  updateMarketBar(m);
+  drawChart();
+}
+
+function updateBadges(){
+  const br = document.getElementById('badge-row');
+  const badges = [`<span class="bdg bdg-blue">IGI cert + inscription</span>`];
+  if (state.china) badges.push(`<span class="bdg bdg-orange">Chinese factory direct</span>`);
+  if (state.auction) badges.push(`<span class="bdg bdg-green">High-volume auction</span>`);
+  if (state.tri3ex) badges.push(`<span class="bdg bdg-blue">3EX make</span>`);
+  if (state.hpht) badges.push(`<span class="bdg bdg-purple">HPHT grown</span>`);
+  if (state.asgrown) badges.push(`<span class="bdg bdg-accent">As-grown</span>`);
+  if (state.gia) badges.push(`<span class="bdg bdg-red">GIA cert</span>`);
+  if (state.ratio) {
+    const bdgClass = state.ratioAssessment?.level === 'strong' ? 'bdg-green'
+      : state.ratioAssessment?.level === 'weak' ? 'bdg-orange'
+      : 'bdg-accent';
+    badges.push(`<span class="bdg ${bdgClass}">Ratio ${state.ratio.toFixed(2)}</span>`);
+  }
+  br.innerHTML = badges.join('');
+}
+
+function updateRatioBar(){
+  const bar = document.getElementById('ratio-bar');
+  const dot = document.getElementById('ratio-dot');
+  const txt = document.getElementById('ratio-text');
+  if (!bar || !dot || !txt) return;
+  if (!state.ratio || !state.ratioAssessment) {
+    bar.classList.remove('on');
+    txt.innerHTML = '';
+    return;
+  }
+
+  const a = state.ratioAssessment;
+  const questions = getDiamondInspectionQuestions(state.shape, state.clarity, state.colorFamily, state.cut);
+  const questionList = questions.map(item => `<li>${formatInspectionQuestion(item)}</li>`).join('');
+  bar.classList.add('on');
+  dot.style.background = a.level === 'strong' ? 'var(--green)' : a.level === 'weak' ? 'var(--orange)' : 'var(--accent)';
+  txt.innerHTML = `<strong>Ratio ${state.ratio.toFixed(2)} · ${escapeHTML(a.title)}.</strong> ${escapeHTML(a.text)}`
+    + `<span class="ratio-questions"><strong>Top things to ask:</strong><ul>${questionList}</ul></span>`;
+}
+
+function updateMarketBar(m){
+  const bar = document.getElementById('market-bar');
+  const txt = document.getElementById('market-text');
+  if (!bar || !txt) return;
+  const comp = m.alibabaMatch;
+  if (!comp) {
+    bar.classList.remove('on');
+    txt.innerHTML = '';
+    return;
+  }
+
+  const ceiling = comp.totalHi;
+  const unitText = comp.exact ? `${fmt(comp.hi)} exact selector price`
+    : comp.unit === 'ct' ? `${fmt(comp.lo)}-${fmt(comp.hi)}/ct` : `${fmt(comp.lo)}-${fmt(comp.hi)} total`;
+  txt.innerHTML = `<strong>Alibaba IGI ceiling: ${fmt(ceiling)}.</strong> Matched ${escapeHTML(comp.label)} (${unitText}). Treat this as the factory-direct upper limit before any beauty/video premium. <a href="${escapeAttr(comp.url)}" target="_blank" rel="noopener" style="color:var(--blue)">source ↗</a>`;
+  bar.classList.add('on');
+}
+
+function updateVerdict(m){
+  const dot = document.getElementById('vdot');
+  const txt = document.getElementById('vtext');
+  const bar = document.getElementById('verdict-bar');
+  const ask = state.ask;
+  if (!ask || ask<=0){
+    dot.style.background='var(--accent)'; bar.style.borderTopColor='rgba(212,175,114,0.1)';
+    txt.innerHTML='Enter a seller price above to score it.'; return;
+  }
+  const ali = m.alibabaMatch;
+  if (ali && ask > ali.totalHi * 1.10) {
+    dot.style.background='#e06060'; bar.style.borderTopColor='rgba(224,96,96,0.1)';
+    txt.innerHTML=`<strong>Above Alibaba IGI ceiling.</strong> ${fmt(ask)} is higher than the matched factory-direct Alibaba ceiling of about ${fmt(ali.totalHi)} for ${ali.label}. Only justify this with a clearly better exact IGI report, video, ratio, and color saturation.`;
+    return;
+  }
+  const wsHi = m.ws*1.13;
+  const pctVsWs = Math.round((ask/m.ws-1)*100);
+  const savVsRetail = Math.round((1-ask/m.retailLo)*100);
+  if (ask<=wsHi){
+    dot.style.background='#4caf7a'; bar.style.borderTopColor='rgba(76,175,122,0.12)';
+    txt.innerHTML=`<strong>At or near trade cost.</strong> ${fmt(ask)} is inside estimated wholesale range (${pctVsWs>=0?'+'+pctVsWs:pctVsWs}% vs midpoint). Possible for a Chinese factory direct, distressed lot, or bulk-buy. Verify cert and return policy before paying this — very little room for error.`;
+  } else if (ask<=m.fairHi){
+    dot.style.background='#4caf7a'; bar.style.borderTopColor='rgba(76,175,122,0.12)';
+    txt.innerHTML=`<strong>Fair direct/auction price.</strong> ${fmt(ask)} is above trade cost and in the reasonable zone for a TikTok/eBay/auction direct seller. You're saving ~${savVsRetail}% vs what a mall jeweler charges.`;
+  } else if (ask<=m.retailHi){
+    dot.style.background='#d4af72'; bar.style.borderTopColor='rgba(212,175,114,0.1)';
+    txt.innerHTML=`<strong>Retail-priced — not a direct deal.</strong> ${fmt(ask)} is plausible for a traditional jeweler but direct/auction sellers offer comparable for ${fmt(m.fairMid)}.`;
+  } else {
+    dot.style.background='#e06060'; bar.style.borderTopColor='rgba(224,96,96,0.1)';
+    txt.innerHTML=`<strong>Overpriced.</strong> ${fmt(ask)} exceeds this model's normal retail ceiling. Walk away or negotiate hard — compare at PriceScope or StoneAlgo first.`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHART
+// ══════════════════════════════════════════════════════════════════════════════
+function drawChart(){
+  const canvas = document.getElementById('price-chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  const cssW = canvas.clientWidth||960;
+  const cssH = 200;
+  canvas.width=cssW*dpr; canvas.height=cssH*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const pad={l:56,r:20,t:14,b:32};
+  const savedCt = state.carat;
+  const xs=[];
+  for(let c=0.5;c<=8.05;c+=0.25) xs.push(Math.round(c*100)/100);
+  const series = xs.map(c=>{
+    state.carat=c;
+    const m=compute(c);
+    state.carat=savedCt;
+    return {c,ws:m.ws,fair:m.fairMid,retail:m.retailMid};
+  });
+
+  const askVal=(state.ask&&state.ask>0)?state.ask:0;
+  const ymax=Math.max(...series.map(p=>p.retail),askVal)*1.12;
+  const xM=c=>pad.l+(c-0.5)/7.5*(cssW-pad.l-pad.r);
+  const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
+
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
+  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='9px DM Mono,monospace';
+  for(let i=0;i<=4;i++){
+    const yy=pad.t+i/4*(cssH-pad.t-pad.b);
+    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
+    ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
+  }
+  [0.5,1,2,3,4,5,6,7,8].forEach(c=>{ ctx.fillText(c+'ct',xM(c)-10,cssH-10); });
+
+  function plotLine(key,color,width){
+    ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash([]);ctx.beginPath();
+    series.forEach((p,i)=>{ i?ctx.lineTo(xM(p.c),yM(p[key])):ctx.moveTo(xM(p.c),yM(p[key])); });
+    ctx.stroke();
+  }
+  plotLine('retail','#3e3a36',1.5);
+  plotLine('fair','#4caf7a',2);
+  plotLine('ws','#e0ddd8',1.5);
+
+  const cx=xM(state.carat);
+  ctx.strokeStyle='rgba(212,175,114,0.45)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,cssH-pad.b);ctx.stroke();
+  ctx.setLineDash([]);
+
+  if(askVal>0){
+    const ay=yM(askVal);
+    ctx.strokeStyle='#d4af72';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.moveTo(pad.l,ay);ctx.lineTo(cssW-pad.r,ay);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#d4af72';ctx.font='9px DM Mono,monospace';
+    ctx.fillText('ask '+fmt(askVal),cssW-pad.r-80,Math.max(pad.t+10,ay-5));
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TOGGLE SHOW/HIDE WHITE GRADE
+// ══════════════════════════════════════════════════════════════════════════════
+function syncWhiteSection(){
+  const whiteSection = document.getElementById('white-grade-section');
+  if (whiteSection) whiteSection.style.display = isWhite() ? '' : 'none';
+  syncSelectControls();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ══════════════════════════════════════════════════════════════════════════════
+document.querySelectorAll('.pill').forEach(pill=>{
+  pill.addEventListener('click',()=>{
+    const g=pill.dataset.group;
+    document.querySelectorAll(`.pill[data-group="${g}"]`).forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active');
+    state[g]=pill.dataset.val;
+    syncWhiteSection();
+    update();
+  });
+});
+
+document.getElementById('carat').addEventListener('input',e=>{
+  state.carat=parseFloat(e.target.value);
+  state.ratio = null;
+  state.ratioAssessment = null;
+  document.getElementById('carat-display').textContent=state.carat.toFixed(1)+' ct';
+  update();
+});
+
+document.getElementById('ask-price').addEventListener('input',e=>{
+  const v=e.target.value.replace(/[^0-9.]/g,'');
+  state.ask=v?parseFloat(v):null;
+  update();
+});
+
+document.getElementById('color-select').addEventListener('change',e=>{
+  applyColorSelectValue(e.target.value);
+  syncWhiteSection();
+  update();
+});
+
+document.getElementById('shape-select').addEventListener('change',e=>{
+  state.shape = e.target.value;
+  if (state.ratio) state.ratioAssessment = assessRatio(state.ratio, state.shape);
+  syncSelectControls();
+  update();
+});
+
+const toggleMap = {
+  'tog-china': ['china','color-seller'],
+  'tog-auction': ['auction','color-vol'],
+  'tog-3ex': ['tri3ex','color-igi'],
+  'tog-hpht': ['hpht','color-cvd'],
+  'tog-asgrown': ['asgrown','color-as-grown'],
+  'tog-gia': ['gia','color-cert-upgrade'],
+};
+Object.entries(toggleMap).forEach(([id,[stateKey,colorClass]])=>{
+  const el=document.getElementById(id);
+  el.addEventListener('click',()=>{
+    state[stateKey]=!state[stateKey];
+    el.classList.toggle('on',state[stateKey]);
+    // Mutual exclusion: china and auction
+    if(stateKey==='china'&&state.china&&state.auction){
+      state.auction=false;
+      document.getElementById('tog-auction').classList.remove('on');
+    }
+    if(stateKey==='auction'&&state.auction&&state.china){
+      state.china=false;
+      document.getElementById('tog-china').classList.remove('on');
+    }
+    update();
+  });
+});
+
+window.addEventListener('resize',drawChart);
+syncWhiteSection();
+update();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// IGI REPORT LOOKUP
+// ══════════════════════════════════════════════════════════════════════════════
+let lastIGIData = null;
+const IGI_VERIFY_URL = 'https://www.igi.org/verify-Your-REPORT/?R=';
+const IGI_PDF_BASE = 'https://pdf.igi.org/';
+
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+async function lookupIGI() {
+  const numEl = document.getElementById('igi-number');
+  const rawInput = extractIGINumber(numEl.value);
+  const certNum = displayIGINumber(rawInput);
+  const digits = (rawInput.match(/\d{6,}/) || [''])[0];
+  if (!digits || digits.length < 6) {
+    setIGIStatus('error', 'Please enter a valid IGI report number (6+ digits).');
+    return;
+  }
+
+  const btn = document.getElementById('igi-lookup-btn');
+  btn.disabled = true;
+  setIGIStatus('loading', '<span class="spin">⟳</span> &nbsp;Reading IGI report ' + certNum + '...');
+  document.getElementById('igi-report-card').style.display = 'none';
+  document.getElementById('igi-apply-row').style.display = 'none';
+
+  try {
+    if (!window.pdfjsLib) {
+      throw new Error('PDF reader library did not load. Check internet access and reload the page.');
+    }
+
+    const pdfHit = await fetchIGIPdf(rawInput);
+    if (!pdfHit) {
+      setIGIStatus('warn', '⚠ No public IGI PDF was found for ' + escapeHTML(certNum) + '. Open the official IGI verifier here: <a href="' + igiVerifyLink(certNum) + '" target="_blank" rel="noopener" style="color:var(--orange)">verify at igi.org ↗</a>');
+      btn.disabled = false;
+      return;
+    }
+
+    const pdfText = await extractPdfText(pdfHit.buffer);
+    const report = parseIGIReport(pdfText, certNum, pdfHit.url);
+
+    if (!report.found) {
+      setIGIStatus('warn', '⚠ The IGI PDF opened, but the calculator could not read the 4Cs cleanly. Open it here: <a href="' + escapeAttr(pdfHit.url) + '" target="_blank" rel="noopener" style="color:var(--orange)">IGI PDF ↗</a>');
+      btn.disabled = false;
+      return;
+    }
+
+    lastIGIData = report;
+    renderIGICard(report);
+    applyIGIReport({ scroll:false });
+    setIGIStatus('success', '✓ Report found and applied — ' + escapeHTML(report.caratWeight.toFixed(2) + 'ct ' + report.shape + ' ' + report.color + ' ' + report.clarity) + (report.growthMethod !== 'Unknown' ? ' · ' + escapeHTML(report.growthMethod) : '') + (report.treatment ? ' · ' + escapeHTML(report.treatment) : '') + '.');
+    document.getElementById('igi-apply-row').style.display = 'none';
+
+  } catch(err) {
+    setIGIStatus('error', '✗ Could not read report: ' + escapeHTML(err.message) + '. Try manually at <a href="' + igiVerifyLink(certNum) + '" target="_blank" rel="noopener" style="color:var(--red)">igi.org ↗</a>');
+  }
+  btn.disabled = false;
+}
+
+function normalizeIGIInput(value) {
+  return (value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function extractIGINumber(value) {
+  const clean = normalizeIGIInput(value);
+  const prefixed = clean.match(/(?:LG|ID|FRD|FDR)\d{6,}/);
+  if (prefixed) return prefixed[0];
+  const digits = clean.match(/\d{6,}/);
+  return digits ? digits[0] : clean;
+}
+
+function setIGINumberFromText(value) {
+  const input = document.getElementById('igi-number');
+  const clean = extractIGINumber(value);
+  input.value = displayIGINumber(clean);
+  return clean;
+}
+
+function displayIGINumber(clean) {
+  const digits = (clean.match(/\d{6,}/) || [''])[0];
+  if (!digits) return clean;
+  if (clean.startsWith('LG')) return 'LG' + digits;
+  if (clean.startsWith('ID')) return 'ID' + digits;
+  if (clean.startsWith('FRD')) return 'FRD' + digits;
+  if (clean.startsWith('FDR')) return 'FDR' + digits;
+  return digits;
+}
+
+function igiVerifyLink(certNum) {
+  return IGI_VERIFY_URL + encodeURIComponent(certNum);
+}
+
+function buildIGIPdfCandidates(clean) {
+  const digits = (clean.match(/\d{6,}/) || [''])[0];
+  const candidates = [];
+  const seen = new Set();
+  const add = slug => {
+    if (slug && !seen.has(slug)) {
+      seen.add(slug);
+      candidates.push(slug);
+    }
+  };
+
+  if (/^(ID|FRD|FDR)\d{6,}$/.test(clean)) add(clean);
+  if (/^LG\d{6,}$/.test(clean)) add(digits);
+  if (/^\d{6,}$/.test(clean)) add(clean);
+  add(digits);
+  add('ID' + digits);
+  add('FRD' + digits);
+  add('FDR' + digits);
+  if (/^[A-Z]+\d{6,}$/.test(clean)) add(clean);
+  return candidates;
+}
+
+async function fetchIGIPdf(clean) {
+  const candidates = buildIGIPdfCandidates(clean);
+  for (const slug of candidates) {
+    const url = IGI_PDF_BASE + encodeURIComponent(slug) + '.pdf';
+    const response = await fetch(url, { mode:'cors' });
+    if (response.ok) {
+      const type = response.headers.get('content-type') || '';
+      if (!type.toLowerCase().includes('pdf')) continue;
+      return { url, buffer: await response.arrayBuffer() };
+    }
+  }
+  return null;
+}
+
+async function extractPdfText(buffer) {
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+  const lines = [];
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const content = await page.getTextContent({ normalizeWhitespace:true });
+    const rows = [];
+
+    content.items.forEach(item => {
+      const str = (item.str || '').trim();
+      if (!str) return;
+      const x = item.transform[4] || 0;
+      const y = item.transform[5] || 0;
+      let row = rows.find(r => Math.abs(r.y - y) < 3);
+      if (!row) {
+        row = { y, items: [] };
+        rows.push(row);
+      }
+      row.items.push({ x, str });
+    });
+
+    rows
+      .sort((a,b) => b.y - a.y)
+      .forEach(row => {
+        const line = row.items
+          .sort((a,b) => a.x - b.x)
+          .map(item => item.str)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (line) lines.push(line);
+      });
+  }
+
+  return {
+    lines,
+    raw: lines.join('\n'),
+    norm: lines.join(' ').replace(/\s+/g, ' ').trim()
+  };
+}
+
+function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
+  const lines = pdfText.lines;
+  const norm = pdfText.norm;
+  const reportLines = getReportDataLines(lines);
+  const reportNorm = reportLines.join(' ').replace(/\s+/g, ' ').trim();
+  const reportNumber = extractReportNumber(norm) || fallbackCert;
+  const shape = normalizeShapeText(readAfterLabel(reportLines, /Shape(?:\s+and\s+Cutting\s+Style|\s*&\s*Cut|\/cut)/i, /Measurements|GRADING RESULTS/i, 5));
+  const measurements = normalizeMeasurements(readAfterLabel(reportLines, /Measurements/i, /GRADING RESULTS|Carat Weight|Color Grade/i, 3), reportNorm);
+  const gradingLines = getSectionLines(reportLines, /GRADING RESULTS/i, /ADDITIONAL GRADING INFORMATION|COMMENTS|^PROPORTIONS$/i);
+  const gradingDataLines = gradingLines.length ? gradingLines : reportLines;
+  const gradingNorm = gradingDataLines.join(' ').replace(/\s+/g, ' ').trim();
+  const caratWeight = extractCaratWeight(gradingDataLines, gradingNorm, measurements, shape);
+  const colorRaw = readAfterLabel(gradingDataLines, /Color Grade/i, /Clarity Grade|Cut Grade|ADDITIONAL/i, 4);
+  const clarityRaw = readAfterLabel(gradingDataLines, /Clarity Grade/i, /Cut Grade|ADDITIONAL|Polish|Symmetry/i, 3);
+  const cutRaw = readAfterLabel(gradingDataLines, /Cut Grade/i, /ADDITIONAL|Polish|Symmetry|Fluorescence|Inscription/i, 3);
+  const polishRaw = readAfterLabel(reportLines, /^Polish\b/i, /Symmetry|Fluorescence|Inscription|Comments/i, 2);
+  const symmetryRaw = readAfterLabel(reportLines, /^Symmetry\b/i, /Fluorescence|Inscription|Comments/i, 2);
+  const fluorescenceRaw = readAfterLabel(reportLines, /^Fluorescence\b/i, /Inscription|Comments|KEY TO SYMBOLS/i, 2);
+  const comments = cleanReportValue(readAfterLabel(lines, /Comments:?/i, /KEY TO SYMBOLS|GRADING SCALES|©|www\.igi\.org/i, 10));
+
+  const color = normalizeReportColor(colorRaw, gradingNorm);
+  const clarity = normalizeClarity(clarityRaw);
+  const cut = normalizeGrade(cutRaw);
+  const polish = normalizeGrade(polishRaw);
+  const symmetry = normalizeGrade(symmetryRaw);
+  const fluorescence = normalizeGrade(fluorescenceRaw);
+  const growthMethod = /High Pressure High Temperature|HPHT/i.test(norm) ? 'HPHT'
+    : /Chemical Vapor Deposition|CVD/i.test(norm) ? 'CVD'
+    : 'Unknown';
+  const treatment = /As Grown|No indication of post-growth treatment/i.test(norm) ? 'As Grown - No indication of post-growth treatment'
+    : /post-growth treatment/i.test(norm) ? 'May include post-growth treatment'
+    : '';
+
+  const depthMatch = norm.match(/(\d+(?:\.\d+)?)%\s+Depth/i);
+  const tableMatch = norm.match(/(\d+(?:\.\d+)?)%\s+Table/i);
+  const isLabGrown = /LABORATORY GROWN/i.test(norm);
+  const notes = [
+    !isLabGrown ? 'Report does not appear to say Laboratory Grown Diamond.' : '',
+    /Sample Image Used/i.test(norm) ? 'Sample image used on report.' : '',
+    treatment.includes('May include') ? 'May include post-growth treatment.' : ''
+  ].filter(Boolean).join(' ');
+
+  const ratio = calculateRatio(measurements);
+  const report = {
+    found: !!(caratWeight && shape && color && clarity),
+    certNumber: reportNumber,
+    caratWeight,
+    shape,
+    color,
+    clarity,
+    cut,
+    polish,
+    symmetry,
+    fluorescence,
+    growthMethod,
+    treatment,
+    measurements,
+    ratio,
+    ratioAssessment: ratio ? assessRatio(ratio, mapReportShapeToState(shape) || shape) : null,
+    tablePercent: tableMatch ? parseFloat(tableMatch[1]) : null,
+    depthPercent: depthMatch ? parseFloat(depthMatch[1]) : null,
+    isLabGrown,
+    certBody: 'IGI',
+    pdfUrl,
+    notes
+  };
+
+  return report;
+}
+
+function readAfterLabel(lines, labelRe, stopRe, maxLines) {
+  const hardStop = /^(Description|Shape and Cutting Style|Shape & Cut|Shape\/cut|Measurements|GRADING RESULTS|Carat Weight|Color Grade|Clarity Grade|Cut Grade|ADDITIONAL GRADING INFORMATION|Polish|Symmetry|Fluorescence|Inscription\(s\)|Comments:?|PROPORTIONS|GRADING SCALES|KEY TO SYMBOLS|COLOR|CLARITY)$/i;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!labelRe.test(line)) continue;
+
+    const labelMatch = line.match(labelRe);
+    const sameLine = labelMatch
+      ? line.slice(labelMatch.index + labelMatch[0].length).replace(/^[:\s|]+/, '').trim()
+      : '';
+    const parts = [];
+    if (sameLine && !hardStop.test(sameLine)) parts.push(sameLine);
+
+    for (let j = i + 1; j < Math.min(lines.length, i + 1 + maxLines); j++) {
+      const next = lines[j].trim();
+      if (!next) continue;
+      if (stopRe.test(next) || hardStop.test(next)) break;
+      parts.push(next);
+    }
+
+    const value = cleanReportValue(parts.join(' '));
+    if (value) return value;
+  }
+  return '';
+}
+
+function getReportDataLines(lines) {
+  const reportStart = lines.findIndex(line => (
+    /IGI Report (?:Number|No)\b/i.test(line) ||
+    /^(Description|Shape and Cutting Style|Shape & Cut|Shape\/cut|Measurements|GRADING RESULTS|Carat Weight|Color Grade|Clarity Grade)\b/i.test(line.trim())
+  ));
+  const hasStarted = index => reportStart === -1 || index > reportStart;
+  const end = lines.findIndex((line, index) => {
+    const text = line.trim();
+    return hasStarted(index) && /^(KEY TO SYMBOLS)\b/i.test(text);
+  });
+  return end > -1 ? lines.slice(0, end) : lines;
+}
+
+function getSectionLines(lines, startRe, endRe) {
+  const start = lines.findIndex(line => startRe.test(line.trim()));
+  if (start === -1) return [];
+  const end = lines.findIndex((line, index) => index > start && endRe.test(line.trim()));
+  return lines.slice(start, end === -1 ? lines.length : end);
+}
+
+function extractCaratWeight(lines, norm, measurements, shape) {
+  const candidates = [];
+  const addCandidate = value => {
+    const n = parseFloat(value);
+    if (Number.isFinite(n) && n > 0 && n <= 50) candidates.push(n);
+  };
+
+  const direct = norm.match(/Carat Weight\s+(\d+(?:\.\d+)?)\s*CARATS?\b/i);
+  if (direct) addCandidate(direct[1]);
+  const reverse = norm.match(/\b(\d+(?:\.\d+)?)\s*CARATS?\s+Carat Weight/i);
+  if (reverse) addCandidate(reverse[1]);
+
+  for (let i = 0; i < lines.length; i++) {
+    if (!/Carat Weight/i.test(lines[i])) continue;
+
+    const snippet = lines.slice(i, Math.min(lines.length, i + 4)).join(' ');
+    const labeled = snippet.match(/Carat Weight\s+(\d+(?:\.\d+)?)\s*CARATS?\b/i);
+    if (labeled) addCandidate(labeled[1]);
+    const reverseLabeled = snippet.match(/\b(\d+(?:\.\d+)?)\s*CARATS?\s+Carat Weight/i);
+    if (reverseLabeled) addCandidate(reverseLabeled[1]);
+
+    const carats = snippet.match(/\b(\d+(?:\.\d+)?)\s*CARATS?\b/i);
+    if (carats) addCandidate(carats[1]);
+  }
+
+  const estimated = estimateCaratFromMeasurements(measurements, shape);
+  const chosen = chooseCaratCandidate(candidates, estimated);
+  return chosen;
+}
+
+function chooseCaratCandidate(candidates, estimated) {
+  const unique = [...new Set(candidates.map(n => Math.round(n * 100) / 100))];
+  if (!unique.length) return estimated;
+  if (!estimated) return unique[0];
+
+  const first = unique[0];
+  const close = unique.find(n => Math.abs(n - estimated) / estimated <= 0.35);
+  if (Math.abs(first - estimated) / estimated > 0.35) {
+    return close || estimated;
+  }
+  return first;
+}
+
+function estimateCaratFromMeasurements(measurements, shape) {
+  const nums = (measurements || '').match(/\d+(?:\.\d+)?/g)?.map(Number) || [];
+  if (nums.length < 3) return null;
+
+  const sh = (shape || '').toLowerCase();
+  const [length, width, depth] = nums;
+  let coefficient = 0.0061;
+  if (sh.includes('pear')) coefficient = 0.0057;
+  else if (sh.includes('marquise')) coefficient = 0.00565;
+  else if (sh.includes('heart')) coefficient = 0.0059;
+  else if (sh.includes('emerald') || sh.includes('radiant') || sh.includes('cut cornered') || sh.includes('cushion') || sh.includes('princess')) coefficient = 0.0080;
+  else if (sh.includes('oval')) coefficient = 0.0062;
+
+  const estimated = length * width * depth * coefficient;
+  if (!Number.isFinite(estimated) || estimated <= 0 || estimated > 50) return null;
+  return Math.round(estimated * 100) / 100;
+}
+
+function cleanReportValue(value) {
+  return (value || '')
+    .replace(/\s*\|\s*/g, ' ')
+    .replace(/---+/g, ' ')
+    .replace(/\bSample Image Used\b/gi, '')
+    .replace(/\bADDITIONAL GRADING INFORMATION\b/gi, '')
+    .replace(/\bGRADING RESULTS\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractReportNumber(norm) {
+  const direct = norm.match(/IGI Report (?:Number|No)\s+((?:LG|ID|FRD|FDR)?\d{6,})/i);
+  if (direct) return direct[1].toUpperCase();
+  const lg = norm.match(/\b(LG\d{6,})\b/i);
+  if (lg) return lg[1].toUpperCase();
+  const any = norm.match(/\b((?:ID|FRD|FDR)?\d{6,})\b/i);
+  return any ? any[1].toUpperCase() : '';
+}
+
+function normalizeReportColor(raw, norm) {
+  const source = ((raw || '') + ' ' + (norm.match(/Color Grade\s+(.{0,90})\s+Clarity Grade/i)?.[1] || '')).toUpperCase();
+  const fancyMatch = source.match(/\bFANCY(?:\s+[A-Z]+){1,6}/);
+  if (fancyMatch) {
+    const colorWords = ['YELLOW','PINK','BLUE','GREEN','ORANGE','PURPLE','VIOLET','BROWN','GRAY','GREY','BLACK','RED'];
+    const words = fancyMatch[0].split(/\s+/);
+    let end = -1;
+    for (let i = 1; i < words.length; i++) {
+      if (colorWords.includes(words[i])) {
+        end = i;
+        if (colorWords.includes(words[i + 1])) end = i + 1;
+        break;
+      }
+    }
+    if (end > -1) return titleCaseReport(words.slice(0, end + 1).join(' ')).replace('Grey', 'Gray');
+  }
+
+  const white = source.match(/\b(D|E|F|G|H|I|J|K|L|M|N-P|O-P|Q-R|S-Z|N|O|P|Q|R|S|T|U|V|W|X|Y|Z)\b/);
+  if (!white) return '';
+  return normalizeWhiteGrade(white[1]);
+}
+
+function normalizeWhiteGrade(grade) {
+  const g = (grade || '').toUpperCase();
+  if (['N','O','P','O-P'].includes(g)) return 'N-P';
+  if (['Q','R'].includes(g)) return 'Q-R';
+  if (['S','T','U','V','W','X','Y','Z'].includes(g)) return 'S-Z';
+  return g;
+}
+
+function normalizeClarity(raw) {
+  const match = (raw || '').toUpperCase().match(/\b(IF|VVS\s*1|VVS\s*2|VS\s*1|VS\s*2|SI\s*1|SI\s*2|I\s*1|I\s*2|I\s*3)\b/);
+  return match ? match[1].replace(/\s+/g, '') : '';
+}
+
+function normalizeGrade(raw) {
+  const value = cleanReportValue(raw).toUpperCase();
+  if (!value) return '';
+  if (/EXCELLENT|IDEAL/.test(value)) return value.includes('IDEAL') ? 'Ideal' : 'Excellent';
+  if (/VERY GOOD/.test(value)) return 'Very Good';
+  if (/\bGOOD\b/.test(value)) return 'Good';
+  if (/NONE/.test(value)) return 'None';
+  if (/FAINT/.test(value)) return 'Faint';
+  if (/MEDIUM/.test(value)) return 'Medium';
+  if (/STRONG/.test(value)) return 'Strong';
+  return titleCaseReport(value);
+}
+
+function titleCaseReport(value) {
+  return cleanReportValue(value).toLowerCase().replace(/\b[a-z]/g, c => c.toUpperCase());
+}
+
+function normalizeShapeText(value) {
+  return titleCaseReport(value)
+    .replace(/^(Clarity|Color|Proportions)\s+/i, '')
+    .replace(/\s+(Clarity|Color|Proportions)$/i, '')
+    .replace(/\s*\d+(?:\.\d+)?%/g, '')
+    .replace(/\bRect\b/i, 'Rectangular')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeMeasurements(value, norm) {
+  const source = cleanReportValue(value) + ' ' + norm;
+  const match = source.match(/\b\d+(?:\.\d+)?\s*(?:-|X|x)\s*\d+(?:\.\d+)?(?:\s*(?:-|X|x)\s*\d+(?:\.\d+)?)?\s*MM\b/i);
+  return match ? match[0].replace(/\s*x\s*/ig, ' X ').replace(/\s+/g, ' ').trim() : cleanReportValue(value);
+}
+
+function calculateRatio(measurements) {
+  const nums = (measurements || '').match(/\d+(?:\.\d+)?/g)?.map(Number) || [];
+  if (nums.length < 2 || !nums[0] || !nums[1]) return null;
+  const longSide = Math.max(nums[0], nums[1]);
+  const shortSide = Math.min(nums[0], nums[1]);
+  return Math.round((longSide / shortSide) * 100) / 100;
+}
+
+function assessRatio(ratio, shapeKey) {
+  const guide = ratioGuides[shapeKey];
+  if (!ratio || !guide) {
+    return {
+      level: 'neutral',
+      title: 'ratio noted',
+      text: 'There is no strong current-market ratio rule for this cut, so price should lean more on color, make, video, and face-up appeal.'
+    };
+  }
+
+  const range = `${guide.idealLo.toFixed(2)}-${guide.idealHi.toFixed(2)}`;
+  if (ratio >= guide.idealLo && ratio <= guide.idealHi) {
+    return {
+      level: 'strong',
+      title: 'desirable outline',
+      text: `That sits in the preferred ${guide.label} range right now (${range}), so the outline should help marketability if the video looks good.`
+    };
+  }
+  if (ratio >= guide.lo && ratio <= guide.hi) {
+    return {
+      level: 'neutral',
+      title: 'market-acceptable outline',
+      text: `That is outside the sweet spot (${range}) but still within a normal sellable ${guide.label} range. It should not be a deal-breaker.`
+    };
+  }
+  return {
+    level: 'weak',
+    title: 'less desirable outline',
+    text: `That falls outside the common buyer-preferred ${guide.label} range (${range}). Expect more price resistance unless the stone has exceptional color or optics.`
+  };
+}
+
+function getDiamondInspectionQuestions(shapeKey, clarity, colorFamily, cut) {
+  const shapeQuestions = {
+    round: 'Cut proof: ask for table/depth, crown and pavilion angles, plus ASET/IdealScope or hearts-and-arrows images if available.',
+    oval: 'Bowtie check: ask how strong the bowtie is in normal lighting, whether the ends go dark, and if it stays bright when tilted.',
+    pear: 'Bowtie and outline: ask how strong the bowtie is, whether the point is protected, and if both shoulders look even.',
+    marquise: 'Bowtie and tips: ask how strong the bowtie is, whether the tips are protected, and if the outline is symmetrical face-up.',
+    heart: 'Shape symmetry: ask whether the cleft, lobes, and point are even, and whether a bowtie or dark center shows in video.',
+    cushion: 'Light return: ask whether it is crushed-ice or chunky, if the center goes mushy/dark, and whether it has obvious leakage.',
+    cushion_brilliant: 'Light return: ask whether the chunky facets stay bright, if the center goes dark, and whether it has obvious leakage.',
+    square_cushion: 'Light return: ask whether the facet pattern is chunky or crushed-ice, and if the center looks dark or mushy.',
+    radiant: 'Facet pattern: ask whether it is crushed-ice or cleaner, if the middle looks watery, and if the corners go dark.',
+    sq_radiant: 'Facet pattern: ask whether it is crushed-ice or cleaner, if the middle looks watery, and if the corners go dark.',
+    emerald: 'Windowing: ask for a slow tilt video to check windowing, dark steps, and inclusions under the open table.',
+    asscher: 'Windowing: ask for a slow tilt video to check windowing, dark steps, and whether the windmill pattern looks even.',
+    princess: 'Corners and light return: ask whether the corners are clean/protected, if the center goes dark, and whether the chevrons look balanced.',
+    trilliant: 'Corners and windowing: ask whether the corners are protected, if the center windows, and whether all three sides return light evenly.',
+    half_moon: 'Match and windowing: ask whether the curve is even, if the center windows, and how it matches the main stone if it is a side stone.',
+    shield: 'Outline and windowing: ask whether the outline is symmetrical, if the center windows, and whether the point/corners are protected.',
+    hexagonal: 'Outline and steps: ask whether the outline is symmetrical, if the center windows, and whether the step pattern stays even.',
+    old_european: 'Old-cut appeal: ask for face-up and tilt video to check warmth, kozibe/reflections, and whether the pattern is lively.',
+    old_mine: 'Old-cut appeal: ask for face-up and tilt video to check warmth, kozibe/reflections, and whether the cushion outline is pleasing.',
+    baguette: 'Windowing: ask for a slow tilt video to check windowing, dark steps, and visible inclusions under the open table.',
+    tapered_baguette: 'Windowing and match: ask for a slow tilt video to check dark steps and how it matches the other side stone.',
+    carre: 'Windowing: ask for a slow tilt video to check windowing, dark steps, and visible inclusions under the open table.',
+    rose: 'Transparency: ask whether the stone is transparent or sleepy, if the base color is attractive, and how flat it sits.',
+    briolette: 'Full-view video: ask for video from every side to check symmetry, drill/setting wear, and whether inclusions are obvious.',
+    portuguese: 'Depth and brightness: ask whether the extra facets stay lively, if the center goes dark, and if the depth faces up small.',
+    flanders: 'Facet balance: ask whether the corners are even, if the center goes dark, and whether the facet pattern is balanced.'
+  };
+
+  const clarityKey = (clarity || '').toUpperCase();
+  const clarityQuestion = ['SI1','SI2','I1','I2','I3'].includes(clarityKey)
+    ? 'Inclusions: confirm it is eye-clean at normal viewing distance; ask where black crystals, feathers, clouds, or surface-reaching inclusions sit.'
+    : ['VS1','VS2'].includes(clarityKey)
+      ? 'Inclusions: ask whether any crystal, feather, cloud, or reflected inclusion is under the table or near a corner/tip.'
+      : 'Transparency: still ask about haze, strain, graining, or milkiness; a high clarity grade does not guarantee a crisp-looking stone.';
+
+  const colorQuestion = colorFamily !== 'white'
+    ? 'Color: ask for daylight and indoor videos to confirm the color is even and not washed out.'
+    : 'Color: ask whether there is any brown, gray, blue, or milky tint in daylight.';
+
+  const cutQuestion = cut === 'good'
+    ? 'Video: because the cut is not top-tier, ask for extra proof that it is bright across the whole face.'
+    : 'Video: ask for a face-up and tilt video in diffused light and spot lighting.';
+
+  return [
+    shapeQuestions[shapeKey] || 'Face-up performance: ask for a slow face-up and tilt video to check brightness, windowing, and dark areas.',
+    clarityQuestion,
+    colorQuestion,
+    cutQuestion,
+    'Paperwork: confirm the report number, inscription, measurements, and return window before paying.'
+  ];
+}
+
+function formatInspectionQuestion(item) {
+  const [label, ...rest] = String(item || '').split(':');
+  let body = escapeHTML(rest.join(':').trim());
+  const importantTerms = [
+    'crushed-ice', 'cleaner', 'watery', 'corners go dark',
+    'bowtie', 'ends go dark', 'stays bright', 'tilted',
+    'point is protected', 'shoulders', 'tips are protected', 'symmetrical',
+    'cleft', 'lobes', 'dark center', 'leakage',
+    'windowing', 'dark steps', 'open table', 'windmill pattern',
+    'chevrons', 'return light', 'matches',
+    'transparent', 'sleepy', 'base color', 'flat',
+    'symmetry', 'drill/setting wear', 'depth', 'faces up small',
+    'brightness', 'dark areas',
+    'eye-clean', 'crystal', 'feather', 'cloud', 'reflected inclusion',
+    'surface-reaching inclusions', 'under the table', 'corner/tip',
+    'haze', 'strain', 'graining', 'milkiness',
+    'brown', 'gray', 'blue', 'milky tint', 'daylight', 'washed out',
+    'face-up', 'tilt video', 'diffused light', 'spot lighting',
+    'report number', 'inscription', 'measurements', 'return window'
+  ].sort((a, b) => b.length - a.length);
+
+  importantTerms.forEach(term => {
+    const escaped = escapeRegExp(escapeHTML(term));
+    body = body.replace(new RegExp(`\\b(${escaped})\\b`, 'gi'), '<strong>$1</strong>');
+  });
+
+  return `<strong>${escapeHTML(label)}:</strong> ${body}`;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function mapFancyColorToState(color) {
+  const c = (color || '').toLowerCase();
+  const intensity = c.includes('vivid') ? 'fv' : c.includes('intense') ? 'fi' : c.includes('light') ? 'fl' : 'f';
+  let dominant = null;
+  let lastIndex = -1;
+  ['yellow','pink','blue','green','orange','purple','violet','brown','black','red'].forEach(name => {
+    const idx = c.lastIndexOf(name);
+    if (idx > lastIndex) {
+      dominant = name;
+      lastIndex = idx;
+    }
+  });
+
+  if (['yellow','pink','blue'].includes(dominant)) return dominant + '_' + intensity;
+  if (dominant === 'green') return intensity === 'fi' || intensity === 'fv' ? 'green_fi' : 'green_f';
+  if (dominant === 'orange') return intensity === 'fi' || intensity === 'fv' ? 'orange_fi' : 'orange_f';
+  if (dominant === 'purple' || dominant === 'violet') return intensity === 'fi' || intensity === 'fv' ? 'purple_fi' : 'purple_f';
+  if (dominant === 'brown') return 'brown_f';
+  if (dominant === 'black') return 'black';
+  if (dominant === 'red') return 'red_f';
+  return null;
+}
+
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[char]));
+}
+
+function escapeAttr(value) {
+  return escapeHTML(value).replace(/`/g, '&#96;');
+}
+
+function setIGIStatus(type, html) {
+  const el = document.getElementById('igi-status');
+  el.className = 'igi-status ' + type;
+  const colors = { idle:'var(--muted)', loading:'var(--muted2)', success:'var(--green)', error:'var(--red)', warn:'var(--orange)' };
+  const dot = colors[type] || 'var(--muted)';
+  el.innerHTML = '<div class="igi-dot" style="background:' + dot + '"></div><span>' + html + '</span>';
+}
+
+function renderIGICard(r) {
+  const card = document.getElementById('igi-report-card');
+  const fields = [
+    ['Cert #', r.certNumber],
+    ['Carat', r.caratWeight?.toFixed(2) + ' ct'],
+    ['Shape', r.shape],
+    ['Color', r.color],
+    ['Clarity', r.clarity],
+    ['Cut', r.cut],
+    ['Polish', r.polish],
+    ['Symmetry', r.symmetry],
+    ['Fluorescence', r.fluorescence],
+    ['Growth', r.growthMethod],
+    ['Treatment', r.treatment],
+    ['Measurements', r.measurements],
+    r.ratio ? ['Ratio', r.ratio.toFixed(2) + (r.ratioAssessment ? ' · ' + r.ratioAssessment.title : '')] : null,
+    r.tablePercent ? ['Table', r.tablePercent + '%'] : null,
+    r.depthPercent ? ['Depth', r.depthPercent + '%'] : null,
+    r.pdfUrl ? ['IGI PDF', r.pdfUrl] : null,
+  ].filter(Boolean);
+
+  card.innerHTML = '<div class="igi-report-card">' +
+    fields.map(([label, val]) => {
+      const valueHTML = label === 'IGI PDF'
+        ? '<a href="' + escapeAttr(val) + '" target="_blank" rel="noopener" style="color:var(--accent)">Open PDF ↗</a>'
+        : escapeHTML(val || '—');
+      return '<div class="irc-field"><div class="irc-label">' + escapeHTML(label) + '</div><div class="irc-value' +
+        (['Color','Clarity','Cut'].includes(label) ? ' highlight' : '') + '">' + valueHTML + '</div></div>';
+    }).join('') +
+    (r.notes ? '<div class="irc-field" style="grid-column:1/-1"><div class="irc-label">Notes</div><div class="irc-value" style="color:var(--orange);font-size:11px">' + escapeHTML(r.notes) + '</div></div>' : '') +
+    '</div>';
+  card.style.display = 'block';
+}
+
+function mapReportShapeToState(shape) {
+  const sh = (shape || '').toLowerCase().replace(/\./g, '');
+  if (sh.includes('old european')) return 'old_european';
+  if (sh.includes('old mine')) return 'old_mine';
+  if (sh.includes('round')) return 'round';
+  if (sh.includes('oval')) return 'oval';
+  if (sh.includes('pear') || sh.includes('drop')) return 'pear';
+  if (sh.includes('marquise')) return 'marquise';
+  if (sh.includes('heart')) return 'heart';
+  if (sh.includes('trilliant') || sh.includes('triangle')) return 'trilliant';
+  if (sh.includes('square cushion')) return 'square_cushion';
+  if (sh.includes('cushion') && sh.includes('modified')) return 'cushion';
+  if (sh.includes('cushion') && sh.includes('brilliant')) return 'cushion_brilliant';
+  if (sh.includes('cushion')) return 'cushion';
+  if ((sh.includes('cut cornered') || sh.includes('cut-cornered')) && sh.includes('square')) return 'sq_radiant';
+  if ((sh.includes('cut cornered') || sh.includes('cut-cornered')) && (sh.includes('rect') || sh.includes('rectangular'))) return 'radiant';
+  if (sh.includes('radiant') && (sh.includes('square') || sh.includes('sq'))) return 'sq_radiant';
+  if (sh.includes('radiant')) return 'radiant';
+  if (sh.includes('princess') || sh.includes('square modified brilliant')) return 'princess';
+  if (sh.includes('square emerald') || sh.includes('asscher')) return 'asscher';
+  if (sh.includes('emerald')) return 'emerald';
+  if (sh.includes('baguette') && sh.includes('taper')) return 'tapered_baguette';
+  if (sh.includes('baguette')) return 'baguette';
+  if (sh.includes('half moon') || sh.includes('halfmoon')) return 'half_moon';
+  if (sh.includes('shield') || sh.includes('kite')) return 'shield';
+  if (sh.includes('hexagonal')) return 'hexagonal';
+  if (sh.includes('carre') || sh.includes('carr')) return 'carre';
+  if (sh.includes('rose')) return 'rose';
+  if (sh.includes('briolette')) return 'briolette';
+  if (sh.includes('portuguese')) return 'portuguese';
+  if (sh.includes('flanders')) return 'flanders';
+  return null;
+}
+
+function applyIGIReport(options = {}) {
+  const r = lastIGIData;
+  if (!r) return false;
+
+  // Map carat
+  const ct = parseFloat(r.caratWeight);
+  if (ct >= 0.5 && ct <= 8) {
+    state.carat = Math.round(ct * 10) / 10;
+    const slider = document.getElementById('carat');
+    slider.value = state.carat;
+    document.getElementById('carat-display').textContent = state.carat.toFixed(1) + ' ct';
+  }
+
+  // Map color
+  const col = (r.color || '').trim();
+  const normalizedWhite = normalizeWhiteGrade(col);
+  if (whiteGradeMult[normalizedWhite]) {
+    state.colorFamily = 'white';
+    state.whiteGrade = normalizedWhite;
+  } else {
+    const mapped = mapFancyColorToState(col);
+    if (mapped && fancyColorBase[mapped]) state.colorFamily = mapped;
+  }
+
+  // Map clarity
+  const cl = (r.clarity || '').trim().toUpperCase();
+  const validClarities = ['IF','VVS1','VVS2','VS1','VS2','SI1','SI2'];
+  if (validClarities.includes(cl)) { state.clarity = cl; setActivePill('clarity', cl); }
+
+  // Map shape
+  const shapeMapped = mapReportShapeToState(r.shape);
+  if (shapeMapped) state.shape = shapeMapped;
+
+  state.ratio = r.ratio || calculateRatio(r.measurements);
+  state.ratioAssessment = state.ratio ? assessRatio(state.ratio, state.shape) : null;
+
+  // Map cut
+  const cut = (r.cut || '').toLowerCase();
+  if (cut.includes('excellent') || cut.includes('ideal')) { state.cut = 'ideal'; setActivePill('cut', 'ideal'); }
+  else if (cut.includes('very good'))                      { state.cut = 'vg';    setActivePill('cut', 'vg'); }
+  else if (cut.includes('good'))                           { state.cut = 'good';  setActivePill('cut', 'good'); }
+
+  // Map growth method toggles
+  const growth = (r.growthMethod || '').toUpperCase();
+  state.hpht = growth.includes('HPHT');
+  document.getElementById('tog-hpht').classList.toggle('on', state.hpht);
+
+  const treat = (r.treatment || '').toLowerCase();
+  state.asgrown = treat.includes('as grown') || treat.includes('as-grown') || treat.includes('none detected');
+  document.getElementById('tog-asgrown').classList.toggle('on', state.asgrown);
+
+  // Check if 3EX
+  const polish = (r.polish || '').toLowerCase();
+  const sym = (r.symmetry || '').toLowerCase();
+  state.tri3ex = cut.includes('excellent') && polish.includes('excellent') && sym.includes('excellent');
+  document.getElementById('tog-3ex').classList.toggle('on', state.tri3ex);
+
+  syncWhiteSection();
+  update();
+
+  // Scroll to results
+  if (options.scroll !== false) {
+    setTimeout(() => document.querySelector('.results').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+  return true;
+}
+
+function setActivePill(group, val) {
+  document.querySelectorAll(`.pill[data-group="${group}"]`).forEach(p => p.classList.remove('active'));
+  const target = document.querySelector(`.pill[data-group="${group}"][data-val="${val}"]`);
+  if (target) target.classList.add('active');
+}
+
+// Wire up IGI events
+document.getElementById('igi-lookup-btn').addEventListener('click', lookupIGI);
+const igiNumberInput = document.getElementById('igi-number');
+const igiInputRow = document.querySelector('.igi-input-row');
+igiInputRow.addEventListener('click', e => {
+  if (e.target !== document.getElementById('igi-lookup-btn')) {
+    igiNumberInput.focus();
+  }
+});
+igiNumberInput.addEventListener('focus', () => igiNumberInput.select());
+igiNumberInput.addEventListener('click', () => igiNumberInput.select());
+igiNumberInput.addEventListener('paste', e => {
+  e.preventDefault();
+  setIGINumberFromText(e.clipboardData.getData('text'));
+});
+igiNumberInput.addEventListener('keydown', e => { if(e.key==='Enter') lookupIGI(); });
+document.getElementById('igi-apply-btn').addEventListener('click', applyIGIReport);
+
+</script>
+</body>
+</html>

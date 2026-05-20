@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+dist/
+.env
+.env.*
+diamond-calculator-v3 (1).html
