@@ -173,6 +173,31 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .ratio-questions>strong{display:block;margin-bottom:3px}
 .ratio-questions ul{margin:0;padding-left:16px}
 .ratio-questions li{margin:2px 0}
+.weak-bar{padding:14px 22px;border-top:.5px solid var(--border);background:rgba(224,96,96,0.03)}
+.weak-bar.clean{background:rgba(76,175,122,0.03)}
+.weak-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.shape-icon{width:40px;height:40px;flex-shrink:0;border-radius:10px;background:var(--surface2);border:.5px solid var(--border);display:flex;align-items:center;justify-content:center}
+.shape-icon svg{width:26px;height:26px}
+.weak-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:3px}
+.weak-sub{font-size:12px;color:var(--muted2);line-height:1.55}
+.weak-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.weak-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.55;color:var(--muted2)}
+.weak-pill{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:4px;flex-shrink:0;margin-top:2px}
+.weak-pill.critical{color:var(--red);background:var(--red-dim);border:.5px solid rgba(224,96,96,.25)}
+.weak-pill.caution{color:var(--orange);background:var(--orange-dim);border:.5px solid rgba(224,144,64,.25)}
+.weak-pill.note{color:var(--muted2);background:rgba(255,255,255,.04);border:.5px solid var(--border)}
+.weak-item strong{color:var(--text);font-weight:600}
+.inspection-item{display:flex;align-items:flex-start;gap:8px}
+.inspection-icon{width:22px;height:22px;flex-shrink:0;opacity:.85}
+.summary-with-icon{display:flex;align-items:center;gap:10px}
+.summary-with-icon .shape-icon{width:34px;height:34px;border-radius:8px}
+.summary-with-icon .shape-icon svg{width:22px;height:22px}
+.collapse-section{border:.5px solid var(--border);border-radius:12px;background:var(--surface2);overflow:hidden}
+.collapse-section summary{list-style:none;cursor:pointer;padding:12px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:var(--muted2);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;gap:10px;user-select:none}
+.collapse-section summary::-webkit-details-marker{display:none}
+.collapse-section summary::after{content:'+';font-size:14px;color:var(--accent);transition:transform .15s}
+.collapse-section[open] summary::after{content:'−'}
+.collapse-section .toggle-grid{padding:0 10px 10px}
 .market-bar{padding:12px 22px;border-top:.5px solid var(--border);display:none;align-items:flex-start;gap:10px;background:rgba(91,155,213,0.025)}
 .market-bar.on{display:flex}
 .market-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--blue)}
@@ -430,19 +455,11 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   </div>
 </div>
 
-<!-- ASK PRICE -->
-<div class="section">
-  <div class="section-label">Seller asking price <span style="font-size:9px;color:var(--muted);margin-left:4px;letter-spacing:0">(optional)</span></div>
-  <div class="ask-row">
-    <input class="ask-input" id="ask-price" inputmode="decimal" placeholder="e.g. 500">
-    <div class="ask-help">Enter the TikTok / eBay / auction price to score it against this model.</div>
-  </div>
-</div>
-
 <!-- TOGGLES -->
 <div class="section">
-  <div class="section-label">Seller &amp; market modifiers</div>
-  <div class="toggle-grid">
+  <details class="collapse-section" id="modifiers-collapse">
+    <summary>Seller &amp; market modifiers</summary>
+    <div class="toggle-grid">
 
     <div class="trow color-seller" id="tog-china">
       <div class="tsw"></div>
@@ -492,13 +509,17 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
       </div>
     </div>
 
-  </div>
+    </div>
+  </details>
 </div>
 
 <!-- RESULTS -->
 <div class="results">
   <div class="results-header">
-    <div class="stone-summary" id="stone-summary">3.0ct · Round · G · VS1 · Ideal</div>
+    <div class="summary-with-icon">
+      <div class="shape-icon" id="summary-shape-icon" aria-hidden="true"></div>
+      <div class="stone-summary" id="stone-summary">3.0ct · Round · G · VS1 · Ideal</div>
+    </div>
     <div class="badges" id="badge-row">
       <span class="bdg bdg-blue">IGI cert + inscription</span>
     </div>
@@ -533,9 +554,15 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
     <canvas id="price-chart" height="200"></canvas>
   </div>
 
-  <div class="verdict-bar" id="verdict-bar">
-    <div class="vdot" id="vdot" style="background:var(--accent)"></div>
-    <div class="vtext" id="vtext">Enter a seller price above to score the deal.</div>
+  <div class="weak-bar" id="weak-bar">
+    <div class="weak-head">
+      <div class="shape-icon" id="weak-shape-icon" aria-hidden="true"></div>
+      <div>
+        <div class="weak-title" id="weak-title">Analyzing stone…</div>
+        <div class="weak-sub" id="weak-sub"></div>
+      </div>
+    </div>
+    <ul class="weak-list" id="weak-list"></ul>
   </div>
   <div class="ratio-bar" id="ratio-bar">
     <div class="ratio-dot" id="ratio-dot"></div>
@@ -643,7 +670,6 @@ const state = {
   clarity: 'VS1',
   shape: 'round',
   cut: 'ideal',
-  ask: null,
   china: false,
   auction: false,
   tri3ex: false,
@@ -1113,6 +1139,9 @@ function update() {
 
   document.getElementById('stone-summary').textContent =
     ct.toFixed(1)+'ct · '+(shapeNames[state.shape]||state.shape)+' · '+colorLabel()+' · '+state.clarity+' · '+capCut(state.cut);
+  setShapeIcon('summary-shape-icon', state.shape);
+  setShapeIcon('weak-shape-icon', state.shape);
+  updateWeakPointsBar();
 
   document.getElementById('price-ws').textContent    = fmtR(m.ws*0.87, m.ws*1.13);
   document.getElementById('price-ws-sub').textContent = fmt(m.wsPerCt)+'/ct est. trade cost';
@@ -1122,7 +1151,6 @@ function update() {
   document.getElementById('price-retail-sub').textContent = fmt(m.retailLo/ct)+'–'+fmt(m.retailHi/ct).replace('$','')+'/ct';
 
   updateBadges();
-  updateVerdict(m);
   updateRatioBar();
   updateMarketBar(m);
   updateAlibabaFloorBar();
@@ -1162,12 +1190,47 @@ function updateRatioBar(){
   }
 
   const a = state.ratioAssessment;
-  const questions = getDiamondInspectionQuestions(state.shape, state.clarity, state.colorFamily, state.cut);
-  const questionList = questions.map(item => `<li>${formatInspectionQuestion(item)}</li>`).join('');
   bar.classList.add('on');
   dot.style.background = a.level === 'strong' ? 'var(--green)' : a.level === 'weak' ? 'var(--orange)' : 'var(--accent)';
-  txt.innerHTML = `<strong>Ratio ${state.ratio.toFixed(2)} · ${escapeHTML(a.title)}.</strong> ${escapeHTML(a.text)}`
-    + `<span class="ratio-questions"><strong>Top things to ask:</strong><ul>${questionList}</ul></span>`;
+  txt.innerHTML = `<strong>Ratio ${state.ratio.toFixed(2)} · ${escapeHTML(a.title)}.</strong> ${escapeHTML(a.text)}`;
+}
+
+function updateWeakPointsBar() {
+  const bar = document.getElementById('weak-bar');
+  const title = document.getElementById('weak-title');
+  const sub = document.getElementById('weak-sub');
+  const list = document.getElementById('weak-list');
+  if (!bar || !title || !sub || !list) return;
+
+  const points = getStoneWeakPoints();
+  const worst = points.find(p => p.severity === 'critical') || points.find(p => p.severity === 'caution') || null;
+  const lead = worst || points[0] || null;
+  bar.classList.toggle('clean', !worst);
+
+  const questions = getDiamondInspectionQuestions(state.shape, state.cut);
+  const inspectHtml = questions.length
+    ? `<li class="weak-item" style="margin-top:4px;padding-top:8px;border-top:.5px solid var(--border)"><span class="weak-pill note">Check</span><span><strong>What IGI won't show:</strong><ul style="margin:6px 0 0;padding-left:0;list-style:none">${questions.map(q => `<li class="inspection-item" style="margin-top:5px"><span class="inspection-icon">${shapeIconSvg(state.shape, 18)}</span><span>${formatInspectionQuestion(q)}</span></li>`).join('')}</ul></span></li>`
+    : '';
+
+  if (!points.length) {
+    title.textContent = 'No major weak spots';
+    sub.textContent = 'For lab-grown, this grade/shape combo sits in the normal factory band. Still verify optics the cert cannot grade.';
+    list.innerHTML = inspectHtml;
+    return;
+  }
+
+  title.textContent = lead ? lead.headline : 'A few things to weigh';
+  sub.textContent = lead
+    ? lead.summary
+    : 'Lab-grown buyers expect cleaner specs than natural. Below is how this stone compares to typical Alibaba IGI stock.';
+
+  const weakHtml = points.map(p => {
+    const pill = p.severity === 'critical' ? 'critical' : p.severity === 'caution' ? 'caution' : 'note';
+    const label = p.severity === 'critical' ? 'Weak' : p.severity === 'caution' ? 'Soft' : 'Note';
+    return `<li class="weak-item"><span class="weak-pill ${pill}">${label}</span><span><strong>${escapeHTML(p.label)}:</strong> ${escapeHTML(p.text)}</span></li>`;
+  }).join('');
+
+  list.innerHTML = weakHtml + inspectHtml;
 }
 
 function updateMarketBar(m){
@@ -1210,39 +1273,6 @@ function updateAlibabaFloorBar() {
   bar.classList.add('on');
 }
 
-function updateVerdict(m){
-  const dot = document.getElementById('vdot');
-  const txt = document.getElementById('vtext');
-  const bar = document.getElementById('verdict-bar');
-  const ask = state.ask;
-  if (!ask || ask<=0){
-    dot.style.background='var(--accent)'; bar.style.borderTopColor='rgba(212,175,114,0.1)';
-    txt.innerHTML='Enter a seller price above to score it.'; return;
-  }
-  const ali = m.alibabaMatch;
-  if (ali && ask > ali.totalHi * 1.10) {
-    dot.style.background='#e06060'; bar.style.borderTopColor='rgba(224,96,96,0.1)';
-    txt.innerHTML=`<strong>Above Alibaba IGI ceiling.</strong> ${fmt(ask)} is higher than the matched factory-direct Alibaba ceiling of about ${fmt(ali.totalHi)} for ${ali.label}. Only justify this with a clearly better exact IGI report, video, ratio, and color saturation.`;
-    return;
-  }
-  const wsHi = m.ws*1.13;
-  const pctVsWs = Math.round((ask/m.ws-1)*100);
-  const savVsRetail = Math.round((1-ask/m.retailLo)*100);
-  if (ask<=wsHi){
-    dot.style.background='#4caf7a'; bar.style.borderTopColor='rgba(76,175,122,0.12)';
-    txt.innerHTML=`<strong>At or near trade cost.</strong> ${fmt(ask)} is inside estimated wholesale range (${pctVsWs>=0?'+'+pctVsWs:pctVsWs}% vs midpoint). Possible for a Chinese factory direct, distressed lot, or bulk-buy. Verify cert and return policy before paying this — very little room for error.`;
-  } else if (ask<=m.fairHi){
-    dot.style.background='#4caf7a'; bar.style.borderTopColor='rgba(76,175,122,0.12)';
-    txt.innerHTML=`<strong>Fair direct/auction price.</strong> ${fmt(ask)} is above trade cost and in the reasonable zone for a TikTok/eBay/auction direct seller. You're saving ~${savVsRetail}% vs what a mall jeweler charges.`;
-  } else if (ask<=m.retailHi){
-    dot.style.background='#d4af72'; bar.style.borderTopColor='rgba(212,175,114,0.1)';
-    txt.innerHTML=`<strong>Retail-priced — not a direct deal.</strong> ${fmt(ask)} is plausible for a traditional jeweler but direct/auction sellers offer comparable for ${fmt(m.fairMid)}.`;
-  } else {
-    dot.style.background='#e06060'; bar.style.borderTopColor='rgba(224,96,96,0.1)';
-    txt.innerHTML=`<strong>Overpriced.</strong> ${fmt(ask)} exceeds this model's normal retail ceiling. Walk away or negotiate hard — compare at PriceScope or StoneAlgo first.`;
-  }
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
 // CHART
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1267,8 +1297,7 @@ function drawChart(){
     return {c,ws:m.ws,fair:m.fairMid,retail:m.retailMid};
   });
 
-  const askVal=(state.ask&&state.ask>0)?state.ask:0;
-  const ymax=Math.max(...series.map(p=>p.retail),askVal)*1.12;
+  const ymax=Math.max(...series.map(p=>p.retail))*1.12;
   const xM=c=>pad.l+(c-0.5)/9.5*(cssW-pad.l-pad.r);
   const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
 
@@ -1294,15 +1323,6 @@ function drawChart(){
   ctx.strokeStyle='rgba(212,175,114,0.45)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
   ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,cssH-pad.b);ctx.stroke();
   ctx.setLineDash([]);
-
-  if(askVal>0){
-    const ay=yM(askVal);
-    ctx.strokeStyle='#d4af72';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
-    ctx.beginPath();ctx.moveTo(pad.l,ay);ctx.lineTo(cssW-pad.r,ay);ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle='#d4af72';ctx.font='9px DM Mono,monospace';
-    ctx.fillText('ask '+fmt(askVal),cssW-pad.r-80,Math.max(pad.t+10,ay-5));
-  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1334,12 +1354,6 @@ document.getElementById('carat').addEventListener('input',e=>{
   state.ratio = null;
   state.ratioAssessment = null;
   document.getElementById('carat-display').textContent=state.carat.toFixed(1)+' ct';
-  update();
-});
-
-document.getElementById('ask-price').addEventListener('input',e=>{
-  const v=e.target.value.replace(/[^0-9.]/g,'');
-  state.ask=v?parseFloat(v):null;
   update();
 });
 
@@ -1383,8 +1397,6 @@ Object.entries(toggleMap).forEach(([id,[stateKey,colorClass]])=>{
 });
 
 window.addEventListener('resize',drawChart);
-syncWhiteSection();
-update();
 
 // ══════════════════════════════════════════════════════════════════════════════
 // IGI REPORT LOOKUP
@@ -1898,62 +1910,161 @@ function assessRatio(ratio, shapeKey) {
   };
 }
 
-function getDiamondInspectionQuestions(shapeKey, clarity, colorFamily, cut) {
+const SHAPE_ICON_COLORS = {
+  round:'#5b9bd5', oval:'#a08060', pear:'#9b70d4', marquise:'#a08060', heart:'#e070a0',
+  cushion:'#4caf7a', cushion_brilliant:'#4caf7a', square_cushion:'#4caf7a',
+  radiant:'#e06060', sq_radiant:'#e06060', princess:'#4caf7a', emerald:'#5b9bd5',
+  asscher:'#5b9bd5', baguette:'#4caf7a', tapered_baguette:'#4caf7a', carre:'#5b9bd5',
+  trilliant:'#9b70d4', half_moon:'#5b9bd5', shield:'#9b70d4', hexagonal:'#5b9bd5',
+  old_european:'#d4af72', old_mine:'#d4af72', rose:'#e070a0', briolette:'#9b70d4',
+  portuguese:'#d4af72', flanders:'#d4af72',
+};
+
+function shapeIconSvg(shapeKey, size = 26) {
+  const c = SHAPE_ICON_COLORS[shapeKey] || '#d4af72';
+  const s = size;
+  const icons = {
+    round: `<circle cx="12" cy="12" r="9" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="3" x2="12" y2="21" stroke="${c}" stroke-width=".7" opacity=".55"/><line x1="3" y1="12" x2="21" y2="12" stroke="${c}" stroke-width=".7" opacity=".55"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5" stroke="${c}" stroke-width=".6" opacity=".4"/><line x1="18.5" y1="5.5" x2="5.5" y2="18.5" stroke="${c}" stroke-width=".6" opacity=".4"/>`,
+    oval: `<ellipse cx="12" cy="12" rx="10" ry="6.5" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="5.5" x2="12" y2="18.5" stroke="${c}" stroke-width=".7" opacity=".5"/><line x1="4" y1="12" x2="20" y2="12" stroke="${c}" stroke-width=".6" opacity=".4"/>`,
+    pear: `<path d="M12 4 C16 7 18 11 12 20 C6 11 8 7 12 4Z" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="7" x2="12" y2="17" stroke="${c}" stroke-width=".7" opacity=".5"/>`,
+    marquise: `<path d="M4 12 C8 6 16 6 20 12 C16 18 8 18 4 12Z" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="7" x2="12" y2="17" stroke="${c}" stroke-width=".7" opacity=".5"/>`,
+    heart: `<path d="M12 20 C5 14 4 9 8 7 C10.5 5.5 12 7.5 12 9 C12 7.5 13.5 5.5 16 7 C20 9 19 14 12 20Z" fill="none" stroke="${c}" stroke-width="1.2"/>`,
+    cushion: `<rect x="5" y="5" width="14" height="14" rx="4" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="8" y1="12" x2="16" y2="12" stroke="${c}" stroke-width=".6" opacity=".45"/><line x1="12" y1="8" x2="12" y2="16" stroke="${c}" stroke-width=".6" opacity=".45"/>`,
+    cushion_brilliant: `<rect x="5" y="5" width="14" height="14" rx="4" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="7" y1="7" x2="17" y2="17" stroke="${c}" stroke-width=".55" opacity=".4"/><line x1="17" y1="7" x2="7" y2="17" stroke="${c}" stroke-width=".55" opacity=".4"/>`,
+    square_cushion: `<rect x="5" y="5" width="14" height="14" rx="3" fill="none" stroke="${c}" stroke-width="1.2"/>`,
+    princess: `<rect x="5" y="5" width="14" height="14" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="5" y1="5" x2="19" y2="19" stroke="${c}" stroke-width=".6" opacity=".45"/><line x1="19" y1="5" x2="5" y2="19" stroke="${c}" stroke-width=".6" opacity=".45"/>`,
+    emerald: `<rect x="5.5" y="6" width="13" height="12" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="8" y="9" width="8" height="6" fill="none" stroke="${c}" stroke-width=".7" opacity=".55"/>`,
+    asscher: `<rect x="5.5" y="5.5" width="13" height="13" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5" stroke="${c}" stroke-width=".65" opacity=".5"/><line x1="18.5" y1="5.5" x2="5.5" y2="18.5" stroke="${c}" stroke-width=".65" opacity=".5"/>`,
+    radiant: `<rect x="5" y="6.5" width="14" height="11" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="7" y1="8" x2="17" y2="16" stroke="${c}" stroke-width=".55" opacity=".4"/><line x1="17" y1="8" x2="7" y2="16" stroke="${c}" stroke-width=".55" opacity=".4"/>`,
+    sq_radiant: `<rect x="5.5" y="5.5" width="13" height="13" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="7" y1="7" x2="17" y2="17" stroke="${c}" stroke-width=".55" opacity=".4"/>`,
+    baguette: `<rect x="4" y="8" width="16" height="8" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="8" y1="8" x2="8" y2="16" stroke="${c}" stroke-width=".6" opacity=".45"/><line x1="12" y1="8" x2="12" y2="16" stroke="${c}" stroke-width=".6" opacity=".45"/><line x1="16" y1="8" x2="16" y2="16" stroke="${c}" stroke-width=".6" opacity=".45"/>`,
+    trilliant: `<polygon points="12,4 20,18 4,18" fill="none" stroke="${c}" stroke-width="1.2"/>`,
+    default: `<polygon points="12,3 20,12 12,21 4,12" fill="none" stroke="${c}" stroke-width="1.2"/>`,
+  };
+  const inner = icons[shapeKey] || icons.default;
+  return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${inner}</svg>`;
+}
+
+function setShapeIcon(elementId, shapeKey) {
+  const el = document.getElementById(elementId);
+  if (el) el.innerHTML = shapeIconSvg(shapeKey);
+}
+
+function getLabClarityAssessment(clarity, isWhiteStone) {
+  const key = (clarity || '').toUpperCase();
+  if (!isWhiteStone) {
+    if (['SI1','SI2','I1','I2','I3'].includes(key)) {
+      return { severity:'caution', label:'Clarity for fancy color', text:'Even on fancy stones, SI grades can show in the face-up view. Confirm eye-clean in video.', headline:'Clarity may show face-up', summary:'Fancy color hides some inclusion, but SI still matters for salability.' };
+    }
+    return null;
+  }
+  const tiers = {
+    IF: null,
+    VVS1: null,
+    VVS2: null,
+    VS1: { severity:'note', label:'Clarity (lab scale)', text:'VS1 is the practical commodity floor for white lab IGI. Normal, liquid grade.', headline:'Commodity clarity — normal for lab', summary:'This is the baseline most factory listings target.' },
+    VS2: { severity:'caution', label:'Clarity (lab scale)', text:'VS2 is below typical Alibaba DEF/VS1 stock. Expect a discount vs VS1 and harder resale.', headline:'Below factory-norm clarity', summary:'For lab-grown, VS is where “lack of clarity” starts — VS2 is off-catalog on many supplier ladders.' },
+    SI1: { severity:'critical', label:'Clarity (lab scale)', text:'SI1 is off-catalog for most white lab IGI listings. Treat as a liquidation / backstock stone unless priced well below model.', headline:'Weak clarity for lab-grown', summary:'Lab buyers expect VS1+ on white stones. SI is a real weak point.' },
+    SI2: { severity:'critical', label:'Clarity (lab scale)', text:'SI2 is a distressed grade in lab-grown. Only buy with heavy discount and confirmed eye-clean video.', headline:'Bad clarity for lab-grown', summary:'SI2 is well outside normal factory stock.' },
+    I1: { severity:'critical', label:'Clarity (lab scale)', text:'Included grade — very hard to move in lab-grown unless priced like salvage.', headline:'Bad clarity for lab-grown', summary:'Included grades are rare on modern lab IGI white goods.' },
+    I2: { severity:'critical', label:'Clarity (lab scale)', text:'Heavy inclusions — assume major discount and limited buyer pool.', headline:'Bad clarity for lab-grown', summary:'Included grades are rare on modern lab IGI white goods.' },
+    I3: { severity:'critical', label:'Clarity (lab scale)', text:'Heavy inclusions — assume major discount and limited buyer pool.', headline:'Bad clarity for lab-grown', summary:'Included grades are rare on modern lab IGI white goods.' },
+  };
+  return tiers[key] || null;
+}
+
+function getLabColorAssessment() {
+  if (!isWhite()) return null;
+  const g = state.whiteGrade;
+  if (['D','E'].includes(g)) return null;
+  if (g === 'F') {
+    return { severity:'note', label:'Color (lab scale)', text:'F is still in the DEF band, but it is the lower end of that commodity color range. Expect less premium than D/E.', headline:'Lower end of DEF color', summary:'F is acceptable, but it is not the tightest factory color.' };
+  }
+  if (g === 'G' || g === 'H') {
+    return { severity:'caution', label:'Color (lab scale)', text:'G–H is off-catalog for most factory IGI white stock. Expect pricing closer to secondary / liquidation comps.', headline:'Off-catalog white color', summary:'Lab commodity white is overwhelmingly D–F. G+ is a soft spot.' };
+  }
+  if (['I','J','K','L','M'].includes(g)) {
+    return { severity:'critical', label:'Color (lab scale)', text:'I–M shows noticeable warmth. Fine if you want warm, but weak for resale in the lab market.', headline:'Weak color for lab-grown white', summary:'Below H, color becomes a real buyer objection on white lab stones.' };
+  }
+  if (['N-P','Q-R','S-Z'].includes(g)) {
+    return { severity:'critical', label:'Color (lab scale)', text:'Lower color grades are thin-market backstock. Price should reflect liquidation, not DEF commodity comps.', headline:'Bad color band for lab white', summary:'These grades sit far outside normal Alibaba IGI white ladders.' };
+  }
+  return null;
+}
+
+function getStoneWeakPoints() {
+  const points = [];
+  const clarityPt = getLabClarityAssessment(state.clarity, isWhite());
+  const colorPt = getLabColorAssessment();
+  if (clarityPt) points.push(clarityPt);
+  if (colorPt) points.push(colorPt);
+
+  if (isWhite() && state.cut === 'good') {
+    points.push({ severity:'caution', label:'Cut grade', text:'“Good” cut on lab-grown often looks dull face-up. Discount vs Ideal/VG unless video proves brightness.', headline:'Cut is a soft spot', summary:'IGI cut grade is on the cert, but Good still underperforms in person.' });
+  } else if (isWhite() && state.cut === 'vg' && !state.tri3ex) {
+    points.push({ severity:'note', label:'Cut grade', text:'Very Good is sellable, but 3EX/Ideal is the lab premium band most buyers expect at full price.', headline:'Cut is acceptable, not premium', summary:'Not weak — just not the top make tier.' });
+  }
+
+  if (state.ratioAssessment?.level === 'weak') {
+    points.push({ severity:'caution', label:'Outline ratio', text: state.ratioAssessment.text, headline:'Outline ratio is a soft spot', summary:'Measurements are on the cert, but ratio still drives face-up appeal and resale.' });
+  }
+
+  if (state.cvd && !state.asgrown && isWhite()) {
+    points.push({ severity:'note', label:'Growth method', text:'CVD stones can show strain or haze unless as-grown. Worth a tilt video even with a high clarity grade.', headline:'Possible optics issue', summary:'IGI lists growth method, not face-up milkiness.' });
+  }
+
+  const lowDemandShapes = { marquise:0.87, asscher:0.84, baguette:0.76, tapered_baguette:0.74, rose:0.72, briolette:0.70, shield:0.78, half_moon:0.80 };
+  const sm = lowDemandShapes[state.shape];
+  if (sm && sm < 0.82) {
+    points.push({ severity:'note', label:'Shape liquidity', text:`${shapeNames[state.shape] || state.shape} trades at a shape discount vs round/oval. Fine if you love the cut — weaker if you plan to resell.`, headline:'Niche shape for resale', summary:'Shape affects liquidity more than the IGI grade line suggests.' });
+  }
+
+  const order = { critical:0, caution:1, note:2 };
+  points.sort((a, b) => order[a.severity] - order[b.severity]);
+  return points;
+}
+
+function getDiamondInspectionQuestions(shapeKey, cut) {
   const shapeQuestions = {
-    round: 'Cut proof: ask for table/depth, crown and pavilion angles, plus ASET/IdealScope or hearts-and-arrows images if available.',
-    oval: 'Bowtie check: ask how strong the bowtie is in normal lighting, whether the ends go dark, and if it stays bright when tilted.',
-    pear: 'Bowtie and outline: ask how strong the bowtie is, whether the point is protected, and if both shoulders look even.',
-    marquise: 'Bowtie and tips: ask how strong the bowtie is, whether the tips are protected, and if the outline is symmetrical face-up.',
-    heart: 'Shape symmetry: ask whether the cleft, lobes, and point are even, and whether a bowtie or dark center shows in video.',
-    cushion: 'Light return: ask whether it is crushed-ice or chunky, if the center goes mushy/dark, and whether it has obvious leakage.',
-    cushion_brilliant: 'Light return: ask whether the chunky facets stay bright, if the center goes dark, and whether it has obvious leakage.',
-    square_cushion: 'Light return: ask whether the facet pattern is chunky or crushed-ice, and if the center looks dark or mushy.',
-    radiant: 'Facet pattern: ask whether it is crushed-ice or cleaner, if the middle looks watery, and if the corners go dark.',
-    sq_radiant: 'Facet pattern: ask whether it is crushed-ice or cleaner, if the middle looks watery, and if the corners go dark.',
-    emerald: 'Windowing: ask for a slow tilt video to check windowing, dark steps, and inclusions under the open table.',
-    asscher: 'Windowing: ask for a slow tilt video to check windowing, dark steps, and whether the windmill pattern looks even.',
-    princess: 'Corners and light return: ask whether the corners are clean/protected, if the center goes dark, and whether the chevrons look balanced.',
-    trilliant: 'Corners and windowing: ask whether the corners are protected, if the center windows, and whether all three sides return light evenly.',
-    half_moon: 'Match and windowing: ask whether the curve is even, if the center windows, and how it matches the main stone if it is a side stone.',
-    shield: 'Outline and windowing: ask whether the outline is symmetrical, if the center windows, and whether the point/corners are protected.',
-    hexagonal: 'Outline and steps: ask whether the outline is symmetrical, if the center windows, and whether the step pattern stays even.',
-    old_european: 'Old-cut appeal: ask for face-up and tilt video to check warmth, kozibe/reflections, and whether the pattern is lively.',
-    old_mine: 'Old-cut appeal: ask for face-up and tilt video to check warmth, kozibe/reflections, and whether the cushion outline is pleasing.',
-    baguette: 'Windowing: ask for a slow tilt video to check windowing, dark steps, and visible inclusions under the open table.',
-    tapered_baguette: 'Windowing and match: ask for a slow tilt video to check dark steps and how it matches the other side stone.',
-    carre: 'Windowing: ask for a slow tilt video to check windowing, dark steps, and visible inclusions under the open table.',
-    rose: 'Transparency: ask whether the stone is transparent or sleepy, if the base color is attractive, and how flat it sits.',
-    briolette: 'Full-view video: ask for video from every side to check symmetry, drill/setting wear, and whether inclusions are obvious.',
-    portuguese: 'Depth and brightness: ask whether the extra facets stay lively, if the center goes dark, and if the depth faces up small.',
-    flanders: 'Facet balance: ask whether the corners are even, if the center goes dark, and whether the facet pattern is balanced.'
+    oval: 'Bowtie: how strong is the bowtie in normal lighting — do the ends go dark when tilted?',
+    pear: 'Bowtie & outline: bowtie strength, even shoulders, and whether the point is protected.',
+    marquise: 'Bowtie & tips: bowtie severity, tip protection, and face-up symmetry.',
+    heart: 'Outline: even cleft and lobes, protected point, and any bowtie or dark center.',
+    cushion: 'Pattern: crushed-ice vs chunky facets — does the center go mushy or dark?',
+    cushion_brilliant: 'Pattern: does the chunky facet pattern stay bright or go dark in the center?',
+    square_cushion: 'Pattern: crushed-ice vs chunky look and whether the center goes dark.',
+    radiant: 'Pattern: crushed-ice vs cleaner facets — watery middle or dark corners?',
+    sq_radiant: 'Pattern: crushed-ice vs cleaner facets — watery middle or dark corners?',
+    emerald: 'Windowing: slow tilt video for windowing and dark step facets under the table.',
+    asscher: 'Windowing: tilt video for windowing and whether the windmill pattern is even.',
+    princess: 'Corners: clean protected corners, dark center, and balanced chevrons.',
+    trilliant: 'Corners: protected points and even light return on all three sides.',
+    baguette: 'Windowing: tilt video for windowing and dark steps in the open table.',
+    tapered_baguette: 'Windowing: dark steps and how it pairs if used as a side stone.',
+    carre: 'Windowing: tilt video for windowing and dark step facets.',
+    shield: 'Outline: symmetrical outline, protected point, and center windowing.',
+    hexagonal: 'Outline: symmetrical hex shape and even step pattern without a dead center.',
+    portuguese: 'Depth: extra facets lively or dark center — does depth make it face up small?',
+    flanders: 'Facet balance: even corners and balanced facet pattern face-up.',
   };
 
-  const clarityKey = (clarity || '').toUpperCase();
-  const clarityQuestion = ['SI1','SI2','I1','I2','I3'].includes(clarityKey)
-    ? 'Inclusions: confirm it is eye-clean at normal viewing distance; ask where black crystals, feathers, clouds, or surface-reaching inclusions sit.'
-    : ['VS1','VS2'].includes(clarityKey)
-      ? 'Inclusions: ask whether any crystal, feather, cloud, or reflected inclusion is under the table or near a corner/tip.'
-      : 'Transparency: still ask about haze, strain, graining, or milkiness; a high clarity grade does not guarantee a crisp-looking stone.';
+  const items = [];
+  const shapeQ = shapeQuestions[shapeKey];
+  if (shapeQ) items.push(shapeQ);
 
-  const colorQuestion = colorFamily !== 'white'
-    ? 'Color: ask for daylight and indoor videos to confirm the color is even and not washed out.'
-    : 'Color: ask whether there is any brown, gray, blue, or milky tint in daylight.';
+  if (shapeKey === 'round' && cut === 'good') {
+    items.push('Brightness: face-up and tilt video — Good cut lab rounds often look dull despite the grade.');
+  } else if (cut === 'good' && !shapeQ) {
+    items.push('Brightness: confirm the face-up pattern stays lively in diffused and spot light.');
+  }
 
-  const cutQuestion = cut === 'good'
-    ? 'Video: because the cut is not top-tier, ask for extra proof that it is bright across the whole face.'
-    : 'Video: ask for a face-up and tilt video in diffused light and spot lighting.';
-
-  return [
-    shapeQuestions[shapeKey] || 'Face-up performance: ask for a slow face-up and tilt video to check brightness, windowing, and dark areas.',
-    clarityQuestion,
-    colorQuestion,
-    cutQuestion,
-    'Paperwork: confirm the report number, inscription, measurements, and return window before paying.'
-  ];
+  return items;
 }
 
 function formatInspectionQuestion(item) {
-  const [label, ...rest] = String(item || '').split(':');
+  const raw = String(item || '').trim();
+  if (!raw.includes(':')) return escapeHTML(raw);
+  const [label, ...rest] = raw.split(':');
   let body = escapeHTML(rest.join(':').trim());
   const importantTerms = [
     'crushed-ice', 'cleaner', 'watery', 'corners go dark',
@@ -2204,6 +2315,9 @@ igiNumberInput.addEventListener('input', e => {
 });
 igiNumberInput.addEventListener('keydown', e => { if(e.key==='Enter') lookupIGI(); });
 document.getElementById('igi-apply-btn').addEventListener('click', applyIGIReport);
+
+syncWhiteSection();
+update();
 
 </script>
 </body>
