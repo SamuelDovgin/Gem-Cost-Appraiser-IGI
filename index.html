@@ -1278,6 +1278,11 @@ function setIGINumberFromText(value) {
   return clean;
 }
 
+function hasLookupableIGINumber(clean) {
+  const digits = (clean.match(/\d{6,}/) || [''])[0];
+  return digits.length >= 6;
+}
+
 async function pasteIGINumberFromClipboard() {
   const input = document.getElementById('igi-number');
   try {
@@ -1288,7 +1293,9 @@ async function pasteIGINumberFromClipboard() {
     const clean = setIGINumberFromText(text);
     input.focus();
     input.select();
-    if (!clean) {
+    if (hasLookupableIGINumber(clean)) {
+      await lookupIGI();
+    } else if (!clean) {
       setIGIStatus('warn', 'Clipboard is empty or does not contain an IGI report number.');
     }
   } catch (err) {
@@ -1978,7 +1985,8 @@ igiNumberInput.addEventListener('focus', () => igiNumberInput.select());
 igiNumberInput.addEventListener('click', () => igiNumberInput.select());
 igiNumberInput.addEventListener('paste', e => {
   e.preventDefault();
-  setIGINumberFromText(e.clipboardData.getData('text'));
+  const clean = setIGINumberFromText(e.clipboardData.getData('text'));
+  if (hasLookupableIGINumber(clean)) lookupIGI();
 });
 igiNumberInput.addEventListener('keydown', e => { if(e.key==='Enter') lookupIGI(); });
 document.getElementById('igi-apply-btn').addEventListener('click', applyIGIReport);
