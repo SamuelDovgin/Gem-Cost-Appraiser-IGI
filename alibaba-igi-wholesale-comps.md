@@ -1,6 +1,6 @@
 # Alibaba IGI Wholesale Comps
 
-Research date: 2026-05-18 (v3.1 note: 2026-05-20)
+Research date: 2026-05-18 (v3.1 note: 2026-05-20; **3ct round/oval follow-up + live browser: 2026-05-20**)
 
 Scope: Alibaba listings and Alibaba showroom pages for loose lab-grown diamonds that explicitly mention IGI or IGI certificate. Prices are supplier/listing prices, usually before final negotiated quote, shipping, payment fees, inspection risk, and platform variance. Treat these as factory-direct upper-limit signals, not retail appraisals.
 
@@ -52,6 +52,95 @@ Scope: Alibaba listings and Alibaba showroom pages for loose lab-grown diamonds 
 - Alibaba 5ct marquise showroom: https://www.alibaba.com/showroom/5-ct-marquise-diamond.html
 - Alibaba blue 3ct vivid product: https://www.alibaba.com/product-detail/3CT-Fancy-Vivid-Blue-Round-Brilliant_10000040201984.html
 - Alibaba blue showroom: https://www.alibaba.com/showroom/lab-grown-blue-diamond.html
+
+## May 20, 2026 — Live browser search (round + oval, 3ct IGI)
+
+Side browser searches run 2026-05-20. Search pages loaded without captcha; product pages may still intercept — solve captcha in the side panel if a listing shows “Captcha Interception.”
+
+### Round — Alibaba search `3ct IGI certified lab diamond round`
+
+| Listing (search snippet) | Price | Notes |
+|---|---:|---|
+| **DR ENTERPRISE** — 3CT IGI VVS2 excellent cut round brilliant | **$494** | MOQ 1 piece; closest public comp to user **~$495** anchor |
+| **Messi** MSD-00365 Factory Prices VVS/VS1 0.3–6CT round IGI | $41–2,100 (50% off shown) | Verified ladder; see live selector below |
+| **Messi** In Stock IGI 0.3–6CT | $41.40–2,099.70 (10% off) | Same supplier family |
+| Wuzhou Zhanhao — 1CT–3CT DEF VVS/VS round IGI | **$138–498** | 12 yr supplier; top of band ≈ $498 |
+| CVD 3ct D VS1 10mm round bulk IGI | $134–887 (10% off) | Wide spread by clarity |
+| Goldleaf — 3CT round IGI D VVS1 | **$160** | Aggressive low ask; verify cert |
+| Sutariya Brothers — 3ct D VVS2 3EX round | **$150** | India; verify vs Messi |
+| Wholesale Aniva — 1–3ct DE VVS VS round IGI | **$574** | Above factory floor |
+| Lab Diamond Sales — 3CT VVS round IGI | **$660** | Not a floor comp |
+| CHANG LAI — 3Ct VVS2 round/grA | $84–746 | Wide range listing |
+
+### Round — Messi MSD-00365 live selector (browser CDP, 50% promotion active)
+
+Product: [Factory Prices Lab Created VVS VS1 … IGI](https://www.alibaba.com/product-detail/Factory-Prices-Lab-Created-VVS-VS1_1600612782670.html)
+
+| 3.0CT D Round IGI | Promo piece | $/ct |
+|---|---:|---:|
+| VS1 | **$467.50** | $156 |
+| VS2 | **$487.00** | $162 |
+| VVS2 | **$535.00** | $178 |
+| VVS1 | **$999.00** | $333 |
+
+UI showed **$490** on load (default SKU / rounding). User **~$495** = **VS2 ($487)** or **VVS2 ($535)** before ship; **DR ENTERPRISE $494** is an independent VVS2 round comp.
+
+### Oval — Alibaba search `3ct IGI certified oval lab diamond`
+
+| Listing (search snippet) | Price | Notes |
+|---|---:|---|
+| **D VVS2 IGI — 3CT oval CVD** (engagement-ring supplier listing) | **$529** | Best explicit **3ct oval** search hit; ~parity with round VVS2 |
+| **Messi** Lab Created IGI 1–5CT D VVS/VS oval | **$155–1,509** | [Oval SKU page](https://www.alibaba.com/product-detail/Lab-Created-IGI-Certified-1CT-2CT-3CT-4CT-5CT-D-VVS-VS-Oval-Shape-Loose-Lab-Grown-Diamond_1601628853707.html); page default **$372** (not 3ct selected) |
+| IGI Certified oval 1–3CT D VVS2 loose | $150–590 | Tier-1 style band |
+| Loose oval IGI 1–3CT | $168–220 / $130–510 | Multiple suppliers |
+| Starsgem oval IGI 1–3CT | $135–470 / $149–475 | Lower factory band |
+| 0.5–3ct oval DEF VVS/VS IGI | $114–821 | Broad commodity |
+| SOLITAIRE — 2–3CT F VS1 oval loose IGI | $360–470 | F/VS1; below D/VVS2 asks |
+| Aniva — 1–3ct D VS1 oval IGI | **$400** | HPHT/CVD |
+| IGI oval/radiant/pear 1–3CT DEF | $75–399 | Low-end mixed shapes |
+
+Messi oval page HTML includes **OV 3.0CT** SKUs (VS1/VS2/VVS2) but per-clarity piece prices were not fully exposed in the accessibility tree; treat **$529 search comp** and **round ladder × 0.95–1.05** as the working 3ct oval ceiling until supplier quotes **OV 3.0CT + clarity**.
+
+---
+
+## May 20, 2026 — 3ct IGI Round vs Oval (research follow-up)
+
+User anchor: **~$495 on Alibaba for 3ct** — matches **Wuzhou Messi Gems** round selector **3.0CT D IGI VS2 = $487** (live re-check 2026-05-20 with 50% promo) and **DR ENTERPRISE search listing at $494**. Neighboring SKUs on the same product (MSD-00365):
+
+| 3.0ct D Round IGI (Messi selector) | Piece | $/ct |
+|---|---:|---:|
+| VS2 | **$487** | $162 |
+| VS1 | $467.50 | $156 |
+| VVS2 | $535 | $178 |
+| VVS1 | $999 | $333 |
+
+**Round vs oval at 3ct (same DEF/VVS–VS commodity band):**
+
+| Source | Shape | 3ct signal | Notes |
+|---|---|---:|---|
+| Messi MSD-00365 | Round | $467–$535 (VS1–VVS2) | Exact selector; best verified ladder |
+| Messi oval listing (`1601628853707`) | Oval | **$155–$1,509** range only | OV 3.0CT D IGI in selector; per-clarity piece price not exposed in static scrape — ask supplier for OV 3.0CT + clarity quote |
+| `jeweler-sourcing-ecosystem.md` cross-supplier | Oval | **$430–$480** est. | YINZHENG / showroom comps; ~parity to round at 3ct (not +8% oval retail premium) |
+| YINZHENG oval IGI (`1601211973984`) | Oval | €113–€717 (~$122–$775) | 1–5ct spread; 10% off shown; MOQ 1 |
+| HQ GEMS oval D VS1 1–3ct | Oval | $230–$1,450 | Ready-to-ship band |
+| IGI oval/radiant/pear loose (`1600931419486`) | Mixed fancy | $122–$415 | Low-end factory band + ~$9 shipping |
+| Oval showroom (generic) | Oval | $125–$553 | DEF/GIA/IGI 0.5–4ct mixed listing |
+
+**Implied oval at 3ct vs round:** At major weights, elongated cuts **do not** carry the 1ct oval retail premium on Alibaba factory stock. Budget **~$450–$550** for D VS1–VVS2 IGI oval 3ct from tier-1 Wuzhou suppliers if the stone is commodity make (no bowtie, L/W ~1.35–1.45). Live search found an explicit **3CT D VVS2 oval at $529** — in line with round **$487–$535**. Paying **>$600** factory-direct for D/VS1 oval 3ct needs video + exact IGI report justification.
+
+### All-in “what’s worth it” at 3ct (white IGI loose)
+
+| Tier | You pay (stone) | Typical all-in | Worth it when |
+|---|---:|---:|---|
+| **Messi / Alibaba factory floor** | **$467–$535** (D VS1–VVS2 round; oval similar) | **~$470–$560** delivered (stone + free/capped ship; cert usually bundled) | You verify IGI at verify.igi.world, get video, accept DEF/VS commodity spec — **best $/ct** |
+| US small-volume importer (Edahn-style) | ~$285–$304/ct GH/VS ≈ **$855–$912** for 3ct round | +15–25% importer margin already in index | Jeweler needs US invoice, returns, faster ship — not Alibaba-cheap |
+| App v3.1 E/VS1 jeweler cost | ~**$537** | Model fair 1.55–2.05× → **$832–$1,100** | Matches non-Alibaba sourcing; use as ceiling if not buying factory-direct |
+| Online retail (StoneAlgo index) | ~**$1,751** / 3ct all shapes | 3.3–3.6× factory | Consumer convenience — not a wholesale comp |
+| VVS1 D 3ct on Messi | **$999** | $333/ct | Only if you need VVS1 on cert; **2.1× VS1** at 3ct — poor value vs VS1/VVS2 for identical face-up in most videos |
+
+**Clarity sweet spot at 3ct:** **VS1 ($468) or VVS2 ($535)** — VS2 ($487) is fine if $20 cheaper matters; **avoid VVS1 ($999)** unless cert grade is contractually required. **Color:** D on Messi is +8% vs E in the model; E/VS1 importer band ~$537 is the practical non-Alibaba floor.
+
+**Oval-specific:** Demand premium (+5–8% in app shape mult) applies more at **1ct** than **3ct**. For 3ct oval IGI, treat **round Messi ladder × ~0.95–1.00** as the factory ceiling unless a listing proves higher (superior L/W, no bowtie, EX polish/sym on cert).
 
 ## Buying Rules
 

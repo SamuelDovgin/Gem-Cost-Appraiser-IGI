@@ -867,12 +867,45 @@ const SPECIALTY_SHAPE_KEYS = new Set([
   'moval','trilliant','half_moon','shield','hexagonal','hexagonal_dutch','old_european','old_mine',
   'rose','briolette','portuguese','flanders','baguette','tapered_baguette','carre',
 ]);
+// 2025–26 demand & appeal — Statista/CaratX retail share, lab-grown Alibaba liquidity, specialty-cut research.
+// demand = consumer popularity band; resale = how easy the cut is to move secondhand (lab IGI market).
+const SHAPE_MARKET_APPEAL = {
+  round: { demand:'★★★★★', resale:'strong', appeal:'Classic brilliant — maximum sparkle and buyer recognition.', trend:'Still #1 globally (~26–63% of sales by metric); dominance narrowing vs oval in 2026.', summary:'The default engagement cut and resale benchmark.' },
+  oval: { demand:'★★★★★', resale:'strong', appeal:'Elongated, finger-flattering; reads larger face-up per carat.', trend:'Fastest-growing fancy shape; some 2026 datasets show oval nearly matching round share.', summary:'Among the hottest cuts for modern and lab-grown rings.' },
+  pear: { demand:'★★★★☆', resale:'strong', appeal:'Elegant teardrop; strong in solitaires and east-west settings.', trend:'Rising again in 2025–26 (celebrity + modern settings); ~6–8% of shape sales.', summary:'Top-tier fancy — liquid if proportions and point are clean.' },
+  marquise: { demand:'★★★☆☆', resale:'moderate', appeal:'Bold elongated outline; vintage comeback aesthetic.', trend:'Resurging 2025–26 in vintage-inspired designs; still a deeper fancy discount vs round at retail.', summary:'Fashion-forward but not round/oval liquidity — tips and bowtie matter.' },
+  heart: { demand:'★★★☆☆', resale:'moderate', appeal:'Romantic silhouette; consistent niche bridal demand.', trend:'Steady specialty choice; pink/yellow hearts often preferred over white.', summary:'Emotional purchase cut — narrower buyer pool than ovals.' },
+  cushion: { demand:'★★★★☆', resale:'good', appeal:'Soft vintage pillow look; excellent for fancy color saturation.', trend:'Sustained popularity; crushed-ice vs chunky facet styles split buyers.', summary:'Mainstream fancy — good factory stock, softer than round resale.' },
+  cushion_brilliant: { demand:'★★★★☆', resale:'good', appeal:'Chunkier facet pattern than modified cushion; slightly more brilliance.', trend:'Same cushion family demand; verify facet pattern in video.', summary:'Common lab fancy — appeal hinges on face-up pattern.' },
+  square_cushion: { demand:'★★★☆☆', resale:'moderate', appeal:'Square pillow outline; less elongated trend appeal than rectangular cushion.', trend:'Square variants trail elongated cushions in 2026 fashion.', summary:'Fine for bespoke; slightly thinner demand than rectangular cushion.' },
+  radiant: { demand:'★★★★☆', resale:'good', appeal:'Brilliant + trimmed corners; strong light return, popular elongated fancy.', trend:'~5% market share; steady demand especially in lab-grown listings.', summary:'Workhorse fancy — liquid with clean corners and no watery center.' },
+  sq_radiant: { demand:'★★★☆☆', resale:'moderate', appeal:'Square radiant; art-deco geometry without full step-cut windowing.', trend:'Less trendy than elongated radiant; still common in three-stone builds.', summary:'Moderate fancy liquidity — square outline is a narrower taste.' },
+  princess: { demand:'★★★☆☆', resale:'moderate', appeal:'Square brilliant with sharp corners; was a 2000s staple.', trend:'Declining vs elongated shapes (3–8% share and falling); corner chipping is a buyer concern.', summary:'Still recognizable but no longer a top growth shape.' },
+  emerald: { demand:'★★★★☆', resale:'good', appeal:'Step-cut hall-of-mirrors; minimalist, “quiet luxury” look.', trend:'Trending up 2025–26 as step cuts return; needs high clarity to sell.', summary:'Fashionable step cut — hot in design, punishes SI in the window.' },
+  asscher: { demand:'★★★☆☆', resale:'moderate', appeal:'Square emerald / windmill steps; vintage art-deco character.', trend:'Stable niche; same clarity rules as emerald with a smaller buyer pool.', summary:'Stylish but less liquid than emerald or oval.' },
+  moval: { demand:'★★★☆☆', resale:'thin', appeal:'Hybrid marquise–oval with softer tips; Instagram/lab-jewelry trend.', trend:'2026 lab-grown micro-trend; non-standard on many IGI reports.', summary:'Looks current in custom pieces; resale still trails true oval.', extra:'Rapaport: oval ~23% below round retail; marquise among deepest fancy discounts.' },
+  trilliant: { demand:'★★☆☆☆', resale:'thin', appeal:'Triangular brilliant — bold, architectural accent stone.', trend:'Very niche (~1–2% awareness); common as side stone, rare as center.', summary:'Exotic brilliant — small resale market.' },
+  old_european: { demand:'★★★☆☆', resale:'thin', appeal:'Vintage round with open culet and chunkier facets; antique charm.', trend:'Niche revival with antique-style settings; not factory commodity.', summary:'Collector/vintage appeal — thin modern liquidation path.' },
+  old_mine: { demand:'★★☆☆☆', resale:'thin', appeal:'Earliest soft-square brilliant; ultra-vintage personality.', trend:'Very niche; bespoke and estate channels only.', summary:'Specialty vintage — expect long resale timelines.' },
+  half_moon: { demand:'★★☆☆☆', resale:'thin', appeal:'Curved side-stone / jacket cut; not a center-stone market.', trend:'Pairing-driven demand only.', summary:'Exotic — almost always a side stone, not a solitaire resale play.' },
+  shield: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Kite / shield outline for avant-garde designs.', trend:'Designer and high-jewelry use; negligible mass-market share.', summary:'Exotic outline — extremely limited buyer pool.' },
+  hexagonal: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Six-sided brilliant — architectural, geometric fashion cut.', trend:'Custom / designer supply; no mainstream bridal pipeline.', summary:'Exotic — factory and resale liquidity near zero vs round.' },
+  hexagonal_dutch: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Dutch / hexagonal marquise — bespoke geometric marquise variant.', trend:'Custom cutters only; weaker than classic marquise for resale.', summary:'Exotic cert name — treat as designer, not commodity fancy.', extra:'Among the weakest fancy shapes for secondhand liquidity.' },
+  baguette: { demand:'★★☆☆☆', resale:'thin', appeal:'Straight step baguette — channel / band accent.', trend:'Side-stone role; high windowing risk if used as center.', summary:'Exotic as center — built for accents, not solitaire resale.' },
+  tapered_baguette: { demand:'★★☆☆☆', resale:'thin', appeal:'Tapered step for tapered channels and art-deco layouts.', trend:'Same as baguette — accent demand only.', summary:'Exotic center stone — liquidation market essentially absent.' },
+  carre: { demand:'★★☆☆☆', resale:'thin', appeal:'Square step (carré) — crisp geometry, art-deco adjacent.', trend:'Niche step; rare in lab-grown factory selectors.', summary:'Specialty step — thin resale.' },
+  rose: { demand:'★★☆☆☆', resale:'thin', appeal:'Flat dome, soft glow; boho / antique revival (major 2025 comeback in vintage jewelry).', trend:'Trendy in design press but still niche for lab resale; shallow face-up looks big.', summary:'Exotic for lab IGI — fashionable, not liquid like round/oval.', extra:'Best in low-light aesthetics; weak standardized resale vs brilliant cuts.' },
+  briolette: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Full faceted drop — pendant / earring sculpture, no table.', trend:'No engagement market; almost never a center-stone resale comp.', summary:'Exotic — not a ring liquidation cut.' },
+  portuguese: { demand:'★★☆☆☆', resale:'thin', appeal:'72–100+ facet “fire” cut; collector sparkle, deep pavilion.', trend:'Specialty resurgence (social / vintage aesthetic); faces up smaller per carat.', summary:'Exotic brilliant — boutique demand, ~15% below round when priced fairly.', extra:'Leon Diamond: most fancy shapes 20–40% under round at retail.' },
+  flanders: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Octagonal square brilliant (Belgian / Flanders Ideal).', trend:'Discontinued / scarce distribution; niche even when found.', summary:'Exotic — often ~13% smaller face-up than radiant; tiny resale pool.', extra:'PriceScope: limited cutters and supply vs mainstream squares.' },
+};
 const SHAPE_RESEARCH_NOTES = {
-  moval: 'Hybrid marquise–oval: popular in 2026 lab jewelry but non-standard on most IGI reports — resale still trails true oval (Rapaport: oval ~23% below round retail; marquise ~26%).',
-  hexagonal_dutch: 'Dutch / hexagonal marquise: custom geometric outline — bespoke supply, thinner resale than classic marquise (among the weakest fancy shapes for liquidity).',
-  portuguese: 'Portuguese (72+ facets): deep cut faces up smaller per carat — market prices ~15% below round despite extra fire (Leon Diamond: fancy shapes 20–40% under round).',
-  flanders: 'Flanders (Belgian octagonal): niche square brilliant — often ~13% smaller face-up than same-weight radiant (PriceScope).',
-  hexagonal: 'Hexagonal brilliant: architectural / designer cut — very limited factory and resale demand.',
+  moval: SHAPE_MARKET_APPEAL.moval.extra,
+  hexagonal_dutch: SHAPE_MARKET_APPEAL.hexagonal_dutch.extra,
+  portuguese: SHAPE_MARKET_APPEAL.portuguese.extra,
+  flanders: SHAPE_MARKET_APPEAL.flanders.extra,
+  hexagonal: 'Architectural six-sided outline — bespoke supply only.',
+  rose: SHAPE_MARKET_APPEAL.rose.extra,
 };
 const LIQUID_PREMIUM_SHAPES = new Set(['round','oval','pear']);
 function getShapeMultForPricing(shapeKey) {
@@ -1046,9 +1079,8 @@ function compPriceToTotal(comp, ct) {
   return { lo, hi };
 }
 
-function getMessiExactComp(ct = state.carat) {
-  if (!isWhite() || state.shape !== 'round') return null;
-  const ladder = messiDWhiteRoundLadder[state.clarity];
+function lookupMessiRoundLadder(ct, clarity, whiteGrade) {
+  const ladder = messiDWhiteRoundLadder[clarity];
   if (!ladder) return null;
 
   const target = Object.keys(ladder)
@@ -1061,25 +1093,71 @@ function getMessiExactComp(ct = state.carat) {
   if (target.diff > tolerance) return null;
 
   const dPrice = ladder[target.size];
-  const colorFactor = (whiteGradeMult[state.whiteGrade] ?? 1) / whiteGradeMult.D;
+  const colorFactor = (whiteGradeMult[whiteGrade] ?? 1) / whiteGradeMult.D;
   const price = Math.round(dPrice * colorFactor);
-  const gradeLabel = state.whiteGrade === 'D' ? 'D' : `${state.whiteGrade} (D ladder ÷ ${(whiteGradeMult.D / (whiteGradeMult[state.whiteGrade] || 1)).toFixed(2)}×)`;
+  const gradeLabel = whiteGrade === 'D'
+    ? 'D'
+    : `${whiteGrade} (D ladder ÷ ${(whiteGradeMult.D / (whiteGradeMult[whiteGrade] || 1)).toFixed(2)}×)`;
+
+  const ladderAtSize = ['VS2', 'VS1', 'VVS2', 'VVS1'].map(cl => {
+    const row = messiDWhiteRoundLadder[cl];
+    if (!row || row[target.size] == null) return null;
+    return { clarity: cl, price: Math.round(row[target.size] * colorFactor) };
+  }).filter(Boolean);
+
   return {
-    id:`messi-${state.whiteGrade.toLowerCase()}-round-${state.clarity.toLowerCase()}-${target.size}ct`,
+    ladderSize: target.size,
+    caratDiff: target.diff,
+    price,
+    perCt: Math.round((price / target.size) * 10) / 10,
+    gradeLabel,
+    clarity,
+    ladderAtSize,
+  };
+}
+
+function getMessiRoundBenchmarkHtml(ct = state.carat) {
+  if (!isWhite()) return '';
+  const bench = lookupMessiRoundLadder(ct, state.clarity, state.whiteGrade);
+  if (!bench) return '';
+
+  const sizeNote = bench.caratDiff > 0.01
+    ? ` (nearest Messi selector size ${bench.ladderSize}ct)`
+    : '';
+  const yours = `${bench.gradeLabel} ${bench.clarity}`;
+  const ladderBits = bench.ladderAtSize
+    .map(row => `${row.clarity} ${fmt(row.price)}`)
+    .join(' · ');
+
+  const shapeNote = state.shape === 'round'
+    ? 'Verified Messi round IGI selector — same shape as your stone.'
+    : `Round benchmark for ${ct.toFixed(1)}ct — use to sanity-check ${shapeNames[state.shape] || state.shape} factory asks.`;
+
+  return `<br><strong>Messi round on Alibaba${sizeNote}:</strong> ${yours} ≈ <strong>${fmt(bench.price)}</strong> (${fmt(bench.perCt)}/ct at ${bench.ladderSize}ct). ${escapeHTML(shapeNote)} Full ladder: ${escapeHTML(ladderBits)}. <a href="${escapeAttr(MESSI_D_ROUND_URL)}" target="_blank" rel="noopener" style="color:var(--blue)">Messi round listing ↗</a>`;
+}
+
+function getMessiExactComp(ct = state.carat) {
+  if (!isWhite() || state.shape !== 'round') return null;
+  const bench = lookupMessiRoundLadder(ct, state.clarity, state.whiteGrade);
+  if (!bench) return null;
+
+  const tolerance = bench.ladderSize <= 2 ? 0.08 : bench.ladderSize <= 6 ? 0.18 : 0.25;
+  return {
+    id:`messi-${state.whiteGrade.toLowerCase()}-round-${state.clarity.toLowerCase()}-${bench.ladderSize}ct`,
     group:'white',
     shapes:['round'],
-    ctMin:target.size - tolerance,
-    ctMax:target.size + tolerance,
-    lo:price,
-    hi:price,
+    ctMin:bench.ladderSize - tolerance,
+    ctMax:bench.ladderSize + tolerance,
+    lo:bench.price,
+    hi:bench.price,
     unit:'piece',
-    label:`Wuzhou Messi Gems Alibaba IGI ${gradeLabel} ${state.clarity} round ${target.size}ct`,
+    label:`Wuzhou Messi Gems Alibaba IGI ${bench.gradeLabel} ${bench.clarity} round ${bench.ladderSize}ct`,
     url:MESSI_D_ROUND_URL,
     note: state.whiteGrade === 'D'
       ? 'Live Alibaba D-color selector price captured 2026-05-18.'
       : `Messi posts D-color; ${state.whiteGrade} adjusted using model color spread vs D.`,
-    totalLo:price,
-    totalHi:price,
+    totalLo:bench.price,
+    totalHi:bench.price,
     exact:true,
   };
 }
@@ -1255,9 +1333,15 @@ function updateWeakPointsBar() {
     : '';
 
   if (!points.length) {
+    const shapeCtx = getShapeMarketContext();
     title.textContent = 'No major weak spots';
-    sub.textContent = 'For lab-grown, this grade/shape combo sits in the normal factory band. Still verify optics the cert cannot grade.';
-    list.innerHTML = inspectHtml;
+    sub.textContent = shapeCtx
+      ? shapeCtx.summary + ' Still verify optics the cert cannot grade.'
+      : 'For lab-grown, this grade/shape combo sits in the normal factory band. Still verify optics the cert cannot grade.';
+    const shapeNote = shapeCtx
+      ? `<li class="weak-item"><span class="weak-pill note">Note</span><span><strong>${escapeHTML(shapeCtx.label)}:</strong> ${escapeHTML(shapeCtx.text)}</span></li>`
+      : '';
+    list.innerHTML = shapeNote + inspectHtml;
     return;
   }
 
@@ -1279,25 +1363,35 @@ function updateMarketBar(m){
   const bar = document.getElementById('market-bar');
   const txt = document.getElementById('market-text');
   if (!bar || !txt) return;
+
   const comp = m.alibabaMatch;
-  if (!comp) {
+  const roundBench = getMessiRoundBenchmarkHtml(state.carat);
+  let html = '';
+
+  if (comp) {
+    const ceiling = comp.totalHi;
+    const unitText = comp.exact ? `${fmt(comp.hi)} exact selector price`
+      : comp.unit === 'ct' ? `${fmt(comp.lo)}-${fmt(comp.hi)}/ct` : `${fmt(comp.lo)}-${fmt(comp.hi)} total`;
+    let mismatch = '';
+    if (isWhite()) {
+      const colorRank = WHITE_COLOR_RANK[state.whiteGrade];
+      const clarityRank = WHITE_CLARITY_RANK[state.clarity];
+      if ((colorRank != null && colorRank > WHITE_COLOR_RANK['E']) || (clarityRank != null && clarityRank > WHITE_CLARITY_RANK['VS1'])) {
+        mismatch = ' This comp is for DEF/VVS–VS stock — your grade is below that Alibaba floor, so the ceiling is not a fair match.';
+      }
+    }
+    const shapeTag = state.shape === 'round' && comp.exact ? '' : ` (${shapeNames[state.shape] || state.shape} comp)`;
+    html = `<strong>Alibaba IGI ceiling${shapeTag}: ${fmt(ceiling)}.</strong> Matched ${escapeHTML(comp.label)} (${unitText}). Treat this as the factory-direct upper limit before any beauty/video premium.${mismatch} <a href="${escapeAttr(comp.url)}" target="_blank" rel="noopener" style="color:var(--blue)">source ↗</a>`;
+    if (roundBench) html += roundBench;
+  } else if (roundBench) {
+    html = `<strong>No shape-specific Alibaba comp</strong> for this ${escapeHTML(shapeNames[state.shape] || state.shape)} / grade combo. Factory ceiling below uses the verified Messi <em>round</em> ladder at the same carat — elongated cuts are often near parity at 3ct+, not cheaper than round.${roundBench}`;
+  } else {
     bar.classList.remove('on');
     txt.innerHTML = '';
     return;
   }
 
-  const ceiling = comp.totalHi;
-  const unitText = comp.exact ? `${fmt(comp.hi)} exact selector price`
-    : comp.unit === 'ct' ? `${fmt(comp.lo)}-${fmt(comp.hi)}/ct` : `${fmt(comp.lo)}-${fmt(comp.hi)} total`;
-  let mismatch = '';
-  if (isWhite()) {
-    const colorRank = WHITE_COLOR_RANK[state.whiteGrade];
-    const clarityRank = WHITE_CLARITY_RANK[state.clarity];
-    if ((colorRank != null && colorRank > WHITE_COLOR_RANK['E']) || (clarityRank != null && clarityRank > WHITE_CLARITY_RANK['VS1'])) {
-      mismatch = ' This comp is for DEF/VVS–VS stock — your grade is below that Alibaba floor, so the ceiling is not a fair match.';
-    }
-  }
-  txt.innerHTML = `<strong>Alibaba IGI ceiling: ${fmt(ceiling)}.</strong> Matched ${escapeHTML(comp.label)} (${unitText}). Treat this as the factory-direct upper limit before any beauty/video premium.${mismatch} <a href="${escapeAttr(comp.url)}" target="_blank" rel="noopener" style="color:var(--blue)">source ↗</a>`;
+  txt.innerHTML = html;
   bar.classList.add('on');
 }
 
@@ -1691,7 +1785,9 @@ function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
     shape && !shapeMapped
       ? `Cut on cert (“${shape}”) is not in the shape list — pick the closest match below; one-off cuts usually trade below round/oval.`
       : '',
-    shapeMapped && isExoticOrLowLiquidityShape(shapeMapped)
+    shapeMapped && SHAPE_MARKET_APPEAL[shapeMapped]
+      ? `${shapeNames[shapeMapped] || shape}: ${shapeMarketAppealSnippet(shapeMapped)}${isExoticOrLowLiquidityShape(shapeMapped) ? ` Model ~${shapeDiscountPct(shapeMapped)}% below ${isWhite() ? 'round' : 'oval/pear'} comps.` : ''}`
+      : shapeMapped && isExoticOrLowLiquidityShape(shapeMapped)
       ? `Specialty/exotic cut (${shape}) — model applies ~${shapeDiscountPct(shapeMapped)}% shape discount vs ${isWhite() ? 'round' : 'typical fancy oval/pear'} comps.`
       : '',
   ].filter(Boolean).join(' ');
@@ -2025,56 +2121,80 @@ function getLabClarityAssessment(clarity, isWhiteStone) {
   return tiers[key] || null;
 }
 
-function getShapeLiquidityAssessment() {
+function shapeMarketAppealSnippet(key) {
+  const m = SHAPE_MARKET_APPEAL[key];
+  if (!m) return '';
+  const extra = SHAPE_RESEARCH_NOTES[key] || m.extra || '';
+  return `${m.demand} popularity · ${m.appeal} ${m.trend}${extra ? ' ' + extra : ''}`;
+}
+
+function getShapeMarketContext() {
   const raw = (state.reportShapeRaw || '').trim();
   const mapped = state.shapeMappedFromReport;
   const key = state.shape;
   const name = shapeNames[key] || key;
+  const m = SHAPE_MARKET_APPEAL[key];
+  const baseline = isWhite() ? 'round' : 'oval/pear fancy comps';
 
   if (raw && mapped === false) {
     return {
       severity: 'caution',
-      label: 'Unlisted cut on cert',
-      text: `IGI lists “${raw}” — not in the appraiser dropdown, so pricing may be off until you pick the closest shape. One-off and designer cuts usually trade well below round/oval.`,
+      label: 'Cut & market',
+      text: `IGI lists “${raw}” — not in the appraiser dropdown, so pricing may be off until you pick the closest shape. Designer / one-off cuts are usually less popular and less liquid than round or oval (2026 retail still centers on round + elongated brilliants).`,
       headline: 'Cert cut not in model',
-      summary: 'The exact IGI cutting style is noted on the report; match it manually for a fair estimate.',
+      summary: 'Match the cert cut manually; expect thinner demand than mainstream shapes.',
     };
   }
 
-  if (!isExoticOrLowLiquidityShape(key)) return null;
+  if (!m) return null;
 
   const pct = shapeDiscountPct(key);
   const mult = getShapeMultForPricing(key);
   const isSpecialty = SPECIALTY_SHAPE_KEYS.has(key);
-  const baseline = isWhite() ? 'round' : 'oval/pear fancy comps';
+  const appeal = shapeMarketAppealSnippet(key);
+  const resaleHint = m.resale === 'strong' ? ' Strong resale liquidity.'
+    : m.resale === 'good' ? ' Good resale, but usually below round/oval.'
+    : m.resale === 'moderate' ? ' Moderate resale — narrower buyer pool.'
+    : m.resale === 'thin' ? ' Thin resale market vs top shapes.'
+    : ' Very thin resale — boutique / designer demand only.';
+
+  if (LIQUID_PREMIUM_SHAPES.has(key)) {
+    const premium = mult > 1 ? ` Model +${Math.round((mult - 1) * 100)}% vs ${baseline} for current demand.` : ' Priced at round baseline here.';
+    return {
+      severity: 'note',
+      label: 'Cut & market',
+      text: `${name}: ${appeal}${resaleHint}${premium}`,
+      headline: key === 'oval' ? 'Oval — highly popular in 2026' : key === 'round' ? 'Round — still the benchmark cut' : 'Pear — strong fancy demand',
+      summary: m.summary,
+    };
+  }
 
   if (mult <= 0.76 || key === 'briolette' || key === 'rose') {
     return {
       severity: 'caution',
-      label: isSpecialty ? 'Specialty / exotic cut' : 'Low-liquidity shape',
-      text: `${name} is priced ~${pct}% below ${baseline} in this model — very small resale market. Fine for a custom piece; weak if you need to liquidate.`,
-      headline: 'Exotic cut — resale discount',
-      summary: 'Specialty cuts (rose, briolette, baguette, etc.) almost always trade below mainstream brilliant shapes.',
+      label: isSpecialty ? 'Exotic cut & market' : 'Cut & market',
+      text: `${name}: ${appeal}${resaleHint} Priced ~${pct}% below ${baseline} in this model — fine for a custom piece, weak if you need to liquidate.`,
+      headline: 'Exotic cut — fashion vs resale',
+      summary: m.summary,
     };
   }
 
   if (mult < 0.85 || isSpecialty) {
-    const research = SHAPE_RESEARCH_NOTES[key];
     return {
       severity: 'caution',
-      label: isSpecialty ? 'Specialty / exotic cut' : 'Shape liquidity',
-      text: `${name} carries ~${pct}% shape discount vs ${baseline} here — niche demand vs oval/round. ${research || 'Strong for the right design; expect more buyer pushback on resale.'}`,
-      headline: key === 'moval' ? 'Moval — hybrid, not full oval liquidity' : 'Specialty cut — thinner market',
-      summary: 'IGI names the cut on the cert; liquidity is often worse than the grade line suggests.',
+      label: isSpecialty ? 'Specialty cut & market' : 'Cut & market',
+      text: `${name}: ${appeal}${resaleHint} ~${pct}% shape discount vs ${baseline} in this model.`,
+      headline: key === 'moval' ? 'Moval — trendy, not oval liquidity' : 'Specialty cut — thinner market',
+      summary: m.summary,
     };
   }
 
   return {
     severity: 'note',
-    label: 'Shape liquidity',
-    text: `${name} trades ~${pct}% below ${baseline} in this model — not weak on specs, but less liquid than round/oval unless video and proportions are exceptional.`,
-    headline: 'Fancy shape discount',
-    summary: 'Common fancy shapes (marquise, emerald, cushion) still discount vs round; specialty cuts discount more.',
+    label: 'Cut & market',
+    text: `${name}: ${appeal}${resaleHint} Trades ~${pct}% below ${baseline} in this model — attractive for the right design, less liquid than round/oval.`,
+    headline: 'Fancy shape — market context',
+    summary: m.summary,
   };
 }
 
@@ -2118,7 +2238,7 @@ function getStoneWeakPoints() {
     points.push({ severity:'note', label:'Growth method', text:'CVD stones can show strain or haze unless as-grown. Worth a tilt video even with a high clarity grade.', headline:'Possible optics issue', summary:'IGI lists growth method, not face-up milkiness.' });
   }
 
-  const shapePt = getShapeLiquidityAssessment();
+  const shapePt = getShapeMarketContext();
   if (shapePt) points.push(shapePt);
 
   const order = { critical:0, caution:1, note:2 };
