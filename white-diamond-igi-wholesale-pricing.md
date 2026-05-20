@@ -219,6 +219,7 @@ Lab-grown shape pricing differs from natural diamonds:
 | Cut Cornered Sq. Modified Brilliant (Sq. Radiant) | 0.88 | ★★★☆☆ | Square radiant variant. |
 | Princess Cut | 0.86 | ★★★☆☆ | Declining demand vs peak. Sharp corners = chipping risk. |
 | Marquise Brilliant | 0.87 | ★★★☆☆ | Growing popularity 2025–2026. Ideal L/W 1.90–2.10. |
+| Moval (marquise–oval hybrid) | 0.94 | ★★★☆☆ | 2026 lab trend; softer tips than marquise. Still non-standard on IGI — resale below oval (Rapaport: marquise among deepest fancy discounts). |
 | Heart Modified Brilliant | 0.86 | ★★★☆☆ | Niche but consistent demand. |
 | Trilliant Cut | 0.82 | ★★☆☆☆ | Very niche. |
 | Emerald Cut | 0.83 | ★★★★☆ | Trending upward 2025–2026 (step cuts in vogue). Requires high clarity. |
@@ -226,11 +227,12 @@ Lab-grown shape pricing differs from natural diamonds:
 | Baguette Cut | 0.76 | ★★☆☆☆ | Side stone primarily. High windowing risk. |
 | Tapered Baguette Cut | 0.74 | ★★☆☆☆ | Side stone primarily. |
 | Carre Cut | 0.80 | ★★☆☆☆ | Square step. Niche. |
-| Portuguese Cut | 0.85 | ★★☆☆☆ | Extra facets. Deep stone. |
-| Flanders Cut | 0.83 | ★★☆☆☆ | Octagonal. Rare. |
+| Portuguese Cut | 0.85 | ★★☆☆☆ | 72+ facets; ~15% below round — deep, smaller face-up per carat (Leon Diamond: fancy shapes 20–40% under round). |
+| Flanders Cut (Belgian / Dutch square) | 0.83 | ★★☆☆☆ | Octagonal square brilliant; ~13% smaller face-up vs radiant (PriceScope). |
+| Hexagonal Dutch / Dutch Marquise | 0.82 | ★☆☆☆☆ | Custom geometric marquise; bespoke supply, weaker resale than classic marquise. |
 | Half Moon Modified Brilliant | 0.80 | ★★☆☆☆ | Side stone. |
 | Shield Modified Brilliant | 0.78 | ★☆☆☆☆ | Very niche. |
-| Hexagonal Modified Brilliant | 0.79 | ★☆☆☆☆ | Very niche. |
+| Hexagonal Modified Brilliant | 0.79 | ★☆☆☆☆ | Very niche; distinct from Dutch hex marquise. |
 | Rose Cut | 0.72 | ★★☆☆☆ | Flat bottom; very different light return. Antique/boho. |
 | Briolette | 0.70 | ★☆☆☆☆ | No setting flat; pendant/earring use only. |
 

@@ -381,6 +381,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         <optgroup label="Common brilliant cuts">
           <option value="round" selected>Round Brilliant</option>
           <option value="oval">Oval Brilliant</option>
+          <option value="moval">Moval (marquise–oval hybrid)</option>
           <option value="pear">Pear Modified Brilliant</option>
           <option value="marquise">Marquise Brilliant</option>
           <option value="heart">Heart Modified Brilliant</option>
@@ -405,12 +406,13 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <option value="half_moon">Half Moon Modified Brilliant</option>
           <option value="shield">Shield Modified Brilliant</option>
           <option value="hexagonal">Hexagonal Modified Brilliant</option>
+          <option value="hexagonal_dutch">Hexagonal Dutch / Dutch Marquise</option>
           <option value="old_european">Old European Brilliant</option>
           <option value="old_mine">Old Mine Brilliant</option>
           <option value="rose">Rose Cut</option>
           <option value="briolette">Briolette</option>
           <option value="portuguese">Portuguese Cut</option>
-          <option value="flanders">Flanders Cut</option>
+          <option value="flanders">Flanders Cut (Belgian / Dutch square)</option>
         </optgroup>
       </select>
     </label>
@@ -651,7 +653,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   <div class="meth-item"><strong>Color grade mult (white only)</strong>: vs E = 1.00. D +8%, F −8%, G −12%, H −20%, I −28%, J −37%, steeper below J. Grades worse than E are off-catalog on most Alibaba IGI white listings.</div>
   <div class="meth-item"><strong>Clarity mult (carat-dependent)</strong>: Table 5B (v3.1). At 1ct: SI1 −32%, SI2 −42%. At 2ct: SI1 −52%, SI2 −62% (LG563297279 anchor). At 3ct: VVS1 +36%, SI2 −60%. Below VS1 is off-catalog on Alibaba. Fancy color clarity stays compressed (~50%).</div>
   <div class="meth-item"><strong>Cert-derived modifiers (auto from IGI PDF)</strong>: CVD (not as-grown) −10% ws. Post-growth treatment −6%. No cut grade on cert −12% (polish/sym only). Pear/oval/marquise/emerald + SI1/SI2 −10%. 3EX premium only applies when cut grade is Excellent on the cert.</div>
-  <div class="meth-item"><strong>Shape mult</strong>: Round baseline 1.0. Oval/pear +5–8% (demand premium, per PriceScope 2026 data showing 6% YoY oval increase). Step cuts (emerald, asscher) −15–17% (inclusion-visible, surplus Indian cutting). Specialty cuts (rose, briolette) −28–30% (niche demand, limited resale market).</div>
+  <div class="meth-item"><strong>Shape mult</strong>: Round baseline 1.0. Oval/pear +5–8% (demand premium). Moval (marquise–oval hybrid) ~−6% vs round — trendier than marquise but still non-standard on IGI. Dutch / hexagonal Dutch ~−18% (custom geometric marquise; Rapaport: marquise already among the deepest fancy discounts). Portuguese ~−15% (deep extra-facet cut; smaller face-up per carat). Flanders / generic hexagonal ~−17–21%. Rose / briolette −28–30%.</div>
   <div class="meth-item"><strong>Toggle modifiers</strong>: Chinese factory: −22% wholesale, fair price 1.3–1.6× ws. High-volume auction seller: fair price 1.2–1.45× ws (thin margins, fast turns). 3EX: +6% ws. HPHT: +8% ws. As-grown: +5% ws. GIA cert: +12% retail only.</div>
   <div class="meth-item"><strong>Fair price markup</strong>: Standard seller 1.55–2.05× ws (covers IGI cert $80–150, shipping, platform fees, returns buffer, thin margin). Auction jeweler running volume 1.2–1.45× ws. Chinese factory 1.3–1.6× ws. Traditional retail 3.8–7× ws (per Tenoris 74% gross margin data).</div>
 </div>
@@ -681,6 +683,8 @@ const state = {
   hasCutGrade: true,
   ratio: null,
   ratioAssessment: null,
+  reportShapeRaw: '',
+  shapeMappedFromReport: null,
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -824,7 +828,7 @@ const CLARITY_CARAT_MULTS_W = {
   SI1:  [0.84, 0.72, 0.60, 0.44, 0.38, 0.34, 0.30, 0.26, 0.22],
   SI2:  [0.72, 0.58, 0.46, 0.34, 0.28, 0.24, 0.20, 0.16, 0.12],
 };
-const ELONGATED_SI_SHAPES = new Set(['pear','oval','marquise','emerald','asscher','radiant','heart']);
+const ELONGATED_SI_SHAPES = new Set(['pear','oval','moval','marquise','hexagonal_dutch','emerald','asscher','radiant','heart']);
 const CVD_WS = 0.90;
 const POST_TREAT_WS = 0.94;
 const ELONGATED_SI_WS = 0.90;
@@ -849,22 +853,51 @@ const clarityMultColor = { IF:1.12, VVS1:1.08, VVS2:1.04, VS1:1.00, VS2:0.95, SI
 
 // Shape multipliers — per PriceScope 2026 data
 const shapeMult = {
-  round:1.00, oval:1.08, pear:1.05, marquise:0.87, heart:0.86, trilliant:0.82,
+  round:1.00, oval:1.08, moval:0.94, pear:1.05, marquise:0.87, heart:0.86, trilliant:0.82,
   old_european:0.92, old_mine:0.88,
   cushion:0.90, cushion_brilliant:0.91, square_cushion:0.90, radiant:0.87, sq_radiant:0.88,
-  princess:0.86, half_moon:0.80, shield:0.78, hexagonal:0.79,
+  princess:0.86, half_moon:0.80, shield:0.78, hexagonal:0.79, hexagonal_dutch:0.82,
   emerald:0.83, asscher:0.84, baguette:0.76, tapered_baguette:0.74, carre:0.80,
   rose:0.72, briolette:0.70, portuguese:0.85, flanders:0.83,
 };
+// Unique / specialty cuts in the shape dropdown (see diamond-cut-shape-reference.md).
+// Mults vs round: Leon Diamond / Rapaport — fancy shapes often 20–40% below round at retail;
+// moval ~6% below (between marquise −13% and oval premium); Dutch hex ~18%; Portuguese ~15%.
+const SPECIALTY_SHAPE_KEYS = new Set([
+  'moval','trilliant','half_moon','shield','hexagonal','hexagonal_dutch','old_european','old_mine',
+  'rose','briolette','portuguese','flanders','baguette','tapered_baguette','carre',
+]);
+const SHAPE_RESEARCH_NOTES = {
+  moval: 'Hybrid marquise–oval: popular in 2026 lab jewelry but non-standard on most IGI reports — resale still trails true oval (Rapaport: oval ~23% below round retail; marquise ~26%).',
+  hexagonal_dutch: 'Dutch / hexagonal marquise: custom geometric outline — bespoke supply, thinner resale than classic marquise (among the weakest fancy shapes for liquidity).',
+  portuguese: 'Portuguese (72+ facets): deep cut faces up smaller per carat — market prices ~15% below round despite extra fire (Leon Diamond: fancy shapes 20–40% under round).',
+  flanders: 'Flanders (Belgian octagonal): niche square brilliant — often ~13% smaller face-up than same-weight radiant (PriceScope).',
+  hexagonal: 'Hexagonal brilliant: architectural / designer cut — very limited factory and resale demand.',
+};
+const LIQUID_PREMIUM_SHAPES = new Set(['round','oval','pear']);
+function getShapeMultForPricing(shapeKey) {
+  if (isWhite()) return shapeMult[shapeKey] ?? 1.0;
+  return shapeMultColor[shapeKey] ?? 1.0;
+}
+function shapeDiscountPct(shapeKey) {
+  const m = getShapeMultForPricing(shapeKey);
+  if (m >= 1) return 0;
+  return Math.round((1 - m) * 100);
+}
+function isExoticOrLowLiquidityShape(shapeKey) {
+  if (!shapeKey || LIQUID_PREMIUM_SHAPES.has(shapeKey)) return false;
+  if (SPECIALTY_SHAPE_KEYS.has(shapeKey)) return true;
+  return getShapeMultForPricing(shapeKey) < 0.90;
+}
 // Fancy color shapes — cutters optimize for color not brilliance.
 // Heart commands a documented premium for pink and blue (verified Alibaba comps).
 // Asscher shows ~parity with radiant for yellow (observed comp premium, May 2026).
 // Marquise is popular for vivid pink; oval is preferred for yellow.
 const shapeMultColor = {
-  round:0.90, oval:1.05, pear:1.03, marquise:0.93, heart:0.96, trilliant:0.84,
+  round:0.90, oval:1.05, moval:0.99, pear:1.03, marquise:0.93, heart:0.96, trilliant:0.84,
   old_european:0.88, old_mine:0.86,
   cushion:1.00, cushion_brilliant:1.00, square_cushion:1.00, radiant:1.02, sq_radiant:1.00,
-  princess:0.90, half_moon:0.82, shield:0.80, hexagonal:0.81,
+  princess:0.90, half_moon:0.82, shield:0.80, hexagonal:0.81, hexagonal_dutch:0.85,
   emerald:0.96, asscher:1.02, baguette:0.78, tapered_baguette:0.76, carre:0.86,
   rose:0.75, briolette:0.72, portuguese:0.88, flanders:0.85,
 };
@@ -873,8 +906,10 @@ const cutMult = { ideal:1.00, vg:0.94, good:0.87, unset:0.88 };
 const ratioGuides = {
   round: { lo:0.98, hi:1.02, idealLo:0.99, idealHi:1.01, label:'round outline' },
   oval: { lo:1.30, hi:1.50, idealLo:1.35, idealHi:1.45, label:'oval' },
+  moval: { lo:1.55, hi:2.05, idealLo:1.65, idealHi:1.90, label:'moval' },
   pear: { lo:1.50, hi:1.75, idealLo:1.55, idealHi:1.70, label:'pear' },
   marquise: { lo:1.80, hi:2.20, idealLo:1.90, idealHi:2.10, label:'marquise' },
+  hexagonal_dutch: { lo:1.75, hi:2.25, idealLo:1.85, idealHi:2.10, label:'Dutch marquise' },
   heart: { lo:0.90, hi:1.10, idealLo:0.95, idealHi:1.05, label:'heart' },
   cushion: { lo:1.00, hi:1.30, idealLo:1.00, idealHi:1.20, label:'cushion' },
   cushion_brilliant: { lo:1.00, hi:1.30, idealLo:1.00, idealHi:1.20, label:'cushion' },
@@ -927,8 +962,8 @@ function getEffectiveCutMult() {
 
 function compute(ct) {
   ct = ct || state.carat;
-  const sh = (shapeMult[state.shape] || 1.0);
-  const shC = (shapeMultColor[state.shape] || 1.0);
+  const sh = getShapeMultForPricing(state.shape);
+  const shC = shapeMultColor[state.shape] || 1.0;
   const cl = getClarityMult(state.clarity, ct);
   const clC = clarityMultColor[state.clarity];
 
@@ -1095,14 +1130,15 @@ function fmt(n){ return '$'+Math.round(n).toLocaleString(); }
 function fmtR(a,b){ return fmt(a)+'–'+fmt(b); }
 
 const shapeNames = {
-  round:'Round Brilliant',oval:'Oval Brilliant',pear:'Pear Modified Brilliant',
-  marquise:'Marquise Brilliant',heart:'Heart Modified Brilliant',
+  round:'Round Brilliant',oval:'Oval Brilliant',moval:'Moval (Marquise–Oval Hybrid)',
+  pear:'Pear Modified Brilliant',marquise:'Marquise Brilliant',heart:'Heart Modified Brilliant',
   trilliant:'Trilliant Cut',old_european:'Old European Brilliant',old_mine:'Old Mine Brilliant',
   cushion:'Cushion Modified Brilliant',cushion_brilliant:'Cushion Brilliant',
   square_cushion:'Square Cushion Modified Brilliant',
   radiant:'Cut Cornered Rectangular Modified Brilliant',sq_radiant:'Cut Cornered Square Modified Brilliant',
   princess:'Princess Cut',half_moon:'Half Moon Modified Brilliant',shield:'Shield Modified Brilliant',
-  hexagonal:'Hexagonal Modified Brilliant',emerald:'Emerald Cut',asscher:'Square Emerald Cut',
+  hexagonal:'Hexagonal Modified Brilliant',hexagonal_dutch:'Hexagonal Dutch / Dutch Marquise',
+  emerald:'Emerald Cut',asscher:'Square Emerald Cut',
   baguette:'Baguette Cut',tapered_baguette:'Tapered Baguette Cut',carre:'Carre Cut',
   rose:'Rose Cut',briolette:'Briolette',portuguese:'Portuguese Cut',flanders:'Flanders Cut',
 };
@@ -1174,6 +1210,12 @@ function updateBadges(){
       : state.ratioAssessment?.level === 'weak' ? 'bdg-orange'
       : 'bdg-accent';
     badges.push(`<span class="bdg ${bdgClass}">Ratio ${state.ratio.toFixed(2)}</span>`);
+  }
+  if (state.reportShapeRaw && state.shapeMappedFromReport === false) {
+    badges.push(`<span class="bdg bdg-orange">Unlisted cert cut</span>`);
+  } else if (isExoticOrLowLiquidityShape(state.shape)) {
+    const pct = shapeDiscountPct(state.shape);
+    badges.push(`<span class="bdg bdg-orange">Specialty cut ~−${pct}%</span>`);
   }
   br.innerHTML = badges.join('');
 }
@@ -1365,6 +1407,7 @@ document.getElementById('color-select').addEventListener('change',e=>{
 
 document.getElementById('shape-select').addEventListener('change',e=>{
   state.shape = e.target.value;
+  if (state.reportShapeRaw) state.shapeMappedFromReport = true;
   if (state.ratio) state.ratioAssessment = assessRatio(state.ratio, state.shape);
   syncSelectControls();
   update();
@@ -1640,10 +1683,17 @@ function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
   const depthMatch = norm.match(/(\d+(?:\.\d+)?)%\s+Depth/i);
   const tableMatch = norm.match(/(\d+(?:\.\d+)?)%\s+Table/i);
   const isLabGrown = /LABORATORY GROWN/i.test(norm);
+  const shapeMapped = mapReportShapeToState(shape);
   const notes = [
     !isLabGrown ? 'Report does not appear to say Laboratory Grown Diamond.' : '',
     /Sample Image Used/i.test(norm) ? 'Sample image used on report.' : '',
-    treatment.includes('May include') ? 'May include post-growth treatment.' : ''
+    treatment.includes('May include') ? 'May include post-growth treatment.' : '',
+    shape && !shapeMapped
+      ? `Cut on cert (“${shape}”) is not in the shape list — pick the closest match below; one-off cuts usually trade below round/oval.`
+      : '',
+    shapeMapped && isExoticOrLowLiquidityShape(shapeMapped)
+      ? `Specialty/exotic cut (${shape}) — model applies ~${shapeDiscountPct(shapeMapped)}% shape discount vs ${isWhite() ? 'round' : 'typical fancy oval/pear'} comps.`
+      : '',
   ].filter(Boolean).join(' ');
 
   const ratio = calculateRatio(measurements);
@@ -1662,7 +1712,8 @@ function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
     treatment,
     measurements,
     ratio,
-    ratioAssessment: ratio ? assessRatio(ratio, mapReportShapeToState(shape) || shape) : null,
+    shapeMapped,
+    ratioAssessment: ratio ? assessRatio(ratio, shapeMapped || shape) : null,
     tablePercent: tableMatch ? parseFloat(tableMatch[1]) : null,
     depthPercent: depthMatch ? parseFloat(depthMatch[1]) : null,
     isLabGrown,
@@ -1771,8 +1822,9 @@ function estimateCaratFromMeasurements(measurements, shape) {
   const sh = (shape || '').toLowerCase();
   const [length, width, depth] = nums;
   let coefficient = 0.0061;
-  if (sh.includes('pear')) coefficient = 0.0057;
-  else if (sh.includes('marquise')) coefficient = 0.00565;
+  if (sh.includes('moval')) coefficient = 0.0058;
+  else if (sh.includes('pear')) coefficient = 0.0057;
+  else if (sh.includes('marquise') || sh.includes('dutch')) coefficient = 0.00565;
   else if (sh.includes('heart')) coefficient = 0.0059;
   else if (sh.includes('emerald') || sh.includes('radiant') || sh.includes('cut cornered') || sh.includes('cushion') || sh.includes('princess')) coefficient = 0.0080;
   else if (sh.includes('oval')) coefficient = 0.0062;
@@ -1915,7 +1967,7 @@ const SHAPE_ICON_COLORS = {
   cushion:'#4caf7a', cushion_brilliant:'#4caf7a', square_cushion:'#4caf7a',
   radiant:'#e06060', sq_radiant:'#e06060', princess:'#4caf7a', emerald:'#5b9bd5',
   asscher:'#5b9bd5', baguette:'#4caf7a', tapered_baguette:'#4caf7a', carre:'#5b9bd5',
-  trilliant:'#9b70d4', half_moon:'#5b9bd5', shield:'#9b70d4', hexagonal:'#5b9bd5',
+  trilliant:'#9b70d4', half_moon:'#5b9bd5', shield:'#9b70d4', hexagonal:'#5b9bd5', hexagonal_dutch:'#5b9bd5', moval:'#a08060',
   old_european:'#d4af72', old_mine:'#d4af72', rose:'#e070a0', briolette:'#9b70d4',
   portuguese:'#d4af72', flanders:'#d4af72',
 };
@@ -1973,6 +2025,59 @@ function getLabClarityAssessment(clarity, isWhiteStone) {
   return tiers[key] || null;
 }
 
+function getShapeLiquidityAssessment() {
+  const raw = (state.reportShapeRaw || '').trim();
+  const mapped = state.shapeMappedFromReport;
+  const key = state.shape;
+  const name = shapeNames[key] || key;
+
+  if (raw && mapped === false) {
+    return {
+      severity: 'caution',
+      label: 'Unlisted cut on cert',
+      text: `IGI lists “${raw}” — not in the appraiser dropdown, so pricing may be off until you pick the closest shape. One-off and designer cuts usually trade well below round/oval.`,
+      headline: 'Cert cut not in model',
+      summary: 'The exact IGI cutting style is noted on the report; match it manually for a fair estimate.',
+    };
+  }
+
+  if (!isExoticOrLowLiquidityShape(key)) return null;
+
+  const pct = shapeDiscountPct(key);
+  const mult = getShapeMultForPricing(key);
+  const isSpecialty = SPECIALTY_SHAPE_KEYS.has(key);
+  const baseline = isWhite() ? 'round' : 'oval/pear fancy comps';
+
+  if (mult <= 0.76 || key === 'briolette' || key === 'rose') {
+    return {
+      severity: 'caution',
+      label: isSpecialty ? 'Specialty / exotic cut' : 'Low-liquidity shape',
+      text: `${name} is priced ~${pct}% below ${baseline} in this model — very small resale market. Fine for a custom piece; weak if you need to liquidate.`,
+      headline: 'Exotic cut — resale discount',
+      summary: 'Specialty cuts (rose, briolette, baguette, etc.) almost always trade below mainstream brilliant shapes.',
+    };
+  }
+
+  if (mult < 0.85 || isSpecialty) {
+    const research = SHAPE_RESEARCH_NOTES[key];
+    return {
+      severity: 'caution',
+      label: isSpecialty ? 'Specialty / exotic cut' : 'Shape liquidity',
+      text: `${name} carries ~${pct}% shape discount vs ${baseline} here — niche demand vs oval/round. ${research || 'Strong for the right design; expect more buyer pushback on resale.'}`,
+      headline: key === 'moval' ? 'Moval — hybrid, not full oval liquidity' : 'Specialty cut — thinner market',
+      summary: 'IGI names the cut on the cert; liquidity is often worse than the grade line suggests.',
+    };
+  }
+
+  return {
+    severity: 'note',
+    label: 'Shape liquidity',
+    text: `${name} trades ~${pct}% below ${baseline} in this model — not weak on specs, but less liquid than round/oval unless video and proportions are exceptional.`,
+    headline: 'Fancy shape discount',
+    summary: 'Common fancy shapes (marquise, emerald, cushion) still discount vs round; specialty cuts discount more.',
+  };
+}
+
 function getLabColorAssessment() {
   if (!isWhite()) return null;
   const g = state.whiteGrade;
@@ -2013,11 +2118,8 @@ function getStoneWeakPoints() {
     points.push({ severity:'note', label:'Growth method', text:'CVD stones can show strain or haze unless as-grown. Worth a tilt video even with a high clarity grade.', headline:'Possible optics issue', summary:'IGI lists growth method, not face-up milkiness.' });
   }
 
-  const lowDemandShapes = { marquise:0.87, asscher:0.84, baguette:0.76, tapered_baguette:0.74, rose:0.72, briolette:0.70, shield:0.78, half_moon:0.80 };
-  const sm = lowDemandShapes[state.shape];
-  if (sm && sm < 0.82) {
-    points.push({ severity:'note', label:'Shape liquidity', text:`${shapeNames[state.shape] || state.shape} trades at a shape discount vs round/oval. Fine if you love the cut — weaker if you plan to resell.`, headline:'Niche shape for resale', summary:'Shape affects liquidity more than the IGI grade line suggests.' });
-  }
+  const shapePt = getShapeLiquidityAssessment();
+  if (shapePt) points.push(shapePt);
 
   const order = { critical:0, caution:1, note:2 };
   points.sort((a, b) => order[a.severity] - order[b.severity]);
@@ -2027,6 +2129,7 @@ function getStoneWeakPoints() {
 function getDiamondInspectionQuestions(shapeKey, cut) {
   const shapeQuestions = {
     oval: 'Bowtie: how strong is the bowtie in normal lighting — do the ends go dark when tilted?',
+    moval: 'Hybrid outline: soft tips vs marquise points, bowtie strength, and whether L/W looks balanced (not too squat or needle-like).',
     pear: 'Bowtie & outline: bowtie strength, even shoulders, and whether the point is protected.',
     marquise: 'Bowtie & tips: bowtie severity, tip protection, and face-up symmetry.',
     heart: 'Outline: even cleft and lobes, protected point, and any bowtie or dark center.',
@@ -2044,8 +2147,9 @@ function getDiamondInspectionQuestions(shapeKey, cut) {
     carre: 'Windowing: tilt video for windowing and dark step facets.',
     shield: 'Outline: symmetrical outline, protected point, and center windowing.',
     hexagonal: 'Outline: symmetrical hex shape and even step pattern without a dead center.',
-    portuguese: 'Depth: extra facets lively or dark center — does depth make it face up small?',
-    flanders: 'Facet balance: even corners and balanced facet pattern face-up.',
+    hexagonal_dutch: 'Hex geometry: six even sides, protected “tips,” bowtie across the center, and symmetry vs a classic marquise.',
+    portuguese: 'Depth: extra facets lively or dark center — does depth make it face up small vs a round of the same carat?',
+    flanders: 'Facet balance: even corners and balanced facet pattern face-up — faces up smaller than square radiant.',
   };
 
   const items = [];
@@ -2158,13 +2262,21 @@ function renderIGICard(r) {
     r.pdfUrl ? ['IGI PDF', r.pdfUrl] : null,
   ].filter(Boolean);
 
+  const shapeHighlight = label => {
+    if (label !== 'Shape') return false;
+    if (r.shape && r.shapeMapped == null) return true;
+    return isExoticOrLowLiquidityShape(r.shapeMapped || mapReportShapeToState(r.shape));
+  };
+
   card.innerHTML = '<div class="igi-report-card">' +
     fields.map(([label, val]) => {
       const valueHTML = label === 'IGI PDF'
         ? '<a href="' + escapeAttr(val) + '" target="_blank" rel="noopener" style="color:var(--accent)">Open PDF ↗</a>'
         : escapeHTML(val || '—');
-      return '<div class="irc-field"><div class="irc-label">' + escapeHTML(label) + '</div><div class="irc-value' +
-        (['Color','Clarity','Cut'].includes(label) ? ' highlight' : '') + '">' + valueHTML + '</div></div>';
+      const warnShape = shapeHighlight(label);
+      const valueClass = 'irc-value' + (['Color','Clarity','Cut'].includes(label) || warnShape ? ' highlight' : '');
+      const valueStyle = warnShape ? ' style="color:var(--orange)"' : '';
+      return '<div class="irc-field"><div class="irc-label">' + escapeHTML(label) + '</div><div class="' + valueClass + '"' + valueStyle + '>' + valueHTML + '</div></div>';
     }).join('') +
     (r.notes ? '<div class="irc-field" style="grid-column:1/-1"><div class="irc-label">Notes</div><div class="irc-value" style="color:var(--orange);font-size:11px">' + escapeHTML(r.notes) + '</div></div>' : '') +
     '</div>';
@@ -2173,6 +2285,10 @@ function renderIGICard(r) {
 
 function mapReportShapeToState(shape) {
   const sh = (shape || '').toLowerCase().replace(/\./g, '');
+  if (sh.includes('moval')) return 'moval';
+  if (sh.includes('dutch') && (sh.includes('hex') || sh.includes('marquise'))) return 'hexagonal_dutch';
+  if (sh.includes('hexagonal') && sh.includes('dutch')) return 'hexagonal_dutch';
+  if (sh.includes('dutch marquise') || sh.includes('dutch-marquise')) return 'hexagonal_dutch';
   if (sh.includes('old european')) return 'old_european';
   if (sh.includes('old mine')) return 'old_mine';
   if (sh.includes('round')) return 'round';
@@ -2197,6 +2313,7 @@ function mapReportShapeToState(shape) {
   if (sh.includes('half moon') || sh.includes('halfmoon')) return 'half_moon';
   if (sh.includes('shield') || sh.includes('kite')) return 'shield';
   if (sh.includes('hexagonal')) return 'hexagonal';
+  if (sh.includes('dutch')) return 'hexagonal_dutch';
   if (sh.includes('carre') || sh.includes('carr')) return 'carre';
   if (sh.includes('rose')) return 'rose';
   if (sh.includes('briolette')) return 'briolette';
@@ -2235,7 +2352,9 @@ function applyIGIReport(options = {}) {
   if (validClarities.includes(cl)) { state.clarity = cl; setActivePill('clarity', cl); }
 
   // Map shape
-  const shapeMapped = mapReportShapeToState(r.shape);
+  state.reportShapeRaw = (r.shape || '').trim();
+  const shapeMapped = r.shapeMapped !== undefined ? r.shapeMapped : mapReportShapeToState(r.shape);
+  state.shapeMappedFromReport = state.reportShapeRaw ? (shapeMapped != null) : null;
   if (shapeMapped) state.shape = shapeMapped;
 
   state.ratio = r.ratio || calculateRatio(r.measurements);

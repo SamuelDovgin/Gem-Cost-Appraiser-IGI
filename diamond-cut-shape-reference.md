@@ -147,6 +147,24 @@ Jeweler cost = Round G/VS1 × shape multiplier × carat multiplier (per [white-d
 
 ---
 
+## 3b. Moval (Marquise–Oval Hybrid)
+
+**Description:** A hybrid silhouette between marquise and oval — elongated like both, with **softly rounded tips** instead of sharp marquise points. Marketed heavily in **lab-grown** jewelry in 2025–2026 but still a **non-standard** IGI cutting style name on many reports (may appear as modified oval or marquise).
+
+**Facet count:** ~56–58 (brilliant family)
+
+**L/W ratio:** **1.65–1.90** sweet spot (between pear and marquise)
+
+**Wholesale multiplier:** **0.94 (−6% vs round)**
+
+**Why discounted vs oval despite trendiness:** Oval commands a demand premium in lab wholesale (+8% in this model). Moval is more distinctive but **less standardized**, thinner resale liquidity, and often confused with oval/marquise on certs. Rapaport/retail guides place **marquise among the deepest fancy-shape discounts (~25%+ below round)**; moval sits **between marquise and oval** — better than marquise, not oval liquidity.
+
+**Clarity visibility:** Similar to oval/marquise — bowtie risk; SI on elongated shapes is penalized in the appraiser.
+
+**What to check:** Bowtie strength, tip symmetry, L/W not too squat or needle-like.
+
+---
+
 ## 4. Marquise Brilliant
 
 **Description:** Football-shaped (elongated, two pointed tips). One of the oldest fancy cuts. Maximizes face-up size per carat (larger footprint than round of same carat). Subject to bowtie. Tip protection critical for durability.
@@ -621,6 +639,20 @@ Jeweler cost = Round G/VS1 × shape multiplier × carat multiplier (per [white-d
 
 ---
 
+## 18b. Hexagonal Dutch / Dutch Marquise
+
+**Description:** Also called **Dutch Marquise** — an elongated **hexagonal** outline (six straight sides) instead of curved marquise wings and pointed tips. Custom / bespoke cutting; rare on mass Alibaba SKUs.
+
+**Wholesale multiplier:** **0.82 (−18% vs round)**
+
+**Why discounted:** Geometric marquise alternatives are **designer cuts** with very limited factory inventory and resale pools. Worse liquidity than standard marquise (already −13% vs round). Similar niche to hexagonal brilliant and Flanders.
+
+**L/W ratio:** **1.85–2.10** (marquise-like elongation)
+
+**What to check:** Symmetry of six sides, bowtie, tip protection in setting.
+
+---
+
 ## 19. Portuguese Cut
 
 **Description:** A brilliant cut with extra "cross" facets — 72 total facets. Creates a complex, fiery sparkle pattern with additional dispersed light compared to round brilliant. Deep stone (higher depth%) that can appear smaller face-up per carat than its weight suggests.
@@ -755,6 +787,7 @@ These are PRACTICAL minimums for an eye-clean stone in a retail setting. You CAN
 | Shape | Multiplier | Jeweler Cost at 3ct |
 |-------|------------|---------------------|
 | Oval Brilliant | 1.08 | ~$528 |
+| Moval (hybrid) | 0.94 | ~$460 |
 | Pear Modified Brilliant | 1.05 | ~$513 |
 | Old European Brilliant | 0.92 | ~$450 |
 | Cushion Brilliant | 0.91 | ~$445 |
@@ -771,6 +804,7 @@ These are PRACTICAL minimums for an eye-clean stone in a retail setting. You CAN
 | Asscher | 0.84 | ~$411 |
 | Emerald Cut | 0.83 | ~$406 |
 | Flanders Cut | 0.83 | ~$406 |
+| Hexagonal Dutch / Dutch Marquise | 0.82 | ~$401 |
 | Carre Cut | 0.80 | ~$391 |
 | Half Moon | 0.80 | ~$391 |
 | Hexagonal | 0.79 | ~$387 |
