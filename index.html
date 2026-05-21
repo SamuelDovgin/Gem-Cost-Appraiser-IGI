@@ -1207,6 +1207,32 @@ function findNearestComps(query, comps, maxN) {
   return result;
 }
 
+// findAbsoluteBestComps — no score threshold; always returns the closest N comps.
+// Used as final fallback to guarantee a comp estimate even for uncovered sizes/shapes.
+function findAbsoluteBestComps(query, comps, maxN) {
+  maxN = maxN || 3;
+  // Try same color family + shape first
+  let candidates = filterCandidates(query, comps);
+  // Broaden to same color family if no shape candidates
+  if (!candidates.length) {
+    candidates = comps.filter(row => row.colorFamily === query.colorFamily);
+  }
+  if (!candidates.length) return [];
+  const scored = candidates
+    .map(row => ({ row, score: scoreCandidate(query, row) }))
+    .sort((a, b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
+  const seenPid = new Set();
+  const result = [];
+  for (const c of scored) {
+    if (!seenPid.has(c.row.productId)) {
+      seenPid.add(c.row.productId);
+      result.push(c.row);
+      if (result.length >= maxN) break;
+    }
+  }
+  return result;
+}
+
 function applyWhiteModifiers(query, compRow) {
   const ct = query.carat;
   const cn = compRow.colorNormalized || 'D';
@@ -1317,6 +1343,29 @@ function resolveAlibabaComp(ct) {
     }
   }
 
+  // 4. Best-available — no score threshold; always find something and blend top estimates
+  const bestAvailRows = findAbsoluteBestComps(query, comps, 3);
+  if (bestAvailRows.length) {
+    const applyMods = r => isWhite() ? applyWhiteModifiers(query, r) : applyFancyModifiers(query, r);
+    const mods = bestAvailRows.map(r => {
+      const m = applyMods(r);
+      return { row: r, listingPrice: r.priceUsd, estimatedPrice: m.estimated, url: r.url, label: shortLabel(r), modifiers: m };
+    });
+    // Weighted blend: weight each estimate by 1/(score+0.5) so closest data wins more
+    const scores = bestAvailRows.map(r => scoreCandidate(query, r));
+    const weights = scores.map(s => 1 / (s + 0.5));
+    const totalW = weights.reduce((a, b) => a + b, 0);
+    const blendedEst = Math.round(mods.reduce((sum, m, i) => sum + m.estimatedPrice * weights[i], 0) / totalW);
+    const primary = { ...mods[0], estimatedPrice: blendedEst, blendedFrom: mods.length };
+    return {
+      matchType: 'best_available',
+      primary,
+      alternatives: mods.slice(1),
+      confidence: null,
+      source: 'comps-index-extrapolated',
+    };
+  }
+
   return { matchType: 'none', primary: null, alternatives: [], confidence: null, source: null };
 }
 
@@ -1342,12 +1391,12 @@ const alibabaComps = [
 
 const MESSI_D_ROUND_URL = 'https://www.alibaba.com/product-detail/Factory-Prices-Lab-Created-VVS-VS1_1600612782670.html';
 // Wuzhou Messi Gems — D / Round / IGI. VERIFIED live May 18–19 2026 via live selector.
-// 0.3–6ct are exact selector prices; 7–8ct are extrapolated from per-carat growth curve.
+// 0.3–6ct are exact selector prices; 7–8ct extrapolated from per-carat growth curve; 9–10ct further extrapolated.
 const messiDWhiteRoundLadder = {
-  VS2:  { 0.3:41,   0.5:64,  1:140,   1.5:216,   2:312,   3:487,   4:760,   5:1044, 6:1380, 7:1680, 8:1980 },
-  VS1:  { 0.3:45,   0.5:58,  1:121.5, 1.5:206,   2:293.5, 3:467.5, 4:832,   5:1173, 6:1500, 7:1840, 8:2190 },
-  VVS2: { 0.3:50,   0.5:61,  1:123.5, 1.5:216.5, 2:329.5, 3:535,   4:960,   5:1300, 6:1620, 7:1970, 8:2340 },
-  VVS1: { 0.3:68,   0.5:72,  1:129,   1.5:284.5, 2:580,   3:999,   4:1320,  5:1750, 6:2100, 7:2580, 8:3060 },
+  VS2:  { 0.3:41,   0.5:64,  1:140,   1.5:216,   2:312,   3:487,   4:760,   5:1044, 6:1380, 7:1680, 8:1980, 9:2280, 10:2590 },
+  VS1:  { 0.3:45,   0.5:58,  1:121.5, 1.5:206,   2:293.5, 3:467.5, 4:832,   5:1173, 6:1500, 7:1840, 8:2190, 9:2550, 10:2920 },
+  VVS2: { 0.3:50,   0.5:61,  1:123.5, 1.5:216.5, 2:329.5, 3:535,   4:960,   5:1300, 6:1620, 7:1970, 8:2340, 9:2730, 10:3140 },
+  VVS1: { 0.3:68,   0.5:72,  1:129,   1.5:284.5, 2:580,   3:999,   4:1320,  5:1750, 6:2100, 7:2580, 8:3060, 9:3560, 10:4080 },
 };
 
 function getEffectiveCutMult() {
@@ -1809,6 +1858,7 @@ function fmtCompTag(matchType) {
   if (matchType === 'exact') return '<span class="comp-tag exact">exact match</span>';
   if (matchType === 'nearest') return '<span class="comp-tag nearest">nearest match</span>';
   if (matchType === 'model_fallback') return '<span class="comp-tag model">model estimate</span>';
+  if (matchType === 'best_available') return '<span class="comp-tag model">extrapolated estimate</span>';
   return '';
 }
 
@@ -1891,6 +1941,19 @@ function updateMarketBar(m){
     html = `<div class="comp-block"><strong>No shape comp — model estimate</strong> ${fmtCompTag('model_fallback')}<br>`;
     html += renderCompEntry(ac.primary, false);
     html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimated from Messi round IGI ladder × shape multiplier. No direct ${escapeHTML(shapeNames[state.shape]||state.shape)} Alibaba data captured yet.</div></div>`;
+  } else if (ac.matchType === 'best_available') {
+    const blendedFrom = ac.primary.blendedFrom || 1;
+    const blendNote = blendedFrom > 1
+      ? `No direct listing at this spec — blended estimate from ${blendedFrom} closest available Alibaba data points, each adjusted for carat, clarity, and shape delta.`
+      : 'No direct listing at this spec — extrapolated from nearest available Alibaba data point.';
+    html = `<div class="comp-block"><strong>Closest Alibaba estimate</strong> ${fmtCompTag('best_available')}<br>`;
+    html += renderCompEntry(ac.primary, false);
+    if (ac.alternatives && ac.alternatives.length) {
+      html += `<div class="comp-alts">`;
+      html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
+      html += `</div>`;
+    }
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">${blendNote}</div></div>`;
   }
 
   if (roundBench && state.shape !== 'round') html += roundBench;
