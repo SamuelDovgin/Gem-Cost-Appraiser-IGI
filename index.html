@@ -1040,7 +1040,7 @@ const NEAREST_THRESHOLD = 5.0; // raised from 3.5: catches 4ct+ marquise, 6ct ov
 
 const SHAPE_NORMALIZE = {
   sq_radiant:'radiant', cushion_brilliant:'cushion', square_cushion:'cushion',
-  elongated_cushion:'cushion', moval:'oval', trilliant:'marquise',
+  elongated_cushion:'cushion', trilliant:'marquise',
   old_european:'round', old_mine:'round',
 };
 function normalizeShapeForComp(s) { return SHAPE_NORMALIZE[s] || s; }
@@ -2231,6 +2231,7 @@ function drawShapeChart(ctx,cssW,cssH) {
   const SHAPES=[
     {key:'round',      label:'Round'},
     {key:'oval',       label:'Oval'},
+    {key:'moval',      label:'Moval'},
     {key:'pear',       label:'Pear'},
     {key:'radiant',    label:'Radiant'},
     {key:'cushion_brilliant',label:'Cushion'},
@@ -3668,7 +3669,7 @@ function mapReportShapeToState(shape, reportHint = '') {
   if (/\bround\b/.test(sh) && sh.includes('brilliant') && !sh.includes('square') && !sh.includes('cornered')) {
     if (ctx.includes('portuguese') || /\bround\s+modified\b/.test(ctx)) return 'portuguese';
   }
-  if (sh.includes('moval')) return 'moval';
+  if (/\bmoval\b/.test(sh) || /\bmovel\b/.test(sh)) return 'moval';
   if (sh.includes('dutch') && (sh.includes('hex') || sh.includes('marquise'))) return 'hexagonal_dutch';
   if (sh.includes('hexagonal') && sh.includes('dutch')) return 'hexagonal_dutch';
   if (sh.includes('dutch marquise') || sh.includes('dutch-marquise')) return 'hexagonal_dutch';
