@@ -137,7 +137,8 @@
   }
 
   function getShapeFromTitle(title) {
-    const match = title.match(/\b(oval|round|emerald|pear|radiant|cushion|princess|marquise|heart|asscher|portuguese)\b/i);
+    if (/\bportuguese\b/i.test(title) || /\bround\s+modified\s+brilliant\b/i.test(title)) return "portuguese";
+    const match = title.match(/\b(oval|round|emerald|pear|radiant|cushion|princess|marquise|heart|asscher)\b/i);
     return match ? match[1].toLowerCase() : "";
   }
 
@@ -411,9 +412,16 @@
     const searchText = [title, ...selectedText, ...caratRows, ...metaText];
 
     const shapeAttr = firstAttributeValue(sourceContext, [/^diamond shape$/i, /^shape$/i]);
-    const shapeSelected = firstPatternValue(selectedText, /\b(round brilliant|oval|round|emerald|pear|radiant|cushion|princess|marquise|heart|asscher|portuguese)\b/i, "selectedOptions");
-    const shapeText = firstPatternValue(searchText, /\b(round brilliant|oval|round|emerald|pear|radiant|cushion|princess|marquise|heart|asscher|portuguese)\b/i, "page text/title/meta");
-    const shapeSource = shapeSelected || shapeAttr || shapeText || { value: "" };
+    const modelNumber = firstAttributeValue(sourceContext, [/^model number$/i]);
+    const shapeSelected = firstPatternValue(selectedText, /\b(round brilliant|round modified brilliant|oval|round|emerald|pear|radiant|cushion|princess|marquise|heart|asscher|portuguese)\b/i, "selectedOptions");
+    const shapeText = firstPatternValue(searchText, /\b(round brilliant|round modified brilliant|oval|round|emerald|pear|radiant|cushion|princess|marquise|heart|asscher|portuguese)\b/i, "page text/title/meta");
+    let shapeSource = shapeSelected || shapeAttr || shapeText || { value: "" };
+    const portugueseHint = /\bportuguese\b/i.test(searchText.join(" "))
+      || /\bportuguese\b/i.test(modelNumber?.value || "");
+    const modifiedRoundHint = /\bround\s+modified\s+brilliant\b/i.test(searchText.join(" "));
+    if (portugueseHint || modifiedRoundHint) {
+      shapeSource = { value: "Portuguese Cut", source: portugueseHint ? "portuguese listing hint" : "round modified brilliant hint" };
+    }
     const shape = normalizeShapeValue(shapeSource.value);
 
     const cutAttr = firstAttributeValue(sourceContext, [/^diamond cut$/i, /cut grade/i, /^cut$/i]);

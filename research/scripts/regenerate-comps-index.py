@@ -41,6 +41,8 @@ HIGH_CONFIDENCE_PIDS = {
     "1601744111777",  # Marquise D VVS2
     "1601384099752",  # Marquise DE
     "10000038791251", # Vivid pink heart
+    "10000040044944",  # Shreeraj Portuguese primary
+    "1601570156930",  # Mishang Portuguese 2ct+
 }
 
 
@@ -143,6 +145,7 @@ def main():
 
     shape_map = {
         "Elongated Cushion": "elongated_cushion",  # must come before Cushion
+        "Portuguese": "portuguese",  # must come before Round (substring match)
         "Moval": "moval",  # must come before Oval (substring match)
         "Round": "round",
         "Pear": "pear",
@@ -236,8 +239,11 @@ def main():
                     # Shape (row-level overrides section-level for multi-shape tables)
                     row_shape = section_shape
                     if row_map.get("Shape"):
-                        rs = row_map["Shape"].strip().lower()
-                        row_shape = rs if rs else section_shape
+                        rs = row_map["Shape"].strip().lower().replace(" ", "_")
+                        if "portuguese" in rs:
+                            row_shape = "portuguese"
+                        elif rs:
+                            row_shape = rs
 
                     # Emit one row per split-clarity column (VS2/VS1/VVS2/VVS1/VVS-VS)
                     for clarity in ("VS2", "VS1", "VVS2", "VVS1", "VVS-VS"):

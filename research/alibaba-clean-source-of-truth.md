@@ -1,7 +1,7 @@
 # Alibaba Clean Diamond Comp Source of Truth
 
 Created: 2026-05-21  
-Source files: `data/1ct-2ct-fancy-cut-lab-grown-diamond-radiant-cut-d-vs1-ig-sku-prices.json`, `data/igi-certificate-fancy-light-pink-loose-lab-diamond-hpht--sku-prices.json`, `data/starsgem-oval-diamante-1ct-2ct-3ct-d-vs1-vvs2-hpht-cvd-i-sku-prices.json`, `data/mishang-1ct-2ct-3ct-loose-lab-created-diamond-vs-vvs-exc-sku-prices.json`, `data/igi-certified-elongated-cushion-cut-lab-grown-diamond-1--sku-prices.json`, `data/hpht-cvd-loose-lab-grown-diamond-cushion-def-gh-vvs-vs-i-sku-prices.json`, `data/fancy-color-yellow-princess-cut-def-vvs-vs-1ct-2ct-3ct-4-sku-prices.json`, `data/in-stock-asscher-shape-igi-cvd-htpt-diamond-1ct-5ct-high-sku-prices.json`, `data/alibaba-com-manufacturers-suppliers-exporters-importers--sku-prices.json`, `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json`, `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json`  
+Source files: `data/1ct-2ct-fancy-cut-lab-grown-diamond-radiant-cut-d-vs1-ig-sku-prices.json`, `data/igi-certificate-fancy-light-pink-loose-lab-diamond-hpht--sku-prices.json`, `data/starsgem-oval-diamante-1ct-2ct-3ct-d-vs1-vvs2-hpht-cvd-i-sku-prices.json`, `data/mishang-1ct-2ct-3ct-loose-lab-created-diamond-vs-vvs-exc-sku-prices.json`, `data/igi-certified-elongated-cushion-cut-lab-grown-diamond-1--sku-prices.json`, `data/hpht-cvd-loose-lab-grown-diamond-cushion-def-gh-vvs-vs-i-sku-prices.json`, `data/fancy-color-yellow-princess-cut-def-vvs-vs-1ct-2ct-3ct-4-sku-prices.json`, `data/in-stock-asscher-shape-igi-cvd-htpt-diamond-1ct-5ct-high-sku-prices.json`, `data/alibaba-com-manufacturers-suppliers-exporters-importers--sku-prices.json`, `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json`, `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json`, `data/portuguese-cut-1-00-carat-cvd-lab-grown-diamond-with-igi-sku-prices.json`  
 Purpose: keep one durable reference for Alibaba diamond comps that have enough captured evidence to use later in pricing logic.
 
 URL retention rule: every promoted product or product group should retain a `URL:` field that links back to the Alibaba page where the comp was found whenever the capture contains a URL or one can be reconstructed from `productId`. Prefer canonical product-detail URLs without tracking parameters, but never drop the page link entirely just because tracking cleanup is imperfect.
@@ -674,6 +674,43 @@ Use: thin E-color heart anchor for 3ct+ only. Medium confidence; VS1-only.
 | 5.00 | $999 | Medium |
 | 6.00 | $1,289 | Medium |
 
+### Portuguese Cut, D, VS1, IGI - Shreeraj Solitaire (Primary 1-3ct)
+
+Product ID: `10000040044944`  
+URL: `https://www.alibaba.com/product-detail/IGI-Certified-Portuguese-Cut-Lab-Grown_10000040044944.html`  
+Source file: `data/portuguese-cut-1-00-carat-cvd-lab-grown-diamond-with-igi-sku-prices.json`  
+Supplier: SHREERAJ SOLITAIRE  
+Evidence: exact SKU rows with `shape: portuguese` on capture; title and URL say Portuguese Cut; selectors show `1.00/2.00/3.00 Carat`, `Diamond Clarity = VS1`, `Color = D (Top Color)`, Excellent cut grade, IGI certificate. Page-level shape attribute is blank/`other` — use listing title + capture `shape` field.  
+Use: **primary white Portuguese IGI ladder (1-3ct, D VS1)**. IGI often reports these stones as Round Modified Brilliant; treat as Portuguese for pricing, not round baseline. High confidence for captured rows.
+
+| Carat | VS1 | $/ct | Confidence |
+|---:|---:|---:|---|
+| 1.00 | $260 | $260 | High |
+| 2.00 | $460 | $230 | High |
+| 3.00 | $890 | $297 | High |
+
+**Notes:** 4.00ct and 5.00ct selectors exist but no reliable SKU price rows were captured yet. E-color option is on the page but only D VS1 rows were captured in this session.
+
+### Portuguese Cut, D/E, VS/VVS2, IGI - Mishang Diamond (2ct+ specialty)
+
+Product ID: `1601570156930`  
+URL: `https://www.alibaba.com/product-detail/HPHT-CVD-VVS-VS-Excellent-Portuguese_1601570156930.html`  
+Source file: `data/portuguese-cut-1-00-carat-cvd-lab-grown-diamond-with-igi-sku-prices.json`  
+Supplier: Mishang Diamond  
+Evidence: listing title and `Model Number = Portuguese Cut Lab Grown Diamond`; SKU row labels embed carat/color/clarity/growth (e.g. `2.13CT E VVS2 CVD`); page `Diamond Shape` says Round Brilliant Cut — **use row labels + title as shape authority** (same pattern as multi-shape Messi listings).  
+Use: corroborating Portuguese ladder for ~2ct+ singles, especially E VVS2 and D VVS2 CVD. Medium-high confidence.
+
+| Carat | Color | Clarity | Price | $/ct | Confidence |
+|---:|---|---|---:|---:|---|
+| 2.08 | D | VS1 | $600 | $288 | Medium-high |
+| 2.12 | D | VVS2 | $650 | $307 | Medium-high |
+| 2.13 | E | VVS2 | $600 | $281 | Medium-high |
+| 2.16 | E | VS1 | $580 | $269 | Medium-high |
+| 2.22 | D | VVS2 | $650 | $293 | Medium-high |
+| 3.86 | E | VVS2 | $850 | $220 | Medium |
+
+**IGI mapping:** Stones certified as **Round Modified Brilliant** (e.g. LG783630596, 1.75ct E VVS2) should match `shape = portuguese` in the app and nearest-comp against rows above — not the round Messi ladder.
+
 ### Fancy Vivid Pink Heart, IGI
 
 Product ID: `10000038791251`  
@@ -792,7 +829,7 @@ These can be used as guardrails, but not as exact one-to-one comps.
 | Product ID | Listing | Why Broad |
 |---|---|---|
 | `1600092144781` | Messi pear 1-5ct, White, VS/VVS, Excellent | Rows captured with price but the exported rows lost per-row carat labels in some captures. Use product page again with v3 extension. |
-| `10000030952345` | Round Portuguese Cut, DEF, VVS-VS | Portuguese cut is specialty; rows captured as repeated clarity labels without clean carat labels. |
+| `10000030952345` | Round Portuguese Cut, DEF, VVS-VS | Superseded for pricing by `10000040044944` and `1601570156930`; legacy capture had clarity-only row labels. |
 | `1601132548922` | Fancy light pink, mixed fancy shapes | Uses `Diamond Cut` for shape/size labels; use only after recapture with page-source evidence. |
 | `1601646366748` | HPHT CVD cushion DEF/GH, one `0.5ct-E-VVS2` row | Single specialty row from `igi-certified-elongated-cushion-cut` capture; not a full ladder. |
 | `1601459739835` | Anster cushion `3MM` size row | Millimeter sizing without clean 1ct+ carat mapping. |

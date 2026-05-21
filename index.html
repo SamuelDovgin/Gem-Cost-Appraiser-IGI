@@ -445,7 +445,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <option value="old_mine">Old Mine Brilliant</option>
           <option value="rose">Rose Cut</option>
           <option value="briolette">Briolette</option>
-          <option value="portuguese">Portuguese Cut</option>
+          <option value="portuguese">Portuguese / Round Modified Brilliant</option>
           <option value="flanders">Flanders Cut (Belgian / Dutch square)</option>
         </optgroup>
       </select>
@@ -599,7 +599,6 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
     </div>
     <canvas id="price-chart" height="240"></canvas>
     <div id="chart-tooltip" class="chart-tooltip"></div>
-    <div id="chart-comps" class="chart-comps"></div>
   </div>
 
   <div class="weak-bar" id="weak-bar">
@@ -966,7 +965,7 @@ const SHAPE_MARKET_APPEAL = {
   carre: { demand:'★★☆☆☆', resale:'thin', appeal:'Square step (carré) — crisp geometry, art-deco adjacent.', trend:'Niche step; rare in lab-grown factory selectors.', summary:'Specialty step — thin resale.' },
   rose: { demand:'★★☆☆☆', resale:'thin', appeal:'Flat dome, soft glow; boho / antique revival (major 2025 comeback in vintage jewelry).', trend:'Trendy in design press but still niche for lab resale; shallow face-up looks big.', summary:'Exotic for lab IGI — fashionable, not liquid like round/oval.', extra:'Best in low-light aesthetics; weak standardized resale vs brilliant cuts.' },
   briolette: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Full faceted drop — pendant / earring sculpture, no table.', trend:'No engagement market; almost never a center-stone resale comp.', summary:'Exotic — not a ring liquidation cut.' },
-  portuguese: { demand:'★★☆☆☆', resale:'thin', appeal:'72–100+ facet “fire” cut; collector sparkle, deep pavilion.', trend:'Specialty resurgence (social / vintage aesthetic); faces up smaller per carat.', summary:'Exotic brilliant — boutique demand, ~15% below round when priced fairly.', extra:'Leon Diamond: most fancy shapes 20–40% under round at retail.' },
+  portuguese: { demand:'★★☆☆☆', resale:'thin', appeal:'Round modified brilliant / Portuguese-style extra-facet cut; collector sparkle.', trend:'Specialty resurgence (social / vintage aesthetic); often faces up smaller per carat.', summary:'Exotic brilliant — boutique demand, ~15% below round when priced fairly.', extra:'Verify the facet diagram/table/depth because IGI may only print “Round Modified Brilliant”. Leon Diamond: most fancy shapes 20–40% under round at retail.' },
   flanders: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Octagonal square brilliant (Belgian / Flanders Ideal).', trend:'Discontinued / scarce distribution; niche even when found.', summary:'Exotic — often ~13% smaller face-up than radiant; tiny resale pool.', extra:'PriceScope: limited cutters and supply vs mainstream squares.' },
 };
 const SHAPE_RESEARCH_NOTES = {
@@ -1357,7 +1356,9 @@ function resolveAlibabaComp(ct) {
     }
   }
 
-  // 4. Best-available — no score threshold; always find something and blend top estimates
+  // 4. Best-available — no score threshold; avoid cross-shape round comps for specialty cuts
+  if (SPECIALTY_SHAPE_KEYS.has(state.shape)) return { matchType: 'none', primary: null, alternatives: [], confidence: null, source: null };
+
   const bestAvailRows = findAbsoluteBestComps(query, comps, 3);
   if (bestAvailRows.length) {
     const applyMods = r => isWhite() ? applyWhiteModifiers(query, r) : applyFancyModifiers(query, r);
@@ -1705,7 +1706,7 @@ const shapeNames = {
   hexagonal:'Hexagonal Modified Brilliant',hexagonal_dutch:'Hexagonal Dutch / Dutch Marquise',
   emerald:'Emerald Cut',asscher:'Square Emerald Cut',
   baguette:'Baguette Cut',tapered_baguette:'Tapered Baguette Cut',carre:'Carre Cut',
-  rose:'Rose Cut',briolette:'Briolette',portuguese:'Portuguese Cut',flanders:'Flanders Cut',
+  rose:'Rose Cut',briolette:'Briolette',portuguese:'Portuguese / Round Modified Brilliant',flanders:'Flanders Cut',
 };
 const capCut = c => c==='unset'?'Pol/Sym only (no cut grade)':c==='ideal'?'3EX/Ideal':c==='vg'?'Very Good':'Good';
 
@@ -1838,7 +1839,7 @@ function updateWeakPointsBar() {
 
   const questions = getDiamondInspectionQuestions(state.shape, state.cut);
   const inspectHtml = questions.length
-    ? `<li class="weak-item" style="margin-top:4px;padding-top:8px;border-top:.5px solid var(--border)"><span class="weak-pill note">Check</span><span><strong>What IGI won't show:</strong><ul style="margin:6px 0 0;padding-left:0;list-style:none">${questions.map(q => `<li class="inspection-item" style="margin-top:5px"><span class="inspection-icon">${shapeIconSvg(state.shape, 18)}</span><span>${formatInspectionQuestion(q)}</span></li>`).join('')}</ul></span></li>`
+    ? `<li class="weak-item" style="margin-top:4px;padding-top:8px;border-top:.5px solid var(--border)"><span class="weak-pill note">Check</span><span><strong>What IGI won't show:</strong><ul style="margin:6px 0 0;padding-left:0;list-style:none">${questions.map(q => `<li class="inspection-item" style="margin-top:5px"><span class="inspection-icon">${shapeIconSvg(state.shape, 18, state.ratio)}</span><span>${formatInspectionQuestion(q)}</span></li>`).join('')}</ul></span></li>`
     : '';
 
   if (!points.length) {
@@ -2996,39 +2997,284 @@ const SHAPE_ICON_COLORS = {
   portuguese:'#d4af72', flanders:'#d4af72',
 };
 
-function shapeIconSvg(shapeKey, size = 26) {
+const ICON_CANONICAL_LW = {
+  baguette:2.75, tapered_baguette:3.1, trilliant:1.05, half_moon:2.0, shield:1.15,
+  hexagonal:1.0, hexagonal_dutch:1.95, rose:1.15, briolette:1.35, portuguese:1.0, flanders:1.0,
+};
+
+function iconEffectiveLW(shapeKey, certRatio) {
+  if (certRatio != null && certRatio > 0) {
+    const guide = ratioGuides[shapeKey];
+    if (guide) return Math.min(guide.hi * 1.02, Math.max(guide.lo * 0.98, certRatio));
+    return certRatio;
+  }
+  const guide = ratioGuides[shapeKey];
+  if (guide) return (guide.idealLo + guide.idealHi) / 2;
+  return ICON_CANONICAL_LW[shapeKey] ?? 1;
+}
+
+function iconBox(lw) {
+  const inner = 18.5;
+  const r = Math.max(lw, 0.85);
+  let bw, bh;
+  if (r >= 1) { bh = inner; bw = inner / r; }
+  else { bw = inner; bh = inner * r; }
+  return { cx:12, cy:12, hw:bw / 2, hh:bh / 2 };
+}
+
+function iconXY(box, u, v) {
+  return [+(box.cx + u * box.hw).toFixed(2), +(box.cy + v * box.hh).toFixed(2)];
+}
+
+function iconPath(pts, c, sw = 1.2) {
+  const d = pts.map(([x,y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ') + 'Z';
+  return `<path d="${d}" fill="none" stroke="${c}" stroke-width="${sw}"/>`;
+}
+
+function iconLines(c, f, segs) {
+  return segs.map(([x1,y1,x2,y2]) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${f}/>`).join('');
+}
+
+function iconBrilliantElongated(box, c, f, outlinePts, tableScale = 0.42) {
+  const outline = iconPath(outlinePts, c);
+  const table = outlinePts.map(([x,y]) => [
+    +(box.cx + (x - box.cx) * tableScale).toFixed(2),
+    +(box.cy + (y - box.cy) * tableScale).toFixed(2),
+  ]);
+  const tablePath = iconPath(table, c, 0.7);
+  const facets = [];
+  for (let i = 0; i < outlinePts.length; i++) {
+    const [tx, ty] = table[i];
+    const [ox, oy] = outlinePts[i];
+    facets.push([tx, ty, ox, oy]);
+    const [nx, ny] = outlinePts[(i + 1) % outlinePts.length];
+    facets.push([ox, oy, nx, ny]);
+  }
+  return outline + tablePath + iconLines(c, f, facets);
+}
+
+function iconOval(box, c, f) {
+  const rx = +(box.hw * 0.95).toFixed(2);
+  const ry = +(box.hh * 0.95).toFixed(2);
+  const trx = +(rx * 0.42).toFixed(2);
+  const tryTable = +(ry * 0.42).toFixed(2);
+  let s = `<ellipse cx="${box.cx}" cy="${box.cy}" rx="${rx}" ry="${ry}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
+  s += `<ellipse cx="${box.cx}" cy="${box.cy}" rx="${trx}" ry="${tryTable}" fill="none" stroke="${c}" stroke-width="0.7"/>`;
+  const segs = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4 - Math.PI / 2;
+    const a2 = ((i + 1) * Math.PI) / 4 - Math.PI / 2;
+    const tx = box.cx + Math.cos(a) * trx;
+    const ty = box.cy + Math.sin(a) * tryTable;
+    const gx = box.cx + Math.cos(a) * rx;
+    const gy = box.cy + Math.sin(a) * ry;
+    const gx2 = box.cx + Math.cos(a2) * rx;
+    const gy2 = box.cy + Math.sin(a2) * ry;
+    segs.push([tx, ty, gx, gy], [gx, gy, gx2, gy2]);
+  }
+  return s + iconLines(c, f, segs);
+}
+
+function iconStepRect(box, c, f) {
+  const outer = [iconXY(box,-0.92,-0.72), iconXY(box,0.92,-0.72), iconXY(box,0.92,0.72), iconXY(box,-0.92,0.72)];
+  const mid = [iconXY(box,-0.68,-0.5), iconXY(box,0.68,-0.5), iconXY(box,0.68,0.5), iconXY(box,-0.68,0.5)];
+  const inner = [iconXY(box,-0.42,-0.28), iconXY(box,0.42,-0.28), iconXY(box,0.42,0.28), iconXY(box,-0.42,0.28)];
+  let s = iconPath(outer, c) + iconPath(mid, c, 0.75) + iconPath(inner, c, 0.45);
+  const segs = [];
+  for (let i = 0; i < 4; i++) {
+    const n = (i + 1) % 4;
+    segs.push([...outer[i], ...mid[i]], [...mid[i], ...inner[i]], [...inner[i], ...inner[n]], [...inner[n], ...mid[n]], [...mid[n], ...outer[n]], [...outer[n], ...outer[i]]);
+  }
+  return s + iconLines(c, f, segs);
+}
+
+function iconCushion(box, c, f) {
+  const pts = [
+    iconXY(box,-0.82,-0.55), iconXY(box,0,-0.92), iconXY(box,0.82,-0.55),
+    iconXY(box,0.92,0), iconXY(box,0.82,0.55), iconXY(box,0,0.92),
+    iconXY(box,-0.82,0.55), iconXY(box,-0.92,0),
+  ];
+  return iconBrilliantElongated(box, c, f, pts);
+}
+
+function iconPrincess(c, f) {
+  const sq = iconBox(1);
+  const outer = [iconXY(sq,-0.9,-0.9), iconXY(sq,0.9,-0.9), iconXY(sq,0.9,0.9), iconXY(sq,-0.9,0.9)];
+  const inner = [iconXY(sq,-0.42,-0.42), iconXY(sq,0.42,-0.42), iconXY(sq,0.42,0.42), iconXY(sq,-0.42,0.42)];
+  let s = iconPath(outer, c) + iconPath(inner, c, 0.7);
+  const segs = [];
+  for (let i = 0; i < 4; i++) {
+    const n = (i + 1) % 4;
+    segs.push([...outer[i], ...inner[i]], [...inner[i], ...inner[n]], [...inner[n], ...outer[n]], [...outer[i], ...outer[n]]);
+    segs.push([...iconXY(sq,0,-0.9), ...inner[i]], [...iconXY(sq,0,0.9), ...inner[n]]);
+  }
+  return s + iconLines(c, f, segs);
+}
+
+function iconBaguette(shapeKey, c, f) {
+  const b = iconBox(shapeKey === 'tapered_baguette' ? 3.1 : 2.75);
+  const outer = shapeKey === 'tapered_baguette'
+    ? [iconXY(b,-0.52,-0.68), iconXY(b,0.52,-0.68), iconXY(b,0.36,0.68), iconXY(b,-0.36,0.68)]
+    : [iconXY(b,-0.9,-0.52), iconXY(b,0.9,-0.52), iconXY(b,0.9,0.52), iconXY(b,-0.9,0.52)];
+  const mid = outer.map(([x,y]) => [+(b.cx + (x - b.cx) * 0.72).toFixed(2), +(b.cy + (y - b.cy) * 0.72).toFixed(2)]);
+  const inner = outer.map(([x,y]) => [+(b.cx + (x - b.cx) * 0.48).toFixed(2), +(b.cy + (y - b.cy) * 0.48).toFixed(2)]);
+  let s = iconPath(outer, c) + iconPath(mid, c, 0.75) + iconPath(inner, c, 0.45);
+  const segs = [];
+  for (let i = 0; i < 4; i++) {
+    const n = (i + 1) % 4;
+    segs.push([...outer[i], ...mid[i]], [...mid[i], ...inner[i]], [...inner[i], ...inner[n]], [...inner[n], ...mid[n]], [...mid[n], ...outer[n]]);
+  }
+  return s + iconLines(c, f, segs);
+}
+
+function buildShapeIconInner(shapeKey, certRatio) {
   const c = SHAPE_ICON_COLORS[shapeKey] || '#d4af72';
-  const s = size;
-  const f = `stroke="${c}" stroke-width="0.5" opacity="0.6"`;
-  const icons = {
-    round: `<circle cx="12" cy="12" r="9.5" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="15.7,13.5 13.5,15.7 10.5,15.7 8.3,13.5 8.3,10.5 10.5,8.3 13.5,8.3 15.7,10.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.7" y1="10.5" x2="21.5" y2="12" ${f}/><line x1="15.7" y1="13.5" x2="21.5" y2="12" ${f}/><line x1="15.7" y1="13.5" x2="18.7" y2="18.7" ${f}/><line x1="13.5" y1="15.7" x2="18.7" y2="18.7" ${f}/><line x1="13.5" y1="15.7" x2="12" y2="21.5" ${f}/><line x1="10.5" y1="15.7" x2="12" y2="21.5" ${f}/><line x1="10.5" y1="15.7" x2="5.3" y2="18.7" ${f}/><line x1="8.3" y1="13.5" x2="5.3" y2="18.7" ${f}/><line x1="8.3" y1="13.5" x2="2.5" y2="12" ${f}/><line x1="8.3" y1="10.5" x2="2.5" y2="12" ${f}/><line x1="8.3" y1="10.5" x2="5.3" y2="5.3" ${f}/><line x1="10.5" y1="8.3" x2="5.3" y2="5.3" ${f}/><line x1="10.5" y1="8.3" x2="12" y2="2.5" ${f}/><line x1="13.5" y1="8.3" x2="12" y2="2.5" ${f}/><line x1="13.5" y1="8.3" x2="18.7" y2="5.3" ${f}/><line x1="15.7" y1="10.5" x2="18.7" y2="5.3" ${f}/>`,
-    oval: `<ellipse cx="12" cy="12" rx="10" ry="6.5" fill="none" stroke="${c}" stroke-width="1.2"/><ellipse cx="12" cy="12" rx="4.5" ry="2.8" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="16.5" y1="12" x2="22" y2="12" ${f}/><line x1="7.5" y1="12" x2="2" y2="12" ${f}/><line x1="12" y1="9.2" x2="12" y2="5.5" ${f}/><line x1="12" y1="14.8" x2="12" y2="18.5" ${f}/><line x1="15.1" y1="10.3" x2="18.5" y2="8" ${f}/><line x1="15.1" y1="13.7" x2="18.5" y2="16" ${f}/><line x1="8.9" y1="10.3" x2="5.5" y2="8" ${f}/><line x1="8.9" y1="13.7" x2="5.5" y2="16" ${f}/>`,
-    pear: `<path d="M12 3.5C16.5 7 18.5 12 12 20.5C5.5 12 7.5 7 12 3.5Z" fill="none" stroke="${c}" stroke-width="1.2"/><ellipse cx="12" cy="12" rx="3" ry="2.2" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="9.8" x2="12" y2="4" ${f}/><line x1="12" y1="14.2" x2="12" y2="19.5" ${f}/><line x1="15" y1="12" x2="18" y2="12" ${f}/><line x1="9" y1="12" x2="6" y2="12" ${f}/><line x1="14.2" y1="10.5" x2="17" y2="7.5" ${f}/><line x1="9.8" y1="10.5" x2="7" y2="7.5" ${f}/><line x1="14.2" y1="13.5" x2="17" y2="16.5" ${f}/><line x1="9.8" y1="13.5" x2="7" y2="16.5" ${f}/>`,
-    marquise: `<path d="M3.5 12C7 5.5 17 5.5 20.5 12C17 18.5 7 18.5 3.5 12Z" fill="none" stroke="${c}" stroke-width="1.2"/><ellipse cx="12" cy="12" rx="3.5" ry="1.8" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.5" y1="12" x2="20.5" y2="12" ${f}/><line x1="8.5" y1="12" x2="3.5" y2="12" ${f}/><line x1="14.8" y1="10.5" x2="19" y2="7.5" ${f}/><line x1="9.2" y1="10.5" x2="5" y2="7.5" ${f}/><line x1="14.8" y1="13.5" x2="19" y2="16.5" ${f}/><line x1="9.2" y1="13.5" x2="5" y2="16.5" ${f}/><line x1="12" y1="10.2" x2="12" y2="6" ${f}/><line x1="12" y1="13.8" x2="12" y2="18" ${f}/>`,
-    heart: `<path d="M12 20C5 13.5 3 9 7.5 6.5C10 5.2 12 7.5 12 9C12 7.5 14 5.2 16.5 6.5C21 9 19 13.5 12 20Z" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="9" x2="12" y2="19.5" stroke="${c}" stroke-width="0.6" opacity="0.55"/><line x1="12" y1="9" x2="5" y2="8" ${f}/><line x1="12" y1="9" x2="19" y2="8" ${f}/><line x1="8.5" y1="12.5" x2="4" y2="12" ${f}/><line x1="15.5" y1="12.5" x2="20" y2="12" ${f}/><line x1="8" y1="16" x2="5" y2="15.5" ${f}/><line x1="16" y1="16" x2="19" y2="15.5" ${f}/>`,
-    cushion: `<rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="15.5,13.5 13.5,15.5 10.5,15.5 8.5,13.5 8.5,10.5 10.5,8.5 13.5,8.5 15.5,10.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.5" y1="10.5" x2="19.5" y2="7.5" ${f}/><line x1="15.5" y1="13.5" x2="19.5" y2="16.5" ${f}/><line x1="8.5" y1="10.5" x2="4.5" y2="7.5" ${f}/><line x1="8.5" y1="13.5" x2="4.5" y2="16.5" ${f}/><line x1="13.5" y1="8.5" x2="16.5" y2="4.5" ${f}/><line x1="10.5" y1="8.5" x2="7.5" y2="4.5" ${f}/><line x1="13.5" y1="15.5" x2="16.5" y2="19.5" ${f}/><line x1="10.5" y1="15.5" x2="7.5" y2="19.5" ${f}/>`,
-    cushion_brilliant: `<rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="15.5,13.5 13.5,15.5 10.5,15.5 8.5,13.5 8.5,10.5 10.5,8.5 13.5,8.5 15.5,10.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.5" y1="10.5" x2="19.5" y2="7.5" ${f}/><line x1="15.5" y1="13.5" x2="19.5" y2="16.5" ${f}/><line x1="8.5" y1="10.5" x2="4.5" y2="7.5" ${f}/><line x1="8.5" y1="13.5" x2="4.5" y2="16.5" ${f}/><line x1="13.5" y1="8.5" x2="16.5" y2="4.5" ${f}/><line x1="10.5" y1="8.5" x2="7.5" y2="4.5" ${f}/><line x1="13.5" y1="15.5" x2="16.5" y2="19.5" ${f}/><line x1="10.5" y1="15.5" x2="7.5" y2="19.5" ${f}/>`,
-    square_cushion: `<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="15.5,13.5 13.5,15.5 10.5,15.5 8.5,13.5 8.5,10.5 10.5,8.5 13.5,8.5 15.5,10.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.5" y1="10.5" x2="19" y2="7" ${f}/><line x1="15.5" y1="13.5" x2="19" y2="17" ${f}/><line x1="8.5" y1="10.5" x2="5" y2="7" ${f}/><line x1="8.5" y1="13.5" x2="5" y2="17" ${f}/><line x1="13.5" y1="8.5" x2="17" y2="5" ${f}/><line x1="10.5" y1="8.5" x2="7" y2="5" ${f}/><line x1="13.5" y1="15.5" x2="17" y2="19" ${f}/><line x1="10.5" y1="15.5" x2="7" y2="19" ${f}/>`,
-    princess: `<rect x="4.5" y="4.5" width="15" height="15" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="8" y="8" width="8" height="8" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="4.5" y1="4.5" x2="8" y2="8" ${f}/><line x1="19.5" y1="4.5" x2="16" y2="8" ${f}/><line x1="4.5" y1="19.5" x2="8" y2="16" ${f}/><line x1="19.5" y1="19.5" x2="16" y2="16" ${f}/><line x1="12" y1="4.5" x2="12" y2="8" ${f}/><line x1="12" y1="16" x2="12" y2="19.5" ${f}/><line x1="4.5" y1="12" x2="8" y2="12" ${f}/><line x1="16" y1="12" x2="19.5" y2="12" ${f}/>`,
-    emerald: `<rect x="5" y="7" width="14" height="10" rx="1.5" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="7.5" y="9" width="9" height="6" fill="none" stroke="${c}" stroke-width="0.7"/><rect x="9.5" y="10.5" width="5" height="3" fill="none" stroke="${c}" stroke-width="0.45" opacity="0.7"/><line x1="5" y1="7" x2="7.5" y2="9" ${f}/><line x1="19" y1="7" x2="16.5" y2="9" ${f}/><line x1="5" y1="17" x2="7.5" y2="15" ${f}/><line x1="19" y1="17" x2="16.5" y2="15" ${f}/>`,
-    asscher: `<rect x="5.5" y="5.5" width="13" height="13" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="8" y="8" width="8" height="8" fill="none" stroke="${c}" stroke-width="0.7"/><rect x="10" y="10" width="4" height="4" fill="none" stroke="${c}" stroke-width="0.45" opacity="0.7"/><line x1="5.5" y1="5.5" x2="8" y2="8" ${f}/><line x1="18.5" y1="5.5" x2="16" y2="8" ${f}/><line x1="5.5" y1="18.5" x2="8" y2="16" ${f}/><line x1="18.5" y1="18.5" x2="16" y2="16" ${f}/>`,
-    radiant: `<rect x="5" y="7" width="14" height="10" rx="1" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="7.5" y="9" width="9" height="6" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="5" y1="7" x2="7.5" y2="9" ${f}/><line x1="19" y1="7" x2="16.5" y2="9" ${f}/><line x1="5" y1="17" x2="7.5" y2="15" ${f}/><line x1="19" y1="17" x2="16.5" y2="15" ${f}/><line x1="12" y1="7" x2="12" y2="9" ${f}/><line x1="12" y1="15" x2="12" y2="17" ${f}/><line x1="5" y1="12" x2="7.5" y2="12" ${f}/><line x1="16.5" y1="12" x2="19" y2="12" ${f}/>`,
-    sq_radiant: `<rect x="5.5" y="5.5" width="13" height="13" rx="0.5" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="8.5" y="8.5" width="7" height="7" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="5.5" y1="5.5" x2="8.5" y2="8.5" ${f}/><line x1="18.5" y1="5.5" x2="15.5" y2="8.5" ${f}/><line x1="5.5" y1="18.5" x2="8.5" y2="15.5" ${f}/><line x1="18.5" y1="18.5" x2="15.5" y2="15.5" ${f}/><line x1="12" y1="5.5" x2="12" y2="8.5" ${f}/><line x1="12" y1="15.5" x2="12" y2="18.5" ${f}/><line x1="5.5" y1="12" x2="8.5" y2="12" ${f}/><line x1="15.5" y1="12" x2="18.5" y2="12" ${f}/>`,
-    baguette: `<rect x="4" y="8" width="16" height="8" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="7" y="10" width="10" height="4" fill="none" stroke="${c}" stroke-width="0.7"/><rect x="9" y="11" width="6" height="2" fill="none" stroke="${c}" stroke-width="0.4" opacity="0.65"/><line x1="4" y1="8" x2="7" y2="10" ${f}/><line x1="20" y1="8" x2="17" y2="10" ${f}/><line x1="4" y1="16" x2="7" y2="14" ${f}/><line x1="20" y1="16" x2="17" y2="14" ${f}/>`,
-    trilliant: `<polygon points="12,3 21,19.5 3,19.5" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="12,9.5 17.5,19.5 6.5,19.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="3" x2="12" y2="9.5" ${f}/><line x1="21" y1="19.5" x2="17.5" y2="19.5" ${f}/><line x1="3" y1="19.5" x2="6.5" y2="19.5" ${f}/><line x1="12" y1="9.5" x2="3" y2="19.5" ${f}/><line x1="12" y1="9.5" x2="21" y2="19.5" ${f}/>`,
-    moval: `<path d="M2,12 C3.5,8 7,5.5 12,5.5 C17,5.5 20.5,8 22,12 C20.5,16 17,18.5 12,18.5 C7,18.5 3.5,16 2,12 Z" fill="none" stroke="${c}" stroke-width="1.2"/><path d="M5.5,12 C6.5,9.5 9,8.5 12,8.5 C15,8.5 17.5,9.5 18.5,12 C17.5,14.5 15,15.5 12,15.5 C9,15.5 6.5,14.5 5.5,12 Z" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="2" y1="12" x2="5.5" y2="12" ${f}/><line x1="18.5" y1="12" x2="22" y2="12" ${f}/><line x1="12" y1="5.5" x2="12" y2="8.5" ${f}/><line x1="12" y1="15.5" x2="12" y2="18.5" ${f}/><line x1="7" y1="7.5" x2="9" y2="9" ${f}/><line x1="17" y1="7.5" x2="15" y2="9" ${f}/><line x1="7" y1="16.5" x2="9" y2="15" ${f}/><line x1="17" y1="16.5" x2="15" y2="15" ${f}/>`,
-    old_european: `<circle cx="12" cy="12" r="9.5" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="7.5" x2="12" y2="2.5" ${f}/><line x1="16.5" y1="12" x2="21.5" y2="12" ${f}/><line x1="12" y1="16.5" x2="12" y2="21.5" ${f}/><line x1="7.5" y1="12" x2="2.5" y2="12" ${f}/><line x1="15.2" y1="8.8" x2="18.7" y2="5.3" ${f}/><line x1="15.2" y1="15.2" x2="18.7" y2="18.7" ${f}/><line x1="8.8" y1="15.2" x2="5.3" y2="18.7" ${f}/><line x1="8.8" y1="8.8" x2="5.3" y2="5.3" ${f}/>`,
-    old_mine: `<path d="M12 2.5 L19.5 8 L21 15 L15.5 21.5 L8.5 21.5 L3 15 L4.5 8 Z" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="12" cy="12" r="4" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="8" x2="12" y2="2.5" ${f}/><line x1="16" y1="12" x2="21" y2="12" ${f}/><line x1="12" y1="16" x2="12" y2="21.5" ${f}/><line x1="8" y1="12" x2="3" y2="12" ${f}/><line x1="14.8" y1="9.2" x2="19.5" y2="8" ${f}/><line x1="14.8" y1="14.8" x2="19.5" y2="16" ${f}/><line x1="9.2" y1="14.8" x2="4.5" y2="16" ${f}/><line x1="9.2" y1="9.2" x2="4.5" y2="8" ${f}/>`,
-    rose: `<ellipse cx="12" cy="13" rx="9" ry="7" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="6" x2="12" y2="13" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="6" x2="6" y2="13" stroke="${c}" stroke-width="0.5" opacity="0.55"/><line x1="12" y1="6" x2="18" y2="13" stroke="${c}" stroke-width="0.5" opacity="0.55"/><line x1="12" y1="6" x2="3.5" y2="11" ${f}/><line x1="12" y1="6" x2="20.5" y2="11" ${f}/>`,
-    default: `<polygon points="12,3 20,12 12,21 4,12" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="3" x2="12" y2="21" stroke="${c}" stroke-width="0.6" opacity="0.4"/><line x1="4" y1="12" x2="20" y2="12" stroke="${c}" stroke-width="0.6" opacity="0.4"/>`,
-  };
-  const inner = icons[shapeKey] || icons.default;
-  return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${inner}</svg>`;
+  const f = `stroke="${c}" stroke-width="0.45" opacity="0.62"`;
+  const lw = iconEffectiveLW(shapeKey, certRatio);
+  const box = iconBox(lw);
+  const p = (u, v) => iconXY(box, u, v);
+
+  if (shapeKey === 'round') {
+    const r = Math.min(box.hw, box.hh) * 0.95;
+    const cx = box.cx, cy = box.cy;
+    const table = 0.38 * r;
+    const g = r * 0.95;
+    const oct = [];
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4 - Math.PI / 2;
+      oct.push([+(cx + Math.cos(a) * table).toFixed(2), +(cy + Math.sin(a) * table).toFixed(2)]);
+    }
+    let s = `<circle cx="${cx}" cy="${cy}" r="${g.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
+    s += iconPath(oct, c, 0.7);
+    const facetSegs = [];
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4 - Math.PI / 2;
+      const [tx, ty] = oct[i];
+      facetSegs.push([tx, ty, +(cx + Math.cos(a) * g).toFixed(2), +(cy + Math.sin(a) * g).toFixed(2)]);
+      const a2 = ((i + 1) * Math.PI) / 4 - Math.PI / 2;
+      facetSegs.push([+(cx + Math.cos(a) * g).toFixed(2), +(cy + Math.sin(a) * g).toFixed(2), +(cx + Math.cos(a2) * g).toFixed(2), +(cy + Math.sin(a2) * g).toFixed(2)]);
+    }
+    return s + iconLines(c, f, facetSegs);
+  }
+  if (shapeKey === 'oval') return iconOval(box, c, f);
+  if (shapeKey === 'pear') {
+    const pts = [p(-0.58,-0.9), p(-0.66,-0.35), p(-0.5,0.05), p(0,0.96), p(0.5,0.05), p(0.66,-0.35), p(0.58,-0.9), p(0.3,-0.98), p(-0.3,-0.98)];
+    return iconBrilliantElongated(box, c, f, pts, 0.4);
+  }
+  if (shapeKey === 'marquise') {
+    const pts = [p(0,-0.96), p(0.58,-0.32), p(0.98,0), p(0.58,0.32), p(0,0.96), p(-0.58,0.32), p(-0.98,0), p(-0.58,-0.32)];
+    return iconBrilliantElongated(box, c, f, pts, 0.38);
+  }
+  if (shapeKey === 'moval') {
+    const pts = [p(0,-0.94), p(0.52,-0.38), p(0.96,-0.08), p(0.52,0.38), p(0,0.94), p(-0.52,0.38), p(-0.96,-0.08), p(-0.52,-0.38)];
+    return iconBrilliantElongated(box, c, f, pts, 0.4);
+  }
+  if (shapeKey === 'heart') {
+    const pts = [p(0,0.92), p(-0.88,0.15), p(-0.72,-0.42), p(-0.38,-0.72), p(0,-0.48), p(0.38,-0.72), p(0.72,-0.42), p(0.88,0.15)];
+    return iconBrilliantElongated(box, c, f, pts, 0.36);
+  }
+  if (shapeKey === 'cushion' || shapeKey === 'cushion_brilliant') return iconCushion(box, c, f);
+  if (shapeKey === 'square_cushion') return iconCushion(iconBox(1), c, f);
+  if (shapeKey === 'princess') return iconPrincess(c, f);
+  if (shapeKey === 'emerald' || shapeKey === 'radiant') return iconStepRect(box, c, f);
+  if (shapeKey === 'asscher' || shapeKey === 'sq_radiant' || shapeKey === 'carre') return iconStepRect(iconBox(1), c, f);
+  if (shapeKey === 'baguette' || shapeKey === 'tapered_baguette') return iconBaguette(shapeKey, c, f);
+  if (shapeKey === 'trilliant') {
+    const t = iconBox(1.05);
+    const top = iconXY(t, 0, -0.92);
+    const bl = iconXY(t, -0.88, 0.82);
+    const br = iconXY(t, 0.88, 0.82);
+    const mid = iconXY(t, 0, 0.12);
+    const inner = [iconXY(t,0,-0.35), iconXY(t,-0.48,0.55), iconXY(t,0.48,0.55)];
+    let s = iconPath([top, bl, br], c) + iconPath(inner, c, 0.7);
+    return s + iconLines(c, f, [[...top,...mid],[...bl,...mid],[...br,...mid],[...inner[0],...inner[1]],[...inner[1],...inner[2]],[...inner[2],...inner[0]],[...inner[0],...bl],[...inner[0],...br],[...inner[1],...bl],[...inner[2],...br]]);
+  }
+  if (shapeKey === 'half_moon') {
+    const hm = iconBox(2);
+    const left = iconXY(hm, -0.95, 0);
+    const top = iconXY(hm, 0, -0.55);
+    const bot = iconXY(hm, 0, 0.55);
+    const right = iconXY(hm, 0.75, 0);
+    const d = `M${left[0]},${left[1]} Q${right[0]},${top[1]} ${right[0]},${right[1]} Q${right[0]},${bot[1]} ${left[0]},${left[1]}Z`;
+    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, [[...iconXY(hm,-0.35,0), ...right],[...iconXY(hm,-0.55,-0.2), ...top],[...iconXY(hm,-0.55,0.2), ...bot]]);
+  }
+  if (shapeKey === 'shield') {
+    const sh = iconBox(1.15);
+    const pts = [iconXY(sh,0,-0.92), iconXY(sh,0.78,-0.35), iconXY(sh,0.62,0.55), iconXY(sh,0,0.92), iconXY(sh,-0.62,0.55), iconXY(sh,-0.78,-0.35)];
+    return iconBrilliantElongated(sh, c, f, pts, 0.38);
+  }
+  if (shapeKey === 'hexagonal') {
+    const hx = iconBox(1);
+    const pts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (i * Math.PI) / 3 - Math.PI / 2;
+      pts.push([+(hx.cx + Math.cos(a) * hx.hw * 0.92).toFixed(2), +(hx.cy + Math.sin(a) * hx.hh * 0.92).toFixed(2)]);
+    }
+    return iconBrilliantElongated(hx, c, f, pts, 0.42);
+  }
+  if (shapeKey === 'hexagonal_dutch') {
+    const hd = iconBox(lw);
+    const pts = [iconXY(hd,0,-0.94), iconXY(hd,0.55,-0.45), iconXY(hd,0.95,0), iconXY(hd,0.55,0.45), iconXY(hd,0,0.94), iconXY(hd,-0.55,0.45), iconXY(hd,-0.95,0), iconXY(hd,-0.55,-0.45)];
+    return iconBrilliantElongated(hd, c, f, pts, 0.38);
+  }
+  if (shapeKey === 'old_european') {
+    const oe = iconBox(1);
+    const r = Math.min(oe.hw, oe.hh) * 0.92;
+    return `<circle cx="${oe.cx}" cy="${oe.cy}" r="${r.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="${oe.cx}" cy="${oe.cy}" r="${(r*0.22).toFixed(2)}" fill="none" stroke="${c}" stroke-width="0.65" opacity="0.75"/>` +
+      iconLines(c, f, [[oe.cx, oe.cy - r*0.35, oe.cx, oe.cy + r*0.55]]);
+  }
+  if (shapeKey === 'old_mine') {
+    const om = iconBox(1.02);
+    const pts = [iconXY(om,0,-0.92), iconXY(om,0.72,-0.55), iconXY(om,0.88,0.1), iconXY(om,0.45,0.9), iconXY(om,-0.45,0.9), iconXY(om,-0.88,0.1), iconXY(om,-0.72,-0.55)];
+    return iconBrilliantElongated(om, c, f, pts, 0.4);
+  }
+  if (shapeKey === 'rose') {
+    const rs = iconBox(1.15);
+    const dome = `M${iconXY(rs,-0.9,0.35)} Q${iconXY(rs,0,-0.85)[0]},${iconXY(rs,0,-0.85)[1]} ${iconXY(rs,0.9,0.35)[0]},${iconXY(rs,0.9,0.35)[1]} L${iconXY(rs,0.9,0.55)[0]},${iconXY(rs,0.9,0.55)[1]} L${iconXY(rs,-0.9,0.55)[0]},${iconXY(rs,-0.9,0.55)[1]}Z`;
+    const apex = iconXY(rs, 0, -0.82);
+    const segs = [[0,-0.35],[0.55,0.2],[-0.55,0.2],[0.75,0.45],[-0.75,0.45]].map(([u,v]) => [apex[0], apex[1], ...iconXY(rs,u,v)]);
+    return `<path d="${dome}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, segs);
+  }
+  if (shapeKey === 'briolette') {
+    const br = iconBox(1.35);
+    const top = iconXY(br, 0, -0.92);
+    const mid = iconXY(br, 0, 0.15);
+    const bot = iconXY(br, 0, 0.92);
+    const d = `M${top[0]},${top[1]} Q${iconXY(br,0.72,0)[0]},${iconXY(br,0.72,0)[1]} ${bot[0]},${bot[1]} Q${iconXY(br,-0.72,0)[0]},${iconXY(br,-0.72,0)[1]} ${top[0]},${top[1]}Z`;
+    const segs = [];
+    for (let i = -0.55; i <= 0.55; i += 0.28) segs.push([...iconXY(br,i,-0.55), ...iconXY(br,i,0.75)]);
+    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, [[...top,...mid],[...mid,...bot],...segs]);
+  }
+  if (shapeKey === 'portuguese') {
+    const pg = iconBox(1);
+    const r = Math.min(pg.hw, pg.hh) * 0.9;
+    let s = `<circle cx="${pg.cx}" cy="${pg.cy}" r="${r.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      s += iconLines(c, f, [[pg.cx, pg.cy, +(pg.cx + Math.cos(a)*r).toFixed(2), +(pg.cy + Math.sin(a)*r).toFixed(2)]]);
+    }
+    return s;
+  }
+  if (shapeKey === 'flanders') {
+    const fl = iconBox(1);
+    const pts = [iconXY(fl,0,-0.92), iconXY(fl,0.65,-0.65), iconXY(fl,0.92,0), iconXY(fl,0.65,0.65), iconXY(fl,0,0.92), iconXY(fl,-0.65,0.65), iconXY(fl,-0.92,0), iconXY(fl,-0.65,-0.65)];
+    return iconBrilliantElongated(fl, c, f, pts, 0.4);
+  }
+  return iconBrilliantElongated(box, c, f, [p(0,-0.9), p(0.75,0), p(0,0.9), p(-0.75,0)], 0.4);
+}
+
+function shapeIconSvg(shapeKey, size = 26, certRatio = null) {
+  const ratio = certRatio != null ? certRatio : (typeof state !== 'undefined' ? state.ratio : null);
+  const inner = buildShapeIconInner(shapeKey, ratio);
+  const title = ratio && ratioGuides[shapeKey]
+    ? `${shapeNames[shapeKey] || shapeKey} · L/W ${ratio.toFixed(2)}`
+    : (shapeNames[shapeKey] || shapeKey);
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"${ratio && ratioGuides[shapeKey] ? ` title="${title}"` : ''}>${inner}</svg>`;
 }
 
 function setShapeIcon(elementId, shapeKey) {
   const el = document.getElementById(elementId);
-  if (el) el.innerHTML = shapeIconSvg(shapeKey);
+  if (el) el.innerHTML = shapeIconSvg(shapeKey, 26, state.ratio);
 }
 
 function getLabClarityAssessment(clarity, isWhiteStone) {
@@ -3338,6 +3584,8 @@ function renderIGICard(r) {
 
 function mapReportShapeToState(shape) {
   const sh = (shape || '').toLowerCase().replace(/\./g, '');
+  if (sh.includes('portuguese')) return 'portuguese';
+  if (/\bround\b/.test(sh) && sh.includes('modified') && sh.includes('brilliant')) return 'portuguese';
   if (sh.includes('moval')) return 'moval';
   if (sh.includes('dutch') && (sh.includes('hex') || sh.includes('marquise'))) return 'hexagonal_dutch';
   if (sh.includes('hexagonal') && sh.includes('dutch')) return 'hexagonal_dutch';
@@ -3370,7 +3618,6 @@ function mapReportShapeToState(shape) {
   if (sh.includes('carre') || sh.includes('carr')) return 'carre';
   if (sh.includes('rose')) return 'rose';
   if (sh.includes('briolette')) return 'briolette';
-  if (sh.includes('portuguese')) return 'portuguese';
   if (sh.includes('flanders')) return 'flanders';
   return null;
 }
