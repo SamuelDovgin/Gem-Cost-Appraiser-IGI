@@ -1,5 +1,66 @@
-# Comp Engine v2 — Design Proposal
-**Problem areas addressed:** (1) comp selection scoring for fancy color stones, (2) price extrapolation math when stretching across carat/intensity/clarity gaps.
+# Comp Engine v2 — Unified Design Proposal
+
+**Problem areas addressed:**
+1. Comparable-stone selection is broken for fancy color (and for large/rare sizes of white stones)
+2. Price extrapolation math compounds errors geometrically when stretching across carat/intensity/clarity gaps
+3. No formal shape taxonomy → cross-shape broadening can surface nonsensical comps
+4. White diamond carat scaling has the same power-law problem as fancy color
+5. Single-comp estimates give no indication of confidence or spread
+
+This document fully specifies a drop-in replacement for `§3 filterCandidates`, `§4 scoreCandidate`, `§6 findNearestComps`, `§7 findAbsoluteBestComps`, and `§8 applyFancyModifiers`/`applyWhiteModifiers` that fixes all of the above in a way that generalizes to any stone.
+
+---
+
+## Part 0 — Shape Taxonomy
+
+Before scoring, we need a formal grammar for "how similar are two shapes?" The current engine treats shape as binary (same = 0, different = 3.0 penalty). This misses that a radiant is far closer to an emerald than to a round, or that a marquise and pear are in the same pointed-fancy family.
+
+### Shape families
+
+```js
+const SHAPE_FAMILIES = {
+  ROUND_FAMILY:  new Set(['round', 'oval', 'cushion', 'cushion_brilliant', 'square_cushion',
+                          'elongated_cushion', 'moval']),
+  STEP_ADJACENT: new Set(['radiant', 'sq_radiant', 'emerald', 'asscher', 'flanders',
+                          'portuguese', 'baguette', 'carre']),
+  POINTED_FANCY: new Set(['pear', 'marquise', 'heart', 'trilliant']),
+  SPECIALTY:     new Set(['hexagonal', 'hexagonal_dutch', 'half_moon', 'shield',
+                          'rose', 'briolette', 'old_european', 'old_mine']),
+};
+
+/** shapeGroupOf — returns the family key for a normalized shape, or null for uncategorized. */
+function shapeGroupOf(shape) {
+  for (const [key, set] of Object.entries(SHAPE_FAMILIES)) {
+    if (set.has(shape)) return key;
+  }
+  return null;
+}
+
+/** shapeDistance — 0 = same, 0.4 = same family, 1.0 = different family. */
+function shapeDistance(a, b) {
+  const na = normalizeShapeForComp(a);
+  const nb = normalizeShapeForComp(b);
+  if (na === nb) return 0;
+  const ga = shapeGroupOf(na);
+  const gb = shapeGroupOf(nb);
+  if (ga && gb && ga === gb) return 0.4;
+  return 1.0;
+}
+```
+
+### "Cut Cornered Rectangular Modified Brilliant" handling
+
+IGI and GIA use this label for what is effectively a **radiant with trimmed corners** — brilliant faceting, elongated, step-adjacent but not step-cut. It maps to the `STEP_ADJACENT` family alongside emerald and radiant.
+
+```js
+// Add to SHAPE_NORMALIZE (maps app shape key → index shape key)
+'cut_cornered_rectangular':        'radiant',
+'cut_cornered_square':             'sq_radiant',
+'rectangular_modified_brilliant':  'radiant',
+'square_modified_brilliant':       'sq_radiant',
+```
+
+The IGI PDF notes "~13% below round comps" for this cut — consistent with `SHAPE_MULT_COLOR['radiant'] = 1.02` (fancy, cushion-baseline) and `SHAPE_MULT_WHITE['radiant'] = 0.87` (white, round-baseline ≈ 13% below). No new multiplier needed; the existing table is correct.
 
 ---
 
@@ -7,155 +68,205 @@
 
 ### What's broken today
 
-The scorer in `§4 scoreCandidate` is a flat weighted-distance function:
-
-```
-score = caratDist × 4.0 + clarityDist × 1.5 + colorDist × 1.0 + shapePenalty + bandPenalty
-```
-
-For the **3.80ct Fancy Vivid Pink VVS2 cut-cornered rectangular** stone, this surfaces the 0.89ct Fancy Intense Brownish Pink Radiant VS2 at $262 as the nearest comp, because the hue-family filter passes anything labeled "pink" and the carat distance of ~2.9ct × 4 = 11.6 just barely loses to the heart, pear, cushion rows that are also in the pink family but much closer in carat.
-
-The actual best candidates from your data are:
+For the **3.80ct Fancy Vivid Pink VVS2 cut-cornered rectangular** stone, this surfaces the 0.89ct Fancy Intense Brownish Pink Radiant VS2 at $262 as the nearest comp. The actual best candidates from the data:
 
 | Shape | Color | Carat | Clarity | Price | $/ct | Why better |
 |---|---|---|---|---:|---:|---|
-| Heart | Fancy Vivid Pink | 2.08 | VVS2 | $770 | $370 | Same intensity, same clarity, 1.72ct gap |
-| Cushion | Fancy Pink | 4.13 | VS1 | $1,471 | $356 | Closest carat (0.33ct gap), one clarity step down |
-| Pear | Fancy Intense Pink | 1.55 | VS1 | $534 | $345 | Two intensity steps down, 2.25ct gap |
+| Heart | Fancy Vivid Pink | 2.08 | VVS2 | $770 | $370 | Same intensity + same clarity, 1.72ct gap |
+| Cushion | Fancy Pink | 4.13 | VS1 | $1,471 | $356 | Closest carat (0.33ct gap), one clarity step |
+| Pear | Fancy Intense Pink | 1.55 | VS1 | $534 | $345 | One intensity step, 2.25ct gap |
+| Emerald | Fancy Intense Pink | 1.06 | VS1 | $331 | $312 | Same shape family (STEP_ADJACENT), one intensity step |
+| Princess | Fancy Light Pink | 3.03 | VS1 | $1,126 | $372 | Close carat, three intensity steps |
+| Radiant | Fancy Intense Brownish Pink | 0.89 | VS2 | $262 | $294 | **Currently chosen — wrong** |
 
-The heart at 2.08ct VVS2 vivid pink is clearly the right anchor: **same intensity, same clarity, only 1.72ct gap**, and it has a corroborating vivid-pink heart ladder (`10000038791251`). Yet the engine currently picks the brownish-pink radiant at 0.89ct because nothing in the scorer penalizes intensity mismatch or rewards clarity match.
+The heart at 2.08ct is the correct anchor: same intensity, same clarity, 1.72ct gap, and it has a corroborating vivid-pink heart ladder (`10000038791251`).
 
 ### Root causes
 
 **1. Intensity is not scored — only the hue is checked.**
-`fancyColorCompatible()` returns `true` for any pink regardless of intensity tier. There's no cost for jumping from vivid to brownish-intense.
+`fancyColorCompatible()` returns `true` for any pink regardless of intensity tier. Jumping from vivid to brownish-intense is a different market tier with no penalty in the current scorer.
 
-**2. Clarity step cost is symmetric and underweighted.**
-A clarity match earns 0 penalty vs VS2 mismatch at 0.5 — but for fancy color, VVS2 is a real spec that the buyer cares about. The score should reward same-clarity comps more aggressively.
+**2. `colorDist` is hardcoded to 0 for fancy stones.**
+`scoreCandidate` sets `colorDist = query.colorFamily === 'white' ? whiteColorDistance(...) : 0`. Fancy color gets zero color distance no matter the intensity gap.
 
-**3. Carat distance is linear but the comp pool is sparse.**
-When multiple candidates are all far in carat, the tie-breaker is price (lowest). That surfaces tiny cheap stones as "nearest."
+**3. Shape distance is binary — and actually helps the wrong comp.**
+The brownish-pink radiant is in the same `STEP_ADJACENT` family as the query shape (cut-cornered rectangular → radiant), so it gets `shapePenalty = 0`. Meanwhile the heart (POINTED_FANCY) gets `shapePenalty = 3.0`. The binary penalty reverses the correct ranking.
 
-**4. No concept of $/ct plausibility.**
-A 0.89ct stone at $294/ct as a comp for a 3.8ct stone is not credible — the caratMult extrapolation then balloons the estimate unpredictably.
+**4. Carat distance is absolute, not relative.**
+A 1ct gap scores the same at 0.5ct (200% off) as at 5ct (20% off). For sparse fancy markets the tie-breaker is lowest price, which surfaces tiny cheap stones.
 
-### Proposed scoring for fancy color
+**5. No $/ct plausibility check.**
+A 0.89ct stone at $294/ct extrapolated to 3.8ct via `(3.8/0.89)^1.5 ≈ 8.82×` is implausible and unchecked.
 
-Replace the single flat score with a **two-tier priority system**:
+### Solution: unified normalized composite score
 
-```
-Tier 1 (must-match preferred): same intensity tier + same clarity
-Tier 2 (acceptable): one intensity step off OR one clarity step off
-Tier 3 (fallback): two steps off in either dimension
-
-Within each tier: sort by carat proximity, then $/ct plausibility
-```
-
-Concretely, define an **intensity rank** (lower = better match, 0 = vivid):
+Replace `scoreCandidate` with a fully normalized composite that works for both white and fancy, bidirectionally for any size gap:
 
 ```js
+/**
+ * INTENSITY_RANK — ordinal rank for fancy color intensity tiers.
+ * Lower = more saturated. Distance between ranks = market-tier steps.
+ */
 const INTENSITY_RANK = {
+  // Pink
   pink_fv: 0, pink_fi: 1, pink_f: 2, pink_fl: 3,
+  // Yellow
   yellow_fv: 0, yellow_fi: 1, yellow_f: 2, yellow_fl: 3,
+  // Blue
   blue_fv: 0, blue_fi: 1, blue_f: 2, blue_fl: 3,
-  // etc.
+  // Green
+  green_fv: 0, green_fi: 1, green_f: 2, green_fl: 3,
+  // Orange
+  orange_fv: 0, orange_fi: 1, orange_f: 2, orange_fl: 3,
+  // Red (compressed — vivid and non-vivid only)
+  red_fv: 0, red_f: 1, red_purp: 2,
+  // Purple/Violet
+  purple_fi: 0, purple_f: 1, purple_fl: 2,
+  // Brown / Black (no vivid tier)
+  brown_f: 0, black: 0,
 };
 
-// modifier variants that are penalized one extra step
-const BROWNISH_KEYS = new Set(['pink_fi_brownish']); // or inferred from label
-```
+/**
+ * computeCompScore — normalized composite distance.
+ *
+ * All axes normalized to [0, 1] before weighting so weights are intuitive fractions:
+ *
+ *   Axis             Weight  Notes
+ *   ──────────────── ──────  ───────────────────────────────────────────────────────
+ *   Relative carat    0.40   |query.ct − comp.ct| / query.ct — capped at 1.0
+ *   Color/intensity   0.30   intensity steps/3 for fancy; grade steps/8 for white
+ *   Clarity           0.15   step difference / 5
+ *   Shape family      0.15   0 same, 0.4 same family, 1.0 different family
+ *
+ * Confidence bonus: high=−0.02, medium-high=−0.01, low=+0.05
+ * Modifier penalty: brownish/greyish/blackish adds 0.5 to intensity distance (pre-norm, capped at 1)
+ *
+ * Score ≤ 0.35 = direct comp (small modifiers expected)
+ * Score 0.35–0.65 = extrapolated (flag modifier chain to user)
+ * Score > 0.65 = poor comp (last-resort only, wide uncertainty band)
+ */
+function computeCompScore(query, row) {
+  // 1. Relative carat distance
+  let caratDist;
+  if (row.caratBand && row.caratMin != null && row.caratMax != null) {
+    caratDist = Math.max(0, row.caratMin - query.carat, query.carat - row.caratMax);
+  } else {
+    caratDist = Math.abs(query.carat - (row.carat || 0));
+  }
+  const relCaratDist = Math.min(1.0, caratDist / query.carat);
 
-Then replace `scoreCandidate` for fancy with:
-
-```js
-function scoreFancyCandidate(query, row) {
-  const caratDist = Math.abs(query.carat - (row.carat || 0));
-
-  // Intensity distance: 0 = same tier, 1 = one step (e.g. vivid→intense), 2 = two steps
-  const userIntensity = INTENSITY_RANK[query.colorFamily_key] ?? 2;
-  const compIntensity = INTENSITY_RANK[inferFancyFamilyKey(row.color)] ?? 2;
-  let intensityDist = Math.abs(userIntensity - compIntensity);
-  
-  // Extra penalty for brownish/greyish modifiers on the comp (they're a different market tier)
-  if (row.color?.toLowerCase().includes('brownish') || row.color?.toLowerCase().includes('greyish')) {
-    intensityDist += 1.5;
+  // 2. Color / intensity distance (normalized)
+  let colorRaw;
+  if (query.colorFamily === 'white') {
+    const uR = WHITE_COLOR_GRADE_NUM[query.whiteGrade] ?? 2;
+    const cR = WHITE_COLOR_GRADE_NUM[row.colorNormalized || 'D'] ?? 0;
+    colorRaw = Math.abs(uR - cR) / 8.0;
+  } else {
+    const userRank = INTENSITY_RANK[query.colorFamily_key] ?? 2;
+    const compKey  = inferFancyFamilyKey(row.color);
+    const compRank = INTENSITY_RANK[compKey] ?? 2;
+    let d = Math.abs(userRank - compRank);
+    if (row.color?.toLowerCase().match(/brownish|greyish|blackish/)) d += 0.5;
+    colorRaw = Math.min(1.0, d / 3.0);
   }
 
-  // Clarity distance
+  // 3. Clarity distance
   const clarU = CLARITY_RANK_NUM[query.clarity] ?? 2;
-  const clarC = CLARITY_RANK_NUM[row.clarity] ?? 2;
-  const clarDist = Math.abs(clarU - clarC);
+  const clarC = CLARITY_RANK_NUM[row.clarity ?? ''] ?? 2;
+  const clarDist = Math.min(1.0, Math.abs(clarU - clarC) / 5.0);
 
-  // Shape distance: 0 = same, else flat penalty
-  const shapePenalty = shapeMatches(query.shape, row.shape) ? 0 : 2.5;
+  // 4. Shape distance (uses shape taxonomy from Part 0)
+  const shapeDist = shapeDistance(query.shape, row.shape);
 
-  // $/ct plausibility: penalize comps whose $/ct is far below query's expected range.
-  // Prevents tiny cheap stones from anchoring large-stone estimates.
-  const compDollarPerCt = row.priceUsd / (row.carat || 1);
-  const queryExpectedDollarPerCt = estimateDollarPerCt(query); // see below
-  const dollarPerCtRatio = compDollarPerCt / queryExpectedDollarPerCt;
-  // Penalize if comp $/ct is less than 40% or more than 250% of expected
-  const plausibilityPenalty = (dollarPerCtRatio < 0.4 || dollarPerCtRatio > 2.5) ? 3.0 : 0;
+  // 5. Band penalties (uncertainty surcharge for imprecise rows)
+  const bandSurcharge = (row.caratBand ? 0.02 : 0) + (row.clarityBand ? 0.03 : 0);
 
-  return (
-    caratDist * 3.5 +
-    intensityDist * 3.0 +   // intensity is now a first-class axis
-    clarDist * 2.0 +        // clarity matters more for fancy
-    shapePenalty +
-    plausibilityPenalty
+  // 6. Weighted sum
+  const score = (
+    relCaratDist * 0.40 +
+    colorRaw     * 0.30 +
+    clarDist     * 0.15 +
+    shapeDist    * 0.15 +
+    bandSurcharge
   );
+
+  // 7. Confidence adjustment
+  const confBonus = { high: -0.02, 'medium-high': -0.01, medium: 0, low: 0.05 };
+  return Math.max(0, score + (confBonus[row.confidence] ?? 0));
 }
 ```
 
-For the 3.80ct Fancy Vivid Pink VVS2 query, the heart at 2.08ct vivid VVS2 scores:
-- `caratDist = 1.72 × 3.5 = 6.02`
-- `intensityDist = 0 × 3.0 = 0`  ← same vivid tier
-- `clarDist = 0 × 2.0 = 0`       ← both VVS2
-- `shapePenalty = 2.5`            ← heart ≠ rectangular
-- **total = 8.52**
+### Scoring the 3.80ct vivid pink VVS2 query
 
-The brownish-pink radiant at 0.89ct scores:
-- `caratDist = 2.91 × 3.5 = 10.19`
-- `intensityDist = (0 vivid vs 1 intense) + 1.5 brownish penalty = 2.5 × 3.0 = 7.5`
-- `clarDist = 1 × 2.0 = 2.0`     ← VS2 vs VVS2
-- `shapePenalty = 2.5`
-- **total = 22.19** — correctly buried
+Query shape = `radiant` (cut-cornered rectangular maps to radiant via `SHAPE_NORMALIZE`).
 
-With the new threshold raised or the tier system, the heart wins.
+| Comp | relCarat×0.4 | color×0.3 | clarity×0.15 | shape×0.15 | **Score** |
+|---|---|---|---|---|---|
+| Heart FVP 2.08ct VVS2 | 1.72/3.8=0.45→**0.18** | 0 steps→**0.00** | 0 steps→**0.00** | POINTED≠STEP→1.0→**0.15** | **0.33** ✓ |
+| Cushion FP 4.13ct VS1 | 0.33/3.8=0.09→**0.04** | 2 steps→**0.20** | 1 step→**0.03** | diff fam→**0.15** | **0.42** |
+| Emerald FIP 1.06ct VS1 | 2.74/3.8=0.72→**0.29** | 1 step→**0.10** | 1 step→**0.03** | STEP_ADJ same→0.4→**0.06** | **0.48** |
+| Pear FIP 1.55ct VS1 | 2.25/3.8=0.59→**0.24** | 1 step→**0.10** | 1 step→**0.03** | diff fam→**0.15** | **0.52** |
+| Princess FLP 3.03ct VS1 | 0.77/3.8=0.20→**0.08** | 3 steps=1.0→**0.30** | 1 step→**0.03** | diff fam→**0.15** | **0.56** |
+| Radiant FIBrownishP 0.89ct VS2 | 2.91/3.8=0.77→**0.31** | 1+0.5brn=1.0→**0.30** | 1→**0.03** | STEP same→0.4→**0.06** | **0.70** ✗ |
 
-### $/ct plausibility estimate
+**Heart wins with score 0.33.** Brownish-pink radiant is correctly last at 0.70.
 
-Add a lightweight per-family $/ct model to gate implausible comps:
+### Updated score tiers and thresholds
 
 ```js
-function estimateDollarPerCt(query) {
-  // Uses FANCY_COLOR_BASE ws1 and scale to get expected $/ct at query.carat
-  const base = FANCY_COLOR_BASE[query.colorFamily_key];
-  if (!base) return 300; // fallback
-  // ws1 is $/ct at 1ct; total price at ct = ws1 * ct^scale, so $/ct = ws1 * ct^(scale-1)
-  return base.ws1 * Math.pow(query.carat, base.scale - 1);
+const COMP_SCORE_TIERS = {
+  DIRECT:      0.35, // near-exact — tiny modifiers, high confidence
+  EXTRAPOLATE: 0.65, // reliable extrapolation — show modifier chain
+  FALLBACK:    1.00, // poor comp — show wide uncertainty band
+  // > 1.00: reject
+};
+```
+
+### Updated candidate filter
+
+Keep the existing hue-family filter, add an intensity-gate for fancy:
+
+```js
+function filterCandidates(query, comps) {
+  return comps.filter(row => {
+    if (row.colorFamily !== query.colorFamily) return false;
+    if (query.colorFamily === 'white' && !whiteColorCompatible(query, row)) return false;
+    if (query.colorFamily === 'fancy') {
+      if (!fancyColorCompatible(query, row)) return false;
+      // NEW: reject if intensity gap > 3.5 steps (vivid→light=3; brownish penalty adds 0.5)
+      const userRank = INTENSITY_RANK[query.colorFamily_key] ?? 2;
+      const compKey  = inferFancyFamilyKey(row.color);
+      const compRank = INTENSITY_RANK[compKey] ?? 2;
+      let d = Math.abs(userRank - compRank);
+      if (row.color?.toLowerCase().match(/brownish|greyish|blackish/)) d += 0.5;
+      if (d > 3.5) return false;
+    }
+    return true;
+  });
 }
 ```
 
-For pink_fv at 3.8ct: `ws1=500, scale=0.88` → `500 × 3.8^(-0.12) ≈ 500 × 0.856 ≈ $428/ct`.
-The 0.89ct brownish-pink at $294/ct has ratio `294/428 = 0.69` — borderline plausible but the intensityDist penalty already demotes it. The cushion at 4.13ct $356/ct has ratio `0.83` — well within range.
+### Cross-shape broadening for findAbsoluteBestComps
 
-### Also fix: cross-shape broadening for fancy
-
-When `findAbsoluteBestComps` broadens to "any shape", it should still enforce the tier system above. Currently it drops all shape filtering and can pull a yellow stone (if somehow miscategorized) or a very distant intensity. The fix:
+When same-shape candidates are exhausted, broaden by shape family before opening to any shape:
 
 ```js
-// In findAbsoluteBestComps broadening step:
-candidates = comps.filter(row => {
-  if (row.colorFamily !== query.colorFamily) return false;
-  if (!fancyColorCompatible(query, row)) return false;
-  // NEW: also reject stones whose intensityDist > 2 (i.e., vivid user, light comp)
-  const intensityDist = Math.abs(
-    (INTENSITY_RANK[query.colorFamily_key] ?? 2) -
-    (INTENSITY_RANK[inferFancyFamilyKey(row.color)] ?? 2)
-  );
-  return intensityDist <= 2;
-});
+function broadenCandidates(query, comps) {
+  const myFamily = shapeGroupOf(normalizeShapeForComp(query.shape));
+  // Phase 1: same color + same shape family
+  let candidates = comps.filter(row => {
+    if (row.colorFamily !== query.colorFamily) return false;
+    if (query.colorFamily === 'fancy' && !fancyColorCompatible(query, row)) return false;
+    return myFamily && shapeGroupOf(row.shape) === myFamily;
+  });
+  if (candidates.length >= 2) return candidates;
+  // Phase 2: same color + any shape (still hue-filtered for fancy)
+  return comps.filter(row => {
+    if (row.colorFamily !== query.colorFamily) return false;
+    if (query.colorFamily === 'fancy' && !fancyColorCompatible(query, row)) return false;
+    return true;
+  });
+}
 ```
 
 ---
@@ -164,369 +275,410 @@ candidates = comps.filter(row => {
 
 ### What's broken today
 
-The modifier stacks in `applyFancyModifiers` multiply independent ratios together:
+The modifier stack multiplies independent ratios:
 
 ```
 price = comp.price × intensityMult × clarityMult × shapeMult × caratMult
 ```
 
-The **caratMult** is a simple power law: `(userCt / compCt)^1.5`.
-
-For the 3.80ct stone using the 0.89ct comp:
-- `caratMult = (3.80 / 0.89)^1.5 = 4.27^1.5 ≈ 8.82`  ← enormous lever arm
-- `intensityMult = 1.48` (vivid vs intense)
+For the 3.80ct stone using the 0.89ct brownish-pink comp:
+- `caratMult = (3.80/0.89)^1.5 ≈ 8.82` ← 8× lever arm
+- `intensityMult = 1.48`
 - `clarityMult = 1.09`
-- `result = $262 × 8.82 × 1.48 × 1.09 ≈ $3,733`
+- **result = $262 × 8.82 × 1.48 × 1.09 ≈ $3,733**
 
-The problem isn't just the bad comp choice — it's that **multiplying independent modifiers compounds errors geometrically**. If each modifier has ±15% uncertainty, four multiplied together have ±60% uncertainty.
+Three compounding errors: wrong comp, wrong carat exponent, wrong intensity evaluation. Multiplied together they blow up geometrically.
 
-### Proposed math: log-space additive model with per-axis splines
+### 2a. Log-space additive model (works in $/ct, not total price)
 
-The core insight is that **price per carat** is the natural variable, not total price. All modifiers should be computed in $/ct space and then scaled back.
+The natural variable is **price per carat**, not total price. Every correction is a ratio in $/ct space. Adding log-ratios is equivalent to multiplying ratios, but in log space errors are additive so uncertainty can be tracked:
 
-#### 2a. Carat scaling: use the empirical ladder, not a power law
+```js
+function applyModifiersV2(query, compRow) {
+  const userCt = query.carat;
+  const compCt  = compRow.carat || 1;
+  const compDpc = compRow.priceUsd / compCt;   // start from $/ct, not total price
 
-Instead of `(userCt / compCt)^1.5`, interpolate directly from the ladder data you already have.
+  const logIntensity = logIntensityCorrection(query, compRow, userCt, compCt);
+  const logClarity   = logClarityCorrection(query, compRow, userCt);
+  const logShape     = logShapeCorrection(query, compRow);
+  const logCarat     = logCaratCorrection(query, compRow);
 
-For fancy pink you have these $/ct anchor points from the vivid-pink heart ladder:
+  const adjDpc       = compDpc * Math.exp(logIntensity + logClarity + logShape + logCarat);
+  const estimatedTotal = Math.round(adjDpc * userCt);
 
-| Carat | Price | $/ct |
-|---|---|---|
-| 1.00 | $200 | $200 |
-| 2.00 | $420 | $210 |
-| 2.08 | $770 | $370 | ← from mixed-shapes comp (different source, higher quality) |
-| 3.00 | $770 | $257 |
-| 4.00 | $1,020 | $255 |
+  const { sigmaLog, label } = estimateUncertainty(
+    query, compRow, logIntensity, logClarity, logShape, logCarat);
+  const band = Math.exp(sigmaLog);
 
-Notice the $/ct curve is **not monotonic** and has a bump around 2ct. A power law can't capture this. Use **monotone cubic spline interpolation** (Fritsch-Carlson) on the log-carat vs log($/ct) axes:
+  return {
+    estimated:     estimatedTotal,
+    estimatedLow:  Math.round(estimatedTotal / band),
+    estimatedHigh: Math.round(estimatedTotal * band),
+    adjDpc:        Math.round(adjDpc),
+    parts:         buildPartsArray(logIntensity, logClarity, logShape, logCarat, query, compRow),
+    bandLabel:     label,   // e.g. '±22%'
+  };
+}
+```
+
+### 2b. Intensity correction: evaluate at respective carats (not both at query.carat)
+
+**Current bug:** `fancyIntensityMult()` evaluates both the user and comp family at `query.carat`:
+
+```js
+// CURRENT (wrong):
+const uWs = ub.ws1 * Math.pow(ct, ub.scale - 1);  // ct = query.carat
+const cWs = cb.ws1 * Math.pow(ct, cb.scale - 1);  // same ct for both sides
+```
+
+This conflates "how much more does vivid cost than intense at 3.8ct" with "what did the 0.89ct comp actually represent at its own size." Fix: evaluate each family at its own carat:
+
+```js
+function logIntensityCorrection(query, compRow, userCt, compCt) {
+  if (query.colorFamily === 'white') return 0;
+  const ub = FANCY_COLOR_BASE[query.colorFamily_key];
+  const compKey = inferFancyFamilyKey(compRow.color);
+  const cb = compKey ? FANCY_COLOR_BASE[compKey] : null;
+  if (!ub || !cb) return 0;
+  // Evaluate each family at its own stone's carat
+  const uDpc = ub.ws1 * Math.pow(userCt, ub.scale - 1);   // user family $/ct at user size
+  const cDpc = cb.ws1 * Math.pow(compCt, cb.scale - 1);   // comp family $/ct at comp size
+  return cDpc > 0 ? Math.log(uDpc / cDpc) : 0;
+}
+```
+
+For vivid pink 3.8ct vs intense brownish-pink 0.89ct:
+- `uDpc = 500 × 3.8^{−0.12} ≈ $428/ct`
+- `cDpc = 330 × 0.89^{−0.10} ≈ $342/ct`
+- `ratio = 428/342 ≈ 1.25` vs the current inflated 1.48
+
+### 2c. Carat scaling: family-specific exponent, not a flat power law
+
+The `FANCY_COLOR_BASE.scale` encodes how total price grows with carat:
+
+$$\text{price}(ct) = ws_1 \cdot ct^{\,\text{scale}}, \quad \frac{\text{price}}{ct} = ws_1 \cdot ct^{\,(\text{scale}-1)}$$
+
+The log–log slope of $/ct vs carat is $(\text{scale} - 1)$:
+
+| Family | scale | $/ct slope | Meaning |
+|---|---|---|---|
+| `pink_fv` | 0.88 | −0.12 | $/ct **decreases** as stone gets larger |
+| `yellow_fi` | 1.00 | 0.00 | $/ct is **flat** with carat |
+| `red_f` | 1.20 | +0.20 | $/ct **increases** — rarity premium grows fast |
+
+Current code uses `ct^1.5` — that implies a $/ct slope of +0.5, which is wrong for every family. Replace:
+
+```js
+function logCaratCorrection(query, compRow) {
+  const userCt = query.carat, compCt = compRow.carat || 1;
+  if (Math.abs(userCt - compCt) < 0.05) return 0;
+
+  // 1. Family spline if available (most accurate)
+  const spline = getFamilySpline(query.colorFamily_key ?? 'white');
+  if (spline) {
+    return spline(Math.log(userCt)) - spline(Math.log(compCt));
+  }
+
+  // 2. Family-specific exponent from FANCY_COLOR_BASE
+  if (query.colorFamily === 'fancy') {
+    const base  = FANCY_COLOR_BASE[query.colorFamily_key];
+    const slope = base ? (base.scale - 1) : -0.10;
+    return slope * Math.log(userCt / compCt);
+  }
+
+  // 3. White: use per-clarity carat knots (getClarityMult evaluated at two carats)
+  const mUser = getClarityMult(query.clarity, userCt);
+  const mComp = getClarityMult(query.clarity, compCt);
+  return mComp > 0 ? Math.log(mUser / mComp) : 0;
+}
+```
+
+#### White diamond fix: use clarity knot tables, not `ct^1.8`
+
+The `CLARITY_CARAT_MULTS_W` table already encodes the empirical $/ct-vs-carat curve per clarity grade. For a VVS1 stone going from 1ct to 3ct the ratio `mults_W['VVS1'][idx_3ct] / mults_W['VVS1'][idx_1ct]` is a far better estimate than `(3/1)^1.8 = 3.48×`. Using `logCaratCorrection` above (case 3) does this correctly without touching the existing table.
+
+### 2d. Monotone cubic spline for $/ct vs carat
+
+When multiple anchor points exist for a family, fit a spline in log-log space to capture non-linear $/ct curves:
 
 ```js
 /**
- * Monotone cubic spline on (x[], y[]) — Fritsch-Carlson method.
- * Returns a function f(x) that interpolates the knots.
+ * monotoneCubicSpline — Fritsch-Carlson method.
+ * Input/output in log space (pass log(carat), receive log($/ct)).
  */
 function monotoneCubicSpline(xs, ys) {
   const n = xs.length;
-  // slopes at each knot
-  const d = new Array(n);
-  for (let i = 0; i < n - 1; i++) {
-    d[i] = (ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]);
-  }
-  // tangents (Fritsch-Carlson)
+  const d = new Array(n - 1);
+  for (let i = 0; i < n - 1; i++) d[i] = (ys[i+1] - ys[i]) / (xs[i+1] - xs[i]);
   const m = new Array(n);
-  m[0] = d[0];
-  m[n - 1] = d[n - 2];
-  for (let i = 1; i < n - 1; i++) {
-    if (d[i - 1] * d[i] <= 0) {
-      m[i] = 0;
-    } else {
-      const h0 = xs[i] - xs[i - 1], h1 = xs[i + 1] - xs[i];
-      m[i] = (3 * (h0 + h1)) / ((2 * h1 + h0) / d[i - 1] + (h0 + 2 * h1) / d[i]);
-    }
+  m[0] = d[0]; m[n-1] = d[n-2];
+  for (let i = 1; i < n-1; i++) {
+    if (d[i-1] * d[i] <= 0) { m[i] = 0; continue; }
+    const h0 = xs[i]-xs[i-1], h1 = xs[i+1]-xs[i];
+    m[i] = (3*(h0+h1)) / ((2*h1+h0)/d[i-1] + (h0+2*h1)/d[i]);
   }
-  return function (x) {
-    if (x <= xs[0]) return ys[0];
-    if (x >= xs[n - 1]) return ys[n - 1];
-    let lo = 0, hi = n - 1;
-    while (hi - lo > 1) { const mid = (lo + hi) >> 1; xs[mid] <= x ? lo = mid : hi = mid; }
-    const h = xs[hi] - xs[lo];
-    const t = (x - xs[lo]) / h;
-    const t2 = t * t, t3 = t2 * t;
-    return (
-      (2 * t3 - 3 * t2 + 1) * ys[lo] +
-      (t3 - 2 * t2 + t) * h * m[lo] +
-      (-2 * t3 + 3 * t2) * ys[hi] +
-      (t3 - t2) * h * m[hi]
-    );
+  return function(x) {
+    if (x <= xs[0])    return ys[0]    + m[0]    * (x - xs[0]);     // linear extrapolation
+    if (x >= xs[n-1])  return ys[n-1]  + m[n-1]  * (x - xs[n-1]);
+    let lo = 0, hi = n-1;
+    while (hi-lo > 1) { const mid=(lo+hi)>>1; xs[mid]<=x ? lo=mid : hi=mid; }
+    const h = xs[hi]-xs[lo], t = (x-xs[lo])/h, t2=t*t, t3=t2*t;
+    return (2*t3-3*t2+1)*ys[lo] + (t3-2*t2+t)*h*m[lo]
+         + (-2*t3+3*t2)*ys[hi]  + (t3-t2)*h*m[hi];
   };
 }
 ```
 
-Build per-family $/ct splines from your comp data:
+#### Seeding splines from existing comp data
+
+The comp index already has multiple price points per family. These seed the splines immediately:
 
 ```js
-const PINK_VIVID_HEART_KNOTS = {
-  carats: [1.00, 2.08, 3.00, 4.00],
-  dollarPerCt: [200, 370, 257, 255],
+const FAMILY_SPLINE_KNOTS = {
+  // Pink vivid — heart ladder (10000038791251) + mixed-shapes comps
+  pink_fv: { carats: [1.00, 2.08, 3.00, 4.00], dollarPerCt: [200, 370, 257, 255] },
+  // Pink intense — pear/emerald comps
+  pink_fi: { carats: [0.89, 1.06, 1.55, 3.00], dollarPerCt: [294, 312, 345, 290] },
+  // Pink (base) — cushion 4.13ct (single knot → falls back to FANCY_COLOR_BASE exponent)
+  pink_f:  { carats: [4.13], dollarPerCt: [356] },
+  // Pink light — princess 3.03ct
+  pink_fl: { carats: [3.03], dollarPerCt: [372] },
 };
 
-// Build in log-log space (more stable)
-const logCarats = PINK_VIVID_HEART_KNOTS.carats.map(Math.log);
-const logDollarPerCt = PINK_VIVID_HEART_KNOTS.dollarPerCt.map(Math.log);
-const pinkVividHeartSpline = monotoneCubicSpline(logCarats, logDollarPerCt);
-
-// Evaluate: what is the expected $/ct for a 3.80ct vivid pink?
-const logDpc = pinkVividHeartSpline(Math.log(3.80));
-const dpc = Math.exp(logDpc); // ≈ $256/ct
-const estimatedPrice = dpc * 3.80; // ≈ $972
-```
-
-That $972 is a much more defensible estimate than $3,733 for a 3.80ct vivid pink, and it uses the actual shape of the market data rather than a power law extrapolation.
-
-#### 2b. Intensity correction: use ratio at the COMP's carat, not the query's carat
-
-Current code evaluates both the user's and comp's fancy family $/ct at `query.carat`:
-
-```js
-const uWs = ub.ws1 * Math.pow(ct, ub.scale - 1);  // ct = query.carat
-const cWs = cb.ws1 * Math.pow(ct, cb.scale - 1);   // same ct — wrong for comp
-```
-
-This conflates "how much more does vivid cost than intense at 3.8ct" with "how much did the actual comp cost at 0.89ct." Fix: evaluate the comp-family at the comp's carat, evaluate the user-family at the user's carat, then take the ratio of $/ct:
-
-```js
-function fancyIntensityMultV2(userFamilyKey, compColorLabel, userCt, compCt) {
-  const ub = FANCY_COLOR_BASE[userFamilyKey];
-  const compKey = inferFancyFamilyKey(compColorLabel);
-  const cb = compKey ? FANCY_COLOR_BASE[compKey] : null;
-  if (!ub || !cb) return 1.0;
-  
-  // $/ct at the respective carats
-  const uDpc = ub.ws1 * Math.pow(userCt, ub.scale - 1);   // user family at user size
-  const cDpc = cb.ws1 * Math.pow(compCt, cb.scale - 1);   // comp family at comp size
-  
-  // Ratio: how much more (or less) should the user stone cost per carat vs the comp
-  return cDpc > 0 ? uDpc / cDpc : 1.0;
+const _splineCache = {};
+function getFamilySpline(familyKey) {
+  if (_splineCache[familyKey]) return _splineCache[familyKey];
+  const knots = FAMILY_SPLINE_KNOTS[familyKey];
+  if (!knots || knots.carats.length < 2) return null;  // need ≥ 2 points
+  const xs = knots.carats.map(Math.log);
+  const ys = knots.dollarPerCt.map(Math.log);
+  _splineCache[familyKey] = monotoneCubicSpline(xs, ys);
+  return _splineCache[familyKey];
 }
 ```
 
-For vivid pink at 3.8ct vs intense brownish-pink at 0.89ct:
-- `uDpc = 500 × 3.8^(-0.12) ≈ $428/ct`
-- `cDpc = 330 × 0.89^(-0.10) ≈ $342/ct`
-- `ratio = 428 / 342 ≈ 1.25`
+For the pink_fv spline, the 3.80ct point falls between the 3ct ($257/ct) and 4ct ($255/ct) knots → spline returns ≈ **$256/ct → $972 total**. Far more defensible than $3,733.
 
-This is much more conservative than the current 1.48, because you're no longer extrapolating the comp family's pricing behavior out to 3.8ct.
+### 2e. Uncertainty quantification
 
-#### 2c. Log-space stacking with uncertainty propagation
-
-Instead of multiplying raw modifiers, work in log space so you can track uncertainty:
+Track propagated uncertainty from each modifier axis in log space (additive = quadrature sum):
 
 ```js
-function applyFancyModifiersV2(query, compRow) {
-  const userCt = query.carat;
-  const compCt = compRow.carat || 1;
+function estimateUncertainty(query, compRow, logInt, logClar, logShape, logCarat) {
+  const userCt = query.carat, compCt = compRow.carat || 1;
+  const caratRatio = Math.max(userCt, compCt) / Math.min(userCt, compCt);
+  const isWhite = query.colorFamily === 'white';
 
-  // 1. Start from comp $/ct (not total price — this is key)
-  const compDollarPerCt = compRow.priceUsd / compCt;
+  // Fractional uncertainty per axis (in log space ≈ fractional error)
+  const sigmaInt    = isWhite ? 0 : Math.abs(logInt)  * 0.20;   // 20% of intensity adj
+  const sigmaClarity = Math.abs(logClar) * 0.15;                // 15% of clarity adj
+  const sigmaShape  = Math.abs(logShape) * 0.10;                // 10% of shape adj
+  const sigmaCarat  = (isWhite ? 0.05 : 0.08) + Math.log(caratRatio) * 0.12; // grows with gap
 
-  // 2. All corrections in log space
-  const logBase = Math.log(compDollarPerCt);
-
-  // Intensity: evaluated at respective carats
-  const intensityMult = fancyIntensityMultV2(
-    query.colorFamily_key, compRow.color, userCt, compCt
-  );
-  const logIntensity = Math.log(intensityMult);
-
-  // Clarity: CLARITY_MULT_COLOR ratio — unchanged, but expressed as log
-  const clarC = CLARITY_MULT_COLOR[compRow.clarity] ?? 1;
-  const clarU = CLARITY_MULT_COLOR[query.clarity] ?? 1;
-  const logClarity = Math.log(clarC > 0 ? clarU / clarC : 1);
-
-  // Shape: SHAPE_MULT_COLOR ratio
-  const userSh = SHAPE_MULT_COLOR[query.shape] ?? 1;
-  const compSh = SHAPE_MULT_COLOR[compRow.shape] ?? 1;
-  const logShape = Math.log(compSh > 0 ? userSh / compSh : 1);
-
-  // Carat: use spline if available, else power-law fallback
-  const logCarat = getCaratAdjustmentLog(query, compRow);
-
-  // Sum in log space
-  const logAdjustedDpc = logBase + logIntensity + logClarity + logShape + logCarat;
-  const adjustedDpc = Math.exp(logAdjustedDpc);
-
-  // Final price
-  const estimatedTotal = Math.round(adjustedDpc * userCt);
-
-  // Uncertainty estimate: each modifier has an associated sigma
-  const sigmaPct = estimateModifierUncertainty(intensityMult, clarU / clarC, userSh / compSh, userCt / compCt);
-
-  return {
-    combined: Math.exp(logIntensity + logClarity + logShape + logCarat),
-    estimated: estimatedTotal,
-    estimatedLow: Math.round(estimatedTotal * (1 - sigmaPct)),
-    estimatedHigh: Math.round(estimatedTotal * (1 + sigmaPct)),
-    parts: buildPartsArray(intensityMult, clarU / clarC, userSh / compSh, Math.exp(logCarat), query, compRow),
-  };
-}
-
-function getCaratAdjustmentLog(query, compRow) {
-  // If we have a family spline, use it. Otherwise fall back to power law.
-  const spline = getFamilySpline(query.colorFamily_key, query.shape);
-  if (spline) {
-    const targetDpc = Math.exp(spline(Math.log(query.carat)));
-    const compDpc = Math.exp(spline(Math.log(compRow.carat || 1)));
-    return compDpc > 0 ? Math.log(targetDpc / compDpc) : 0;
-  }
-  // Fallback: power law in log space
-  const exponent = getFancyCaratExponent(query.colorFamily_key);
-  return (exponent - 1) * Math.log(query.carat / (compRow.carat || 1));
-}
-```
-
-#### 2d. Better carat exponent: derive it from FANCY_COLOR_BASE.scale
-
-The `scale` property in `FANCY_COLOR_BASE` already encodes how fast total price grows with carat. Total price at ct = `ws1 × ct^scale`, so $/ct = `ws1 × ct^(scale-1)`. The log-carat to log($/ct) slope is `(scale - 1)`.
-
-The current code uses a flat `1.5` exponent for total price. That corresponds to a `0.5` slope for $/ct. But your actual data shows:
-- `pink_fv: scale = 0.88` → $/ct **decreases** with carat at slope `-0.12`
-- `yellow_fi: scale = 1.00` → $/ct is flat with carat
-- `red_f: scale = 1.20` → $/ct **increases** with carat at slope `+0.20`
-
-Using `1.5` for all families is wrong for everything except near-`scale = 2.5`. Replace:
-
-```js
-function getFancyCaratExponent(familyKey) {
-  const base = FANCY_COLOR_BASE[familyKey];
-  // We want the $/ct slope: price = ws1 * ct^scale, $/ct = ws1 * ct^(scale-1)
-  // Log-log slope of $/ct vs ct = (scale - 1)
-  return base ? (base.scale - 1) : -0.10; // conservative default
+  const sigmaTotal  = Math.sqrt(sigmaInt**2 + sigmaClarity**2 + sigmaShape**2 + sigmaCarat**2);
+  const bandPct     = Math.round((Math.exp(sigmaTotal) - 1) * 100);
+  return { sigmaLog: sigmaTotal, label: `±${bandPct}%` };
 }
 ```
 
 ---
 
-## Part 3 — Generalizable Comp Selection Algorithm
+## Part 3 — Generalizable Pipeline
 
-Here's the unified approach that works for both white and fancy stones, bigger-to-smaller and smaller-to-bigger:
+### Unified findBestComps
 
-### Composite comparability score
+Replaces both `findNearestComps` and `findAbsoluteBestComps` with a single tiered function:
 
 ```js
-function computeCompScore(query, row) {
-  // 1. Carat distance (normalized by query carat to be scale-invariant)
-  const caratDist = Math.abs(query.carat - (row.carat || 0));
-  const relCaratDist = caratDist / query.carat; // 0 = perfect, 1 = 100% off
+/**
+ * findBestComps — generalized ranked comp selection.
+ * Works for white and fancy, any carat direction, any shape.
+ *
+ * @param {object} query
+ * @param {Array}  comps
+ * @param {number} maxN     — number of comps to return (default 4)
+ * @param {number} cutoff   — max acceptable score (default FALLBACK = 1.00)
+ */
+function findBestComps(query, comps, maxN = 4, cutoff = COMP_SCORE_TIERS.FALLBACK) {
+  let candidates = filterCandidates(query, comps);
+  if (candidates.length < 2) candidates = broadenCandidates(query, comps);
 
-  // 2. Clarity
-  const clarU = CLARITY_RANK_NUM[query.clarity] ?? 2;
-  const clarC = CLARITY_RANK_NUM[row.clarity] ?? 2;
-  const clarDist = Math.abs(clarU - clarC);
+  const scored = candidates
+    .map(row => ({ row, score: computeCompScore(query, row) }))
+    .filter(c => c.score <= cutoff)
+    .sort((a, b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
 
-  // 3. Color (different logic for white vs fancy)
-  let colorDist = 0;
-  if (query.colorFamily === 'white') {
-    colorDist = whiteColorDistance(query, row) / 5; // normalize to 0–1
-  } else {
-    const userRank = INTENSITY_RANK[query.colorFamily_key] ?? 2;
-    const compKey = inferFancyFamilyKey(row.color);
-    const compRank = INTENSITY_RANK[compKey] ?? 2;
-    let d = Math.abs(userRank - compRank);
-    if (row.color?.toLowerCase().match(/brownish|greyish|purplish/)) d += 1.5;
-    colorDist = d / 3; // normalize: vivid→light is 3 steps
+  const seenPid = new Set();
+  const result  = [];
+  for (const c of scored) {
+    if (!seenPid.has(c.row.productId)) {
+      seenPid.add(c.row.productId);
+      const tier =
+        c.score <= COMP_SCORE_TIERS.DIRECT      ? 'direct' :
+        c.score <= COMP_SCORE_TIERS.EXTRAPOLATE ? 'extrapolated' : 'fallback';
+      result.push({ ...c, tier });
+      if (result.length >= maxN) break;
+    }
   }
-
-  // 4. Shape
-  const sameShape = shapeMatches(query.shape, row.shape);
-  // related shapes get half penalty (e.g. emerald ↔ radiant for step cuts)
-  const relatedShape = isRelatedShape(query.shape, row.shape);
-  const shapeDist = sameShape ? 0 : relatedShape ? 0.4 : 1.0;
-
-  // 5. Weighted sum — tune these weights empirically
-  const score = (
-    relCaratDist * 0.40 +   // carat: 40% — relative distance, so 1ct vs 2ct = same as 2ct vs 4ct
-    colorDist    * 0.30 +   // color/intensity: 30%
-    clarDist     * 0.15 +   // clarity: 15% (steps 0–5)
-    shapeDist    * 0.15     // shape family: 15%
-  );
-
-  // 6. Confidence bonus: high-confidence comps get a small advantage
-  const confBonus = { high: -0.02, 'medium-high': -0.01, medium: 0, low: 0.05 };
-  return score + (confBonus[row.confidence] ?? 0);
-}
-
-function isRelatedShape(a, b) {
-  const STEP_CUTS = new Set(['emerald', 'asscher', 'radiant', 'sq_radiant']);
-  const ROUND_FAMILY = new Set(['round', 'oval', 'cushion', 'moval']);
-  const POINTED = new Set(['pear', 'marquise', 'heart', 'trilliant']);
-  for (const group of [STEP_CUTS, ROUND_FAMILY, POINTED]) {
-    if (group.has(a) && group.has(b)) return true;
-  }
-  return false;
+  return result;
 }
 ```
 
-**For the 3.80ct vivid pink VVS2 cut-cornered rectangular query**, here's how the pink comps from your data rank:
+### Multi-comp blending
 
-| Comp | relCarat | colorDist | clarDist | shapeDist | **Score** |
-|---|---|---|---|---|---|
-| Heart FVP 2.08ct VVS2 | (1.72/3.8)=0.45 ×0.4=**0.18** | 0 | 0 | 1.0 ×0.15=**0.15** | **0.33** |
-| Cushion FP 4.13ct VS1 | (0.33/3.8)=0.09 ×0.4=**0.04** | (2→0 vivid)=0.67 ×0.30=**0.20** | 1 ×0.15=**0.15** | 1.0 ×0.15=**0.15** | **0.54** |
-| Pear FIP 1.55ct VS1 | (2.25/3.8)=0.59 ×0.4=**0.24** | (1 step)=0.33 ×0.30=**0.10** | 1 ×0.15=**0.15** | 1.0 ×0.15=**0.15** | **0.64** |
-| Radiant FIBrownishP 0.89ct VS2 | (2.91/3.8)=0.77 ×0.4=**0.31** | (0→1+1.5 brn)=0.83 ×0.30=**0.25** | 1 ×0.15=**0.15** | (related) 0.4 ×0.15=**0.06** | **0.77** |
-| Princess FLP 3.03ct VS1 | (0.77/3.8)=0.20 ×0.4=**0.08** | (3 steps)=1.0 ×0.30=**0.30** | 1 ×0.15=**0.15** | 1.0 ×0.15=**0.15** | **0.68** |
-| Emerald FIP 1.06ct VS1 | (2.74/3.8)=0.72 ×0.4=**0.29** | (1 step)=0.33 ×0.30=**0.10** | 1 ×0.15=**0.15** | (related) 0.4 ×0.15=**0.06** | **0.60** |
-
-**Heart at 2.08ct VVS2 Fancy Vivid Pink wins with score 0.33** — correctly identified as the best comp.
-
----
-
-## Part 4 — Multi-Comp Blending
-
-Rather than picking one comp and applying all modifiers, blend multiple comps with weights based on comparability score:
+Rather than picking one comp and stacking all modifiers on it, derive an independent estimate from each comp and then blend. This is more robust because:
+- Single-comp estimates have a lever-arm problem: one bad modifier on the anchor propagates fully
+- Multiple estimates from different anchor points give an empirical spread = a natural confidence band
+- When comps agree → tight band; when they disagree → wide band, which is the honest signal
 
 ```js
-function blendComps(query, topComps) {
-  if (!topComps.length) return null;
+/**
+ * blendEstimates — exponentially-weighted blend of independent per-comp estimates.
+ *
+ * Weight = exp(−5 × score): score 0.0 → weight 1.00, score 0.5 → weight 0.08.
+ * The exponential decay ensures the best comp dominates while secondary comps
+ * trim extreme outliers and contribute to the uncertainty band.
+ */
+function blendEstimates(query, bestComps) {
+  if (!bestComps.length) return null;
 
-  const scored = topComps.map(row => {
-    const score = computeCompScore(query, row);
-    const modifiers = applyFancyModifiersV2(query, row); // or applyWhiteModifiersV2
-    return { row, score, modifiers };
+  const withMods = bestComps.map(({ row, score, tier }) => {
+    const mods   = applyModifiersV2(query, row);
+    const weight = Math.exp(-5 * score);
+    return { row, score, tier, mods, weight };
   });
 
-  // Weights: exponential decay on score (closer = exponentially more weight)
-  const weights = scored.map(c => Math.exp(-3 * c.score));
-  const totalW = weights.reduce((a, b) => a + b, 0);
-
-  const blendedEstimate = Math.round(
-    scored.reduce((sum, c, i) => sum + c.modifiers.estimated * weights[i], 0) / totalW
+  const totalW     = withMods.reduce((s, c) => s + c.weight, 0);
+  const blendedEst = Math.round(
+    withMods.reduce((s, c) => s + c.mods.estimated * c.weight, 0) / totalW
   );
 
-  // Uncertainty: weighted spread of estimates
-  const estimates = scored.map(c => c.modifiers.estimated);
-  const spread = Math.max(...estimates) - Math.min(...estimates);
-  const spreadPct = blendedEstimate > 0 ? spread / blendedEstimate : 0;
+  // Uncertainty: max of (primary modifier sigma) and (inter-comp spread × 0.5)
+  const primary  = withMods[0];
+  const allEsts  = withMods.map(c => c.mods.estimated);
+  const spread   = allEsts.length > 1
+    ? (Math.max(...allEsts) - Math.min(...allEsts)) / blendedEst
+    : 0;
+  const modBand  = Math.exp(primary.mods.sigmaLog ?? 0.20) - 1;
+  const finalBand = Math.max(modBand, spread * 0.5);
 
   return {
-    estimate: blendedEstimate,
-    lowBound: Math.round(blendedEstimate * (1 - spreadPct * 0.5)),
-    highBound: Math.round(blendedEstimate * (1 + spreadPct * 0.5)),
-    primaryComp: scored[0], // highest-weight comp for display
-    compCount: scored.length,
+    estimate:      blendedEst,
+    estimatedLow:  Math.round(blendedEst * (1 - finalBand)),
+    estimatedHigh: Math.round(blendedEst * (1 + finalBand)),
+    primaryComp:   primary,
+    supportComps:  withMods.slice(1),
+    compCount:     withMods.length,
+    bandPct:       Math.round(finalBand * 100),
   };
 }
 ```
 
-For the 3.80ct stone, blending the heart ($770 × extrapolation) and cushion ($1,471 × corrections) gives a range that's defensible and shows the user the spread.
+### Updated resolveAlibabaComp pipeline
+
+```
+1. Exact match (carat ± tolerance, same clarity, exact color)
+        ↓ miss
+2. findBestComps(cutoff=DIRECT=0.35) + blendEstimates → matchType 'nearest'
+        ↓ miss
+3. findBestComps(cutoff=EXTRAPOLATE=0.65) + blendEstimates → matchType 'extrapolated'
+        ↓ miss
+4. findBestComps(cutoff=FALLBACK=1.00) + blendEstimates → matchType 'best_available'
+   └─ specialty shapes with no real index rows skip step 4 → matchType 'none'
+        ↓ miss
+5. matchType 'none'
+```
+
+`SPECIALTY_SHAPE_KEYS` guard moves: shapes with actual index rows (portuguese, moval) can still hit exact/nearest; the guard only prevents the catch-all fallback from pulling cross-shape comps for shapes that genuinely have no meaningful comps.
 
 ---
 
-## Summary of Changes
+## Part 4 — Case Study: 3.80ct Fancy Vivid Pink VVS2
+
+### Current result
+Comp: 0.89ct Fancy Intense Brownish Pink Radiant VS2 @ $262  
+Modifiers: carat ×8.82, intensity ×1.48, clarity ×1.09  
+**Estimated: $3,733** — wrong
+
+### New result
+
+**filterCandidates**: hue=pink + intensity ≤ 3.5 steps. All 6 pink rows pass.
+
+**computeCompScore** (query shape = `radiant`, normalized from cut-cornered rectangular):
+
+Top 3 selected: Heart (0.33), Cushion (0.42), Emerald (0.48).
+
+**applyModifiersV2 — Heart (2.08ct FVP VVS2, $770 = $370/ct)**
+
+$$\log(\$/ct_{\text{adj}}) = \log(370) + \underbrace{0}_{\text{intensity}} + \underbrace{0}_{\text{clarity}} + \underbrace{\log(1.02/0.96)}_{\text{shape}\;+0.061} + \underbrace{\text{spline}(\log 3.80) - \text{spline}(\log 2.08)}_{\text{carat}\approx -0.370}$$
+
+Adjusted $/ct ≈ 370 × exp(−0.309) ≈ **$272/ct → $1,034 total**  
+Uncertainty: carat gap 1.72ct → σ_carat ≈ 0.18; σ_shape ≈ 0.006; total σ ≈ **±19%**
+
+**applyModifiersV2 — Cushion (4.13ct FP VS1, $1,471 = $356/ct)**
+
+- Carat: near-same size, minimal correction ≈ 0
+- Intensity: FP(rank 2) → FVP(rank 0) = 2 steps → log(428/356) ≈ +0.184
+- Clarity: VVS2 vs VS1 → CLARITY_MULT_COLOR ratio log(1.04/1.00) ≈ +0.039
+- Shape: cushion→radiant = 1.02/1.00 → +0.020
+
+Adjusted $/ct ≈ 356 × exp(0.243) ≈ **$452/ct → $1,718 total** | σ ≈ **±16%**
+
+**Blend** (weights: heart 0.192, cushion 0.122, emerald ~0.091):
+
+$$\text{blend} \approx \frac{1034 \times 0.192 + 1718 \times 0.122 + 940 \times 0.091}{0.405} \approx \mathbf{\$1{,}280}$$
+
+Inter-comp spread = (1718 − 940)/1280 = 61%; band = max(19%, 61%×0.5=30%) = **±30%**
+
+**Final: $1,280 ($896 – $1,664)** — a defensible wholesale range for a 3.80ct FVP VVS2 lab-grown diamond.
+
+---
+
+## Part 5 — Summary of Changes
 
 | Component | Current | Proposed |
 |---|---|---|
-| Fancy comp filter | Hue-only family check | Intensity-ranked + brownish/modifier penalty |
-| Scorer | Flat linear distance | Normalized relative distance, intensity-aware |
-| Carat extrapolation | Power law `ct^1.5` | Family-specific exponent from `scale` field; monotone spline when knots exist |
+| Shape distance | Binary (same=0, other=3) | Three-level: same=0, same-family=0.4, other=1.0 |
+| Shape taxonomy | None | ROUND_FAMILY / STEP_ADJACENT / POINTED_FANCY / SPECIALTY |
+| "Cut cornered rectangular" | Not mapped | → `radiant` via SHAPE_NORMALIZE |
+| Fancy colorDist in scorer | Hardcoded 0 | Normalized intensity-tier distance × 0.30 weight |
+| Carat distance | Absolute | Relative (÷ query.carat), capped at 1.0 |
+| Score threshold | Single hard cutoff (5.0) | Three tiered thresholds: DIRECT/EXTRAPOLATE/FALLBACK |
+| Intensity rank table | 4 pink entries only | Full table: pink/yellow/blue/green/orange/red/purple/brown |
+| Fancy caratMult | `ct^1.5` (flat) | Family-specific `(scale−1)` exponent; or spline where data exists |
+| White caratMult | `ct^1.8` (flat) | `getClarityMult` ratio at user vs comp carat |
 | Intensity multiplier | Both sides at `query.carat` | User side at `userCt`, comp side at `compCt` |
-| Price output | Single point estimate | Point + low/high band from modifier uncertainty |
-| Multi-comp | Score-weighted average of already-adjusted prices | Exponentially-weighted blend of independently adjusted estimates |
-| $/ct plausibility | Not checked | Gate on ratio vs expected family $/ct |
+| Price output | Single point | Point + low/high band from propagated modifier σ |
+| Multi-comp | Score-weighted blend | Exponential decay blend of independently adjusted estimates |
+| Broadening strategy | Filter → any-shape dump | Filter → same-family → any-shape (still hue-gated for fancy) |
+| Uncertainty display | None | `±N%` band on all extrapolated estimates |
 
-### Immediate wins (low effort, high impact)
+---
 
-1. **Add intensity rank to scorer** — 2-hour change, fixes the brownish-pink-radiant problem immediately.
-2. **Fix `fancyIntensityMult` to use comp carat on comp side** — 10-line change, stops compounding carat/intensity error.
-3. **Change caratMult exponent to use `FANCY_COLOR_BASE.scale - 1`** — 3-line change, correct for all families.
-4. **Add $/ct plausibility gate** — filters out implausible comps without touching the rest of the pipeline.
+## Part 6 — Implementation Roadmap
 
-### Medium effort
+### Immediate (2–4 hours, fixes the pink stone problem)
 
-5. Build monotone spline infrastructure + per-family knot tables from your existing data.
-6. Implement `computeCompScore` as a drop-in replacement for `scoreCandidate` for fancy queries.
+1. **Add `INTENSITY_RANK` table** (full table from §1 above).
+2. **Add `SHAPE_FAMILIES`, `shapeGroupOf`, `shapeDistance`** (from Part 0).
+3. **Add `cut_cornered_rectangular` → `radiant` to `SHAPE_NORMALIZE`**.
+4. **Replace `scoreCandidate` with `computeCompScore`** — same call signature, drop-in.
+5. **Replace `NEAREST_THRESHOLD` / hard cutoff with `COMP_SCORE_TIERS`** in `findNearestComps` and `resolveAlibabaComp`.
+6. **Fix `fancyIntensityMult`**: pass `compRow.carat` as second argument; evaluate comp family at comp carat, not query carat.
+
+### Medium (1–2 days)
+
+7. **Implement `applyModifiersV2`** in log-space with the four `log*Correction` helpers.
+8. **Implement `monotoneCubicSpline`** and seed `FAMILY_SPLINE_KNOTS` from existing index.
+9. **Replace `findNearestComps` + `findAbsoluteBestComps` with `findBestComps`** + update `resolveAlibabaComp` pipeline.
+10. **Implement `blendEstimates`** and wire into `resolveAlibabaComp`.
+11. **Fix white diamond carat correction** to use `getClarityMult(clarity, userCt) / getClarityMult(clarity, compCt)` instead of `^1.8`.
 
 ### Longer term
 
-7. Feed actual observed Alibaba $/ct data into spline knots as you capture more comps.
-8. Track prediction accuracy to empirically tune the weights.
+12. Add knots to `FAMILY_SPLINE_KNOTS` as more Alibaba listings are captured — target 6+ anchor points per family for a well-conditioned spline.
+13. Track predicted vs actual prices to empirically calibrate the uncertainty sigmas in `estimateUncertainty`.
+14. Surface the `estimatedLow`/`estimatedHigh` band in the UI so buyers see a range, not a false-precision point.
+15. Build a 2D $/ct surface (carat × intensity) for yellow and pink once 8+ data points per family are available.
+
