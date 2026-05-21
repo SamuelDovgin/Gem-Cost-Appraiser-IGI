@@ -1,7 +1,7 @@
 # Pricing Model Audit — v3 → v3.1 Migration
 
 **Date:** May 2026  
-**Scope:** `diamond-calculator-v3 (1).html` — all pricing logic and toggle changes  
+**Scope:** `archive/diamond-calculator-v3 (1).html` — all pricing logic and toggle changes  
 **Trigger:** Calibration stone IGI LG563297279 (2.01ct F SI1 Pear CVD) sold for $100 on TikTok. Old v3 model output ~$269–$350 — roughly 3× too high.
 
 ---
@@ -221,7 +221,7 @@ An extra −10% for the combination of elongated shape AND SI clarity. This is d
 
 ## Summary of All File Changes
 
-### `diamond-calculator-v3 (1).html`
+### `archive/diamond-calculator-v3 (1).html`
 
 | # | Change | Where | Why |
 |---|--------|-------|-----|

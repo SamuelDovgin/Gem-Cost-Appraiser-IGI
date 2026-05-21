@@ -197,7 +197,10 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .collapse-section summary::-webkit-details-marker{display:none}
 .collapse-section summary::after{content:'+';font-size:14px;color:var(--accent);transition:transform .15s}
 .collapse-section[open] summary::after{content:'−'}
+.collapse-section:not([open]) > :not(summary){display:none}
 .collapse-section .toggle-grid{padding:0 10px 10px}
+.collapse-section .sources-panel,
+.collapse-section .methodology{margin-top:0;padding:0 10px 10px;background:transparent;border:0;border-radius:0}
 .market-bar{padding:12px 22px;border-top:.5px solid var(--border);display:none;align-items:flex-start;gap:10px;background:rgba(91,155,213,0.025)}
 .market-bar.on{display:flex}
 .market-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--blue)}
@@ -582,8 +585,9 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 
 <!-- SOURCE VERIFICATION PANEL -->
 <div class="section" style="margin-top:28px">
-  <div class="section-label">Price verification — multiple sources</div>
-  <div class="sources-panel">
+  <details class="collapse-section">
+    <summary>Price verification — multiple sources</summary>
+    <div class="sources-panel">
 
     <div class="src-card">
       <div class="src-name">StoneAlgo live retail index (May 16, 2026)</div>
@@ -641,12 +645,14 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
       <div class="src-item">The ratio badge is advisory; measurements and actual video still win.</div>
     </div>
 
-  </div>
+    </div>
+  </details>
 </div>
 
 <!-- METHODOLOGY -->
-<div class="methodology">
-  <div class="meth-title">Pricing model methodology</div>
+<details class="collapse-section methodology-collapse">
+  <summary>Pricing model methodology</summary>
+  <div class="methodology">
   <div class="meth-item"><strong>White baseline (v3.1)</strong>: Rebased to E/VS1/Round/Ideal — the Alibaba commodity floor (most IGI listings are DEF + VVS/VS). 1ct E/VS1 ≈ $100 trade cost, calibrated to direct-sale signal IGI LG563297279 and Messi 1ct D VS1 ($121.50 factory → E-adjusted). Wuzhou Messi D-color selector is converted to your color grade for the ceiling row.</div>
   <div class="meth-item"><strong>Fancy color baseline</strong>: Rebased to 2026 direct/auction lab-grown signals across yellow, pink, blue, green, orange, purple, brown, black, and red. Fancy Vivid Pink was specifically pinned to 5ct marquise comps around $1.6k auction and ~$2.9k direct-sale retail. Clarity matters less for fancy color — saturation and seller channel drive most of the spread.</div>
   <div class="meth-item"><strong>Magic-weight continuity</strong>: The model applies a smooth approach-discount for stones within 0.15–0.22ct below a major carat threshold (1, 1.5, 2, 3, 4, 5ct). A 2.9ct stone does not command the "3-carat diamond" demand premium — it is discounted relative to a 3.0ct stone. A 3.09ct stone fully captures the 3ct tier. The discount tapers to zero exactly at each threshold (no hard price step).</div>
@@ -656,7 +662,8 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   <div class="meth-item"><strong>Shape mult</strong>: Round baseline 1.0. Oval/pear +5–8% (demand premium). Moval (marquise–oval hybrid) ~−6% vs round — trendier than marquise but still non-standard on IGI. Dutch / hexagonal Dutch ~−18% (custom geometric marquise; Rapaport: marquise already among the deepest fancy discounts). Portuguese ~−15% (deep extra-facet cut; smaller face-up per carat). Flanders / generic hexagonal ~−17–21%. Rose / briolette −28–30%.</div>
   <div class="meth-item"><strong>Toggle modifiers</strong>: Chinese factory: −22% wholesale, fair price 1.3–1.6× ws. High-volume auction seller: fair price 1.2–1.45× ws (thin margins, fast turns). 3EX: +6% ws. HPHT: +8% ws. As-grown: +5% ws. GIA cert: +12% retail only.</div>
   <div class="meth-item"><strong>Fair price markup</strong>: Standard seller 1.55–2.05× ws (covers IGI cert $80–150, shipping, platform fees, returns buffer, thin margin). Auction jeweler running volume 1.2–1.45× ws. Chinese factory 1.3–1.6× ws. Traditional retail 3.8–7× ws (per Tenoris 74% gross margin data).</div>
-</div>
+  </div>
+</details>
 
 </div><!-- /wrapper -->
 
@@ -694,7 +701,7 @@ function lerp(a,b,t){ return a+(b-a)*t; }
 
 // White diamond baseline per carat (round, E, VS1, ideal) — recalibrated May 2026
 // Alibaba/Messi factory stock is overwhelmingly DEF color and VS1+ clarity; E/VS1 is the
-// practical commodity floor (see white-diamond-igi-wholesale-pricing.md §4–5).
+// practical commodity floor (see research/white-diamond-igi-wholesale-pricing.md §4–5).
 // 1ct E/VS1 anchored to ~$100 direct-sale signal (IGI LG563297279 / TikTok volume comps).
 function baseWhitePerCt(ct) {
   // Anchor points (E / VS1 / Round / Ideal — jeweler all-in trade cost)
@@ -760,7 +767,7 @@ function baseWhitePerCt(ct) {
 
 // Fancy color — base wholesale/jeweler cost per carat at 1ct.
 // Calibrated to Alibaba IGI-certified showroom comps, Messi Gems verified listings,
-// and research cross-reference — May 2026 (see fancy-color-diamond-pricing.md).
+// and research cross-reference — May 2026 (see research/fancy-color-diamond-pricing.md).
 // ws1  = midpoint of verified 1ct $/ct wholesale range from research
 // scale = carat-scaling exponent: <1 means per-ct decreases with size (abundant supply),
 //         >1 means per-ct increases with size (genuinely scarce, harder to grow large)
@@ -846,7 +853,7 @@ function getClarityMult(clarity, ct) {
   return 1.00;
 }
 // For fancy color, clarity impact is compressed (color masks inclusions).
-// Midpoints of research ranges from fancy-color-diamond-pricing.md, May 2026:
+// Midpoints of research ranges from research/fancy-color-diamond-pricing.md, May 2026:
 // IF 1.10–1.20, VVS1 1.05–1.12, VVS2 1.02–1.06, VS1 1.00 (baseline),
 // VS2 0.93–0.97, SI1 0.85–0.92, SI2 0.72–0.82.
 const clarityMultColor = { IF:1.12, VVS1:1.08, VVS2:1.04, VS1:1.00, VS2:0.95, SI1:0.89, SI2:0.77 };
@@ -860,7 +867,7 @@ const shapeMult = {
   emerald:0.83, asscher:0.84, baguette:0.76, tapered_baguette:0.74, carre:0.80,
   rose:0.72, briolette:0.70, portuguese:0.85, flanders:0.83,
 };
-// Unique / specialty cuts in the shape dropdown (see diamond-cut-shape-reference.md).
+// Unique / specialty cuts in the shape dropdown (see research/diamond-cut-shape-reference.md).
 // Mults vs round: Leon Diamond / Rapaport — fancy shapes often 20–40% below round at retail;
 // moval ~6% below (between marquise −13% and oval premium); Dutch hex ~18%; Portuguese ~15%.
 const SPECIALTY_SHAPE_KEYS = new Set([

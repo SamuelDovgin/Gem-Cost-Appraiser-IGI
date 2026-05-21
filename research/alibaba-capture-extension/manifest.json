@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Gem Appraise Alibaba Capture",
+  "description": "Capture compact Alibaba lab diamond SKU price snapshots into JSON.",
+  "version": "0.1.3",
+  "permissions": [
+    "activeTab",
+    "clipboardWrite",
+    "downloads",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://*.alibaba.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.alibaba.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "panel.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Gem Appraise capture",
+    "default_popup": "popup.html"
+  }
+}

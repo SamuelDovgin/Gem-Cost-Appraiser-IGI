@@ -1,0 +1,554 @@
+[
+  {
+    "attributes": {
+      "caratSelected": "4.13ct",
+      "clarity": "VVS",
+      "color": "Pink",
+      "cutGrade": "Excellent"
+    },
+    "availableOptions": {
+      "Color": [
+        "Pink"
+      ],
+      "Diamond Carat Weight": [
+        "Cushion Fancy Pink 4.13ct VS1",
+        "Princess Fancy Light Pink 3.03ct VS1",
+        "Heart Fancy Vivid Pink 2.08ct VVS2",
+        "Pear Fancy Intense Pink 1.55ct VS1",
+        "Emeralds Fancy Intense Pink 1.06ct VS1",
+        "Radiant Fancy Intense Brownish Pink 0.89ct VS2"
+      ],
+      "Diamond Cut": [
+        "Excellent"
+      ]
+    },
+    "captureKey": "1601561025630::color=pink|diamond-carat-weight=cushion-fancy-pink-4.13ct-vs1|diamond-cut=excellent",
+    "capturedAt": "2026-05-21T17:47:20.519Z",
+    "flags": {
+      "igiMentioned": true,
+      "labDiamondMentioned": true
+    },
+    "mode": "skuPanel",
+    "normalized": {
+      "carat": {
+        "confidence": "medium",
+        "raw": "Cushion Fancy Pink 4.13ct VS1",
+        "source": "selectedOptions.Diamond Carat Weight",
+        "value": "4.13ct"
+      },
+      "certificate": {
+        "number": "LG555269066",
+        "type": "IGI"
+      },
+      "clarity": {
+        "confidence": "low",
+        "raw": "VVS",
+        "source": "page text/title/meta",
+        "value": "VVS"
+      },
+      "color": {
+        "confidence": "missing",
+        "raw": "Fancy",
+        "source": "detailData.productBasicProperties",
+        "value": ""
+      },
+      "cutGrade": {
+        "confidence": "medium",
+        "raw": "Excellent",
+        "source": "selectedOptions.Diamond Cut",
+        "value": "Excellent"
+      },
+      "labGrown": true,
+      "shape": {
+        "confidence": "high",
+        "raw": "Radiant Cut",
+        "source": "detailData.productBasicProperties",
+        "value": "Radiant Cut"
+      }
+    },
+    "priceRange": {
+      "currency": "USD",
+      "max": 262,
+      "min": 262,
+      "minOrder": "Minimum order quantity: 1 piece",
+      "text": "$ 262 - 1,471 Minimum order quantity: 1 piece"
+    },
+    "priceRows": [
+      {
+        "carat": "Cushion Fancy Pink 4.13ct VS1",
+        "inventory": "",
+        "maxQty": 10000,
+        "price": "$1,471",
+        "priceValue": 1471,
+        "selected": true
+      },
+      {
+        "carat": "Princess Fancy Light Pink 3.03ct VS1",
+        "inventory": "",
+        "maxQty": 10000,
+        "price": "$1,126",
+        "priceValue": 1126,
+        "selected": false
+      },
+      {
+        "carat": "Heart Fancy Vivid Pink 2.08ct VVS2",
+        "inventory": "",
+        "maxQty": 10000,
+        "price": "$770",
+        "priceValue": 770,
+        "selected": false
+      },
+      {
+        "carat": "Pear Fancy Intense Pink 1.55ct VS1",
+        "inventory": "",
+        "maxQty": 10000,
+        "price": "$534",
+        "priceValue": 534,
+        "selected": false
+      },
+      {
+        "carat": "Emeralds Fancy Intense Pink 1.06ct VS1",
+        "inventory": "",
+        "maxQty": 10000,
+        "price": "$331",
+        "priceValue": 331,
+        "selected": false
+      },
+      {
+        "carat": "Radiant Fancy Intense Brownish Pink 0.89ct VS2",
+        "inventory": "",
+        "maxQty": 10000,
+        "price": "$262",
+        "priceValue": 262,
+        "selected": false
+      }
+    ],
+    "productId": "1601561025630",
+    "schemaVersion": 3,
+    "selectedOptions": {
+      "Color": "Pink",
+      "Diamond Carat Weight": "Cushion Fancy Pink 4.13ct VS1",
+      "Diamond Cut": "Excellent"
+    },
+    "shape": "Radiant Cut",
+    "shipping": {
+      "delivery": "Guaranteed delivery: Jun 06 - Jun 14, 58.2% delivered ≤ 19 days",
+      "fee": "Shipping fee: FREE shipping",
+      "method": "Standard"
+    },
+    "source": "sku-panel-change",
+    "sourceContext": {
+      "detailData": {
+        "attributeCount": 42,
+        "found": true,
+        "parseError": "",
+        "skuAttrs": [
+          {
+            "name": "Color",
+            "values": [
+              "Pink"
+            ]
+          },
+          {
+            "name": "Diamond Cut",
+            "values": [
+              "Excellent"
+            ]
+          },
+          {
+            "name": "Diamond Carat Weight",
+            "values": [
+              "Cushion Fancy Pink 4.13ct VS1",
+              "Princess Fancy Light Pink 3.03ct VS1",
+              "Heart Fancy Vivid Pink 2.08ct VVS2",
+              "Pear Fancy Intense Pink 1.55ct VS1",
+              "Emeralds Fancy Intense Pink 1.06ct VS1",
+              "Radiant Fancy Intense Brownish Pink 0.89ct VS2"
+            ]
+          }
+        ]
+      },
+      "keyAttributes": [
+        {
+          "name": "Place of Origin",
+          "source": "detailData.productBasicProperties",
+          "value": "Guangdong, China"
+        },
+        {
+          "name": "Brand Name",
+          "source": "detailData.productBasicProperties",
+          "value": "Mishang Diamond"
+        },
+        {
+          "name": "Model Number",
+          "source": "detailData.productBasicProperties",
+          "value": "IGI"
+        },
+        {
+          "name": "Diamond Certificates",
+          "source": "detailData.productBasicProperties",
+          "value": "IGI"
+        },
+        {
+          "name": "Diamond Type",
+          "source": "detailData.productBasicProperties",
+          "value": "Synthetic (lab grown)"
+        },
+        {
+          "name": "Diamond Shape",
+          "source": "detailData.productBasicProperties",
+          "value": "Radiant Cut"
+        },
+        {
+          "name": "Fancy Diamond Color",
+          "source": "detailData.productBasicProperties",
+          "value": "Fancy"
+        },
+        {
+          "name": "Certificate Type",
+          "source": "detailData.productBasicProperties",
+          "value": "IGI"
+        },
+        {
+          "name": "Certificate NO.",
+          "source": "detailData.productBasicProperties",
+          "value": "LG555269066"
+        },
+        {
+          "name": "Usage",
+          "source": "detailData.productBasicProperties",
+          "value": "For Jewelry Making"
+        },
+        {
+          "name": "provide mould making and sample making service",
+          "source": "detailData.productBasicProperties",
+          "value": "sample making"
+        },
+        {
+          "name": "Diamond Type",
+          "source": "detailData.productKeyIndustryProperties",
+          "value": "Synthetic (lab grown)"
+        },
+        {
+          "name": "Certificate Type",
+          "source": "detailData.productKeyIndustryProperties",
+          "value": "IGI"
+        },
+        {
+          "name": "Place of Origin",
+          "source": "detailData.productOtherProperties",
+          "value": "Guangdong, China"
+        },
+        {
+          "name": "Diamond Certificates",
+          "source": "detailData.productOtherProperties",
+          "value": "IGI"
+        },
+        {
+          "name": "Diamond Shape",
+          "source": "detailData.productOtherProperties",
+          "value": "Radiant Cut"
+        },
+        {
+          "name": "Certificate NO.",
+          "source": "detailData.productOtherProperties",
+          "value": "LG555269066"
+        },
+        {
+          "name": "Usage",
+          "source": "detailData.productOtherProperties",
+          "value": "For Jewelry Making"
+        },
+        {
+          "name": "Brand Name",
+          "source": "detailData.productOtherProperties",
+          "value": "Mishang Diamond"
+        },
+        {
+          "name": "Model Number",
+          "source": "detailData.productOtherProperties",
+          "value": "IGI"
+        },
+        {
+          "name": "Fancy Diamond Color",
+          "source": "detailData.productOtherProperties",
+          "value": "Fancy"
+        },
+        {
+          "name": "provide mould making and sample making service",
+          "source": "detailData.productOtherProperties",
+          "value": "sample making"
+        },
+        {
+          "name": "Diamond Type",
+          "source": "detailData.module_sorted_attribute",
+          "value": "Synthetic (lab grown)"
+        },
+        {
+          "name": "Certificate Type",
+          "source": "detailData.module_sorted_attribute",
+          "value": "IGI"
+        },
+        {
+          "name": "Fancy Diamond Color",
+          "source": "detailData.module_sorted_attribute",
+          "value": "Fancy"
+        },
+        {
+          "name": "Diamond Shape",
+          "source": "detailData.module_sorted_attribute",
+          "value": "Radiant Cut"
+        },
+        {
+          "name": "Usage",
+          "source": "detailData.module_sorted_attribute",
+          "value": "For Jewelry Making"
+        },
+        {
+          "name": "Model Number",
+          "source": "detailData.module_sorted_attribute",
+          "value": "IGI"
+        },
+        {
+          "name": "Place of Origin",
+          "source": "detailData.module_sorted_attribute",
+          "value": "Guangdong, China"
+        },
+        {
+          "name": "Diamond Certificates",
+          "source": "detailData.module_sorted_attribute",
+          "value": "IGI"
+        },
+        {
+          "name": "Certificate NO.",
+          "source": "detailData.module_sorted_attribute",
+          "value": "LG555269066"
+        },
+        {
+          "name": "Brand Name",
+          "source": "detailData.module_sorted_attribute",
+          "value": "Mishang Diamond"
+        },
+        {
+          "name": "provide mould making and sample making service",
+          "source": "detailData.module_sorted_attribute",
+          "value": "sample making"
+        },
+        {
+          "name": "Selling Units",
+          "source": "detailData.module_sorted_attribute",
+          "value": "Single item"
+        },
+        {
+          "name": "Single package size",
+          "source": "detailData.module_sorted_attribute",
+          "value": "15X15X10 cm"
+        },
+        {
+          "name": "Single gross weight",
+          "source": "detailData.module_sorted_attribute",
+          "value": "0.500 kg"
+        },
+        {
+          "name": "Diamond Type",
+          "source": "detailData.module_3_tab_key_attribute",
+          "value": "Synthetic (lab grown)"
+        },
+        {
+          "name": "Certificate Type",
+          "source": "detailData.module_3_tab_key_attribute",
+          "value": "IGI"
+        },
+        {
+          "name": "Fancy Diamond Color",
+          "source": "detailData.module_3_tab_key_attribute",
+          "value": "Fancy"
+        },
+        {
+          "name": "Diamond Shape",
+          "source": "detailData.module_3_tab_key_attribute",
+          "value": "Radiant Cut"
+        },
+        {
+          "name": "Usage",
+          "source": "detailData.module_3_tab_key_attribute",
+          "value": "For Jewelry Making"
+        },
+        {
+          "name": "Model Number",
+          "source": "detailData.module_3_tab_key_attribute",
+          "value": "IGI"
+        },
+        {
+          "name": "Diamond Type",
+          "source": "dom.module_attribute",
+          "value": "Synthetic (lab grown)"
+        },
+        {
+          "name": "Certificate Type",
+          "source": "dom.module_attribute",
+          "value": "IGI"
+        },
+        {
+          "name": "Fancy Diamond Color",
+          "source": "dom.module_attribute",
+          "value": "Fancy"
+        },
+        {
+          "name": "Diamond Shape",
+          "source": "dom.module_attribute",
+          "value": "Radiant Cut"
+        },
+        {
+          "name": "Usage",
+          "source": "dom.module_attribute",
+          "value": "For Jewelry Making"
+        },
+        {
+          "name": "Model Number",
+          "source": "dom.module_attribute",
+          "value": "IGI"
+        },
+        {
+          "name": "Place of Origin",
+          "source": "dom.module_attribute",
+          "value": "Guangdong, China"
+        },
+        {
+          "name": "Diamond Certificates",
+          "source": "dom.module_attribute",
+          "value": "IGI"
+        },
+        {
+          "name": "Certificate NO.",
+          "source": "dom.module_attribute",
+          "value": "LG555269066"
+        },
+        {
+          "name": "Brand Name",
+          "source": "dom.module_attribute",
+          "value": "Mishang Diamond"
+        },
+        {
+          "name": "provide mould making and sample making service",
+          "source": "dom.module_attribute",
+          "value": "sample making"
+        },
+        {
+          "name": "Selling Units",
+          "source": "dom.module_attribute",
+          "value": "Single item"
+        },
+        {
+          "name": "Single package size",
+          "source": "dom.module_attribute",
+          "value": "15X15X10 cm"
+        },
+        {
+          "name": "Single gross weight",
+          "source": "dom.module_attribute",
+          "value": "0.500 kg"
+        },
+        {
+          "name": "Diamond Type",
+          "source": "dom.three_column_key_attributes",
+          "value": "Synthetic (lab grown)"
+        },
+        {
+          "name": "Certificate Type",
+          "source": "dom.three_column_key_attributes",
+          "value": "IGI"
+        },
+        {
+          "name": "Fancy Diamond Color",
+          "source": "dom.three_column_key_attributes",
+          "value": "Fancy"
+        },
+        {
+          "name": "Diamond Shape",
+          "source": "dom.three_column_key_attributes",
+          "value": "Radiant Cut"
+        },
+        {
+          "name": "Usage",
+          "source": "dom.three_column_key_attributes",
+          "value": "For Jewelry Making"
+        },
+        {
+          "name": "Model Number",
+          "source": "dom.three_column_key_attributes",
+          "value": "IGI"
+        }
+      ],
+      "meta": {
+        "description": "Igi Certificate Fancy Light Pink Loose Lab Diamond Hpht Cvd Vvs Vs 1~5ct Fancy Shape Lab Grown Diamond - Buy Igi Certificate Fancy Light Pink Loose Lab Diamond pink Lab Diamond hpht Cvd Vvs Vs 1~5ct Fancy Shape Lab Grown Diamond Product on Alibaba.com",
+        "documentTitle": "Igi Certificate Fancy Light Pink Loose Lab Diamond Hpht Cvd Vvs Vs 1~5ct Fancy Shape Lab Grown Diamond - Buy Igi Certificate Fancy Light Pink Loose Lab Diamond pink Lab Diamond hpht Cvd Vvs Vs 1~5ct Fancy Shape Lab Grown Diamond Product on Alibaba.com",
+        "keywords": "Igi Certificate Fancy Light Pink Loose Lab Diamond Hpht Cvd Vvs Vs 1~5ct Fancy Shape Lab Grown Diamond - Buy Igi Certificate Fancy Light Pink Loose Lab Diamond pink Lab Diamond hpht Cvd Vvs Vs 1~5ct Fancy Shape Lab Grown Diamond Product on Alibaba.com",
+        "ogImage": "https://sc04.alicdn.com/kf/H4c1f1ffd42f44b91819c3a86f6721d8bc.jpg",
+        "ogUrl": "https://www.alibaba.com/product-detail/IGI-Certificate-Fancy-Light-Pink-Loose_1601561025630.html",
+        "title": "Igi Certificate Fancy Light Pink Loose Lab Diamond Hpht Cvd Vvs Vs 1~5ct Fancy Shape Lab Grown Diamond - Buy Igi Certificate Fancy Light Pink Loose Lab Diamond pink Lab Diamond hpht Cvd Vvs Vs 1~5ct Fancy Shape Lab Grown Diamond Product on Alibaba.com"
+      },
+      "pageSourceSnippets": [
+        {
+          "keyword": "Diamond Shape",
+          "snippet": "y Diamond Color\">Fancy Diamond Color</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"Fancy\">Fancy</p></div></div><div class=\"id-flex id-items-stretch id-gap-8\" data-testid=\"three-column-key-attributes-row\"><div class=\"id-min-w-0 id-flex-1\"><p class=\"id-break-words id-text-sm id-leading-[18px] id-text-[#222] id-line-clamp-3\" title=\"Diamond Shape\">Diamond Shape</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"Radiant Cut\">Radiant Cut</p></div><div class=\"id-h-9 id-w-px id-self-center id-bg-[#ddd]\" aria-hidden=\"true\"></div><div class=\"id-min-w-0 id-flex-1\"><p class=\"id-break-words id-text-sm id-leading-[18px] id-text-[#222] id-line-clamp-3\" title=\"Usage\">Usage</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"For Jewelry Making\">For Jewelry Making</p></div><div class=\"id-h-9 id-w-px id-self-center id-bg-[#ddd]\" aria-hidden=\"true\"></div><div class=\"id-min-w-0 id-flex-1\"><p class=\"id-bre"
+        },
+        {
+          "keyword": "Diamond Cut",
+          "snippet": "pg\" alt=\"Pink\" loading=\"lazy\" class=\"id-aspect-square id-rounded-md id-object-contain\"><div class=\"id-absolute id-inset-0 id-rounded-md id-pointer-events-none\" style=\"background-color: rgba(0, 0, 0, 0.04);\"></div></div></div></div></div><div data-testid=\"sku-list\"><h4 class=\"id-relative id-flex id-items-center id-justify-between id-text-base id-font-semibold id-text-[#222] id-mb-3\" data-testid=\"sku-list-title\"><span>Diamond Cut</span></h4><div data-testid=\"sku-list-item\" class=\"id-flex id-flex-row id-flex-wrap id-gap-2\"><div class=\"id-relative id-inline-block !id-rounded-md id-min-w-0 id-min-h-0\" data-testid=\"non-last-sku-item-three-column\"><div class=\"double-bordered-box enabled selected\" data-testid=\"double-bordered-box\" data-spm-anchor-id=\"a2700.details.0.i129.6a073c90Cad9Kc\" style=\"background-color: transparent;\"><div class=\"inner-border\"></div><span class=\"id-inline-block id-break-words id-text-sm id-min-w-9 id-rounded-md id-bg-[#F4F4F4] id-px-3 id-py-2 id-text-[#222]\">Excellent</span></div></div></div></div><div data-testid=\"sku-list\"><h4 class=\"id-relative id-flex id-items-center id-justify-between id-text-base id-font-semibol"
+        },
+        {
+          "keyword": "Fancy Diamond Color",
+          "snippet": "id-line-clamp-3\" title=\"Certificate Type\">Certificate Type</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"IGI\">IGI</p></div><div class=\"id-h-9 id-w-px id-self-center id-bg-[#ddd]\" aria-hidden=\"true\"></div><div class=\"id-min-w-0 id-flex-1\"><p class=\"id-break-words id-text-sm id-leading-[18px] id-text-[#222] id-line-clamp-3\" title=\"Fancy Diamond Color\">Fancy Diamond Color</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"Fancy\">Fancy</p></div></div><div class=\"id-flex id-items-stretch id-gap-8\" data-testid=\"three-column-key-attributes-row\"><div class=\"id-min-w-0 id-flex-1\"><p class=\"id-break-words id-text-sm id-leading-[18px] id-text-[#222] id-line-clamp-3\" title=\"Diamond Shape\">Diamond Shape</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"Radiant Cut\">Radiant Cut</p></div><div class=\"id-h-9 id-w-px id-self-center id-bg-[#ddd]\" aria-hidden=\"true\"></div><div class=\"id-min-w-0 id-flex-1\"><p"
+        },
+        {
+          "keyword": "Diamond Carat Weight",
+          "snippet": "yle=\"background-color: transparent;\"><div class=\"inner-border\"></div><span class=\"id-inline-block id-break-words id-text-sm id-min-w-9 id-rounded-md id-bg-[#F4F4F4] id-px-3 id-py-2 id-text-[#222]\">Excellent</span></div></div></div></div><div data-testid=\"sku-list\"><h4 class=\"id-relative id-flex id-items-center id-justify-between id-text-base id-font-semibold id-text-[#222] id-mb-3\" data-testid=\"sku-list-title\"><span>Diamond Carat Weight</span></h4><div data-testid=\"sku-list-item\" class=\"id-flex id-flex-row id-flex-wrap id-gap-2\"><div class=\"id-relative id-inline-block !id-rounded-md id-min-w-0 id-min-h-0\" data-testid=\"non-last-sku-item-three-column\"><div class=\"double-bordered-box enabled selected\" data-testid=\"double-bordered-box\" style=\"background-color: transparent;\"><div class=\"inner-border\"></div><span class=\"id-inline-block id-break-words id-text-sm id-min-w-9 id-rounded-md id-bg-[#F4F4F4] id-px-3 id-py-2 id-text-[#222]\">Cushion Fancy Pink 4.13ct VS1</span></div></div><div class=\"id-relative id-inline-block !id-rounded-md id-min-w-0 id-min-h-0\" data-testid=\"non-last-sku-item-three-column\"><div class=\"double-bordered-box enabled unselect"
+        },
+        {
+          "keyword": "Certificate Type",
+          "snippet": "ond Type\">Diamond Type</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"Synthetic (lab grown)\">Synthetic (lab grown)</p></div><div class=\"id-h-9 id-w-px id-self-center id-bg-[#ddd]\" aria-hidden=\"true\"></div><div class=\"id-min-w-0 id-flex-1\"><p class=\"id-break-words id-text-sm id-leading-[18px] id-text-[#222] id-line-clamp-3\" title=\"Certificate Type\">Certificate Type</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"IGI\">IGI</p></div><div class=\"id-h-9 id-w-px id-self-center id-bg-[#ddd]\" aria-hidden=\"true\"></div><div class=\"id-min-w-0 id-flex-1\"><p class=\"id-break-words id-text-sm id-leading-[18px] id-text-[#222] id-line-clamp-3\" title=\"Fancy Diamond Color\">Fancy Diamond Color</p><p class=\"id-mt-1.5 id-text-base id-font-semibold id-leading-[22px] id-text-[#222] id-line-clamp-3 [overflow-wrap:anywhere]\" title=\"Fancy\">Fancy</p></div></div><div class=\"id-flex id-items-stretch id-gap-8\" data-testid=\"three-column-key-attributes-row\"><div class=\"id-min-w-0 id-flex-1\"><p class="
+        },
+        {
+          "keyword": "Certificate NO",
+          "snippet": "l id-min-w-0\" data-testid=\"module-attribute-value-wrapper\"><div class=\"id-leading-[18px] id-line-clamp-2\" data-attribute-lineclamp=\"true\" data-testid=\"module-attribute-value-text\">IGI</div></div></div></div><div class=\"id-grid id-grid-cols-[2fr_3fr] id-overflow-hidden id-border-b-[0.5px] id-border-[#ddd]\" data-testid=\"module-attribute-row\"><div class=\"id-text-sm id-p-4 id-bg-[#f8f8f8] id-flex id-items-center\" title=\"Certificate NO.\" data-testid=\"module-attribute-name\" style=\"word-break: break-word;\"><div class=\"id-leading-[18px] id-line-clamp-2\" data-attribute-lineclamp=\"true\" data-testid=\"module-attribute-name-text\">Certificate NO.</div></div><div class=\"id-text-sm id-font-medium id-p-4 id-flex id-items-center id-flex-wrap id-overflow-hidden\" title=\"LG555269066\" data-testid=\"module-attribute-value\" style=\"word-break: break-word;\"><div class=\"id-flex id-flex-col id-gap-[10px] id-w-full id-min-w-0\" data-testid=\"module-attribute-value-wrapper\"><div class=\"id-leading-[18px] id-line-clamp-2\" data-attribute-lineclamp=\"true\" data-testid=\"module-attribute-value-text\">LG555269066</div></div></div></div><div class=\"id-grid id-grid-cols-[2fr_3fr]"
+        }
+      ],
+      "pageTextSnippets": [
+        {
+          "keyword": "Diamond Shape",
+          "snippet": "ancy Intense Pink 1.06ct VS1 Radiant Fancy Intense Brownish Pink 0.89ct VS2 Key attributes Diamond Type Synthetic (lab grown) Certificate Type IGI Fancy Diamond Color Fancy Diamond Shape Radiant Cut Usage For Jewelry Making Model Number IGI At a glance IGI Certificate: Provides a trusted and verifiable certification for the quality and authenticity of the lab-grown diamond. Fancy Light Pink Color: Offers a unique and visually appealing color option, suitable for creating distinctive and high-end jewelry pieces. Shipping Change Impo"
+        },
+        {
+          "keyword": "Diamond Cut",
+          "snippet": "n Diamond 5.0 (13 reviews) 12 sold #6 hot selling in Princess Cut Loose Diamonds certified Lower priced than similar $ 262 - 1,471 Minimum order quantity: 1 piece Select now Color Diamond Cut Excellent Diamond Carat Weight Cushion Fancy Pink 4.13ct VS1 Princess Fancy Light Pink 3.03ct VS1 Heart Fancy Vivid Pink 2.08ct VVS2 Pear Fancy Intense Pink 1.55ct VS1 Emeralds Fancy Intense Pink 1.06ct VS1 Radiant Fancy Intense Brownish Pink 0.89ct VS2 Key attributes Diamond Type Synthetic (lab grown) Certificate Type IGI Fancy Diamond Color Fancy D"
+        },
+        {
+          "keyword": "Fancy Diamond Color",
+          "snippet": "e Pink 1.55ct VS1 Emeralds Fancy Intense Pink 1.06ct VS1 Radiant Fancy Intense Brownish Pink 0.89ct VS2 Key attributes Diamond Type Synthetic (lab grown) Certificate Type IGI Fancy Diamond Color Fancy Diamond Shape Radiant Cut Usage For Jewelry Making Model Number IGI At a glance IGI Certificate: Provides a trusted and verifiable certification for the quality and authenticity of the lab-grown diamond. Fancy Light Pink Color: Offers a unique and visually appealing color option, suitable for creating distinctive and high-end jewelry pieces."
+        },
+        {
+          "keyword": "Diamond Carat Weight",
+          "snippet": "ews) 12 sold #6 hot selling in Princess Cut Loose Diamonds certified Lower priced than similar $ 262 - 1,471 Minimum order quantity: 1 piece Select now Color Diamond Cut Excellent Diamond Carat Weight Cushion Fancy Pink 4.13ct VS1 Princess Fancy Light Pink 3.03ct VS1 Heart Fancy Vivid Pink 2.08ct VVS2 Pear Fancy Intense Pink 1.55ct VS1 Emeralds Fancy Intense Pink 1.06ct VS1 Radiant Fancy Intense Brownish Pink 0.89ct VS2 Key attributes Diamond Type Synthetic (lab grown) Certificate Type IGI Fancy Diamond Color Fancy Diamond Shape Radiant Cut Usag"
+        },
+        {
+          "keyword": "Certificate Type",
+          "snippet": "VVS2 Pear Fancy Intense Pink 1.55ct VS1 Emeralds Fancy Intense Pink 1.06ct VS1 Radiant Fancy Intense Brownish Pink 0.89ct VS2 Key attributes Diamond Type Synthetic (lab grown) Certificate Type IGI Fancy Diamond Color Fancy Diamond Shape Radiant Cut Usage For Jewelry Making Model Number IGI At a glance IGI Certificate: Provides a trusted and verifiable certification for the quality and authenticity of the lab-grown diamond. Fancy Light Pink Color: Offers a unique and visually appealing color option, suitable for creating distinctive an"
+        },
+        {
+          "keyword": "Certificate NO",
+          "snippet": "grown) Certificate Type IGI Fancy Diamond Color Fancy Diamond Shape Radiant Cut Usage For Jewelry Making Model Number IGI Place of Origin Guangdong, China Diamond Certificates IGI Certificate NO. LG555269066 Brand Name Mishang Diamond provide mould making and sample making service sample making Packaging and delivery Selling Units Single item Single package size 15X15X10 cm Single gross weight 0.500 kg Lead time Certificates GIA Global Diamond Certification IGI Ethically Sourced Gemstones Ratings & Reviews Product reviews (13) Store reviews (2008)"
+        }
+      ],
+      "selectedOptionsText": [
+        "Color: Pink",
+        "Diamond Cut: Excellent",
+        "Diamond Carat Weight: Cushion Fancy Pink 4.13ct VS1"
+      ],
+      "skuPanelText": "Select variations and quantity Lower priced than similar $ 262 - 1,471 Minimum order quantity: 1 piece Color: Pink Diamond Cut: Excellent Excellent Diamond Carat Weight Cushion Fancy Pink 4.13ct VS1 $1,471 - + Princess Fancy Light Pink 3.03ct VS1 $1,126 - + Heart Fancy Vivid Pink 2.08ct VVS2 $770 - + Pear Fancy Intense Pink 1.55ct VS1 $534 - + Emeralds Fancy Intense Pink 1.06ct VS1 $331 - + Radiant Fancy Intense Brownish Pink 0.89ct VS2 $262 - + Shipping Change Import charges included in shipping fee Standard Shipping fee: FREE shipping Guaranteed delivery: Jun 06 - Jun 14, 58.2% delivered ≤ 19 days FREE shipping capped at $20 on your first order Subtotal $0.00 Start order Add to cart Close"
+    },
+    "supplier": "View more",
+    "title": "IGI Certificate Fancy Light Pink Loose Lab Diamond HPHT CVD VVS VS 1~5CT Fancy Shape Lab Grown Diamond",
+    "url": "https://www.alibaba.com/product-detail/IGI-Certificate-Fancy-Light-Pink-Loose_1601561025630.html?spm=a2700.prosearch.normal_offer.d_image.638367afrIRxmG&priceId=0e74a0ddf7be47d6a38b0589f135648a"
+  }
+]

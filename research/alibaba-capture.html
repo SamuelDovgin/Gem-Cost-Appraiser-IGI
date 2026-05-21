@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alibaba comp capture — Gem Appraise</title>
+  <style>
+    :root { --bg:#0f1115; --card:#1a1d24; --text:#e8eaed; --muted:#9aa0a6; --accent:#7eb8da; --border:#2a2f38; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:15px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--text); padding:24px; max-width:920px; margin-inline:auto; }
+    h1 { font-size:1.35rem; font-weight:600; margin:0 0 8px; }
+    p { color:var(--muted); margin:0 0 16px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; margin-bottom:16px; }
+    .card h2 { font-size:1rem; margin:0 0 10px; }
+    a.bookmark { display:inline-block; padding:12px 18px; background:#2d4a5e; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; cursor:grab; }
+    a.bookmark:hover { background:#3a5f78; }
+    .steps { margin:12px 0 0; padding-left:1.2rem; color:var(--muted); }
+    .steps li { margin:6px 0; }
+    .steps strong { color:var(--text); }
+    button { background:#2d4a5e; color:#fff; border:none; border-radius:8px; padding:10px 14px; font:inherit; cursor:pointer; margin-right:8px; margin-bottom:8px; }
+    button:hover { background:#3a5f78; }
+    button.danger { background:#4a2d2d; }
+    button.danger:hover { background:#6a3a3a; }
+    textarea { width:100%; min-height:72px; background:#0f1115; border:1px solid var(--border); color:var(--text); border-radius:8px; padding:10px; font:13px/1.4 ui-monospace, monospace; resize:vertical; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+    th { color:var(--muted); font-weight:500; }
+    td a { color:var(--accent); word-break:break-all; }
+    .toast { position:fixed; bottom:20px; right:20px; background:#1e3a2f; color:#b8e6c8; padding:12px 16px; border-radius:8px; opacity:0; transition:opacity .2s; pointer-events:none; }
+    .toast.show { opacity:1; }
+    kbd { background:#252930; padding:2px 6px; border-radius:4px; font-size:12px; }
+    .empty { color:var(--muted); font-style:italic; padding:12px 0; }
+  </style>
+</head>
+<body>
+  <h1>Alibaba comp capture</h1>
+  <p>One click on Alibaba copies a row. Paste here (or press <kbd>⌘V</kbd> / <kbd>Ctrl+V</kbd> anywhere on this page) to build your comp list, then export markdown for <code>alibaba-igi-wholesale-comps.md</code> or paste into chat.</p>
+
+  <div class="card">
+    <h2>1. Install bookmark (drag to bookmarks bar)</h2>
+    <a class="bookmark" id="bookmarklet" href="#">Capture Alibaba listing</a>
+    <ol class="steps">
+      <li>Show your bookmarks bar (Safari: View → Show Favorites Bar; Chrome: Bookmarks → Show bookmarks bar).</li>
+      <li><strong>Drag</strong> the blue button above onto the bar.</li>
+      <li>On any <strong>alibaba.com</strong> product or search page, click <strong>Capture Alibaba listing</strong>. A green toast appears and the row is on your clipboard.</li>
+      <li>Come back here and <strong>paste once</strong> — it appends automatically.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>2. Inbox</h2>
+    <button type="button" id="pasteBtn">Paste from clipboard</button>
+    <button type="button" id="exportMd">Export markdown table</button>
+    <button type="button" id="exportJson">Export JSON</button>
+    <button type="button" class="danger" id="clearBtn">Clear all</button>
+    <p style="margin-top:12px;font-size:13px">Tip: keep this tab open in a split window while you browse Alibaba.</p>
+    <div id="tableWrap" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Manual paste (optional)</h2>
+    <textarea id="manual" placeholder="Paste a capture line or JSON here, then click Add"></textarea>
+    <button type="button" id="manualAdd" style="margin-top:8px">Add</button>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+<script>
+const STORAGE_KEY = 'gemAppraiseAlibabaCaptures';
+
+// Scraper runs inside bookmarklet on alibaba.com — keep in sync with logic below.
+function buildScraperSource() {
+  return `function gemAppraiseScrape(){
+  var url=location.href;
+  var pageType=url.indexOf('product-detail')>=0?'product':(/showroom|search|wholesale/.test(url)?'browse':'other');
+  var title=(document.querySelector('h1')&&document.querySelector('h1').innerText)||'';
+  title=title.replace(/\\s+/g,' ').trim();
+  if(!title) title=(document.querySelector('meta[property="og:title"]')||{}).content||document.title||'';
+  title=title.replace(/\\s*[-|].*Alibaba.*$/i,'').trim();
+  var supplier='';
+  var supEl=document.querySelector('a[href*="company_profile"],[class*="company-name"],[class*="CompanyName"]');
+  if(supEl) supplier=supEl.innerText.replace(/\\s+/g,' ').trim();
+  if(!supplier){
+    var m=document.body.innerText.match(/(?:Sold by|Supplier|Company)[:\\s]*([^\\n]{4,60})/i);
+    if(m) supplier=m[1].trim();
+  }
+  var body=document.body.innerText.replace(/\\s+/g,' ');
+  var priceRe=/(?:US\\s*)?\\$\\s*[\\d,]+(?:\\.\\d{1,2})?(?:\\s*[-–]\\s*(?:US\\s*)?\\$\\s*[\\d,]+(?:\\.\\d{1,2})?)?(?:\\s*\\/\\s*(?:piece|ct|carat))?/gi;
+  var prices=[],seen={};
+  var pm; var re=new RegExp(priceRe.source,priceRe.flags);
+  while((pm=re.exec(body))&&prices.length<6){
+    var p=pm[0].replace(/\\s+/g,' ').trim();
+    if(!seen[p]){ seen[p]=1; prices.push(p); }
+  }
+  var perCt=(body.match(/\\$[\\d,.]+\\s*\\/\\s*ct/gi)||[]).slice(0,2);
+  var moq=(body.match(/(?:MOQ|Minimum order|Min\\.? order)[^\\n$]{0,50}/i)||[])[0]||'';
+  moq=moq.replace(/\\s+/g,' ').trim().slice(0,60);
+  var promo=(body.match(/\\d{1,2}%\\s*off|promotion|discount/i)||[])[0]||'';
+  var igi=/IGI/i.test(body);
+  var selected=[];
+  document.querySelectorAll('[class*="selected"],[aria-selected="true"],.active,[class*="is-selected"]').forEach(function(el){
+    var t=(el.innerText||'').replace(/\\s+/g,' ').trim();
+    if(t&&t.length<70&&t.length>1&&selected.indexOf(t)<0) selected.push(t);
+  });
+  selected=selected.slice(0,6);
+  var searchHits=[];
+  if(pageType==='browse'){
+    document.querySelectorAll('[class*="search-card"],[class*="SearchResult"],[class*="organic-list-offer"],[class*="list-card"],div[data-content="ab_offer"],a[href*="product-detail"]').forEach(function(el){
+      if(searchHits.length>=12) return;
+      var card=el.closest('[class*="card"],[class*="offer"],[class*="item"]')||el;
+      var t=(card.querySelector('h2,h3,[class*="title"]')||card).innerText||'';
+      t=t.replace(/\\s+/g,' ').trim().slice(0,120);
+      var pr=(card.innerText||'').match(priceRe);
+      if(t&&pr){
+        searchHits.push({title:t,price:pr[0].replace(/\\s+/g,' ').trim()});
+      }
+    });
+    searchHits=searchHits.filter(function(h,i,a){
+      return a.findIndex(function(x){return x.title===h.title&&x.price===h.price;})===i;
+    }).slice(0,8);
+  }
+  return {
+    capturedAt:new Date().toISOString(),
+    url:url,
+    pageType:pageType,
+    title:title.slice(0,200),
+    supplier:supplier.slice(0,80),
+    prices:prices,
+    perCt:perCt,
+    moq:moq,
+    promo:promo,
+    igi:igi,
+    selected:selected,
+    searchHits:searchHits
+  };
+}`;
+}
+
+function initBookmarklet() {
+  const scraper = buildScraperSource();
+  const tail = `
+var data=gemAppraiseScrape();
+var md='';
+if(data.pageType==='browse'&&data.searchHits&&data.searchHits.length){
+  data.searchHits.forEach(function(h){
+    md+='| '+h.title.replace(/\\|/g,'/')+' | '+h.price+' | search snippet | '+data.url+' |\\n';
+  });
+  md='| Listing | Price | Notes | URL |\\n|---|---:|---|---|\\n'+md;
+}else{
+  var price=data.prices[0]||'';
+  if(data.prices.length>1) price=data.prices[0]+' – '+data.prices[data.prices.length-1];
+  if(data.perCt&&data.perCt.length) price+=(price?' + ':'')+data.perCt.join(', ');
+  var notes=[data.pageType,data.igi?'IGI':'',data.promo,data.selected.join('; ')].filter(Boolean).join('; ');
+  md='| '+data.supplier+' — '+data.title.replace(/\\|/g,'/').slice(0,80)+' | '+price+' | '+notes+' |';
+}
+var payload=JSON.stringify(data);
+var clip=md+'\\n<!--GEM_APPRAISE:'+payload+'-->';
+navigator.clipboard.writeText(clip).then(function(){
+  var t=document.createElement('div');
+  t.textContent='Gem Appraise: copied ('+(data.searchHits&&data.searchHits.length?data.searchHits.length+' hits':'1 row')+')';
+  t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999999;background:#1e4d3a;color:#b8f0c8;padding:14px 22px;border-radius:10px;font:600 15px system-ui,sans-serif;box-shadow:0 8px 32px rgba(0,0,0,.35)';
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2200);
+}).catch(function(){
+  prompt('Copy this row:', clip);
+});
+void 0;`;
+  const code = scraper + tail;
+  const href = 'javascript:' + encodeURIComponent(code);
+  document.getElementById('bookmarklet').href = href;
+}
+
+function loadCaptures() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveCaptures(list) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function parsePaste(text) {
+  const items = [];
+  const jsonMatch = text.match(/<!--GEM_APPRAISE:(.*?)-->/s);
+  if (jsonMatch) {
+    try {
+      items.push(JSON.parse(jsonMatch[1]));
+    } catch (_) {}
+  }
+  const lines = text.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
+  lines.forEach(line => {
+    const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+    if (cells.length >= 2) {
+      items.push({
+        capturedAt: new Date().toISOString(),
+        manual: true,
+        title: cells[0],
+        prices: [cells[1]],
+        notes: cells[2] || '',
+        url: cells[3] || ''
+      });
+    }
+  });
+  return items;
+}
+
+function renderTable() {
+  const list = loadCaptures();
+  const wrap = document.getElementById('tableWrap');
+  if (!list.length) {
+    wrap.innerHTML = '<p class="empty">No captures yet. Use the bookmark on Alibaba, then paste here.</p>';
+    return;
+  }
+  const rows = list.slice().reverse().map((c, i) => {
+    const price = Array.isArray(c.prices) ? c.prices.join(' · ') : (c.prices || '');
+    const sub = c.supplier ? `<strong>${esc(c.supplier)}</strong> — ` : '';
+    const title = esc((c.title || '').slice(0, 100));
+    const notes = [c.pageType, c.igi ? 'IGI' : '', c.promo, (c.selected || []).join('; '), c.notes, c.manual ? 'manual' : ''].filter(Boolean).join('; ');
+    const url = c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.url.slice(0, 48))}…</a>` : '';
+    return `<tr data-idx="${list.length - 1 - i}"><td>${sub}${title}</td><td>${esc(price)}</td><td>${esc(notes)}</td><td>${url}</td></tr>`;
+  }).join('');
+  wrap.innerHTML = `<table><thead><tr><th>Listing</th><th>Price</th><th>Notes</th><th>URL</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+
+function addFromText(text) {
+  const parsed = parsePaste(text);
+  if (!parsed.length) {
+    showToast('Nothing to add — use the bookmark first');
+    return 0;
+  }
+  const list = loadCaptures();
+  parsed.forEach(p => list.push(p));
+  saveCaptures(list);
+  renderTable();
+  return parsed.length;
+}
+
+document.getElementById('pasteBtn').onclick = async () => {
+  try {
+    const t = await navigator.clipboard.readText();
+    const n = addFromText(t);
+    if (n) showToast(`Added ${n} capture(s)`);
+  } catch {
+    showToast('Allow clipboard access, or paste with ⌘V on this page');
+  }
+};
+
+document.getElementById('manualAdd').onclick = () => {
+  const n = addFromText(document.getElementById('manual').value);
+  if (n) {
+    document.getElementById('manual').value = '';
+    showToast(`Added ${n} capture(s)`);
+  }
+};
+
+document.getElementById('exportMd').onclick = () => {
+  const list = loadCaptures();
+  let md = '| Listing | Price | Notes | URL |\n|---|---:|---|---|\n';
+  list.forEach(c => {
+    const listing = (c.supplier ? c.supplier + ' — ' : '') + (c.title || '').replace(/\|/g, '/');
+    const price = Array.isArray(c.prices) ? c.prices.join(' – ') : '';
+    const notes = [c.pageType, c.igi ? 'IGI' : '', c.promo, (c.selected || []).join('; '), c.notes].filter(Boolean).join('; ');
+    md += `| ${listing} | ${price} | ${notes} | ${c.url || ''} |\n`;
+  });
+  navigator.clipboard.writeText(md).then(() => showToast('Markdown table copied'));
+};
+
+document.getElementById('exportJson').onclick = () => {
+  const json = JSON.stringify(loadCaptures(), null, 2);
+  navigator.clipboard.writeText(json).then(() => showToast('JSON copied'));
+};
+
+document.getElementById('clearBtn').onclick = () => {
+  if (confirm('Clear all captures?')) {
+    saveCaptures([]);
+    renderTable();
+  }
+};
+
+document.addEventListener('paste', (e) => {
+  const text = e.clipboardData.getData('text');
+  const n = addFromText(text);
+  if (n) {
+    e.preventDefault();
+    showToast(`Added ${n} capture(s)`);
+  }
+});
+
+initBookmarklet();
+renderTable();
+</script>
+</body>
+</html>
