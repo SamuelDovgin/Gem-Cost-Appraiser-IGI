@@ -43,6 +43,7 @@ HIGH_CONFIDENCE_PIDS = {
     "10000038791251", # Vivid pink heart
     "10000040044944",  # Shreeraj Portuguese primary
     "1601570156930",  # Mishang Portuguese 2ct+
+    "11000034653073",  # Pink cushion VS1 ladder
 }
 
 

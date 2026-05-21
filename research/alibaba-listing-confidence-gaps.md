@@ -20,7 +20,12 @@ Purpose: show where Alibaba comps are strong, thin, suspicious, or missing so fu
 | White cushion D, VS/VVS, IGI, 1-5ct | High | May 21 elongated-cushion capture adds full D ladder from Messi plus three 1ct corroborating listings. |
 | White princess D, VS/VVS, IGI, 1-5ct | High | Princess capture file adds full D ladder from Messi `1601764885212` plus 1ct and VS1 1-5ct corroboration. |
 | White asscher D, VS/VVS, IGI, 1-5ct | High | Asscher capture adds full D ladder from Messi `1601719451540` plus Mishang/Starsgem corroboration. |
-| White heart D, VS/VVS2, IGI, 1-2ct | Medium-high | Heart capture adds partial D ladder from Starsgem `1600980186115` plus 1ct corroboration; no 3-5ct white heart yet. |
+| White heart D, VS/VVS, IGI, 1-3ct | High | Messi multi-shape `1601715356045` adds full D VS2/VS1/VVS2/VVS1 ladder through 3ct; Starsgem `1600980186115` corroborates 1-2ct. Still need 4-5ct white heart. |
+| Fancy pink cushion VS1, IGI, 0.5-6ct | Medium-high | `11000034653073` adds VS1 carat ladder; intensity label TBD (selector Pink). |
+| Fancy green multi-shape, IGI | Medium-high | `1601643292625` adds six row-level green comps across emerald/oval/princess/cushion/pear. |
+| Fancy blue multi-shape, IGI | Medium-high | `1601126506793` adds six row-level blue comps; complements 5.23ct asscher anchor. |
+| Marquise D carat-band, CHANG LAI | Medium-high | `1601568822364` adds VS1/VVS2 bands 1.0-3.09ct; ~13% below Mishang at 1ct. |
+| Portuguese singles 1ct+, shared SKUs | Medium-high | `1601559003180` and `1601570409395` corroborate Mishang Portuguese row prices. |
 | Fancy vivid pink heart, IGI, 1-4ct | Medium-high | Carat ladder from `10000038791251`; clarity spread not usable (flat VS1/VS2 per carat). |
 | Asscher DEF / E bands | Medium-high | DEF 1-5ct ladder from `1601639441690`; E `VVS-VS` bands from `10000036828887`. |
 | Princess DE bands / E 1ct | Medium | DE band rows and single-carat E anchor exist; E 2-5ct and F/DEF princess still thin. |
@@ -34,14 +39,14 @@ Purpose: show where Alibaba comps are strong, thin, suspicious, or missing so fu
 
 | Priority | Gap | What We Need | Why It Matters |
 |---:|---|---|---|
-| 1 | Fancy vivid/intense pink by shape | More exact rows for pear, oval, radiant, cushion, emerald at 1ct-4ct+; heart now has 1-4ct ladder | Pink heart improved; other shapes still mostly one row each. |
+| 1 | Fancy vivid/intense pink by shape | More exact rows for pear, oval, radiant, emerald at 1ct-4ct+; cushion now has 0.5-6ct VS1 ladder | Pink cushion improved; pear/oval/radiant/emerald still mostly one row each. |
 | 2 | Fancy light pink vs fancy pink vs fancy intense/vivid pink | Multiple exact rows by intensity, same shape and similar carat | Intensity may move price more than shape; current rows mix both variables. |
-| 3 | White heart 3-5ct + full clarity spread | D heart VS2/VS1/VVS2/VVS1 at 3ct, 4ct, 5ct | Partial 1-2ct ladder exists; need higher carats and full clarity matrix. |
+| 3 | White heart 4-5ct | D heart VS2/VS1/VVS2/VVS1 at 4ct and 5ct | Messi primary now covers 1-3ct full clarity; need 4-5ct on dedicated heart listing. |
 | 4 | Radiant 6ct+ and 4ct VVS2 | White radiant 6ct F VS1 and any 4ct VVS2 row with clean labels | Primary ladder stops at 5ct and omits 4ct VVS2 in capture. |
 | 5 | Fancy yellow princess exact rows | IGI fancy yellow/intense/vivid yellow princess rows with real per-carat prices | Yellow princess listing `11000034592294` repeats one flat price across carats; excluded until recaptured. |
 | 6 | Fancy yellow exact rows (non-princess) | More IGI yellow rows by shape and carat beyond one 2.57ct oval | One vivid yellow oval row exists; need radiant/cushion ladders. |
-| 7 | Fancy blue exact rows | More IGI blue rows by shape and carat beyond one 5.23ct asscher and one 2.59ct oval | Blue princess `1601661832444` excluded for flat pricing; still need 1-3ct radiant/cushion blue. |
-| 8 | Green, orange, purple fancy colors | Any clean IGI exact rows with row-level shape/carat/clarity | Sparse markets; even low/anomalous rows should be preserved with wide bands. |
+| 7 | Fancy blue ladders by shape | More per-carat blue rows beyond `1601126506793` six-shape panel | Multi-shape blue panel added; still need 2-5ct ladders per shape. |
+| 8 | Orange, purple fancy colors | Any clean IGI exact rows with row-level shape/carat/clarity | Green improved via `1601643292625`; orange/purple still missing. |
 | 9 | Low-price anomalies with cert evidence | Exact rows that look unusually cheap, plus IGI number/video context if possible | These may be real deal-finding signals, but should not become model anchors too early. |
 
 ## Shape-Specific Gaps
@@ -53,12 +58,12 @@ Purpose: show where Alibaba comps are strong, thin, suspicious, or missing so fu
 | Moval (Movel Cut) | Medium-high | Missing | D 1–3ct ladder from OM GEMS; do not fold into oval — page shape label is often Oval Cut. Need more suppliers and 4–5ct. |
 | Pear | High | Medium-high | Need more pink pear rows across 1-5ct and more intensity separation. |
 | Radiant | High (white D) | Medium-high | White D clarity ladder complete 1-5ct; fancy radiant still one brownish-pink row. |
-| Cushion | High | Medium-high | White D cushion ladder is strong; pink cushion still one 4.13ct row; vivid yellow cushion is one messy selector row. |
+| Cushion | High | Medium-high | White D cushion ladder is strong; pink cushion has 0.5-6ct VS1 ladder (`11000034653073`); vivid yellow cushion is one messy selector row. |
 | Princess | High | Medium-high | White D princess ladder is strong; pink princess is one 3.03ct row; fancy yellow princess still flat-price only. |
 | Emerald | High | Medium-high | White emerald ladder is strong; pink emerald still one row from `1601561025630`. |
-| Heart | Medium-high (white) | Medium-high | White D heart 1-2ct VS1/VVS2 ladder; vivid pink heart 1-4ct carat ladder; avoid flat-price pink heart listings. |
-| Marquise | High (white D) | Missing | White D ladder is model-ready 1-3ct (+2.5ct); need 4-5ct white, Messi marquise capture, and any fancy-color marquise rows. |
-| Asscher | High | Medium | White D asscher ladder is strong; fancy blue remains one 5.23ct specialty row. |
+| Heart | High (white 1-3ct) | Medium-high | White D heart 1-3ct full clarity from Messi `1601715356045`; vivid pink heart 1-4ct carat ladder; need 4-5ct white. |
+| Marquise | High (white D) | Missing | Mishang exact ladder + CHANG LAI bands; need 4-5ct exact D and fancy marquise rows. |
+| Asscher | High | Medium-high | White D asscher ladder is strong; fancy blue has 5.23ct anchor plus six-shape panel `1601126506793`. |
 
 ## Color-Specific Gaps
 
@@ -84,9 +89,9 @@ Tiers describe **white + standard fancy-color** Alibaba comp readiness for model
 
 | Tier | Meaning | Cuts / styles |
 |---|---|---|
-| **S — Model-ready** | Full exact ladders, multiple suppliers, High confidence | Round brilliant, Pear, White emerald, White cushion (D, 1-5ct), White princess (D, 1-5ct), White asscher (D, 1-5ct), White radiant (D, 1-5ct), White marquise (D, 1-3ct + 2.5ct) |
-| **A — Usable with caveats** | Strong rows but missing clarity spread, color grades, or independent corroboration | Oval (white), Moval / Movel Cut (white D 1-3ct, single supplier), Heart (white 1-2ct partial), Elongated cushion (E only), Princess (DE bands, E 1ct only), Asscher (DEF ladder), Radiant (E/F VS1 3-6ct corroboration only), Marquise (DE white, 4-5ct D missing) |
-| **B — Thin / single-source** | One product, sparse rows, or intensity/shape mixed in one listing | Fancy pink (multi-shape, one product), Princess (fancy light pink 3.03ct only), Asscher (fancy blue 5.23ct only), Fancy yellow/blue/red/green (anchor rows only) |
+| **S — Model-ready** | Full exact ladders, multiple suppliers, High confidence | Round brilliant, Pear, White emerald, White cushion (D, 1-5ct), White princess (D, 1-5ct), White asscher (D, 1-5ct), White radiant (D, 1-5ct), White marquise (D, 1-3ct + 2.5ct), White heart (D, 1-3ct) |
+| **A — Usable with caveats** | Strong rows but missing clarity spread, color grades, or independent corroboration | Oval (white), Moval / Movel Cut (white D 1-3ct, single supplier), Heart (white 4-5ct missing), Elongated cushion (E only), Princess (DE bands, E 1ct only), Asscher (DEF ladder), Radiant (E/F VS1 3-6ct corroboration only), Marquise (DE white + CHANG LAI bands, 4-5ct D missing) |
+| **B — Thin / single-source** | One product, sparse rows, or intensity/shape mixed in one listing | Fancy pink (multi-shape + pink cushion VS1 ladder), Princess (fancy light pink 3.03ct only), Fancy yellow/red (anchor rows only), Fancy green/blue (multi-shape panels, one row per shape) |
 | **C — Barely covered** | No clean white rows, or only suspicious/broad captures | Radiant (fancy-color by intensity), Marquise (fancy-color), Yellow princess (flat-price listings only) |
 | **D — Critical gap** | No exact source-of-truth rows, or only excluded flat-price listings | Round (fancy-color), Oval (fancy-color beyond one-offs), Green (small sizes), Orange, Purple, G/H/I/J white |
 
@@ -102,9 +107,9 @@ Tiers describe **white + standard fancy-color** Alibaba comp readiness for model
 | Princess | **S** / **B** (fancy) | Full D 1-5ct ladder + corroboration | One fancy light pink 3.03ct row | Fancy yellow princess ladder; E/F 2-5ct white; blue princess clean rows |
 | Emerald | **S** / **B** (fancy) | Full D 1-7ct + corroboration | One intense pink 1.06ct row | Pink emerald 1-3ct ladder |
 | Marquise | **S** / **D** (fancy) | Full D VS2-VVS1 ladder 1-3ct + 2.5ct | None clean | 4-5ct white D; Messi marquise on `1601715356045` or dedicated listing; fancy marquise rows |
-| Heart | **A** / **A** (fancy) | Partial D 1-2ct VS1/VVS2 + corroboration | Vivid pink 1-4ct carat ladder + mixed-shape row | White heart 3-5ct full clarity; confirm pendant vs loose context |
+| Heart | **S** / **A** (fancy) | Full D 1-3ct VS2-VVS1 from Messi `1601715356045` + Starsgem corroboration | Vivid pink 1-4ct carat ladder + mixed-shape row | White heart 4-5ct; confirm Starsgem pendant vs loose context |
 | Asscher | **S** / **B** (fancy) | Full D 1-5ct ladder + corroboration | One fancy blue 5.23ct row (three URLs) | Smaller blue asscher 1-3ct; asscher F/G; DEF vs D spread reconciliation |
-| Moval | **D** / **D** (fancy) | No clean comps — not listed as a distinct SKU on most Alibaba pages | No clean comps | Any SKU where the row or selector explicitly says "moval" or "moval cut"; must be distinguished from plain oval rows |
+| Moval | **A** / **D** (fancy) | D 1-3ct VS1/VVS2 from OM GEMS `10000040923161` | No clean comps | More suppliers; 4-5ct; distinguish from oval rows |
 
 ## Data Quality Gaps
 

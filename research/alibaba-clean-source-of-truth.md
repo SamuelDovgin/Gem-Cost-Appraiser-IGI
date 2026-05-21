@@ -632,14 +632,32 @@ Use: broad E asscher guardrail only. Medium confidence; not a split VS1/VVS2 lad
 | 2.00 | $488.40 | Medium |
 | 3.00 | $830.28 | Medium |
 
-### Heart Cut, D/White, VS/VVS2, IGI - Starsgem
+### Heart Cut, D/White, VS/VVS, IGI - Messi Jewelry (Primary)
+
+Product ID: `1601715356045`  
+URL: `https://www.alibaba.com/product-detail/Wholesale-IGI-Certified-Fancy-Shape-1CT_1601715356045.html`  
+Source file: `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json`  
+Supplier: Messi Jewelry  
+Evidence: 16 exact heart SKU snapshots from the same multi-shape capture session as radiant/oval/pear; `captureKey` uses `heart-cut-X.X-carat-d-color` with VS2/VS1/VVS2/VVS1 selectors; row labels `Heart Cut, X carat, D Color`. Page-level shape may show Round on multi-shape listings — use `captureKey` and row labels as shape authority.  
+Use: **primary white heart IGI ladder (1-3ct)**. Pricing runs ~12% above Starsgem at 1ct VS1 and aligns with Mishang marquise tier (~$175), not the Messi $135 factory shapes. High confidence.
+
+| Carat | VS2 | VS1 | VVS2 | VVS1 |
+|---:|---:|---:|---:|---:|
+| 1.00 | $160 | $175 | $185 | $225 |
+| 1.50 | $233 | $248 | $278 | $338 |
+| 2.00 | $340 | $360 | $400 | $560 |
+| 3.00 | $555 | $600 | $660 | $1,050 |
+
+**Cross-supplier 1ct D VS1:** Messi heart `$175` vs Starsgem `$156` (+12.2%) vs Redleaf corroboration `$185`.
+
+### Heart Cut, D/White, VS/VVS2, IGI - Starsgem (Corroboration)
 
 Product ID: `1600980186115`  
 URL: `https://www.alibaba.com/product-detail/Gorgeous-Love-Shape-Diamond-Pendent-Heart_1600980186115.html`  
 Source file: `data/alibaba-com-manufacturers-suppliers-exporters-importers--sku-prices.json`  
 Supplier: Starsgem  
 Evidence: exact SKU rows with `White D`, carat, VS1/VVS2, and Excellent cut grade; key attributes show `Diamond Shape = Heart Cut`, `White Diamond Color = D`, IGI. Title references pendant context — treat as medium-high until loose-only context is confirmed.  
-Use: first white heart IGI ladder. Medium-high confidence; partial coverage (1-2ct only, VS1/VVS2 only).
+Use: independent heart corroboration. Medium-high confidence; partial coverage (1-2ct only, VS1/VVS2 only). Do not replace Messi primary above.
 
 | Carat | VS1 | VVS2 | Confidence |
 |---:|---:|---:|---|
@@ -711,6 +729,61 @@ Use: corroborating Portuguese ladder for ~2ct+ singles, especially E VVS2 and D 
 
 **IGI mapping:** Stones certified as **Round Modified Brilliant** (e.g. LG783630596, 1.75ct E VVS2) should match `shape = portuguese` in the app and nearest-comp against rows above — not the round Messi ladder.
 
+### Portuguese Cut, D/E, VS/VVS2 — Corroborating Listings (Shared SKU Rows)
+
+Product IDs: `1601559003180`, `1601570409395`  
+URLs: `https://www.alibaba.com/product-detail/Messi-Jewelry-Exquisite-White-Portuguese-Cut_1601559003180.html`, `https://www.alibaba.com/product-detail/Special-Cutting-IGI-Certified-Lab-Grown_1601570409395.html`  
+Source file: `data/1ct-2ct-fancy-cut-lab-grown-diamond-radiant-cut-d-vs1-ig-sku-prices.json`  
+Evidence: both listings expose the same per-stone SKU row labels and prices as Mishang `1601570156930` (e.g. `2.08CT D VS1 CVD` at `$600`); selectors use exact carat/color/clarity in the `Diamond Carat Weight` field, not round 1.00/2.00/3.00ct bands. Page shape often says Round Brilliant — use row labels + title Portuguese authority.  
+Use: corroboration for ~1ct+ Portuguese singles; complements Shreeraj primary 1–3ct VS1 ladder. Medium-high confidence.
+
+| Product ID | Carat | Color | Clarity | Price | $/ct | Confidence |
+|---|---|---:|---|---:|---:|---|
+| `1601570409395` | 1.09 | D | VS1 | $280 | $257 | Medium-high |
+| `1601559003180` | 1.13 | D | VVS2 | $300 | $265 | Medium-high |
+| `1601570409395` | 1.19 | E | VVS2 | $280 | $235 | Medium-high |
+| `1601559003180` | 1.42 | D | VS2 | $300 | $211 | Medium-high |
+| `1601570409395` | 2.08 | D | VS1 | $600 | $288 | Medium-high |
+| `1601559003180` | 2.12 | D | VVS2 | $650 | $307 | Medium-high |
+| `1601570409395` | 2.13 | E | VVS2 | $600 | $281 | Medium-high |
+| `1601559003180` | 2.16 | E | VS1 | $580 | $269 | Medium-high |
+| `1601570409395` | 2.22 | D | VVS2 | $650 | $293 | Medium-high |
+| `1601559003180` | 3.86 | E | VVS2 | $850 | $220 | Medium |
+
+### Marquise Cut, D, VS1/VVS2, IGI — CHANG LAI (Carat Bands)
+
+Product ID: `1601568822364`  
+URL: `https://www.alibaba.com/product-detail/CHANG-LAI-VVS2-IGI-GIA-Certified_1601568822364.html`  
+Source files: `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json`, `data/1ct-2ct-fancy-cut-lab-grown-diamond-radiant-cut-d-vs1-ig-sku-prices.json`  
+Supplier: CHANG LAI  
+Evidence: exact SKU panel rows with `IGI 1.0-1.09CT` / `IGI 2.0-2.09CT` / `IGI 3.0-3.09CT` band labels and VS1/VVS2 selectors; key attributes show `Diamond Shape = Marquise Cut`, `White Diamond Color = D`, IGI/GIA certificate fields.  
+Use: independent marquise guardrail at **carat-band** granularity (~13% below Mishang primary at 1.0–1.09ct VS1). Medium-high confidence for captured bands; VVS2 at 3.0–3.09ct not captured as selected row.
+
+| Carat Band | VS1 | VVS2 | vs Mishang D VS1 | Confidence |
+|---|---:|---:|---|---|
+| 1.0–1.09ct | $152.51 | $171.58 | -12.9% vs $175 | Medium-high |
+| 2.0–2.09ct | $405.43 | $383.82 | +12.6% vs $360 | Medium-high |
+| 3.0–3.09ct | $667.24 | - | +11.2% vs $600 | Medium-high |
+
+### Fancy Pink Cushion, VS1, IGI
+
+Product ID: `11000034653073`  
+URL: `https://www.alibaba.com/product-detail/IGI-Certificate-0-5CT-1CT-2CT_11000034653073.html`  
+Source file: `data/igi-certified-elongated-cushion-cut-lab-grown-diamond-1--sku-prices.json`  
+Evidence: single capture with full SKU panel showing distinct per-carat prices for `Color = Pink`, `Diamond Clarity = VS1`, and carat selectors 0.5ct–6ct; key attributes show `Diamond Shape = Cushion Cut`, `Certificate Type = IGI`. Title/meta keywords mention yellow in places — treat fancy intensity as **Pink** from selector until cert confirms otherwise.  
+Use: **first pink cushion carat ladder**; VS1-only. Medium-high confidence for panel prices; only one clarity grade captured.
+
+| Carat | VS1 | $/ct | Confidence |
+|---:|---:|---:|---|
+| 0.50 | $225 | $450 | Medium-high |
+| 1.00 | $346.50 | $347 | Medium-high |
+| 1.50 | $409.50 | $273 | Medium-high |
+| 2.00 | $594 | $297 | Medium-high |
+| 3.00 | $864 | $288 | Medium-high |
+| 4.00 | $1,584 | $396 | Medium-high |
+| 5.00 | $2,250 | $450 | Medium-high |
+| 6.00 | $2,907 | $485 | Medium-high |
+
 ### Fancy Vivid Pink Heart, IGI
 
 Product ID: `10000038791251`  
@@ -758,6 +831,40 @@ Use: medium-high confidence pink lab-grown IGI row comps. The page-level `Diamon
 | Pear | Fancy Intense Pink | 1.55 | VS1 | Excellent | $534 | $345 | Medium-high |
 | Emerald | Fancy Intense Pink | 1.06 | VS1 | Excellent | $331 | $312 | Medium-high |
 | Radiant | Fancy Intense Brownish Pink | 0.89 | VS2 | Excellent | $262 | $294 | Medium-high |
+
+### Fancy Intense Green Mixed Shapes, IGI - Messi Jewelry
+
+Product ID: `1601643292625`  
+URL: `https://www.alibaba.com/product-detail/Messi-Jewelry-Fancy-Vivid-Green-Loose_1601643292625.html`  
+Source files: `data/hpht-cvd-loose-lab-grown-diamond-cushion-def-gh-vvs-vs-i-sku-prices.json`, `data/igi-certified-elongated-cushion-cut-lab-grown-diamond-1--sku-prices.json`  
+Evidence: exact SKU row labels embed shape, fancy color, carat, and clarity (e.g. `Cushion Fancy Intense Green 2.12ct VS1`); one capture shows all six panel rows with distinct prices. Title says Fancy Vivid Green; row labels say Fancy Intense Green — use row labels for intensity.  
+Use: first multi-shape fancy green exact rows. Medium-high confidence; one row per shape.
+
+| Shape | Fancy Color | Carat | Clarity | Cut Grade | Price | $/ct | Confidence |
+|---|---|---:|---|---|---:|---:|---|
+| Emerald | Fancy Intense Green | 6.61 | VS1 | Excellent | $2,108 | $319 | Medium-high |
+| Oval | Fancy Intense Green | 4.16 | VS1 | Excellent | $1,149 | $276 | Medium-high |
+| Princess | Fancy Intense Green | 2.59 | VVS2 | Excellent | $950 | $367 | Medium-high |
+| Cushion | Fancy Intense Green | 2.12 | VS1 | Excellent | $1,018 | $480 | Medium-high |
+| Pear | Fancy Intense Green | 1.35 | VVS2 | Excellent | $612 | $453 | Medium-high |
+| Emerald | Fancy Intense Green | 1.00 | VS2 | Excellent | $374 | $374 | Medium-high |
+
+### Fancy Blue Mixed Shapes, IGI - Mishang Diamond
+
+Product ID: `1601126506793`  
+URL: `https://www.alibaba.com/product-detail/Fancy-Intense-Greenish-Blue-Lab-Grown_1601126506793.html`  
+Source file: `data/hpht-cvd-loose-lab-grown-diamond-cushion-def-gh-vvs-vs-i-sku-prices.json`  
+Evidence: listing title references greenish blue, but SKU row labels are explicit fancy blue by shape (e.g. `Radiant Fancy Vivid Blue 1.03ct VVS2`); six distinct panel prices on one capture. Page-level `Diamond Shape` may say Oval — use row labels.  
+Use: first multi-shape fancy blue exact rows beyond the 5.23ct asscher anchor. Medium-high confidence; complements single-row asscher listing.
+
+| Shape | Fancy Color | Carat | Clarity | Cut Grade | Price | $/ct | Confidence |
+|---|---|---:|---|---|---:|---:|---|
+| Asscher | Fancy Blue | 5.23 | VS1 | Excellent | $1,668 | $319 | Medium-high |
+| Oval | Fancy Vivid Blue | 4.27 | VVS2 | Excellent | $1,211 | $284 | Medium-high |
+| Princess | Fancy Blue | 3.12 | VS1 | Excellent | $827 | $265 | Medium-high |
+| Heart | Fancy Blue | 2.19 | VS1 | Excellent | $1,110 | $507 | Medium-high |
+| Cushion | Fancy Intense Blue | 1.61 | VS1 | Excellent | $644 | $400 | Medium-high |
+| Radiant | Fancy Vivid Blue | 1.03 | VVS2 | Excellent | $255 | $248 | Medium-high |
 
 ### Fancy Color Oval Rows, IGI - Goldleaf
 
