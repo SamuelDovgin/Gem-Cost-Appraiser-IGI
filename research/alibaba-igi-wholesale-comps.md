@@ -26,7 +26,7 @@ Scope: Alibaba listings and Alibaba showroom pages for loose lab-grown diamonds 
 | White IGI loose | IGI Certified Lab Grown Diamond Loose Oval Cut DEF VVS VS 1CT 2CT 3CT 5CT HPHT/CVD | DEF, VVS/VS, oval/fancy, 1-5ct | $18.50-$1,080 / piece range | Hard ceiling for ordinary white lab direct buys |
 | White IGI loose | Factory Prices Lab Created VVS VS1 0.3CT-6CT HPHT/CVD IGI Certified | D/white, VS1/VVS, mixed shapes, 0.3-6ct | $41-$2,100 / piece range | Broad factory ceiling |
 | White IGI loose | Lab grown diamond manufacturer 0.5CT 1CT 1.5CT D VS1 IGI round | D, VS1, round, 0.5-1.7ct | Attribute listing; price not reliably parsed | Use as verification-only comp |
-| White IGI marquise | IGI Certified Marquise Cut Lab Diamond DEF 0.5CT-5CT VVS/VS HPHT/CVD | DEF, VVS/VS, marquise, 0.5-5ct | $60-$480 / broad range | Cheap marquise ceiling, verify exact size |
+| White IGI marquise | Mishang `1601406519145` + Starsgem `1601744111777` / `1601384099752` | D VS2-VVS1 marquise, 1-3ct (+2.5ct) | $160-$1,050 exact rows | Primary D ladder in `alibaba-clean-source-of-truth.md`; DEF mm sizes `$36-$137` remain guardrail only |
 | Pink IGI loose | 0.1-5ct Real Fancy Color IGI Certified Pink CVD Lab Diamond | Pink/fancy color, mixed fancy shapes, 0.1-5ct | $180-$260 / carat | Strong pink wholesale anchor |
 | Pink IGI loose | Pink color lab-grown diamond IGI certified pear/oval/radiant vivid pink | Vivid pink, pear/oval/radiant | $330-$380, MOQ 2 | Pink/vivid pink ceiling |
 | Pink IGI loose | Fancy Intense Pink 1-3ct CVD/HPHT IGI round brilliant | Fancy intense pink, round, 1-3ct | $217-$350 | Fancy intense pink direct anchor |

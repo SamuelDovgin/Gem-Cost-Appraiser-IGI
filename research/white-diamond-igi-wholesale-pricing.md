@@ -234,7 +234,7 @@ Lab-grown shape pricing differs from natural diamonds:
 | Cut Cornered Sq. Modified Brilliant (Sq. Radiant) | 0.88 | ★★★☆☆ | Square radiant variant. |
 | Princess Cut | 0.86 | ★★★☆☆ | Declining demand vs peak. Sharp corners = chipping risk. |
 | Marquise Brilliant | 0.87 | ★★★☆☆ | Growing popularity 2025–2026. Ideal L/W 1.90–2.10. |
-| Moval (marquise–oval hybrid) | 0.94 | ★★★☆☆ | 2026 lab trend; softer tips than marquise. Still non-standard on IGI — resale below oval (Rapaport: marquise among deepest fancy discounts). |
+| Moval (marquise–oval hybrid) | 0.94 | ★★★☆☆ | 2026 lab trend; softer tips than marquise. Still non-standard on IGI — resale below oval (Rapaport: marquise among deepest fancy discounts). May 21 Alibaba: OM GEMS D moval 1ct VS1 `$229` / VVS2 `$248` vs Starsgem oval `$150` / `$157` — specialty listing, not oval-parity. |
 | Heart Modified Brilliant | 0.86 | ★★★☆☆ | Niche but consistent demand. |
 | Trilliant Cut | 0.82 | ★★☆☆☆ | Very niche. |
 | Emerald Cut | 0.83 | ★★★★☆ | Trending upward 2025–2026 (step cuts in vogue). Requires high clarity. |

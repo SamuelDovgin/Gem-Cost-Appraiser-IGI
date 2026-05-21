@@ -36,6 +36,8 @@ HIGH_CONFIDENCE_PIDS = {
     "10000014190420", # Princess corroboration 1ct
     "1601719451540",  # Messi asscher primary
     "10000014259785", # Mishang asscher 1ct
+    "1601406519145",  # Mishang marquise primary
+    "1601645026580",  # Marquise corroboration (duplicate ladder)
     "1601744111777",  # Marquise D VVS2
     "1601384099752",  # Marquise DE
     "10000038791251", # Vivid pink heart
@@ -141,6 +143,7 @@ def main():
 
     shape_map = {
         "Elongated Cushion": "elongated_cushion",  # must come before Cushion
+        "Moval": "moval",  # must come before Oval (substring match)
         "Round": "round",
         "Pear": "pear",
         "Oval": "oval",

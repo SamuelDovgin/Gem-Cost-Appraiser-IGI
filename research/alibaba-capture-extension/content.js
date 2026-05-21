@@ -17,6 +17,7 @@
   const SHAPE_TERMS = [
     "round brilliant",
     "round",
+    "moval",
     "oval",
     "emerald",
     "pear",

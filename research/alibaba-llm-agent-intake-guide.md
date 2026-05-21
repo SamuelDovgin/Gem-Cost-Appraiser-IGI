@@ -80,6 +80,16 @@ Do not infer a specific grade from a range. `DEF` stays `DEF`; `DE White` stays 
 
 Do not treat `Diamond Cut` as shape unless the values are shape names. Do not treat it as cut grade unless it says a real grade such as Excellent, Ideal, 2EX, or 3EX.
 
+### Moval — special identification rules
+
+Moval (marquise–oval hybrid) is rarely labeled as such on Alibaba. Before promoting a row as a moval comp:
+
+1. The row label, selector text, or a `keyAttributes` entry must explicitly say **"moval"** or **"moval cut"**. Titles like "unique oval" or "elongated oval" do not qualify.
+2. If only the title says moval but the page attribute says Oval, keep at `Clean But Broad Or Specialty` with a note — do not promote as an exact moval comp.
+3. Normalized shape from the capture extension will be `Moval Cut` when the word boundary `\bmoval\b` is detected. Verify this in `normalized.shape.value`.
+4. Use oval comps as a loose ceiling (moval ~6% below oval in the pricing model) but do not substitute oval rows as moval comps in the source of truth.
+5. A row where the only evidence is a long L:W ratio (1.7:1+) on an "oval" SKU is **not** evidence of moval. Ratio alone does not determine cut style.
+
 ## Acceptance Checklist
 
 Promote to `Clean Exact Comps` only when the row has:

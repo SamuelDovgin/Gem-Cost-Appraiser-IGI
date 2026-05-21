@@ -1,7 +1,7 @@
 # Alibaba Clean Diamond Comp Source of Truth
 
 Created: 2026-05-21  
-Source files: `data/1ct-2ct-fancy-cut-lab-grown-diamond-radiant-cut-d-vs1-ig-sku-prices.json`, `data/igi-certificate-fancy-light-pink-loose-lab-diamond-hpht--sku-prices.json`, `data/starsgem-oval-diamante-1ct-2ct-3ct-d-vs1-vvs2-hpht-cvd-i-sku-prices.json`, `data/mishang-1ct-2ct-3ct-loose-lab-created-diamond-vs-vvs-exc-sku-prices.json`, `data/igi-certified-elongated-cushion-cut-lab-grown-diamond-1--sku-prices.json`, `data/hpht-cvd-loose-lab-grown-diamond-cushion-def-gh-vvs-vs-i-sku-prices.json`, `data/fancy-color-yellow-princess-cut-def-vvs-vs-1ct-2ct-3ct-4-sku-prices.json`, `data/in-stock-asscher-shape-igi-cvd-htpt-diamond-1ct-5ct-high-sku-prices.json`, `data/alibaba-com-manufacturers-suppliers-exporters-importers--sku-prices.json`, `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json`  
+Source files: `data/1ct-2ct-fancy-cut-lab-grown-diamond-radiant-cut-d-vs1-ig-sku-prices.json`, `data/igi-certificate-fancy-light-pink-loose-lab-diamond-hpht--sku-prices.json`, `data/starsgem-oval-diamante-1ct-2ct-3ct-d-vs1-vvs2-hpht-cvd-i-sku-prices.json`, `data/mishang-1ct-2ct-3ct-loose-lab-created-diamond-vs-vvs-exc-sku-prices.json`, `data/igi-certified-elongated-cushion-cut-lab-grown-diamond-1--sku-prices.json`, `data/hpht-cvd-loose-lab-grown-diamond-cushion-def-gh-vvs-vs-i-sku-prices.json`, `data/fancy-color-yellow-princess-cut-def-vvs-vs-1ct-2ct-3ct-4-sku-prices.json`, `data/in-stock-asscher-shape-igi-cvd-htpt-diamond-1ct-5ct-high-sku-prices.json`, `data/alibaba-com-manufacturers-suppliers-exporters-importers--sku-prices.json`, `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json`, `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json`  
 Purpose: keep one durable reference for Alibaba diamond comps that have enough captured evidence to use later in pricing logic.
 
 URL retention rule: every promoted product or product group should retain a `URL:` field that links back to the Alibaba page where the comp was found whenever the capture contains a URL or one can be reconstructed from `productId`. Prefer canonical product-detail URLs without tracking parameters, but never drop the page link entirely just because tracking cleanup is imperfect.
@@ -287,29 +287,137 @@ Use: independent VVS2 oval corroboration. High confidence for captured carats; c
 | 2.50 | $475 | High |
 | 3.00 | $470 | High |
 
-### Marquise, D/DE/DEF, IGI
+### Moval (Movel Cut), D/White, VS1/VVS2, IGI - OM GEMS
 
-URLs: `https://www.alibaba.com/product-detail/IGI-Certified-Lab-Diamond-Marquise-Cut_1601744111777.html`, `https://www.alibaba.com/product-detail/RTS-Starsgem-1ct-Marquise-Lab-Grown_1601384099752.html`, `https://www.alibaba.com/product-detail/Wholesale-CVD-HPHT-0-03CT-1_1601402501696.html`  
-Use: marquise comps are clean, but several are color ranges or millimeter sizes. Keep exact D/DE rows higher confidence than DEF size rows.
+Product ID: `10000040923161`  
+URL: `https://www.alibaba.com/product-detail/Popular-1-4ct-VVS-VS-Moval_10000040923161.html`  
+Source file: `data/starsgem-oval-diamante-1ct-2ct-3ct-d-vs1-vvs2-hpht-cvd-i-sku-prices.json`  
+Supplier: OM GEMS  
+Evidence: exact SKU rows with `Design = Movel Cut`, D color, VS1/VVS2, and 1.0–3.0 CT selectors; title and keywords say **Moval** / Movel Cut. Key attributes show `Diamond Shape = Oval Cut` but `Shape = Movel cut` — **do not merge into the oval ladders above**; treat as marquise–oval hybrid (moval). Page lists `Diamond Enhancements = Laser Drilling`; verify IGI report before using as a deal anchor.  
+Use: primary exact D moval ladder 1–3ct. Medium-high confidence (single supplier, shape-label mismatch, enhancement flag).
 
-| Product ID | Shape | Color | Clarity | Size | Price | Confidence |
-|---|---|---|---|---:|---:|---|
-| `1601744111777` | Marquise | D | VVS2 | 1ct | $190 | High |
-| `1601744111777` | Marquise | D | VVS2 | 2ct | $380 | High |
-| `1601744111777` | Marquise | D | VVS2 | 3ct | $600 | High |
-| `1601384099752` | Marquise | DE | VS1 | 1ct | $198.38 | High |
-| `1601384099752` | Marquise | DE | VS1 | 1.5ct | $245.98 | High |
-| `1601384099752` | Marquise | DE | VS1 | 2ct | $417.91 | High |
-| `1601384099752` | Marquise | DE | VS1 | 3ct | $681.09 | High |
-| `1601384099752` | Marquise | DE | VVS2 | 1ct | $219.54 | High |
-| `1601384099752` | Marquise | DE | VVS2 | 1.5ct | $264.50 | High |
-| `1601384099752` | Marquise | DE | VVS2 | 2ct | $481.39 | High |
-| `1601384099752` | Marquise | DE | VVS2 | 3ct | $905.91 | High |
-| `1601402501696` | Marquise | DEF | VVS | 3.5x7mm / 0.3ct | $36 | Medium |
-| `1601402501696` | Marquise | DEF | VVS | 4x8mm / 0.48ct | $58 | Medium |
-| `1601402501696` | Marquise | DEF | VVS | 4.5x9mm / 0.64ct | $77 | Medium |
-| `1601402501696` | Marquise | DEF | VVS | 5x10mm / 0.9ct | $108 | Medium |
-| `1601402501696` | Marquise | DEF | VVS | 5.5x10mm / 1ct | $137 | Medium |
+| Carat | VS1 | VVS2 | Confidence |
+|---:|---:|---:|---|
+| 1.00 | $229 | $248 | Medium-high |
+| 2.00 | $458 | $498 | Medium-high |
+| 3.00 | $689 | $748 | Medium-high |
+
+**vs oval (same capture session, D 1ct):** Starsgem oval `1601392715631` = `$150` VS1 / `$157` VVS2; Messi oval `1601628467240` = `$175` VS1 / `$185` VVS2. OM GEMS moval runs **~35–58% above** those oval anchors at 1ct — consistent with specialty-cut / non-standard-shape pricing, not a drop-in oval substitute.
+
+### Moval, E, VS1, IGI - Corroboration
+
+Product ID: `10000041334377`  
+URL: `https://www.alibaba.com/product-detail/Eco-Friendly-3-03-CT-Moval_10000041334377.html`  
+Source file: `data/starsgem-oval-diamante-1ct-2ct-3ct-d-vs1-vvs2-hpht-cvd-i-sku-prices.json`  
+Evidence: single exact row, E color, 3.03ct, VS1, `Design = Moval Cut Lab Grown Diamond`; title says Moval Cut.  
+Use: specialty-size E moval guardrail only. Medium confidence.
+
+| Carat | Color | Clarity | Price | Confidence |
+|---:|---|---|---|---|
+| 3.03 | E | VS1 | $850 | Medium |
+
+### Oval, D, 1ct, IGI - Loose Lab Corroboration
+
+Product ID: `1601601861985`  
+URL: `https://www.alibaba.com/product-detail/Loose-Lab-Diamond-IGI-Certificate-1ct_1601601861985.html`  
+Source file: `data/starsgem-oval-diamante-1ct-2ct-3ct-d-vs1-vvs2-hpht-cvd-i-sku-prices.json`  
+Evidence: exact SKU rows for 1ct D/E with VVS1/VVS2 from one capture; MOQ **2 pieces** on listing.  
+Use: 1ct oval color/clarity spread corroboration only — not a primary ladder. Medium confidence.
+
+| Carat | Color | Clarity | Price | Confidence |
+|---:|---|---|---:|---|
+| 1.00 | D | VVS1 | $220 | Medium |
+| 1.00 | D | VVS2 | $198 | Medium |
+| 1.00 | E | VVS1 | $198 | Medium |
+| 1.00 | E | VVS2 | $168 | Medium |
+
+### Marquise Cut, D/White, VS/VVS, IGI - Mishang Diamond (Primary)
+
+Product ID: `1601406519145`  
+URL: `https://www.alibaba.com/product-detail/MiShang-Excellent-Marquise-Cut-D-Color_1601406519145.html`  
+Source file: `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json`  
+Supplier: Mishang Diamond  
+Evidence: 20 exact SKU snapshots with row-level `D Clolor XCT Marquise Cut` labels and VS2/VS1/VVS2/VVS1 selectors; key attributes show `Diamond Shape = Marquise Cut`, `White Diamond Color = D`, lab-grown, `Certificate Type = IGI`, sample cert `LG597394175`. Row labels win over page `Fancy Diamond Color = Fancy`.  
+Use: **primary white marquise IGI ladder**. Resolves the prior 1-3ct clarity-spread gap. High confidence.
+
+| Carat | VS2 | VS1 | VVS2 | VVS1 |
+|---:|---:|---:|---:|---:|
+| 1.00 | $160 | $175 | $185 | $225 |
+| 1.50 | $233 | $248 | $278 | $338 |
+| 2.00 | $340 | $360 | $400 | $560 |
+| 2.50 | $425 | $450 | $500 | $700 |
+| 3.00 | $555 | $600 | $660 | $1,050 |
+
+**Clarity multiplier notes (D, 1-3ct anchors):**
+
+| Step | VS2 → VS1 | VS1 → VVS2 | VVS2 → VVS1 |
+|---|---:|---:|---:|
+| 1.00ct | +9.4% | +5.7% | +21.6% |
+| 1.50ct | +6.4% | +12.1% | +21.6% |
+| 2.00ct | +5.9% | +11.1% | +40.0% |
+| 3.00ct | +8.1% | +10.0% | +59.1% |
+
+**Cross-shape Messi pricing check (same-day capture, `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json`):** Messi multi-shape listing `1601715356045` includes Round/Oval/Radiant/Pear/Heart/Princess but **no Marquise Cut selector** — marquise must be captured on dedicated listings. At 1.00ct D VS1, Messi radiant/princess/cushion/asscher = `$135` while this Mishang marquise = `$175` (+29.6%). Treat marquise as its own ladder, not a Messi-family shape clone.
+
+### Marquise Cut, D, VVS2, IGI - Starsgem (VVS2-Only Ladder)
+
+Product ID: `1601744111777`  
+URL: `https://www.alibaba.com/product-detail/IGI-Certified-Lab-Diamond-Marquise-Cut_1601744111777.html`  
+Source file: `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json`  
+Supplier: starsgem (title/branding)  
+Evidence: one capture with VVS2 selected and a three-row carat ladder (`1CT`/`2CT`/`3CT`) at `$190`/`$380`/`$600`; page attributes show Marquise Cut, D, IGI.  
+Use: independent VVS2-only corroboration for 1-3ct. High confidence for captured grades; does not replace the full-clarity primary ladder.
+
+| Carat | VVS2 | vs Primary D VVS2 | Confidence |
+|---:|---:|---:|---|
+| 1.00 | $190 | +2.7% | High |
+| 2.00 | $380 | -5.0% | High |
+| 3.00 | $600 | -9.1% | High |
+
+### Marquise Cut, DE White, VS1/VVS2, IGI - Starsgem RTS
+
+Product ID: `1601384099752`  
+URL: `https://www.alibaba.com/product-detail/RTS-Starsgem-1ct-Marquise-Lab-Grown_1601384099752.html`  
+Source files: `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json`, `data/1ct-2ct-fancy-cut-lab-grown-diamond-radiant-cut-d-vs1-ig-sku-prices.json`  
+Evidence: exact row-level `1carat`/`1.5carat`/`2carat`/`3carat` prices with DE White page color and VS1/VVS2 selectors.  
+Use: DE-range marquise guardrail. High confidence for row prices; color is a range, not single D.
+
+| Carat | VS1 | VVS2 | vs Primary D VS1 | vs Primary D VVS2 | Confidence |
+|---:|---:|---:|---:|---:|---|
+| 1.00 | $198.38 | $219.54 | +13.4% | +18.7% | High |
+| 1.50 | $245.98 | $264.50 | -0.8% | -4.9% | High |
+| 2.00 | $417.91 | $481.39 | +16.1% | +20.3% | High |
+| 3.00 | $681.09 | $905.91 | +13.5% | +37.3% | High |
+
+### Marquise Cut, D/E, VS1/VVS2, IGI - Corroborating Listings
+
+Source file: `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json`  
+Use: secondary corroboration. `1601645026580` duplicates Mishang primary prices exactly (same VS2-VVS1 matrix through 2.5ct). `1601651318383` adds thin D/E rows at 1-3ct.
+
+| Product ID | URL | Carat | Color | VS1 | VVS2 | Confidence |
+|---|---|---:|---|---:|---:|---|
+| `1601645026580` | `https://www.alibaba.com/product-detail/CVD-HPHT-1ct-1-5ct-2ct_1601645026580.html` | 1.00 | D | $175 | $185 | High |
+| `1601645026580` | `https://www.alibaba.com/product-detail/CVD-HPHT-1ct-1-5ct-2ct_1601645026580.html` | 2.50 | D | $450 | $500 | High |
+| `1601651318383` | `https://www.alibaba.com/product-detail/1CT-2CT-3CT-Lab-Loose-Diamond_1601651318383.html` | 1.00 | D | $193.50 | $216 | Medium-high |
+| `1601651318383` | `https://www.alibaba.com/product-detail/1CT-2CT-3CT-Lab-Loose-Diamond_1601651318383.html` | 1.00 | E | $189 | $193.50 | Medium-high |
+| `1601651318383` | `https://www.alibaba.com/product-detail/1CT-2CT-3CT-Lab-Loose-Diamond_1601651318383.html` | 2.00 | D | $441 | $522 | Medium-high |
+| `1601651318383` | `https://www.alibaba.com/product-detail/1CT-2CT-3CT-Lab-Loose-Diamond_1601651318383.html` | 3.00 | D | $630 | $738 | Medium-high |
+
+### Marquise Cut, DEF, VVS, IGI - Millimeter Sizes
+
+Product ID: `1601402501696`  
+URL: `https://www.alibaba.com/product-detail/Wholesale-CVD-HPHT-0-03CT-1_1601402501696.html`  
+Source file: `data/1ct-2ct-fancy-cut-lab-grown-diamond-radiant-cut-d-vs1-ig-sku-prices.json`  
+Evidence: mm-based selector rows with DEF color and VVS clarity band.  
+Use: small-size DEF marquise guardrail. Medium confidence — size is millimeter/carat hybrid, not a standard 1.00ct exact row.
+
+| Size | Price | Confidence |
+|---|---:|---|
+| 3.5x7mm / 0.3ct | $36 | Medium |
+| 4x8mm / 0.48ct | $58 | Medium |
+| 4.5x9mm / 0.64ct | $77 | Medium |
+| 5x10mm / 0.9ct | $108 | Medium |
+| 5.5x10mm / 1ct | $137 | Medium |
 
 ### Emerald Cut, D/E/F, VS/VVS, IGI - Goldleaf
 

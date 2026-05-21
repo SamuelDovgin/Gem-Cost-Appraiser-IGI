@@ -18,7 +18,8 @@ This folder keeps supporting research and capture tooling out of the published a
 - `data/fancy-color-yellow-princess-cut-def-vvs-vs-1ct-2ct-3ct-4-sku-prices.json` - white princess ladders, DE bands, and fancy yellow princess session.
 - `data/in-stock-asscher-shape-igi-cvd-htpt-diamond-1ct-5ct-high-sku-prices.json` - white asscher D/DEF ladders, E bands, and fancy blue asscher corroboration.
 - `data/alibaba-com-manufacturers-suppliers-exporters-importers--sku-prices.json` - heart-cut session: white D partial ladder, vivid pink heart ladder, pink VS1 ladder.
-- `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json` - large Starsgem multi-shape capture; **resolves white radiant D VS/VVS 1-5ct ladder** (`1601715356045`).
+- `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json` - large Starsgem/Messi multi-shape capture; **resolves white radiant D VS/VVS 1-5ct ladder** (`1601715356045`). No marquise selector on that listing.
+- `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json` - white marquise session; **primary D marquise VS/VVS ladder** (`1601406519145`) plus Starsgem corroboration.
 - `*-pricing.md`, `*-comps.md`, and `*-reference.md` - pricing model research notes.
 - `archive/` - older app snapshots used during pricing migration.
 - `assets/` - screenshots and other research support files.
