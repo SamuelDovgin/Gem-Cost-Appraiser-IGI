@@ -3002,8 +3002,8 @@ const SHAPE_ICON_COLORS = {
 };
 
 const ICON_CANONICAL_LW = {
-  baguette:2.75, tapered_baguette:3.1, trilliant:1.05, half_moon:2.0, shield:1.15,
-  hexagonal:1.0, hexagonal_dutch:1.95, rose:1.15, briolette:1.35, portuguese:1.0, flanders:1.0,
+  baguette:2.75, tapered_baguette:3.1, trilliant:1.05, half_moon:2.0, shield:1.1,
+  hexagonal:1.0, hexagonal_dutch:1.95, rose:1.0, briolette:0.62, portuguese:1.0, flanders:1.0,
 };
 
 function iconEffectiveLW(shapeKey, certRatio) {
@@ -3107,11 +3107,15 @@ function iconPrincess(c, f) {
   const inner = [iconXY(sq,-0.42,-0.42), iconXY(sq,0.42,-0.42), iconXY(sq,0.42,0.42), iconXY(sq,-0.42,0.42)];
   let s = iconPath(outer, c) + iconPath(inner, c, 0.7);
   const segs = [];
-  for (let i = 0; i < 4; i++) {
-    const n = (i + 1) % 4;
-    segs.push([...outer[i], ...inner[i]], [...inner[i], ...inner[n]], [...inner[n], ...outer[n]], [...outer[i], ...outer[n]]);
-    segs.push([...iconXY(sq,0,-0.9), ...inner[i]], [...iconXY(sq,0,0.9), ...inner[n]]);
-  }
+  for (let i = 0; i < 4; i++) segs.push([...outer[i], ...inner[i]]);
+  const midTop = [(outer[0][0] + outer[1][0]) / 2, (outer[0][1] + outer[1][1]) / 2];
+  const midRig = [(outer[1][0] + outer[2][0]) / 2, (outer[1][1] + outer[2][1]) / 2];
+  const midBot = [(outer[2][0] + outer[3][0]) / 2, (outer[2][1] + outer[3][1]) / 2];
+  const midLef = [(outer[3][0] + outer[0][0]) / 2, (outer[3][1] + outer[0][1]) / 2];
+  segs.push([...midTop, ...inner[0]], [...midTop, ...inner[1]]);
+  segs.push([...midRig, ...inner[1]], [...midRig, ...inner[2]]);
+  segs.push([...midBot, ...inner[2]], [...midBot, ...inner[3]]);
+  segs.push([...midLef, ...inner[3]], [...midLef, ...inner[0]]);
   return s + iconLines(c, f, segs);
 }
 
@@ -3196,7 +3200,7 @@ function buildShapeIconInner(shapeKey, certRatio) {
     return iconBrilliantElongated(box, c, f, pts, 0.38);
   }
   if (shapeKey === 'moval') {
-    const pts = [p(0,-0.94), p(0.52,-0.38), p(0.96,-0.08), p(0.52,0.38), p(0,0.94), p(-0.52,0.38), p(-0.96,-0.08), p(-0.52,-0.38)];
+    const pts = [p(0,-0.94), p(0.52,-0.38), p(0.96,0), p(0.52,0.38), p(0,0.94), p(-0.52,0.38), p(-0.96,0), p(-0.52,-0.38)];
     return iconBrilliantElongated(box, c, f, pts, 0.4);
   }
   if (shapeKey === 'heart') {
@@ -3206,7 +3210,17 @@ function buildShapeIconInner(shapeKey, certRatio) {
   if (shapeKey === 'cushion' || shapeKey === 'cushion_brilliant') return iconCushion(box, c, f);
   if (shapeKey === 'square_cushion') return iconCushion(iconBox(1), c, f);
   if (shapeKey === 'princess') return iconPrincess(c, f);
-  if (shapeKey === 'emerald' || shapeKey === 'radiant') return iconStepRect(box, c, f);
+  if (shapeKey === 'emerald') return iconStepRect(box, c, f);
+  if (shapeKey === 'radiant') {
+    const cr = 0.18;
+    const pts = [
+      p(-0.92 + cr * 0.5, -0.72), p(0.92 - cr * 0.5, -0.72),
+      p(0.92, -0.72 + cr * 0.4), p(0.92, 0.72 - cr * 0.4),
+      p(0.92 - cr * 0.5, 0.72), p(-0.92 + cr * 0.5, 0.72),
+      p(-0.92, 0.72 - cr * 0.4), p(-0.92, -0.72 + cr * 0.4),
+    ];
+    return iconBrilliantElongated(box, c, f, pts, 0.42);
+  }
   if (shapeKey === 'asscher' || shapeKey === 'sq_radiant' || shapeKey === 'carre') return iconStepRect(iconBox(1), c, f);
   if (shapeKey === 'baguette' || shapeKey === 'tapered_baguette') return iconBaguette(shapeKey, c, f);
   if (shapeKey === 'trilliant') {
@@ -3221,16 +3235,29 @@ function buildShapeIconInner(shapeKey, certRatio) {
   }
   if (shapeKey === 'half_moon') {
     const hm = iconBox(2);
-    const left = iconXY(hm, -0.95, 0);
-    const top = iconXY(hm, 0, -0.55);
-    const bot = iconXY(hm, 0, 0.55);
-    const right = iconXY(hm, 0.75, 0);
-    const d = `M${left[0]},${left[1]} Q${right[0]},${top[1]} ${right[0]},${right[1]} Q${right[0]},${bot[1]} ${left[0]},${left[1]}Z`;
-    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, [[...iconXY(hm,-0.35,0), ...right],[...iconXY(hm,-0.55,-0.2), ...top],[...iconXY(hm,-0.55,0.2), ...bot]]);
+    const x0 = +(hm.cx - hm.hw * 0.92).toFixed(2);
+    const x1 = +(hm.cx + hm.hw * 0.92).toFixed(2);
+    const yFlat = +(hm.cy - hm.hh * 0.08).toFixed(2);
+    const yBot = +(hm.cy + hm.hh * 0.92).toFixed(2);
+    const qrx = +(hm.cx + hm.hw * 1.0).toFixed(2);
+    const qlx = +(hm.cx - hm.hw * 1.0).toFixed(2);
+    const qmy = +(hm.cy + hm.hh * 0.5).toFixed(2);
+    const d = `M${x0},${yFlat} L${x1},${yFlat} Q${qrx},${qmy} ${hm.cx},${yBot} Q${qlx},${qmy} ${x0},${yFlat}Z`;
+    const tx0 = +(hm.cx - hm.hw * 0.38).toFixed(2);
+    const tx1 = +(hm.cx + hm.hw * 0.38).toFixed(2);
+    const ty = +(hm.cy + hm.hh * 0.28).toFixed(2);
+    const segs = [
+      [tx0, ty, x0, yFlat], [tx1, ty, x1, yFlat],
+      [tx0, ty, +(hm.cx - hm.hw * 0.5).toFixed(2), +(yBot - hm.hh * 0.3).toFixed(2)],
+      [tx1, ty, +(hm.cx + hm.hw * 0.5).toFixed(2), +(yBot - hm.hh * 0.3).toFixed(2)],
+      [hm.cx, +(ty + hm.hh * 0.15).toFixed(2), hm.cx, yBot],
+      [tx0, ty, tx1, ty],
+    ];
+    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, segs);
   }
   if (shapeKey === 'shield') {
-    const sh = iconBox(1.15);
-    const pts = [iconXY(sh,0,-0.92), iconXY(sh,0.78,-0.35), iconXY(sh,0.62,0.55), iconXY(sh,0,0.92), iconXY(sh,-0.62,0.55), iconXY(sh,-0.78,-0.35)];
+    const sh = iconBox(1.1);
+    const pts = [iconXY(sh,-0.85,-0.78), iconXY(sh,0.85,-0.78), iconXY(sh,0.95,0.05), iconXY(sh,0,0.92), iconXY(sh,-0.95,0.05)];
     return iconBrilliantElongated(sh, c, f, pts, 0.38);
   }
   if (shapeKey === 'hexagonal') {
@@ -3244,14 +3271,22 @@ function buildShapeIconInner(shapeKey, certRatio) {
   }
   if (shapeKey === 'hexagonal_dutch') {
     const hd = iconBox(lw);
-    const pts = [iconXY(hd,0,-0.94), iconXY(hd,0.55,-0.45), iconXY(hd,0.95,0), iconXY(hd,0.55,0.45), iconXY(hd,0,0.94), iconXY(hd,-0.55,0.45), iconXY(hd,-0.95,0), iconXY(hd,-0.55,-0.45)];
+    const pts = [iconXY(hd,0,-0.94), iconXY(hd,0.9,-0.38), iconXY(hd,0.9,0.38), iconXY(hd,0,0.94), iconXY(hd,-0.9,0.38), iconXY(hd,-0.9,-0.38)];
     return iconBrilliantElongated(hd, c, f, pts, 0.38);
   }
   if (shapeKey === 'old_european') {
     const oe = iconBox(1);
     const r = Math.min(oe.hw, oe.hh) * 0.92;
-    return `<circle cx="${oe.cx}" cy="${oe.cy}" r="${r.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="${oe.cx}" cy="${oe.cy}" r="${(r*0.22).toFixed(2)}" fill="none" stroke="${c}" stroke-width="0.65" opacity="0.75"/>` +
-      iconLines(c, f, [[oe.cx, oe.cy - r*0.35, oe.cx, oe.cy + r*0.55]]);
+    const tableR = r * 0.38;
+    let s = `<circle cx="${oe.cx}" cy="${oe.cy}" r="${r.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
+    s += `<circle cx="${oe.cx}" cy="${oe.cy}" r="${tableR.toFixed(2)}" fill="none" stroke="${c}" stroke-width="0.8"/>`;
+    const segs = [];
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+      const a2 = ((i + 0.5) / 8) * Math.PI * 2 - Math.PI / 2;
+      segs.push([+(oe.cx + Math.cos(a) * tableR).toFixed(2), +(oe.cy + Math.sin(a) * tableR).toFixed(2), +(oe.cx + Math.cos(a2) * r).toFixed(2), +(oe.cy + Math.sin(a2) * r).toFixed(2)]);
+    }
+    return s + iconLines(c, f, segs);
   }
   if (shapeKey === 'old_mine') {
     const om = iconBox(1.02);
@@ -3259,21 +3294,41 @@ function buildShapeIconInner(shapeKey, certRatio) {
     return iconBrilliantElongated(om, c, f, pts, 0.4);
   }
   if (shapeKey === 'rose') {
-    const rs = iconBox(1.15);
-    const dome = `M${iconXY(rs,-0.9,0.35)} Q${iconXY(rs,0,-0.85)[0]},${iconXY(rs,0,-0.85)[1]} ${iconXY(rs,0.9,0.35)[0]},${iconXY(rs,0.9,0.35)[1]} L${iconXY(rs,0.9,0.55)[0]},${iconXY(rs,0.9,0.55)[1]} L${iconXY(rs,-0.9,0.55)[0]},${iconXY(rs,-0.9,0.55)[1]}Z`;
-    const apex = iconXY(rs, 0, -0.82);
-    const segs = [[0,-0.35],[0.55,0.2],[-0.55,0.2],[0.75,0.45],[-0.75,0.45]].map(([u,v]) => [apex[0], apex[1], ...iconXY(rs,u,v)]);
-    return `<path d="${dome}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, segs);
+    const rs = iconBox(1);
+    const r = Math.min(rs.hw, rs.hh) * 0.92;
+    const cx = rs.cx, cy = rs.cy;
+    let s = `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
+    const apex = [cx, +(cy - r * 0.18).toFixed(2)];
+    const segs = [];
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+      segs.push([apex[0], apex[1], +(cx + Math.cos(a) * r).toFixed(2), +(cy + Math.sin(a) * r).toFixed(2)]);
+    }
+    const midPts = [];
+    for (let i = 0; i < 6; i++) {
+      const a = ((i + 0.5) / 6) * Math.PI * 2 - Math.PI / 2;
+      midPts.push([+(cx + Math.cos(a) * r * 0.5).toFixed(2), +(cy + Math.sin(a) * r * 0.5).toFixed(2)]);
+    }
+    s += `<path d="${midPts.map(([x,y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ')}Z" fill="none" stroke="${c}" stroke-width="0.65"/>`;
+    return s + iconLines(c, f, segs);
   }
   if (shapeKey === 'briolette') {
-    const br = iconBox(1.35);
-    const top = iconXY(br, 0, -0.92);
-    const mid = iconXY(br, 0, 0.15);
-    const bot = iconXY(br, 0, 0.92);
-    const d = `M${top[0]},${top[1]} Q${iconXY(br,0.72,0)[0]},${iconXY(br,0.72,0)[1]} ${bot[0]},${bot[1]} Q${iconXY(br,-0.72,0)[0]},${iconXY(br,-0.72,0)[1]} ${top[0]},${top[1]}Z`;
+    const br = iconBox(0.62);
+    const cx = br.cx, cy = br.cy;
+    const rx = br.hw * 0.88;
+    const topY = +(cy - br.hh * 0.92).toFixed(2);
+    const botY = +(cy + br.hh * 0.92).toFixed(2);
+    const wy = +(cy - br.hh * 0.1).toFixed(2);
+    const d = `M${cx},${topY} C${+(cx + rx * 0.9).toFixed(2)},${+(cy - br.hh * 0.5).toFixed(2)} ${+(cx + rx).toFixed(2)},${wy} ${cx},${botY} C${+(cx - rx).toFixed(2)},${wy} ${+(cx - rx * 0.9).toFixed(2)},${+(cy - br.hh * 0.5).toFixed(2)} ${cx},${topY}Z`;
     const segs = [];
-    for (let i = -0.55; i <= 0.55; i += 0.28) segs.push([...iconXY(br,i,-0.55), ...iconXY(br,i,0.75)]);
-    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, [[...top,...mid],[...mid,...bot],...segs]);
+    for (const v of [-0.55, -0.25, 0.1, 0.42, 0.7]) {
+      const y = cy + v * br.hh;
+      const frac = 1 - Math.abs((y - wy) / (br.hh * 0.92)) * 0.85;
+      const bx = rx * Math.max(0, frac) * 0.88;
+      segs.push([+(cx - bx).toFixed(2), +y.toFixed(2), +(cx + bx).toFixed(2), +y.toFixed(2)]);
+    }
+    segs.push([cx, +(topY + 1).toFixed(2), cx, +(botY - 1).toFixed(2)]);
+    return `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, segs);
   }
   if (shapeKey === 'flanders') {
     const fl = iconBox(1);
@@ -3290,7 +3345,7 @@ function shapeIconSvg(shapeKey, size = 26, certRatio = null) {
   const title = ratio && ratioGuides[iconKey]
     ? `${shapeNames[shapeKey] || shapeNames[iconKey] || shapeKey} · L/W ${ratio.toFixed(2)}`
     : (shapeNames[shapeKey] || shapeNames[iconKey] || shapeKey);
-  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"${ratio && ratioGuides[shapeKey] ? ` title="${title}"` : ''}>${inner}</svg>`;
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"${ratio && ratioGuides[iconKey] ? ` title="${title}"` : ''}>${inner}</svg>`;
 }
 
 function setShapeIcon(elementId, shapeKey) {

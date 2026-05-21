@@ -6,7 +6,8 @@ Self-contained diamond **shape icon** renderer from [Gem Appraise](../index.html
 
 | File | Purpose |
 |------|---------|
-| `shape-icons.js` | All drawing code + `shapeIconSvg()` API |
+| `shape-icons.js` | All drawing code + `shapeIconSvg()` API (synced with app fixes) |
+| `shape-icons-fixed.js` | Same as `shape-icons.js` — source of truth for icon accuracy fixes |
 | `gallery.html` | Open in a browser to preview every shape |
 | `svgs/*.svg` | Pre-rendered 64×64 files (one per shape) |
 | `manifest.json` | Shape keys, labels, colors, file paths |
@@ -49,7 +50,7 @@ console.log(icons.ALL_SHAPE_KEYS);
 - `buildShapeIconInner(shapeKey, certRatio?)` → inner markup only (no wrapper)
 - `resolveShapeIconKey(shapeKey, certRatio?)` → normalized key for drawing
 - `mapReportShapeToState(shape, reportHint?)` → IGI text → shape key
-- `ALL_SHAPE_KEYS` — array of 27 shape keys
+- `ALL_SHAPE_KEYS` — array of 28 shape keys
 - `shapeNames`, `SHAPE_ICON_COLORS`
 
 Optional `certRatio` (length/width) stretches elongated cuts when `ratioGuides` defines that shape.
@@ -60,7 +61,7 @@ Optional `certRatio` (length/width) stretches elongated cuts when `ratioGuides` 
 node generate-svgs.mjs
 ```
 
-## Shapes (27)
+## Shapes (28)
 
 `round`, `oval`, `pear`, `marquise`, `moval`, `heart`, `cushion`, `cushion_brilliant`, `square_cushion`, `princess`, `emerald`, `radiant`, `asscher`, `sq_radiant`, `carre`, `baguette`, `tapered_baguette`, `trilliant`, `half_moon`, `shield`, `hexagonal`, `hexagonal_dutch`, `old_european`, `old_mine`, `rose`, `briolette`, `portuguese`, `flanders`
 
