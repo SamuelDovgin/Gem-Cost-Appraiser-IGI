@@ -1887,7 +1887,10 @@ function renderCompEntry(entry, isAlt) {
     const adjHtml = hasAdj
       ? ` <span class="comp-alt-arr">→</span> <span class="comp-alt-adj">~${fmt(estimatedPrice)}</span>`
       : '';
-    return `<div class="comp-alt-row"><span class="comp-alt-price">${fmt(listingPrice)}</span>${adjHtml} <span style="color:var(--muted)">${escapeHTML(rowSpec)}</span> · ${supplier}${viewLink}</div>`;
+    const altPartsHtml = modifiers && modifiers.parts && modifiers.parts.length
+      ? `<div class="comp-mod">${modifiers.parts.map(escapeHTML).join(' · ')}</div>`
+      : '';
+    return `<div class="comp-alt-row"><span class="comp-alt-price">${fmt(listingPrice)}</span>${adjHtml} <span style="color:var(--muted)">${escapeHTML(rowSpec)}</span> · ${supplier}${viewLink}</div>${altPartsHtml}`;
   }
 
   let priceHtml;
@@ -1898,7 +1901,7 @@ function renderCompEntry(entry, isAlt) {
   }
 
   let modHtml = '';
-  if (hasAdj && modifiers.parts && modifiers.parts.length) {
+  if (modifiers && modifiers.parts && modifiers.parts.length) {
     modHtml = `<div class="comp-mod">${modifiers.parts.map(escapeHTML).join(' · ')}</div>`;
   }
   const specHtml = row ? `<span class="comp-supplier">${escapeHTML(rowSpec)} · ${supplier}</span>` : `<span class="comp-supplier">${supplier}</span>`;
