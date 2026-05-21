@@ -153,9 +153,14 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .chart-wrap{border-top:.5px solid var(--border);padding:16px 22px 20px}
 .chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
 .chart-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.chart-tabs{display:flex;gap:4px}
+.chart-tab{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;border:.5px solid var(--border);background:transparent;color:var(--muted);border-radius:5px;padding:4px 9px;cursor:pointer;line-height:1;transition:all .12s}
+.chart-tab:hover{color:var(--muted2);border-color:var(--border2)}
+.chart-tab.active{color:var(--accent);border-color:var(--accent);background:var(--accent-dim)}
 .legend{display:flex;gap:13px;flex-wrap:wrap;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted)}
 .legend span{display:inline-flex;align-items:center;gap:5px}
 .sw{width:14px;height:2px;border-radius:2px;display:inline-block}
+.sw-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
 #price-chart{width:100%;height:200px;display:block;background:#0d0d0d;border:.5px solid var(--border);border-radius:10px}
 
 /* ── VERDICT ── */
@@ -565,11 +570,19 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 
   <div class="chart-wrap">
     <div class="chart-head">
-      <div class="chart-title">Price curve 0.5–10ct · selected specs</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="chart-title" id="chart-title">Price curve 0.5–10ct · selected specs</div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" data-tab="carat">Carat</button>
+          <button class="chart-tab" data-tab="clarity">Clarity</button>
+          <button class="chart-tab" data-tab="color">Color</button>
+        </div>
+      </div>
       <div class="legend">
         <span><i class="sw" style="background:#f0ede8"></i>Wholesale</span>
         <span><i class="sw" style="background:#4caf7a"></i>Fair direct</span>
         <span><i class="sw" style="background:#4a4540"></i>Retail</span>
+        <span><i class="sw-dot" style="background:#d4af72"></i>Alibaba</span>
       </div>
     </div>
     <canvas id="price-chart" height="200"></canvas>
@@ -690,6 +703,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 // ══════════════════════════════════════════════════════════════════════════════
 let _compsIdx = null;   // { comps: [...], indexVersion, rowCount }
 let _compsIdxReady = false;
+let _chartAxis = 'carat'; // 'carat' | 'clarity' | 'color'
 
 async function loadAlibabaCompsIndex() {
   if (_compsIdxReady) return;
@@ -1667,8 +1681,30 @@ function update() {
   setShapeIcon('weak-shape-icon', state.shape);
   updateWeakPointsBar();
 
-  document.getElementById('price-ws').textContent    = fmtR(m.ws*0.87, m.ws*1.13);
-  document.getElementById('price-ws-sub').textContent = fmt(m.wsPerCt)+'/ct est. trade cost';
+  // Wire Alibaba comp data to "What they paid" (factory-direct trade cost)
+  { const ac = m.alibabaComp;
+    let wsDisplay, wsSub;
+    if (ac && ac.matchType === 'exact' && ac.primary) {
+      const lp = ac.primary.listingPrice;
+      const altPrices = [lp, ...(ac.alternatives||[]).map(a=>a.listingPrice)].filter(Boolean);
+      const lo = Math.round(Math.min(...altPrices) * 0.95);
+      const hi = Math.round(Math.max(...altPrices) * 1.08);
+      wsDisplay = lo === hi ? fmt(lo) : fmtR(lo, hi);
+      wsSub = fmt(Math.round(lp/ct)) + '/ct · IGI factory direct';
+    } else if (ac && ac.matchType === 'nearest' && ac.primary) {
+      const est = ac.primary.estimatedPrice;
+      wsDisplay = fmtR(Math.round(est * 0.88), Math.round(est * 1.14));
+      wsSub = fmt(Math.round(est/ct)) + '/ct · Alibaba est.';
+    } else if (ac && ac.matchType === 'model_fallback' && ac.primary) {
+      wsDisplay = fmtR(m.ws*0.87, m.ws*1.13);
+      wsSub = fmt(m.wsPerCt) + '/ct est. (model · no direct comp)';
+    } else {
+      wsDisplay = fmtR(m.ws*0.87, m.ws*1.13);
+      wsSub = fmt(m.wsPerCt) + '/ct est. trade cost';
+    }
+    document.getElementById('price-ws').textContent = wsDisplay;
+    document.getElementById('price-ws-sub').textContent = wsSub;
+  }
   document.getElementById('price-fair').textContent   = fmtR(m.fairLo, m.fairHi);
   document.getElementById('price-fair-sub').textContent = fmt(m.fairLo/ct)+'–'+fmt(m.fairHi/ct).replace('$','')+'/ct';
   document.getElementById('price-retail').textContent  = fmtR(m.retailLo, m.retailHi);
@@ -1880,8 +1916,7 @@ function updateAlibabaFloorBar() {
 // ══════════════════════════════════════════════════════════════════════════════
 // CHART
 // ══════════════════════════════════════════════════════════════════════════════
-function drawChart(){
-  const canvas = document.getElementById('price-chart');
+function _chartSetup(canvas) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio||1;
   const cssW = canvas.clientWidth||960;
@@ -1889,17 +1924,64 @@ function drawChart(){
   canvas.width=cssW*dpr; canvas.height=cssH*dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssW,cssH);
+  return {ctx,cssW,cssH,dpr};
+}
 
+function _chartGrid(ctx,cssW,cssH,pad,ymax,labels,xM,yM) {
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
+  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='9px DM Mono,monospace';
+  for(let i=0;i<=4;i++){
+    const yy=pad.t+i/4*(cssH-pad.t-pad.b);
+    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
+    ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
+  }
+  labels.forEach((lbl,i)=>{
+    const x=xM(i);
+    ctx.fillStyle=lbl.active?'rgba(212,175,114,0.9)':'rgba(255,255,255,0.28)';
+    ctx.fillText(lbl.text,x-(lbl.text.length*3),cssH-10);
+  });
+}
+
+function _plotLine(ctx,pts,xM,yM,key,color,width) {
+  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash([]);ctx.beginPath();
+  pts.forEach((p,i)=>{ const y=yM(p[key]); i?ctx.lineTo(xM(i),y):ctx.moveTo(xM(i),y); });
+  ctx.stroke();
+}
+
+function _chartAlibabaDots(ctx,dots,xM,yM,pad,cssH) {
+  if(!dots.length) return;
+  ctx.fillStyle='rgba(212,175,114,0.8)';
+  dots.forEach(d=>{
+    const x=xM(d.xi); const y=yM(d.p);
+    if(x<pad.l||x>9999||y<pad.t||y>cssH-pad.b) return;
+    ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();
+  });
+}
+
+function _chartMarker(ctx,xi,xM,pad,cssH) {
+  const cx=xM(xi);
+  ctx.strokeStyle='rgba(212,175,114,0.45)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,cssH-pad.b);ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function _getAlibabaDots(filterFn, xiMap) {
+  const dots=[];
+  if(!_compsIdxReady||!_compsIdx) return dots;
+  _compsIdx.comps.forEach(row=>{
+    const xi = xiMap(row);
+    if(xi===null||xi===undefined) return;
+    if(filterFn(row)) dots.push({xi,p:row.priceUsd});
+  });
+  return dots;
+}
+
+function drawCaratChart(ctx,cssW,cssH) {
   const pad={l:56,r:20,t:14,b:32};
-  const savedCt = state.carat;
+  const savedCt=state.carat;
   const xs=[];
   for(let c=0.5;c<=10.05;c+=0.25) xs.push(Math.round(c*100)/100);
-  const series = xs.map(c=>{
-    state.carat=c;
-    const m=compute(c);
-    state.carat=savedCt;
-    return {c,ws:m.ws,fair:m.fairMid,retail:m.retailMid};
-  });
+  const series=xs.map(c=>{ state.carat=c; const m=compute(c); state.carat=savedCt; return {c,ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
 
   const ymax=Math.max(...series.map(p=>p.retail))*1.12;
   const xM=c=>pad.l+(c-0.5)/9.5*(cssW-pad.l-pad.r);
@@ -1923,10 +2005,162 @@ function drawChart(){
   plotLine('fair','#4caf7a',2);
   plotLine('ws','#e0ddd8',1.5);
 
-  const cx=xM(state.carat);
-  ctx.strokeStyle='rgba(212,175,114,0.45)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
-  ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,cssH-pad.b);ctx.stroke();
-  ctx.setLineDash([]);
+  // Alibaba scatter dots
+  if(_compsIdxReady&&_compsIdx) {
+    const userShape=normalizeShapeForComp(state.shape);
+    const clarU=CLARITY_RANK_NUM[state.clarity]??2;
+    const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
+    const dots=[];
+    _compsIdx.comps.forEach(row=>{
+      if(row.colorFamily!==state.colorFamily) return;
+      if(row.shape!==userShape) return;
+      if(state.colorFamily==='white') {
+        if(Math.abs((CLARITY_RANK_NUM[row.clarity]??2)-clarU)>1) return;
+        if(Math.abs((WHITE_COLOR_GRADE_NUM[row.colorNormalized||'D']??0)-colorU)>2) return;
+      }
+      const px=xM(row.carat); const py=yM(row.priceUsd);
+      if(px<pad.l||py<pad.t||py>cssH-pad.b) return;
+      dots.push({x:px,y:py});
+    });
+    ctx.fillStyle='rgba(212,175,114,0.8)';
+    dots.forEach(d=>{ ctx.beginPath();ctx.arc(d.x,d.y,3.5,0,Math.PI*2);ctx.fill(); });
+  }
+
+  _chartMarker(ctx,state.carat,xM,pad,cssH);
+}
+
+function drawClarityChart(ctx,cssW,cssH) {
+  const pad={l:56,r:20,t:14,b:32};
+  const clarities=['VS2','VS1','VVS2','VVS1','IF'];
+  const savedClarity=state.clarity;
+  const pts=clarities.map(cl=>{ state.clarity=cl; const m=compute(state.carat); state.clarity=savedClarity; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
+
+  const ymax=Math.max(...pts.map(p=>p.retail))*1.2;
+  const n=clarities.length;
+  const xM=i=>pad.l+(i+0.5)/n*(cssW-pad.l-pad.r);
+  const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
+  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='9px DM Mono,monospace';
+  for(let i=0;i<=4;i++){
+    const yy=pad.t+i/4*(cssH-pad.t-pad.b);
+    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
+    ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
+  }
+  clarities.forEach((cl,i)=>{
+    ctx.fillStyle=cl===state.clarity?'rgba(212,175,114,0.9)':'rgba(255,255,255,0.28)';
+    ctx.fillText(cl,xM(i)-(cl.length*3),cssH-10);
+  });
+
+  // Lines
+  [['retail','#3e3a36',1.5],['fair','#4caf7a',2],['ws','#e0ddd8',1.5]].forEach(([k,col,w])=>{
+    ctx.strokeStyle=col;ctx.lineWidth=w;ctx.setLineDash([]);ctx.beginPath();
+    pts.forEach((p,i)=>{ i?ctx.lineTo(xM(i),yM(p[k])):ctx.moveTo(xM(i),yM(p[k])); });
+    ctx.stroke();
+  });
+  // Model dots
+  ctx.fillStyle='rgba(224,221,216,0.5)';
+  pts.forEach((p,i)=>{ ctx.beginPath();ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2);ctx.fill(); });
+
+  // Alibaba dots
+  if(_compsIdxReady&&_compsIdx) {
+    const userShape=normalizeShapeForComp(state.shape);
+    const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
+    const ct=state.carat;
+    const dots=[];
+    _compsIdx.comps.forEach(row=>{
+      if(row.colorFamily!==state.colorFamily) return;
+      if(row.shape!==userShape) return;
+      if(Math.abs(ct-row.carat)>0.35) return;
+      if(state.colorFamily==='white'&&Math.abs((WHITE_COLOR_GRADE_NUM[row.colorNormalized||'D']??0)-colorU)>2) return;
+      const ci=clarities.indexOf(row.clarity);
+      if(ci<0) return;
+      dots.push({xi:ci,p:row.priceUsd});
+    });
+    ctx.fillStyle='rgba(212,175,114,0.85)';
+    dots.forEach(d=>{ ctx.beginPath();ctx.arc(xM(d.xi),yM(d.p),4,0,Math.PI*2);ctx.fill(); });
+  }
+
+  // Current clarity marker
+  const ci=clarities.indexOf(state.clarity);
+  if(ci>=0) _chartMarker(ctx,ci,xM,pad,cssH);
+}
+
+function drawColorChart(ctx,cssW,cssH) {
+  const pad={l:56,r:20,t:14,b:32};
+  if(!isWhite()) {
+    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='11px DM Mono,monospace';ctx.textAlign='center';
+    ctx.fillText('Color axis — switch to a white diamond grade',cssW/2,cssH/2);
+    ctx.textAlign='left'; return;
+  }
+  const grades=['D','E','F','G','H'];
+  const savedGrade=state.whiteGrade;
+  const pts=grades.map(g=>{ state.whiteGrade=g; const m=compute(state.carat); state.whiteGrade=savedGrade; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
+
+  const ymax=Math.max(...pts.map(p=>p.retail))*1.2;
+  const n=grades.length;
+  const xM=i=>pad.l+(i+0.5)/n*(cssW-pad.l-pad.r);
+  const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
+
+  // Grid
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
+  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='9px DM Mono,monospace';
+  for(let i=0;i<=4;i++){
+    const yy=pad.t+i/4*(cssH-pad.t-pad.b);
+    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
+    ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
+  }
+  grades.forEach((g,i)=>{
+    ctx.fillStyle=g===state.whiteGrade?'rgba(212,175,114,0.9)':'rgba(255,255,255,0.28)';
+    ctx.fillText(g,xM(i)-3,cssH-10);
+  });
+
+  // Lines
+  [['retail','#3e3a36',1.5],['fair','#4caf7a',2],['ws','#e0ddd8',1.5]].forEach(([k,col,w])=>{
+    ctx.strokeStyle=col;ctx.lineWidth=w;ctx.setLineDash([]);ctx.beginPath();
+    pts.forEach((p,i)=>{ i?ctx.lineTo(xM(i),yM(p[k])):ctx.moveTo(xM(i),yM(p[k])); });
+    ctx.stroke();
+  });
+  ctx.fillStyle='rgba(224,221,216,0.5)';
+  pts.forEach((p,i)=>{ ctx.beginPath();ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2);ctx.fill(); });
+
+  // Alibaba dots (map D→0, DE→0.5≈0, DEF→1, E→1, F→2)
+  if(_compsIdxReady&&_compsIdx) {
+    const userShape=normalizeShapeForComp(state.shape);
+    const clarU=CLARITY_RANK_NUM[state.clarity]??2;
+    const ct=state.carat;
+    const colIdx={'D':0,'DE':0.5,'DEF':1,'E':1,'F':2};
+    const dots=[];
+    _compsIdx.comps.forEach(row=>{
+      if(row.colorFamily!=='white') return;
+      if(row.shape!==userShape) return;
+      if(Math.abs(ct-row.carat)>0.35) return;
+      if(Math.abs((CLARITY_RANK_NUM[row.clarity]??2)-clarU)>1) return;
+      const ci=colIdx[row.colorNormalized||'D'];
+      if(ci===undefined) return;
+      dots.push({xi:Math.round(ci),p:row.priceUsd});
+    });
+    ctx.fillStyle='rgba(212,175,114,0.85)';
+    dots.forEach(d=>{ if(d.xi>=0&&d.xi<n){ctx.beginPath();ctx.arc(xM(d.xi),yM(d.p),4,0,Math.PI*2);ctx.fill();} });
+  }
+
+  const ci=grades.indexOf(state.whiteGrade);
+  if(ci>=0) _chartMarker(ctx,ci,xM,pad,cssH);
+}
+
+function drawChart(){
+  const canvas = document.getElementById('price-chart');
+  const titleEl = document.getElementById('chart-title');
+  if(titleEl) {
+    if(_chartAxis==='clarity') titleEl.textContent='Price by clarity \u00b7 '+state.carat.toFixed(1)+'ct \u00b7 selected grade';
+    else if(_chartAxis==='color') titleEl.textContent='Price by color grade \u00b7 '+state.carat.toFixed(1)+'ct \u00b7 '+state.clarity;
+    else titleEl.textContent='Price curve 0.5\u201310ct \u00b7 selected specs';
+  }
+  const {ctx,cssW,cssH}=_chartSetup(canvas);
+  if(_chartAxis==='clarity') drawClarityChart(ctx,cssW,cssH);
+  else if(_chartAxis==='color') drawColorChart(ctx,cssW,cssH);
+  else drawCaratChart(ctx,cssW,cssH);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2002,6 +2236,14 @@ Object.entries(toggleMap).forEach(([id,[stateKey,colorClass]])=>{
 });
 
 window.addEventListener('resize',drawChart);
+document.querySelectorAll('.chart-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.chart-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    _chartAxis=btn.dataset.tab;
+    drawChart();
+  });
+});
 
 // ══════════════════════════════════════════════════════════════════════════════
 // IGI REPORT LOOKUP
@@ -2539,23 +2781,28 @@ const SHAPE_ICON_COLORS = {
 function shapeIconSvg(shapeKey, size = 26) {
   const c = SHAPE_ICON_COLORS[shapeKey] || '#d4af72';
   const s = size;
+  const f = `stroke="${c}" stroke-width="0.5" opacity="0.6"`;
   const icons = {
-    round: `<circle cx="12" cy="12" r="9" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="3" x2="12" y2="21" stroke="${c}" stroke-width=".7" opacity=".55"/><line x1="3" y1="12" x2="21" y2="12" stroke="${c}" stroke-width=".7" opacity=".55"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5" stroke="${c}" stroke-width=".6" opacity=".4"/><line x1="18.5" y1="5.5" x2="5.5" y2="18.5" stroke="${c}" stroke-width=".6" opacity=".4"/>`,
-    oval: `<ellipse cx="12" cy="12" rx="10" ry="6.5" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="5.5" x2="12" y2="18.5" stroke="${c}" stroke-width=".7" opacity=".5"/><line x1="4" y1="12" x2="20" y2="12" stroke="${c}" stroke-width=".6" opacity=".4"/>`,
-    pear: `<path d="M12 4 C16 7 18 11 12 20 C6 11 8 7 12 4Z" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="7" x2="12" y2="17" stroke="${c}" stroke-width=".7" opacity=".5"/>`,
-    marquise: `<path d="M4 12 C8 6 16 6 20 12 C16 18 8 18 4 12Z" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="7" x2="12" y2="17" stroke="${c}" stroke-width=".7" opacity=".5"/>`,
-    heart: `<path d="M12 20 C5 14 4 9 8 7 C10.5 5.5 12 7.5 12 9 C12 7.5 13.5 5.5 16 7 C20 9 19 14 12 20Z" fill="none" stroke="${c}" stroke-width="1.2"/>`,
-    cushion: `<rect x="5" y="5" width="14" height="14" rx="4" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="8" y1="12" x2="16" y2="12" stroke="${c}" stroke-width=".6" opacity=".45"/><line x1="12" y1="8" x2="12" y2="16" stroke="${c}" stroke-width=".6" opacity=".45"/>`,
-    cushion_brilliant: `<rect x="5" y="5" width="14" height="14" rx="4" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="7" y1="7" x2="17" y2="17" stroke="${c}" stroke-width=".55" opacity=".4"/><line x1="17" y1="7" x2="7" y2="17" stroke="${c}" stroke-width=".55" opacity=".4"/>`,
-    square_cushion: `<rect x="5" y="5" width="14" height="14" rx="3" fill="none" stroke="${c}" stroke-width="1.2"/>`,
-    princess: `<rect x="5" y="5" width="14" height="14" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="5" y1="5" x2="19" y2="19" stroke="${c}" stroke-width=".6" opacity=".45"/><line x1="19" y1="5" x2="5" y2="19" stroke="${c}" stroke-width=".6" opacity=".45"/>`,
-    emerald: `<rect x="5.5" y="6" width="13" height="12" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="8" y="9" width="8" height="6" fill="none" stroke="${c}" stroke-width=".7" opacity=".55"/>`,
-    asscher: `<rect x="5.5" y="5.5" width="13" height="13" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="5.5" y1="5.5" x2="18.5" y2="18.5" stroke="${c}" stroke-width=".65" opacity=".5"/><line x1="18.5" y1="5.5" x2="5.5" y2="18.5" stroke="${c}" stroke-width=".65" opacity=".5"/>`,
-    radiant: `<rect x="5" y="6.5" width="14" height="11" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="7" y1="8" x2="17" y2="16" stroke="${c}" stroke-width=".55" opacity=".4"/><line x1="17" y1="8" x2="7" y2="16" stroke="${c}" stroke-width=".55" opacity=".4"/>`,
-    sq_radiant: `<rect x="5.5" y="5.5" width="13" height="13" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="7" y1="7" x2="17" y2="17" stroke="${c}" stroke-width=".55" opacity=".4"/>`,
-    baguette: `<rect x="4" y="8" width="16" height="8" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="8" y1="8" x2="8" y2="16" stroke="${c}" stroke-width=".6" opacity=".45"/><line x1="12" y1="8" x2="12" y2="16" stroke="${c}" stroke-width=".6" opacity=".45"/><line x1="16" y1="8" x2="16" y2="16" stroke="${c}" stroke-width=".6" opacity=".45"/>`,
-    trilliant: `<polygon points="12,4 20,18 4,18" fill="none" stroke="${c}" stroke-width="1.2"/>`,
-    default: `<polygon points="12,3 20,12 12,21 4,12" fill="none" stroke="${c}" stroke-width="1.2"/>`,
+    round: `<circle cx="12" cy="12" r="9.5" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="15.7,13.5 13.5,15.7 10.5,15.7 8.3,13.5 8.3,10.5 10.5,8.3 13.5,8.3 15.7,10.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.7" y1="10.5" x2="21.5" y2="12" ${f}/><line x1="15.7" y1="13.5" x2="21.5" y2="12" ${f}/><line x1="15.7" y1="13.5" x2="18.7" y2="18.7" ${f}/><line x1="13.5" y1="15.7" x2="18.7" y2="18.7" ${f}/><line x1="13.5" y1="15.7" x2="12" y2="21.5" ${f}/><line x1="10.5" y1="15.7" x2="12" y2="21.5" ${f}/><line x1="10.5" y1="15.7" x2="5.3" y2="18.7" ${f}/><line x1="8.3" y1="13.5" x2="5.3" y2="18.7" ${f}/><line x1="8.3" y1="13.5" x2="2.5" y2="12" ${f}/><line x1="8.3" y1="10.5" x2="2.5" y2="12" ${f}/><line x1="8.3" y1="10.5" x2="5.3" y2="5.3" ${f}/><line x1="10.5" y1="8.3" x2="5.3" y2="5.3" ${f}/><line x1="10.5" y1="8.3" x2="12" y2="2.5" ${f}/><line x1="13.5" y1="8.3" x2="12" y2="2.5" ${f}/><line x1="13.5" y1="8.3" x2="18.7" y2="5.3" ${f}/><line x1="15.7" y1="10.5" x2="18.7" y2="5.3" ${f}/>`,
+    oval: `<ellipse cx="12" cy="12" rx="10" ry="6.5" fill="none" stroke="${c}" stroke-width="1.2"/><ellipse cx="12" cy="12" rx="4.5" ry="2.8" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="16.5" y1="12" x2="22" y2="12" ${f}/><line x1="7.5" y1="12" x2="2" y2="12" ${f}/><line x1="12" y1="9.2" x2="12" y2="5.5" ${f}/><line x1="12" y1="14.8" x2="12" y2="18.5" ${f}/><line x1="15.1" y1="10.3" x2="18.5" y2="8" ${f}/><line x1="15.1" y1="13.7" x2="18.5" y2="16" ${f}/><line x1="8.9" y1="10.3" x2="5.5" y2="8" ${f}/><line x1="8.9" y1="13.7" x2="5.5" y2="16" ${f}/>`,
+    pear: `<path d="M12 3.5C16.5 7 18.5 12 12 20.5C5.5 12 7.5 7 12 3.5Z" fill="none" stroke="${c}" stroke-width="1.2"/><ellipse cx="12" cy="12" rx="3" ry="2.2" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="9.8" x2="12" y2="4" ${f}/><line x1="12" y1="14.2" x2="12" y2="19.5" ${f}/><line x1="15" y1="12" x2="18" y2="12" ${f}/><line x1="9" y1="12" x2="6" y2="12" ${f}/><line x1="14.2" y1="10.5" x2="17" y2="7.5" ${f}/><line x1="9.8" y1="10.5" x2="7" y2="7.5" ${f}/><line x1="14.2" y1="13.5" x2="17" y2="16.5" ${f}/><line x1="9.8" y1="13.5" x2="7" y2="16.5" ${f}/>`,
+    marquise: `<path d="M3.5 12C7 5.5 17 5.5 20.5 12C17 18.5 7 18.5 3.5 12Z" fill="none" stroke="${c}" stroke-width="1.2"/><ellipse cx="12" cy="12" rx="3.5" ry="1.8" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.5" y1="12" x2="20.5" y2="12" ${f}/><line x1="8.5" y1="12" x2="3.5" y2="12" ${f}/><line x1="14.8" y1="10.5" x2="19" y2="7.5" ${f}/><line x1="9.2" y1="10.5" x2="5" y2="7.5" ${f}/><line x1="14.8" y1="13.5" x2="19" y2="16.5" ${f}/><line x1="9.2" y1="13.5" x2="5" y2="16.5" ${f}/><line x1="12" y1="10.2" x2="12" y2="6" ${f}/><line x1="12" y1="13.8" x2="12" y2="18" ${f}/>`,
+    heart: `<path d="M12 20C5 13.5 3 9 7.5 6.5C10 5.2 12 7.5 12 9C12 7.5 14 5.2 16.5 6.5C21 9 19 13.5 12 20Z" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="9" x2="12" y2="19.5" stroke="${c}" stroke-width="0.6" opacity="0.55"/><line x1="12" y1="9" x2="5" y2="8" ${f}/><line x1="12" y1="9" x2="19" y2="8" ${f}/><line x1="8.5" y1="12.5" x2="4" y2="12" ${f}/><line x1="15.5" y1="12.5" x2="20" y2="12" ${f}/><line x1="8" y1="16" x2="5" y2="15.5" ${f}/><line x1="16" y1="16" x2="19" y2="15.5" ${f}/>`,
+    cushion: `<rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="15.5,13.5 13.5,15.5 10.5,15.5 8.5,13.5 8.5,10.5 10.5,8.5 13.5,8.5 15.5,10.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.5" y1="10.5" x2="19.5" y2="7.5" ${f}/><line x1="15.5" y1="13.5" x2="19.5" y2="16.5" ${f}/><line x1="8.5" y1="10.5" x2="4.5" y2="7.5" ${f}/><line x1="8.5" y1="13.5" x2="4.5" y2="16.5" ${f}/><line x1="13.5" y1="8.5" x2="16.5" y2="4.5" ${f}/><line x1="10.5" y1="8.5" x2="7.5" y2="4.5" ${f}/><line x1="13.5" y1="15.5" x2="16.5" y2="19.5" ${f}/><line x1="10.5" y1="15.5" x2="7.5" y2="19.5" ${f}/>`,
+    cushion_brilliant: `<rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="15.5,13.5 13.5,15.5 10.5,15.5 8.5,13.5 8.5,10.5 10.5,8.5 13.5,8.5 15.5,10.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.5" y1="10.5" x2="19.5" y2="7.5" ${f}/><line x1="15.5" y1="13.5" x2="19.5" y2="16.5" ${f}/><line x1="8.5" y1="10.5" x2="4.5" y2="7.5" ${f}/><line x1="8.5" y1="13.5" x2="4.5" y2="16.5" ${f}/><line x1="13.5" y1="8.5" x2="16.5" y2="4.5" ${f}/><line x1="10.5" y1="8.5" x2="7.5" y2="4.5" ${f}/><line x1="13.5" y1="15.5" x2="16.5" y2="19.5" ${f}/><line x1="10.5" y1="15.5" x2="7.5" y2="19.5" ${f}/>`,
+    square_cushion: `<rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="15.5,13.5 13.5,15.5 10.5,15.5 8.5,13.5 8.5,10.5 10.5,8.5 13.5,8.5 15.5,10.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="15.5" y1="10.5" x2="19" y2="7" ${f}/><line x1="15.5" y1="13.5" x2="19" y2="17" ${f}/><line x1="8.5" y1="10.5" x2="5" y2="7" ${f}/><line x1="8.5" y1="13.5" x2="5" y2="17" ${f}/><line x1="13.5" y1="8.5" x2="17" y2="5" ${f}/><line x1="10.5" y1="8.5" x2="7" y2="5" ${f}/><line x1="13.5" y1="15.5" x2="17" y2="19" ${f}/><line x1="10.5" y1="15.5" x2="7" y2="19" ${f}/>`,
+    princess: `<rect x="4.5" y="4.5" width="15" height="15" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="8" y="8" width="8" height="8" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="4.5" y1="4.5" x2="8" y2="8" ${f}/><line x1="19.5" y1="4.5" x2="16" y2="8" ${f}/><line x1="4.5" y1="19.5" x2="8" y2="16" ${f}/><line x1="19.5" y1="19.5" x2="16" y2="16" ${f}/><line x1="12" y1="4.5" x2="12" y2="8" ${f}/><line x1="12" y1="16" x2="12" y2="19.5" ${f}/><line x1="4.5" y1="12" x2="8" y2="12" ${f}/><line x1="16" y1="12" x2="19.5" y2="12" ${f}/>`,
+    emerald: `<rect x="5" y="7" width="14" height="10" rx="1.5" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="7.5" y="9" width="9" height="6" fill="none" stroke="${c}" stroke-width="0.7"/><rect x="9.5" y="10.5" width="5" height="3" fill="none" stroke="${c}" stroke-width="0.45" opacity="0.7"/><line x1="5" y1="7" x2="7.5" y2="9" ${f}/><line x1="19" y1="7" x2="16.5" y2="9" ${f}/><line x1="5" y1="17" x2="7.5" y2="15" ${f}/><line x1="19" y1="17" x2="16.5" y2="15" ${f}/>`,
+    asscher: `<rect x="5.5" y="5.5" width="13" height="13" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="8" y="8" width="8" height="8" fill="none" stroke="${c}" stroke-width="0.7"/><rect x="10" y="10" width="4" height="4" fill="none" stroke="${c}" stroke-width="0.45" opacity="0.7"/><line x1="5.5" y1="5.5" x2="8" y2="8" ${f}/><line x1="18.5" y1="5.5" x2="16" y2="8" ${f}/><line x1="5.5" y1="18.5" x2="8" y2="16" ${f}/><line x1="18.5" y1="18.5" x2="16" y2="16" ${f}/>`,
+    radiant: `<rect x="5" y="7" width="14" height="10" rx="1" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="7.5" y="9" width="9" height="6" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="5" y1="7" x2="7.5" y2="9" ${f}/><line x1="19" y1="7" x2="16.5" y2="9" ${f}/><line x1="5" y1="17" x2="7.5" y2="15" ${f}/><line x1="19" y1="17" x2="16.5" y2="15" ${f}/><line x1="12" y1="7" x2="12" y2="9" ${f}/><line x1="12" y1="15" x2="12" y2="17" ${f}/><line x1="5" y1="12" x2="7.5" y2="12" ${f}/><line x1="16.5" y1="12" x2="19" y2="12" ${f}/>`,
+    sq_radiant: `<rect x="5.5" y="5.5" width="13" height="13" rx="0.5" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="8.5" y="8.5" width="7" height="7" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="5.5" y1="5.5" x2="8.5" y2="8.5" ${f}/><line x1="18.5" y1="5.5" x2="15.5" y2="8.5" ${f}/><line x1="5.5" y1="18.5" x2="8.5" y2="15.5" ${f}/><line x1="18.5" y1="18.5" x2="15.5" y2="15.5" ${f}/><line x1="12" y1="5.5" x2="12" y2="8.5" ${f}/><line x1="12" y1="15.5" x2="12" y2="18.5" ${f}/><line x1="5.5" y1="12" x2="8.5" y2="12" ${f}/><line x1="15.5" y1="12" x2="18.5" y2="12" ${f}/>`,
+    baguette: `<rect x="4" y="8" width="16" height="8" fill="none" stroke="${c}" stroke-width="1.2"/><rect x="7" y="10" width="10" height="4" fill="none" stroke="${c}" stroke-width="0.7"/><rect x="9" y="11" width="6" height="2" fill="none" stroke="${c}" stroke-width="0.4" opacity="0.65"/><line x1="4" y1="8" x2="7" y2="10" ${f}/><line x1="20" y1="8" x2="17" y2="10" ${f}/><line x1="4" y1="16" x2="7" y2="14" ${f}/><line x1="20" y1="16" x2="17" y2="14" ${f}/>`,
+    trilliant: `<polygon points="12,3 21,19.5 3,19.5" fill="none" stroke="${c}" stroke-width="1.2"/><polygon points="12,9.5 17.5,19.5 6.5,19.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="3" x2="12" y2="9.5" ${f}/><line x1="21" y1="19.5" x2="17.5" y2="19.5" ${f}/><line x1="3" y1="19.5" x2="6.5" y2="19.5" ${f}/><line x1="12" y1="9.5" x2="3" y2="19.5" ${f}/><line x1="12" y1="9.5" x2="21" y2="19.5" ${f}/>`,
+    moval: `<ellipse cx="12" cy="12" rx="10" ry="6" fill="none" stroke="${c}" stroke-width="1.2"/><ellipse cx="12" cy="12" rx="4.5" ry="2.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="16.5" y1="12" x2="22" y2="12" ${f}/><line x1="7.5" y1="12" x2="2" y2="12" ${f}/><line x1="12" y1="9.5" x2="12" y2="6" ${f}/><line x1="12" y1="14.5" x2="12" y2="18" ${f}/><line x1="15.1" y1="10.5" x2="18" y2="8.5" ${f}/><line x1="8.9" y1="10.5" x2="6" y2="8.5" ${f}/><line x1="15.1" y1="13.5" x2="18" y2="15.5" ${f}/><line x1="8.9" y1="13.5" x2="6" y2="15.5" ${f}/>`,
+    old_european: `<circle cx="12" cy="12" r="9.5" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="7.5" x2="12" y2="2.5" ${f}/><line x1="16.5" y1="12" x2="21.5" y2="12" ${f}/><line x1="12" y1="16.5" x2="12" y2="21.5" ${f}/><line x1="7.5" y1="12" x2="2.5" y2="12" ${f}/><line x1="15.2" y1="8.8" x2="18.7" y2="5.3" ${f}/><line x1="15.2" y1="15.2" x2="18.7" y2="18.7" ${f}/><line x1="8.8" y1="15.2" x2="5.3" y2="18.7" ${f}/><line x1="8.8" y1="8.8" x2="5.3" y2="5.3" ${f}/>`,
+    old_mine: `<path d="M12 2.5 L19.5 8 L21 15 L15.5 21.5 L8.5 21.5 L3 15 L4.5 8 Z" fill="none" stroke="${c}" stroke-width="1.2"/><circle cx="12" cy="12" r="4" fill="none" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="8" x2="12" y2="2.5" ${f}/><line x1="16" y1="12" x2="21" y2="12" ${f}/><line x1="12" y1="16" x2="12" y2="21.5" ${f}/><line x1="8" y1="12" x2="3" y2="12" ${f}/><line x1="14.8" y1="9.2" x2="19.5" y2="8" ${f}/><line x1="14.8" y1="14.8" x2="19.5" y2="16" ${f}/><line x1="9.2" y1="14.8" x2="4.5" y2="16" ${f}/><line x1="9.2" y1="9.2" x2="4.5" y2="8" ${f}/>`,
+    rose: `<ellipse cx="12" cy="13" rx="9" ry="7" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="6" x2="12" y2="13" stroke="${c}" stroke-width="0.7"/><line x1="12" y1="6" x2="6" y2="13" stroke="${c}" stroke-width="0.5" opacity="0.55"/><line x1="12" y1="6" x2="18" y2="13" stroke="${c}" stroke-width="0.5" opacity="0.55"/><line x1="12" y1="6" x2="3.5" y2="11" ${f}/><line x1="12" y1="6" x2="20.5" y2="11" ${f}/>`,
+    default: `<polygon points="12,3 20,12 12,21 4,12" fill="none" stroke="${c}" stroke-width="1.2"/><line x1="12" y1="3" x2="12" y2="21" stroke="${c}" stroke-width="0.6" opacity="0.4"/><line x1="4" y1="12" x2="20" y2="12" stroke="${c}" stroke-width="0.6" opacity="0.4"/>`,
   };
   const inner = icons[shapeKey] || icons.default;
   return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" aria-hidden="true">${inner}</svg>`;
