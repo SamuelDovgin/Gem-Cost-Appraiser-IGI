@@ -206,6 +206,22 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .market-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;background:var(--blue)}
 .market-text{font-size:12px;line-height:1.6;color:var(--muted2)}
 .market-text strong{font-weight:600;color:var(--text)}
+.comp-block{margin-top:6px}
+.comp-row{display:flex;align-items:baseline;gap:7px;margin:5px 0;flex-wrap:wrap;line-height:1.5}
+.comp-price{font-family:'DM Serif Display',serif;font-size:14px;color:var(--muted2);text-decoration:line-through;opacity:.7}
+.comp-arr{color:var(--muted);font-size:11px}
+.comp-adj{font-family:'DM Serif Display',serif;font-size:16px;color:var(--accent);font-weight:400}
+.comp-tag{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.05em;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.comp-tag.exact{color:var(--green);background:var(--green-dim);border:.5px solid rgba(76,175,122,.25)}
+.comp-tag.nearest{color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25)}
+.comp-tag.model{color:var(--muted2);background:rgba(255,255,255,.04);border:.5px solid var(--border)}
+.comp-supplier{font-size:11px;color:var(--muted)}
+.comp-mod{font-size:11px;color:var(--muted);margin:1px 0 3px 0;line-height:1.5}
+.comp-alts{margin-top:6px;padding-top:6px;border-top:.5px solid var(--border);display:flex;flex-direction:column;gap:3px}
+.comp-alt-row{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--muted2)}
+.comp-alt-price{font-family:'DM Mono',monospace;font-size:11px;color:var(--text)}
+.comp-alt-arr{color:var(--muted);font-size:10px}
+.comp-alt-adj{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)}
 
 /* ── SOURCE PANEL ── */
 .sources-panel{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -670,6 +686,25 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
+// ALIBABA COMPS INDEX — pre-fetched at startup
+// ══════════════════════════════════════════════════════════════════════════════
+let _compsIdx = null;   // { comps: [...], indexVersion, rowCount }
+let _compsIdxReady = false;
+
+async function loadAlibabaCompsIndex() {
+  if (_compsIdxReady) return;
+  try {
+    const res = await fetch('research/data/alibaba-comps-index.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    _compsIdx = await res.json();
+    _compsIdxReady = true;
+    update(); // re-render now that comps are available
+  } catch (e) {
+    console.warn('Alibaba comps index unavailable — falling back to legacy ceiling.', e);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════════════════════════
 const state = {
@@ -968,6 +1003,312 @@ const AUC_FAIR_LO = 1.20, AUC_FAIR_HI = 1.45;
 
 function isWhite(){ return state.colorFamily === 'white'; }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ALIBABA COMP MATCHER — resolveAlibabaComp(ct)
+// ══════════════════════════════════════════════════════════════════════════════
+
+const CLARITY_RANK_NUM = { VVS1:0, VVS2:1, 'VVS-VS':1.5, VS1:2, VS2:3 };
+const WHITE_COLOR_GRADE_NUM = { D:0, DE:0.5, DEF:1, E:1, F:2, G:3, H:4, I:5, J:6, K:7, L:8 };
+const NEAREST_THRESHOLD = 3.5;
+
+const SHAPE_NORMALIZE = {
+  sq_radiant:'radiant', cushion_brilliant:'cushion', square_cushion:'cushion',
+  elongated_cushion:'cushion', moval:'oval', trilliant:'marquise',
+  old_european:'round', old_mine:'round',
+};
+function normalizeShapeForComp(s) { return SHAPE_NORMALIZE[s] || s; }
+function shapeMatches(userShape, compShape) {
+  return normalizeShapeForComp(userShape) === compShape ||
+    (compShape === 'elongated_cushion' && normalizeShapeForComp(userShape) === 'cushion');
+}
+
+function whiteColorDistance(query, row) {
+  const uR = WHITE_COLOR_GRADE_NUM[query.whiteGrade] ?? 2;
+  const cR = WHITE_COLOR_GRADE_NUM[row.colorNormalized || 'D'] ?? 0;
+  return Math.abs(uR - cR);
+}
+function whiteColorCompatible(query, row) { return whiteColorDistance(query, row) <= 5; }
+
+// Map fancy color label text → nearest fancyColorBase key
+const FANCY_LABEL_MAP = {
+  'fancy vivid pink':'pink_fv','vivid pink':'pink_fv',
+  'fancy intense pink':'pink_fi','intense pink':'pink_fi',
+  'fancy light pink':'pink_fl','light pink':'pink_fl',
+  'fancy pink':'pink_f','pink':'pink_f',
+  'fancy vivid yellow':'yellow_fv','vivid yellow':'yellow_fv',
+  'fancy intense yellow':'yellow_fi','intense yellow':'yellow_fi',
+  'fancy light yellow':'yellow_fl','light yellow':'yellow_fl',
+  'fancy yellow':'yellow_f','yellow':'yellow_f',
+  'fancy vivid blue':'blue_fv','vivid blue':'blue_fv',
+  'fancy intense blue':'blue_fi','intense blue':'blue_fi',
+  'fancy light blue':'blue_fl','light blue':'blue_fl',
+  'fancy blue':'blue_f','blue':'blue_f',
+  'fancy intense green':'green_fi','fancy vivid green':'green_fv',
+  'fancy intense greyish green':'green_fi','fancy green':'green_f',
+  'fancy red':'red_f','fancy intense brownish pink':'pink_fi',
+  'brownish pink':'pink_f',
+};
+function inferFancyFamilyKey(colorLabel) {
+  if (!colorLabel) return null;
+  const cl = colorLabel.toLowerCase().trim();
+  return FANCY_LABEL_MAP[cl] || null;
+}
+function fancyColorFamilyBase(colorLabel) {
+  return fancyColorBase[inferFancyFamilyKey(colorLabel)];
+}
+function fancyColorCompatible(query, row) {
+  if (!row.color) return false;
+  const rl = row.color.toLowerCase();
+  const uf = query.colorFamily_key;
+  if (uf.includes('pink') && !rl.includes('pink')) return false;
+  if (uf.includes('yellow') && !rl.includes('yellow')) return false;
+  if (uf.includes('blue') && !rl.includes('blue')) return false;
+  if (uf.includes('green') && !rl.includes('green')) return false;
+  if (uf.includes('red') && !rl.includes('red')) return false;
+  return true;
+}
+function fancyIntensityMult(userFamilyKey, compColorLabel, ct) {
+  const ub = fancyColorBase[userFamilyKey];
+  const compKey = inferFancyFamilyKey(compColorLabel);
+  const cb = compKey ? fancyColorBase[compKey] : null;
+  if (!ub || !cb) return 1.0;
+  const uWs = ub.ws1 * Math.pow(ct, ub.scale - 1);
+  const cWs = cb.ws1 * Math.pow(ct, cb.scale - 1);
+  return cWs > 0 ? uWs / cWs : 1.0;
+}
+
+function caratTolerance(ct) {
+  if (ct <= 2) return 0.08;
+  if (ct <= 6) return 0.18;
+  return 0.25;
+}
+function isExactCarat(userCt, row) {
+  if (row.caratBand) return false; // band rows are never exact
+  return Math.abs(userCt - row.carat) <= caratTolerance(row.carat);
+}
+
+function buildCompQueryFromState(ct) {
+  const shape = normalizeShapeForComp(state.shape);
+  if (isWhite()) {
+    return { colorFamily: 'white', shape, whiteGrade: state.whiteGrade, clarity: state.clarity, carat: ct };
+  }
+  return { colorFamily: 'fancy', shape, colorFamily_key: state.colorFamily, clarity: state.clarity, carat: ct };
+}
+
+function filterCandidates(query, comps) {
+  return comps.filter(row => {
+    if (row.colorFamily !== query.colorFamily) return false;
+    if (!shapeMatches(query.shape, row.shape)) return false;
+    if (query.colorFamily === 'white' && !whiteColorCompatible(query, row)) return false;
+    if (query.colorFamily === 'fancy' && !fancyColorCompatible(query, row)) return false;
+    if (row.clarityBand && query.colorFamily === 'white') return true; // allow band for nearest
+    return true;
+  });
+}
+
+function scoreCandidate(query, row) {
+  const caratDist = Math.abs(query.carat - row.carat);
+  const clarU = CLARITY_RANK_NUM[query.clarity] ?? 2;
+  const clarC = CLARITY_RANK_NUM[row.clarity] ?? 2;
+  const clarDist = Math.abs(clarU - clarC);
+  const colorDist = query.colorFamily === 'white' ? whiteColorDistance(query, row) : 0;
+  const shapePenalty = shapeMatches(query.shape, row.shape) ? 0 : 3.0;
+  const bandPenalty = (row.caratBand ? 0.3 : 0) + (row.clarityBand ? 0.5 : 0);
+  return caratDist * 4.0 + clarDist * 1.5 + colorDist * 1.0 + shapePenalty + bandPenalty;
+}
+
+function confidenceRank(conf) {
+  return { high:3, 'medium-high':2, medium:1, 'low-medium':0, low:0 }[conf] ?? -1;
+}
+
+function findExactComp(query, comps) {
+  const candidates = filterCandidates(query, comps).filter(row => {
+    if (!isExactCarat(query.carat, row)) return false;
+    if (row.clarityBand) return false;
+    if (row.clarity !== query.clarity) return false;
+    if (query.colorFamily === 'white') {
+      const cn = row.colorNormalized || 'D';
+      if (cn === 'D' || cn === null) return query.whiteGrade === 'D';
+      if (cn === 'E') return query.whiteGrade === 'E';
+      if (cn === 'F') return query.whiteGrade === 'F';
+      if (cn === 'DE') return query.whiteGrade === 'D' || query.whiteGrade === 'E';
+      if (cn === 'DEF') return query.whiteGrade === 'D' || query.whiteGrade === 'E' || query.whiteGrade === 'F';
+      return false;
+    }
+    return true; // fancy: color already filtered
+  });
+  if (!candidates.length) return null;
+  candidates.sort((a, b) =>
+    confidenceRank(b.confidence) - confidenceRank(a.confidence) ||
+    a.priceUsd - b.priceUsd ||
+    (a.productId > b.productId ? 1 : -1)
+  );
+  return candidates[0];
+}
+
+function findAllExactComps(query, comps) {
+  const best = findExactComp(query, comps);
+  if (!best) return [];
+  const seen = new Set();
+  const results = [];
+  for (const row of comps) {
+    if (row.productId === best.productId && !seen.has(row.productId)) {
+      seen.add(row.productId);
+      results.push(best);
+    }
+  }
+  // Also collect other product IDs that are exact
+  const others = filterCandidates(query, comps).filter(row =>
+    row !== best &&
+    !seen.has(row.productId) &&
+    isExactCarat(query.carat, row) &&
+    !row.clarityBand &&
+    row.clarity === query.clarity
+  );
+  const seenOther = new Set();
+  for (const row of others) {
+    if (!seenOther.has(row.productId)) {
+      seenOther.add(row.productId);
+      results.push(row);
+    }
+  }
+  return results;
+}
+
+function findNearestComps(query, comps, maxN) {
+  maxN = maxN || 3;
+  const scored = filterCandidates(query, comps)
+    .map(row => ({ row, score: scoreCandidate(query, row) }))
+    .filter(c => c.score <= NEAREST_THRESHOLD)
+    .sort((a, b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
+  const seenPid = new Set();
+  const result = [];
+  for (const c of scored) {
+    if (!seenPid.has(c.row.productId)) {
+      seenPid.add(c.row.productId);
+      result.push(c.row);
+      if (result.length >= maxN) break;
+    }
+  }
+  return result;
+}
+
+function applyWhiteModifiers(query, compRow) {
+  const ct = query.carat;
+  const cn = compRow.colorNormalized || 'D';
+  const compGrade = cn === 'DEF' ? 'E' : cn === 'DE' ? 'E' : (cn || 'D');
+  const colorMult = (whiteGradeMult[query.whiteGrade] ?? 0.70) /
+                    (whiteGradeMult[compGrade] ?? whiteGradeMult.D);
+  const clarU = CLARITY_RANK_NUM[query.clarity] ?? 2;
+  const clarC = CLARITY_RANK_NUM[compRow.clarity] ?? 2;
+  const clarityMult = (clarU !== clarC)
+    ? getClarityMult(query.clarity, ct) / Math.max(getClarityMult(compRow.clarity || 'VS1', ct), 0.01)
+    : 1;
+  const userSh = getShapeMultForPricing(query.shape);
+  const compSh = getShapeMultForPricing(compRow.shape);
+  const shapeMult = compSh > 0 ? userSh / compSh : 1;
+  const caratDiff = Math.abs(query.carat - compRow.carat);
+  const caratMult = caratDiff > 0.05
+    ? Math.pow(query.carat / compRow.carat, 1.8)
+    : 1;
+  const combined = colorMult * clarityMult * shapeMult * caratMult;
+  const parts = [];
+  if (Math.abs(colorMult - 1) > 0.02) parts.push(`color ×${colorMult.toFixed(2)} (${query.whiteGrade} vs ${cn})`);
+  if (Math.abs(clarityMult - 1) > 0.02) parts.push(`clarity ×${clarityMult.toFixed(2)} (${query.clarity} vs ${compRow.clarity})`);
+  if (Math.abs(shapeMult - 1) > 0.02) parts.push(`shape ×${shapeMult.toFixed(2)} (${query.shape} vs ${compRow.shape})`);
+  if (Math.abs(caratMult - 1) > 0.05) parts.push(`carat ×${caratMult.toFixed(2)} (${query.carat}ct vs ${compRow.carat}ct)`);
+  return { combined, estimated: Math.round(compRow.priceUsd * combined), parts };
+}
+
+function applyFancyModifiers(query, compRow) {
+  const ct = query.carat;
+  const intensityMult = fancyIntensityMult(query.colorFamily_key, compRow.color, ct);
+  const clarC = clarityMultColor[compRow.clarity] ?? 1;
+  const clarU = clarityMultColor[query.clarity] ?? 1;
+  const clarityMult = clarC > 0 ? clarU / clarC : 1;
+  const userSh = shapeMultColor[query.shape] ?? 1;
+  const compSh = shapeMultColor[compRow.shape] ?? 1;
+  const shapeMult = compSh > 0 ? userSh / compSh : 1;
+  const caratDiff = Math.abs(query.carat - compRow.carat);
+  const caratMult = caratDiff > 0.05 ? Math.pow(query.carat / compRow.carat, 1.5) : 1;
+  const combined = intensityMult * clarityMult * shapeMult * caratMult;
+  const parts = [];
+  const compKey = inferFancyFamilyKey(compRow.color);
+  if (Math.abs(intensityMult - 1) > 0.05) parts.push(`intensity ×${intensityMult.toFixed(2)} (${query.colorFamily_key} vs ${compKey || '?'})`);
+  if (Math.abs(clarityMult - 1) > 0.02) parts.push(`clarity ×${clarityMult.toFixed(2)}`);
+  if (Math.abs(shapeMult - 1) > 0.02) parts.push(`shape ×${shapeMult.toFixed(2)}`);
+  if (Math.abs(caratMult - 1) > 0.05) parts.push(`carat ×${caratMult.toFixed(2)} (${query.carat}ct vs ${compRow.carat}ct)`);
+  return { combined, estimated: Math.round(compRow.priceUsd * combined), parts };
+}
+
+function shortLabel(row) {
+  if (!row || !row.section) return 'Alibaba';
+  // Extract supplier name from section title: take text after the last ' - '
+  const dashIdx = row.section.lastIndexOf(' - ');
+  return dashIdx >= 0 ? row.section.slice(dashIdx + 3).trim() : row.section.split(',')[0].trim();
+}
+
+function resolveAlibabaComp(ct) {
+  if (!_compsIdxReady || !_compsIdx) return null;
+  const query = buildCompQueryFromState(ct);
+  const comps = _compsIdx.comps;
+
+  // 1. Exact match
+  const exact = findExactComp(query, comps);
+  if (exact) {
+    const alts = findAllExactComps(query, comps)
+      .filter(r => r.productId !== exact.productId)
+      .slice(0, 2)
+      .map(r => ({ row: r, listingPrice: r.priceUsd, estimatedPrice: r.priceUsd, url: r.url, label: shortLabel(r), modifiers: null }));
+    return {
+      matchType: 'exact',
+      primary: { row: exact, listingPrice: exact.priceUsd, estimatedPrice: exact.priceUsd, url: exact.url, label: shortLabel(exact), modifiers: null },
+      alternatives: alts,
+      confidence: exact.confidence || 'high',
+      source: 'comps-index',
+    };
+  }
+
+  // 2. Nearest match
+  const nearestRows = findNearestComps(query, comps, 3);
+  if (nearestRows.length) {
+    const applyMods = r => isWhite() ? applyWhiteModifiers(query, r) : applyFancyModifiers(query, r);
+    const pRow = nearestRows[0];
+    const pMod = applyMods(pRow);
+    return {
+      matchType: 'nearest',
+      primary: { row: pRow, listingPrice: pRow.priceUsd, estimatedPrice: pMod.estimated, url: pRow.url, label: shortLabel(pRow), modifiers: pMod },
+      alternatives: nearestRows.slice(1).map(r => { const mod = applyMods(r); return { row: r, listingPrice: r.priceUsd, estimatedPrice: mod.estimated, url: r.url, label: shortLabel(r), modifiers: mod }; }),
+      confidence: pRow.confidence,
+      source: 'comps-index',
+    };
+  }
+
+  // 3. Model fallback (white only) — round ladder × shape mult
+  if (isWhite()) {
+    const bench = lookupMessiRoundLadder(ct, state.clarity, state.whiteGrade);
+    if (bench) {
+      const shapeMult = getShapeMultForPricing(state.shape);
+      const estimated = Math.round(bench.price * shapeMult);
+      const parts = [`Messi D ${state.clarity} ${bench.ladderSize}ct = ${fmt(bench.price)}`];
+      if (Math.abs(shapeMult - 1) > 0.02) parts.push(`shape ×${shapeMult.toFixed(2)} (${state.shape} vs round)`);
+      if (state.whiteGrade !== 'D') parts.push(`grade ×${((whiteGradeMult[state.whiteGrade]??0.7)/whiteGradeMult.D).toFixed(2)} (${state.whiteGrade} vs D — already in bench price)`);
+      return {
+        matchType: 'model_fallback',
+        primary: { row: null, listingPrice: null, estimatedPrice: estimated, url: MESSI_D_ROUND_URL, label: 'Messi round ladder (estimated)', modifiers: { combined: shapeMult, estimated, parts } },
+        alternatives: [],
+        confidence: null,
+        source: 'messi-ladder',
+      };
+    }
+  }
+
+  return { matchType: 'none', primary: null, alternatives: [], confidence: null, source: null };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LEGACY SHOWROOM COMPS (kept as last-resort fallback for uncovered fancy colors)
+// ══════════════════════════════════════════════════════════════════════════════
 const alibabaComps = [
   { id:'ali-white-def-oval-1-5', group:'white', shapes:['oval','pear','radiant','cushion','emerald','round','marquise'], ctMin:1, ctMax:5, lo:18.50, hi:1080, unit:'piece', label:'Alibaba IGI DEF VVS/VS oval/fancy loose 1-5ct', url:'https://www.alibaba.com/showroom/lab-grown-pink-diamond.html', note:'Broad factory listing range; verify exact IGI report.' },
   { id:'ali-white-igi-0-6', group:'white', shapes:['round','oval','pear','radiant','cushion','emerald','marquise','princess'], ctMin:0.3, ctMax:6, lo:41, hi:2100, unit:'piece', label:'Alibaba IGI HPHT/CVD D/white VS1-VVS 0.3-6ct', url:'https://www.alibaba.com/showroom/price-yellow-diamond.html', note:'Broad white-lab factory ceiling.' },
@@ -1060,10 +1401,11 @@ function compute(ct) {
   const retailLo = baseWsRetail * retailMult[0] * (state.gia ? 1.12 : 1.0);
   const retailHi = baseWsRetail * retailMult[1] * (state.gia ? 1.12 : 1.0);
 
-  const alibabaMatch = getAlibabaCeiling(ct);
+  const alibabaMatch = getAlibabaCeiling(ct); // legacy (kept for floor bar)
+  const alibabaComp = resolveAlibabaComp(ct);  // new nearest-match system
 
   return { ws, wsPerCt:wsPerCt*wsMultiplier, fairLo, fairHi, fairMid:(fairLo+fairHi)/2,
-           retailLo, retailHi, retailMid:(retailLo+retailHi)/2, alibabaMatch };
+           retailLo, retailHi, retailMid:(retailLo+retailHi)/2, alibabaMatch, alibabaComp };
 }
 
 function colorCompGroup() {
@@ -1427,54 +1769,95 @@ function updateWeakPointsBar() {
   list.innerHTML = weakHtml + inspectHtml;
 }
 
+function fmtCompTag(matchType) {
+  if (matchType === 'exact') return '<span class="comp-tag exact">exact match</span>';
+  if (matchType === 'nearest') return '<span class="comp-tag nearest">nearest match</span>';
+  if (matchType === 'model_fallback') return '<span class="comp-tag model">model estimate</span>';
+  return '';
+}
+
+function renderCompEntry(entry, isAlt) {
+  const { row, listingPrice, estimatedPrice, url, label, modifiers } = entry;
+  const hasAdj = modifiers && Math.abs(modifiers.combined - 1) > 0.03;
+  const supplier = escapeHTML(label || 'Alibaba');
+  const viewLink = url ? ` <a href="${escapeAttr(url)}" target="_blank" rel="noopener" style="color:var(--blue)">view ↗</a>` : '';
+  const rowSpec = row ? `${row.carat}ct ${row.shape} ${row.clarity}${row.color ? ' ' + row.color : row.colorNormalized ? ' ' + row.colorNormalized : ''}` : '';
+
+  if (isAlt) {
+    const adjHtml = hasAdj
+      ? ` <span class="comp-alt-arr">→</span> <span class="comp-alt-adj">~${fmt(estimatedPrice)}</span>`
+      : '';
+    return `<div class="comp-alt-row"><span class="comp-alt-price">${fmt(listingPrice)}</span>${adjHtml} <span style="color:var(--muted)">${escapeHTML(rowSpec)}</span> · ${supplier}${viewLink}</div>`;
+  }
+
+  let priceHtml;
+  if (hasAdj) {
+    priceHtml = `<span class="comp-price">${fmt(listingPrice)}</span><span class="comp-arr">→</span><span class="comp-adj">~${fmt(estimatedPrice)}</span>`;
+  } else {
+    priceHtml = `<span class="comp-adj">${fmt(estimatedPrice)}</span>`;
+  }
+
+  let modHtml = '';
+  if (hasAdj && modifiers.parts && modifiers.parts.length) {
+    modHtml = `<div class="comp-mod">${modifiers.parts.map(escapeHTML).join(' · ')}</div>`;
+  }
+  const specHtml = row ? `<span class="comp-supplier">${escapeHTML(rowSpec)} · ${supplier}</span>` : `<span class="comp-supplier">${supplier}</span>`;
+
+  return `<div class="comp-row">${priceHtml}${viewLink}${specHtml}</div>${modHtml}`;
+}
+
 function updateMarketBar(m){
   const bar = document.getElementById('market-bar');
   const txt = document.getElementById('market-text');
   if (!bar || !txt) return;
 
-  const comp = m.alibabaMatch;
+  const ac = m.alibabaComp;
   const roundBench = getMessiRoundBenchmarkHtml(state.carat);
   let html = '';
 
-  if (comp) {
-    const unitText = comp.exact ? `${fmt(comp.hi)} exact selector price`
-      : comp.unit === 'ct' ? `${fmt(comp.lo)}-${fmt(comp.hi)}/ct` : `${fmt(comp.lo)}-${fmt(comp.hi)} total`;
-    const adj = getAlibabaOffCatalogAdjust(state.carat);
-    const catalogRound = getMessiCatalogRoundCeiling(state.carat);
-    const priceAdj = adjustAlibabaCeilingPrice(comp.totalHi, state.carat, {
-      exact: comp.exact,
-      rawLo: comp.totalLo,
-    });
-
-    const shapeTag = state.shape === 'round' && comp.exact ? '' : ` (${shapeNames[state.shape] || state.shape} comp)`;
-    let ceilingBlock = '';
-
-    if (priceAdj.adjusted) {
-      const rangeText = comp.unit === 'ct'
-        ? `${fmt(priceAdj.lo)}-${fmt(priceAdj.hi)}/ct adjusted`
-        : `${fmt(priceAdj.lo)}-${fmt(priceAdj.hi)} adjusted`;
-      ceilingBlock = `<strong>Alibaba IGI ceiling${shapeTag} (grade-adjusted): ${fmt(priceAdj.hi)}.</strong> Listing band ${fmt(comp.totalLo)}-${fmt(comp.totalHi)} × ${priceAdj.adj.combined.toFixed(2)} → ${rangeText} (${escapeHTML(priceAdj.adj.label)}).`;
-      if (catalogRound) {
-        ceilingBlock += ` Messi ${WHITE_ALIBABA_FLOOR.color}/${WHITE_ALIBABA_FLOOR.clarity} round at ${catalogRound.ladderSize}ct ≈ ${fmt(catalogRound.price)} → <strong>${fmt(Math.round(catalogRound.price * priceAdj.adj.combined))}</strong> for your grade.`;
-      }
-    } else if (priceAdj.alreadyInLadder && adj) {
-      ceilingBlock = `<strong>Alibaba IGI ceiling${shapeTag}: ${fmt(priceAdj.hi)}.</strong> Messi selector at your ${state.clarity} (already below VS1 catalog tier).`;
-      if (catalogRound && catalogRound.price !== priceAdj.hi) {
-        ceilingBlock += ` ${WHITE_ALIBABA_FLOOR.color}/${WHITE_ALIBABA_FLOOR.clarity} catalog ≈ ${fmt(catalogRound.price)}; your row is ${fmt(priceAdj.hi)}.`;
-      }
-    } else {
-      ceilingBlock = `<strong>Alibaba IGI ceiling${shapeTag}: ${fmt(priceAdj.hi)}.</strong>`;
-    }
-
-    html = `${ceilingBlock} Matched ${escapeHTML(comp.label)} (${unitText}). Treat as factory-direct upper limit before beauty/video premium. <a href="${escapeAttr(comp.url)}" target="_blank" rel="noopener" style="color:var(--blue)">source ↗</a>`;
-    if (roundBench) html += roundBench;
-  } else if (roundBench) {
-    html = `<strong>No shape-specific Alibaba comp</strong> for this ${escapeHTML(shapeNames[state.shape] || state.shape)} / grade combo. Factory ceiling below uses the verified Messi <em>round</em> ladder at the same carat — elongated cuts are often near parity at 3ct+, not cheaper than round.${roundBench}`;
-  } else {
+  if (!ac && !roundBench) {
     bar.classList.remove('on');
     txt.innerHTML = '';
     return;
   }
+
+  if (!ac || ac.matchType === 'none') {
+    if (!_compsIdxReady) {
+      html = '<strong>Alibaba comp</strong> — loading index…';
+    } else {
+      html = `<strong>No Alibaba comp found</strong> for this ${escapeHTML(shapeNames[state.shape] || state.shape)} / grade combo. See <a href="research/alibaba-listing-confidence-gaps.md" style="color:var(--blue)">confidence gaps</a> for coverage details.`;
+    }
+    if (roundBench) html += roundBench;
+    txt.innerHTML = html;
+    bar.classList.add('on');
+    return;
+  }
+
+  if (ac.matchType === 'exact') {
+    html = `<div class="comp-block"><strong>Alibaba exact listing price:</strong> ${fmtCompTag('exact')}<br>`;
+    html += renderCompEntry(ac.primary, false);
+    if (ac.alternatives && ac.alternatives.length) {
+      html += `<div class="comp-alts">`;
+      html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
+      html += `</div>`;
+    }
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Factory-direct. Treat as ceiling before beauty/video premium.</div></div>`;
+  } else if (ac.matchType === 'nearest') {
+    html = `<div class="comp-block"><strong>Closest Alibaba listing</strong> ${fmtCompTag('nearest')}<br>`;
+    html += renderCompEntry(ac.primary, false);
+    if (ac.alternatives && ac.alternatives.length) {
+      html += `<div class="comp-alts">`;
+      html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
+      html += `</div>`;
+    }
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">No exact listing captured — modifier applied from nearest available data point.</div></div>`;
+  } else if (ac.matchType === 'model_fallback') {
+    html = `<div class="comp-block"><strong>No shape comp — model estimate</strong> ${fmtCompTag('model_fallback')}<br>`;
+    html += renderCompEntry(ac.primary, false);
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimated from Messi round IGI ladder × shape multiplier. No direct ${escapeHTML(shapeNames[state.shape]||state.shape)} Alibaba data captured yet.</div></div>`;
+  }
+
+  if (roundBench && state.shape !== 'round') html += roundBench;
 
   txt.innerHTML = html;
   bar.classList.add('on');
@@ -2641,6 +3024,7 @@ igiNumberInput.addEventListener('keydown', e => { if(e.key==='Enter') lookupIGI(
 document.getElementById('igi-apply-btn').addEventListener('click', applyIGIReport);
 
 syncWhiteSection();
+loadAlibabaCompsIndex(); // async: triggers update() again once comps are ready
 update();
 
 </script>

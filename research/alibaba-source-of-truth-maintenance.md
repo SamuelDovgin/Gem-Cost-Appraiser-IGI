@@ -14,8 +14,9 @@ The source of truth is append-first. Do not remove old rows just because a newer
 1. Save every capture JSON in `data/`.
 2. Keep the original filename when possible.
 3. Add the filename to the `Source files` line in `alibaba-clean-source-of-truth.md` when rows from that file are promoted.
-4. Update `alibaba-listing-confidence-gaps.md` when the new rows close a gap, expose a new gap, or reveal an anomaly.
-5. Do not edit raw capture JSON by hand. If a manual value was needed, recapture or document the manual override in the source-of-truth note.
+4. Preserve the Alibaba source URL for every promoted product. Prefer a canonical product-detail URL without `spm`, `priceId`, or other tracking parameters, but keep the captured URL if canonical cleanup is uncertain.
+5. Update `alibaba-listing-confidence-gaps.md` when the new rows close a gap, expose a new gap, or reveal an anomaly. Update the **Cut And Style Data Tier List** when coverage meaningfully changes.
+6. Do not edit raw capture JSON by hand. If a manual value was needed, recapture or document the manual override in the source-of-truth note.
 
 ## Promotion Checklist
 
@@ -68,7 +69,7 @@ Do not use as loose-stone exact comps unless the SKU row and page context clearl
 For each promoted product, include:
 
 - product ID
-- canonical URL without tracking parameters when available
+- canonical URL without tracking parameters when available; if only a tracked URL exists, retain it rather than omitting the page link
 - source raw filename
 - supplier if reliable
 - evidence summary
@@ -83,3 +84,4 @@ For each promoted product, include:
 - Do not treat Alibaba's `Diamond Cut` option as cut grade unless the value is actually Excellent, Ideal, 2EX, 3EX, etc.
 - Do not infer a specific color grade from `DEF` unless the row says D, E, or F.
 - Do not infer a certificate number applies to every SKU unless the row or supplier explicitly ties it to that SKU.
+- Do not drop product URLs from promoted comps. A comp without a way back to the source page is weaker evidence even if the raw JSON still exists.

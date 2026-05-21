@@ -34,7 +34,8 @@
 
 | Source | Type | Notes |
 |--------|------|-------|
-| Wuzhou Messi Gems Co., Ltd. (Alibaba) | Factory-direct Chinese supplier | Live selector, captured May 18 2026. Cheapest verified IGI source. |
+| Wuzhou Messi Gems Co., Ltd. (Alibaba) | Factory-direct Chinese supplier | Live selector, captured May 18 2026; expanded with oval captures May 21 2026. Cheapest verified IGI source. |
+| Starsgem / Mishang oval Alibaba captures | Factory-direct Chinese suppliers | D and DE oval IGI rows captured May 21 2026; used to tighten oval shape confidence. |
 | Edahn Golan Q2 2025 wholesale list | US small-volume trade cost | GH/VS round; represents US importer all-in jeweler cost |
 | StoneAlgo online retail index May 2026 | Online retail (not wholesale) | Used to back-calculate reasonable markup range |
 | Washington Diamond / Liori Diamonds | US retail comps | Used to validate upper retail bound |
@@ -74,10 +75,24 @@
 | 5.00 ct | $209 | $235 | $260 | $350 |
 | 6.00 ct | $230 | $250 | $270 | $350 |
 
+### Table 1C — Oval D/White IGI Factory-Direct Check (May 21 Captures)
+
+These rows are not replacing the round baseline; they calibrate the oval shape adjustment and close the previous "banded-only" oval gap.
+
+| Source | VS1 1ct | VS1 2ct | VS1 3ct | VVS2 1ct | VVS2 2ct | VVS2 3ct |
+|---|---:|---:|---:|---:|---:|---:|
+| Existing DEF oval band (`1600331442768`) | $150 | $320 | $430 | $155 | $325 | $475 |
+| Messi D oval (`1601628467240`) | $175 | $376 | $561 | $185 | $406 | $606 |
+| Mishang D oval (`1601407133783`) | $160 | $315 | $500 | $165 | $345 | $545 |
+| Starsgem D oval (`1601392715631`) | $150 | $306 | $396 | $157 | $315 | $493 |
+| Starsgem D oval (`1601296278910`) | $146 | $325 | $452 | $153 | $345 | $510 |
+| Median of rows above | $150 | $320 | $452 | $157 | $345 | $510 |
+
 **Key Observations from Messi Data:**
 - At 1–2ct, VS2 and VS1 are priced nearly identically (or VS2 slightly higher) — reflects high availability of both grades and commodity-level production.
 - At 3ct+, VVS1 diverges sharply. VS1 vs VVS1 ratio: 3ct = 2.14×, 5ct = 1.49×. This is D color; G/H color premiums are less extreme but still significant.
 - The per-carat cost rises after 3ct (the local minimum) — larger CVD/HPHT growth is harder, slower, and lower yield.
+- Oval pricing has meaningful supplier spread: 1ct D oval commonly prices above round, while 3ct D oval clusters closer to round-equivalent. Keep the default oval demand premium, but treat exact same-shape Alibaba comps as stronger than the generic shape multiplier when available.
 
 ---
 
@@ -208,7 +223,7 @@ Lab-grown shape pricing differs from natural diamonds:
 | Shape | Multiplier vs Round | 2026 Demand | Notes |
 |-------|---------------------|-------------|-------|
 | Round Brilliant | 1.00 | ★★★★★ | Baseline. Highest demand, best liquidity. |
-| Oval Brilliant | 1.08 | ★★★★★ | Premium for high demand. Ideal L/W 1.35–1.45. |
+| Oval Brilliant | 1.08 | ★★★★★ | Premium for high demand. May 21 exact D oval captures show 1ct often above round, with 3ct closer to round-equivalent; use exact comps when available. Ideal L/W 1.35–1.45. |
 | Pear Modified Brilliant | 1.05 | ★★★★☆ | Popular, elegant. Ideal L/W 1.55–1.70. |
 | Old European Brilliant | 0.92 | ★★★☆☆ | Niche vintage appeal. |
 | Old Mine Brilliant | 0.88 | ★★☆☆☆ | Very niche. |
