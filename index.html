@@ -150,10 +150,10 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .ppc{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.5}
 
 /* ── CHART ── */
-.chart-wrap{border-top:.5px solid var(--border);padding:16px 22px 20px}
+.chart-wrap{border-top:.5px solid var(--border);padding:16px 22px 20px;position:relative}
 .chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
 .chart-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
-.chart-tabs{display:flex;gap:4px}
+.chart-tabs{display:flex;gap:4px;flex-wrap:wrap}
 .chart-tab{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;border:.5px solid var(--border);background:transparent;color:var(--muted);border-radius:5px;padding:4px 9px;cursor:pointer;line-height:1;transition:all .12s}
 .chart-tab:hover{color:var(--muted2);border-color:var(--border2)}
 .chart-tab.active{color:var(--accent);border-color:var(--accent);background:var(--accent-dim)}
@@ -161,7 +161,17 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .legend span{display:inline-flex;align-items:center;gap:5px}
 .sw{width:14px;height:2px;border-radius:2px;display:inline-block}
 .sw-dot{width:7px;height:7px;border-radius:50%;display:inline-block}
-#price-chart{width:100%;height:200px;display:block;background:#0d0d0d;border:.5px solid var(--border);border-radius:10px}
+.sw-ring{width:8px;height:8px;border-radius:50%;border:1.5px solid #d4af72;display:inline-block;box-sizing:border-box}
+#price-chart{width:100%;height:240px;display:block;background:#0d0d0d;border:.5px solid var(--border);border-radius:10px;cursor:default}
+.chart-tooltip{position:absolute;z-index:50;background:#191919;border:.5px solid rgba(212,175,114,0.5);border-radius:9px;padding:9px 13px;font-size:11px;line-height:1.55;pointer-events:none;display:none;max-width:220px;box-shadow:0 6px 22px rgba(0,0,0,0.7)}
+.chart-tooltip strong{color:var(--accent);font-family:'DM Mono',monospace;font-size:14px;display:block}
+.chart-tooltip .tip-spec{color:var(--muted2);font-size:10.5px;margin:1px 0}
+.chart-tooltip a{color:var(--blue);text-decoration:none;font-size:10.5px;margin-top:4px;display:block}
+.chart-comps{padding:8px 0 0;display:flex;flex-wrap:wrap;gap:5px}
+.comp-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:.5px solid var(--border);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--muted2);font-family:'DM Mono',monospace;cursor:pointer;text-decoration:none;transition:border-color .12s,color .12s;white-space:nowrap}
+.comp-chip:hover{border-color:rgba(212,175,114,0.5);color:var(--text)}
+.comp-chip .chip-price{color:var(--accent)}
+.comp-chip .chip-sep{color:var(--muted);font-size:9px}
 
 /* ── VERDICT ── */
 .verdict-bar{padding:13px 22px;border-top:.5px solid var(--border);display:flex;align-items:flex-start;gap:10px}
@@ -576,16 +586,20 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <button class="chart-tab active" data-tab="carat">Carat</button>
           <button class="chart-tab" data-tab="clarity">Clarity</button>
           <button class="chart-tab" data-tab="color">Color</button>
+          <button class="chart-tab" data-tab="shape">Shape</button>
         </div>
       </div>
       <div class="legend">
-        <span><i class="sw" style="background:#f0ede8"></i>Wholesale</span>
+        <span><i class="sw" style="background:#d8d5d0"></i>Wholesale</span>
         <span><i class="sw" style="background:#4caf7a"></i>Fair direct</span>
         <span><i class="sw" style="background:#4a4540"></i>Retail</span>
         <span><i class="sw-dot" style="background:#d4af72"></i>Alibaba</span>
+        <span><i class="sw-ring"></i>Your stone</span>
       </div>
     </div>
-    <canvas id="price-chart" height="200"></canvas>
+    <canvas id="price-chart" height="240"></canvas>
+    <div id="chart-tooltip" class="chart-tooltip"></div>
+    <div id="chart-comps" class="chart-comps"></div>
   </div>
 
   <div class="weak-bar" id="weak-bar">
@@ -1979,101 +1993,78 @@ function updateAlibabaFloorBar() {
 // ══════════════════════════════════════════════════════════════════════════════
 // CHART
 // ══════════════════════════════════════════════════════════════════════════════
+let _chartHitTargets = []; // [{x,y,row}] — rebuilt on every drawChart call
+
 function _chartSetup(canvas) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio||1;
   const cssW = canvas.clientWidth||960;
-  const cssH = 200;
+  const cssH = canvas.clientHeight||240;
   canvas.width=cssW*dpr; canvas.height=cssH*dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssW,cssH);
   return {ctx,cssW,cssH,dpr};
 }
 
-function _chartGrid(ctx,cssW,cssH,pad,ymax,labels,xM,yM) {
-  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
-  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='9px DM Mono,monospace';
-  for(let i=0;i<=4;i++){
-    const yy=pad.t+i/4*(cssH-pad.t-pad.b);
-    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
-    ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
-  }
-  labels.forEach((lbl,i)=>{
-    const x=xM(i);
-    ctx.fillStyle=lbl.active?'rgba(212,175,114,0.9)':'rgba(255,255,255,0.28)';
-    ctx.fillText(lbl.text,x-(lbl.text.length*3),cssH-10);
-  });
-}
-
-function _plotLine(ctx,pts,xM,yM,key,color,width) {
-  ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash([]);ctx.beginPath();
-  pts.forEach((p,i)=>{ const y=yM(p[key]); i?ctx.lineTo(xM(i),y):ctx.moveTo(xM(i),y); });
-  ctx.stroke();
-}
-
-function _chartAlibabaDots(ctx,dots,xM,yM,pad,cssH) {
-  if(!dots.length) return;
-  ctx.fillStyle='rgba(212,175,114,0.8)';
-  dots.forEach(d=>{
-    const x=xM(d.xi); const y=yM(d.p);
-    if(x<pad.l||x>9999||y<pad.t||y>cssH-pad.b) return;
-    ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fill();
-  });
-}
-
-function _chartMarker(ctx,xi,xM,pad,cssH) {
-  const cx=xM(xi);
-  ctx.strokeStyle='rgba(212,175,114,0.45)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
-  ctx.beginPath();ctx.moveTo(cx,pad.t);ctx.lineTo(cx,cssH-pad.b);ctx.stroke();
+// Enhanced stone marker: bright dashed rule + ring at ws price + label
+function _chartMarkerFull(ctx,cx,wsY,wsPrice,cssW,pad,cssH) {
+  ctx.save();
+  ctx.strokeStyle='rgba(212,175,114,0.72)'; ctx.lineWidth=1.5; ctx.setLineDash([3,4]);
+  ctx.beginPath(); ctx.moveTo(cx,pad.t); ctx.lineTo(cx,cssH-pad.b); ctx.stroke();
   ctx.setLineDash([]);
-}
-
-function _getAlibabaDots(filterFn, xiMap) {
-  const dots=[];
-  if(!_compsIdxReady||!_compsIdx) return dots;
-  _compsIdx.comps.forEach(row=>{
-    const xi = xiMap(row);
-    if(xi===null||xi===undefined) return;
-    if(filterFn(row)) dots.push({xi,p:row.priceUsd});
-  });
-  return dots;
+  if(wsY!==null&&wsY!==undefined) {
+    // Dark fill then gold ring
+    ctx.fillStyle='#0d0d0d';
+    ctx.beginPath(); ctx.arc(cx,wsY,7,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#d4af72'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,wsY,5.5,0,Math.PI*2); ctx.stroke();
+    if(wsPrice) {
+      const label=fmt(wsPrice);
+      const labelW=label.length*5.8;
+      const lx=cx+9+labelW>cssW-pad.r ? cx-labelW-10 : cx+9;
+      const ly=Math.max(wsY-9,pad.t+10);
+      ctx.fillStyle='rgba(212,175,114,0.95)'; ctx.font='bold 9px DM Mono,monospace';
+      ctx.fillText(label,lx,ly);
+    }
+  }
+  ctx.restore();
 }
 
 function drawCaratChart(ctx,cssW,cssH) {
-  const pad={l:56,r:20,t:14,b:32};
+  const pad={l:58,r:20,t:22,b:32};
   const savedCt=state.carat;
   const xs=[];
   for(let c=0.5;c<=10.05;c+=0.25) xs.push(Math.round(c*100)/100);
   const series=xs.map(c=>{ state.carat=c; const m=compute(c); state.carat=savedCt; return {c,ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
+  state.carat=savedCt;
 
   const ymax=Math.max(...series.map(p=>p.retail))*1.12;
   const xM=c=>pad.l+(c-0.5)/9.5*(cssW-pad.l-pad.r);
   const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
 
-  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
-  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='9px DM Mono,monospace';
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=.5;
+  ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='9px DM Mono,monospace';
   for(let i=0;i<=4;i++){
     const yy=pad.t+i/4*(cssH-pad.t-pad.b);
-    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(cssW-pad.r,yy); ctx.stroke();
     ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
   }
   [0.5,1,2,3,4,5,6,7,8,9,10].forEach(c=>{ ctx.fillText(c+'ct',xM(c)-10,cssH-10); });
 
   function plotLine(key,color,width){
-    ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash([]);ctx.beginPath();
+    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash([]); ctx.beginPath();
     series.forEach((p,i)=>{ i?ctx.lineTo(xM(p.c),yM(p[key])):ctx.moveTo(xM(p.c),yM(p[key])); });
     ctx.stroke();
   }
   plotLine('retail','#3e3a36',1.5);
   plotLine('fair','#4caf7a',2);
-  plotLine('ws','#e0ddd8',1.5);
+  plotLine('ws','#d8d5d0',1.5);
 
-  // Alibaba scatter dots
+  // Alibaba scatter dots — register hit targets for hover
   if(_compsIdxReady&&_compsIdx) {
     const userShape=normalizeShapeForComp(state.shape);
     const clarU=CLARITY_RANK_NUM[state.clarity]??2;
     const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
-    const dots=[];
     _compsIdx.comps.forEach(row=>{
       if(row.colorFamily!==state.colorFamily) return;
       if(row.shape!==userShape) return;
@@ -2083,17 +2074,39 @@ function drawCaratChart(ctx,cssW,cssH) {
       }
       const px=xM(row.carat); const py=yM(row.priceUsd);
       if(px<pad.l||py<pad.t||py>cssH-pad.b) return;
-      dots.push({x:px,y:py});
+      ctx.fillStyle='rgba(212,175,114,0.85)';
+      ctx.beginPath(); ctx.arc(px,py,4.5,0,Math.PI*2); ctx.fill();
+      _chartHitTargets.push({x:px,y:py,row});
     });
-    ctx.fillStyle='rgba(212,175,114,0.8)';
-    dots.forEach(d=>{ ctx.beginPath();ctx.arc(d.x,d.y,3.5,0,Math.PI*2);ctx.fill(); });
   }
 
-  _chartMarker(ctx,state.carat,xM,pad,cssH);
+  // Also show Messi ladder steps as gold diamonds
+  if(isWhite()) {
+    const ladder=messiDWhiteRoundLadder[state.clarity];
+    const normShape=normalizeShapeForComp(state.shape);
+    if(ladder&&normShape==='round') {
+      const shMult=getShapeMultForPricing(state.shape);
+      const gradeF=(whiteGradeMult[state.whiteGrade]??1)/whiteGradeMult.D;
+      Object.entries(ladder).forEach(([sz,dPrice])=>{
+        const c=parseFloat(sz);
+        const p=Math.round(dPrice*gradeF*shMult);
+        const px=xM(c); const py=yM(p);
+        if(px<pad.l||py<pad.t||py>cssH-pad.b) return;
+        ctx.fillStyle='rgba(212,175,114,0.55)';
+        ctx.save(); ctx.translate(px,py); ctx.rotate(Math.PI/4);
+        ctx.fillRect(-3.5,-3.5,7,7);
+        ctx.restore();
+      });
+    }
+  }
+
+  // Current stone ring marker
+  const curPt=series.find(p=>Math.abs(p.c-state.carat)<0.14)||series[0];
+  _chartMarkerFull(ctx,xM(state.carat),curPt?yM(curPt.ws):null,curPt?curPt.ws:null,cssW,pad,cssH);
 }
 
 function drawClarityChart(ctx,cssW,cssH) {
-  const pad={l:56,r:20,t:14,b:32};
+  const pad={l:58,r:20,t:22,b:32};
   const clarities=['VS2','VS1','VVS2','VVS1','IF'];
   const savedClarity=state.clarity;
   const pts=clarities.map(cl=>{ state.clarity=cl; const m=compute(state.carat); state.clarity=savedClarity; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
@@ -2103,12 +2116,11 @@ function drawClarityChart(ctx,cssW,cssH) {
   const xM=i=>pad.l+(i+0.5)/n*(cssW-pad.l-pad.r);
   const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
 
-  // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
-  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='9px DM Mono,monospace';
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=.5;
+  ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='9px DM Mono,monospace';
   for(let i=0;i<=4;i++){
     const yy=pad.t+i/4*(cssH-pad.t-pad.b);
-    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(cssW-pad.r,yy); ctx.stroke();
     ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
   }
   clarities.forEach((cl,i)=>{
@@ -2116,44 +2128,41 @@ function drawClarityChart(ctx,cssW,cssH) {
     ctx.fillText(cl,xM(i)-(cl.length*3),cssH-10);
   });
 
-  // Lines
-  [['retail','#3e3a36',1.5],['fair','#4caf7a',2],['ws','#e0ddd8',1.5]].forEach(([k,col,w])=>{
-    ctx.strokeStyle=col;ctx.lineWidth=w;ctx.setLineDash([]);ctx.beginPath();
+  [['retail','#3e3a36',1.5],['fair','#4caf7a',2],['ws','#d8d5d0',1.5]].forEach(([k,col,w])=>{
+    ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash([]); ctx.beginPath();
     pts.forEach((p,i)=>{ i?ctx.lineTo(xM(i),yM(p[k])):ctx.moveTo(xM(i),yM(p[k])); });
     ctx.stroke();
   });
-  // Model dots
-  ctx.fillStyle='rgba(224,221,216,0.5)';
-  pts.forEach((p,i)=>{ ctx.beginPath();ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2);ctx.fill(); });
+  ctx.fillStyle='rgba(216,213,208,0.45)';
+  pts.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2); ctx.fill(); });
 
-  // Alibaba dots
   if(_compsIdxReady&&_compsIdx) {
     const userShape=normalizeShapeForComp(state.shape);
     const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
     const ct=state.carat;
-    const dots=[];
     _compsIdx.comps.forEach(row=>{
       if(row.colorFamily!==state.colorFamily) return;
       if(row.shape!==userShape) return;
-      if(Math.abs(ct-row.carat)>0.35) return;
+      if(Math.abs(ct-row.carat)>0.4) return;
       if(state.colorFamily==='white'&&Math.abs((WHITE_COLOR_GRADE_NUM[row.colorNormalized||'D']??0)-colorU)>2) return;
       const ci=clarities.indexOf(row.clarity);
       if(ci<0) return;
-      dots.push({xi:ci,p:row.priceUsd});
+      const px=xM(ci); const py=yM(row.priceUsd);
+      if(py<pad.t||py>cssH-pad.b) return;
+      ctx.fillStyle='rgba(212,175,114,0.85)';
+      ctx.beginPath(); ctx.arc(px,py,4.5,0,Math.PI*2); ctx.fill();
+      _chartHitTargets.push({x:px,y:py,row});
     });
-    ctx.fillStyle='rgba(212,175,114,0.85)';
-    dots.forEach(d=>{ ctx.beginPath();ctx.arc(xM(d.xi),yM(d.p),4,0,Math.PI*2);ctx.fill(); });
   }
 
-  // Current clarity marker
   const ci=clarities.indexOf(state.clarity);
-  if(ci>=0) _chartMarker(ctx,ci,xM,pad,cssH);
+  if(ci>=0) _chartMarkerFull(ctx,xM(ci),yM(pts[ci].ws),pts[ci].ws,cssW,pad,cssH);
 }
 
 function drawColorChart(ctx,cssW,cssH) {
-  const pad={l:56,r:20,t:14,b:32};
+  const pad={l:58,r:20,t:22,b:32};
   if(!isWhite()) {
-    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.font='11px DM Mono,monospace';ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='11px DM Mono,monospace'; ctx.textAlign='center';
     ctx.fillText('Color axis — switch to a white diamond grade',cssW/2,cssH/2);
     ctx.textAlign='left'; return;
   }
@@ -2166,12 +2175,11 @@ function drawColorChart(ctx,cssW,cssH) {
   const xM=i=>pad.l+(i+0.5)/n*(cssW-pad.l-pad.r);
   const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
 
-  // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=.5;
-  ctx.fillStyle='rgba(255,255,255,0.28)';ctx.font='9px DM Mono,monospace';
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=.5;
+  ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='9px DM Mono,monospace';
   for(let i=0;i<=4;i++){
     const yy=pad.t+i/4*(cssH-pad.t-pad.b);
-    ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cssW-pad.r,yy);ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(cssW-pad.r,yy); ctx.stroke();
     ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
   }
   grades.forEach((g,i)=>{
@@ -2179,51 +2187,148 @@ function drawColorChart(ctx,cssW,cssH) {
     ctx.fillText(g,xM(i)-3,cssH-10);
   });
 
-  // Lines
-  [['retail','#3e3a36',1.5],['fair','#4caf7a',2],['ws','#e0ddd8',1.5]].forEach(([k,col,w])=>{
-    ctx.strokeStyle=col;ctx.lineWidth=w;ctx.setLineDash([]);ctx.beginPath();
+  [['retail','#3e3a36',1.5],['fair','#4caf7a',2],['ws','#d8d5d0',1.5]].forEach(([k,col,w])=>{
+    ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash([]); ctx.beginPath();
     pts.forEach((p,i)=>{ i?ctx.lineTo(xM(i),yM(p[k])):ctx.moveTo(xM(i),yM(p[k])); });
     ctx.stroke();
   });
-  ctx.fillStyle='rgba(224,221,216,0.5)';
-  pts.forEach((p,i)=>{ ctx.beginPath();ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2);ctx.fill(); });
+  ctx.fillStyle='rgba(216,213,208,0.45)';
+  pts.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2); ctx.fill(); });
 
-  // Alibaba dots (map D→0, DE→0.5≈0, DEF→1, E→1, F→2)
   if(_compsIdxReady&&_compsIdx) {
     const userShape=normalizeShapeForComp(state.shape);
     const clarU=CLARITY_RANK_NUM[state.clarity]??2;
     const ct=state.carat;
-    const colIdx={'D':0,'DE':0.5,'DEF':1,'E':1,'F':2};
-    const dots=[];
+    const colIdx={'D':0,'DE':0,'DEF':0,'E':1,'F':2};
     _compsIdx.comps.forEach(row=>{
       if(row.colorFamily!=='white') return;
       if(row.shape!==userShape) return;
-      if(Math.abs(ct-row.carat)>0.35) return;
+      if(Math.abs(ct-row.carat)>0.4) return;
       if(Math.abs((CLARITY_RANK_NUM[row.clarity]??2)-clarU)>1) return;
       const ci=colIdx[row.colorNormalized||'D'];
-      if(ci===undefined) return;
-      dots.push({xi:Math.round(ci),p:row.priceUsd});
+      if(ci===undefined||ci>=n) return;
+      const px=xM(ci); const py=yM(row.priceUsd);
+      if(py<pad.t||py>cssH-pad.b) return;
+      ctx.fillStyle='rgba(212,175,114,0.85)';
+      ctx.beginPath(); ctx.arc(px,py,4.5,0,Math.PI*2); ctx.fill();
+      _chartHitTargets.push({x:px,y:py,row});
     });
-    ctx.fillStyle='rgba(212,175,114,0.85)';
-    dots.forEach(d=>{ if(d.xi>=0&&d.xi<n){ctx.beginPath();ctx.arc(xM(d.xi),yM(d.p),4,0,Math.PI*2);ctx.fill();} });
   }
 
   const ci=grades.indexOf(state.whiteGrade);
-  if(ci>=0) _chartMarker(ctx,ci,xM,pad,cssH);
+  if(ci>=0) _chartMarkerFull(ctx,xM(ci),yM(pts[ci].ws),pts[ci].ws,cssW,pad,cssH);
+}
+
+function drawShapeChart(ctx,cssW,cssH) {
+  const pad={l:58,r:20,t:22,b:32};
+  const SHAPES=[
+    {key:'round',      label:'Round'},
+    {key:'oval',       label:'Oval'},
+    {key:'pear',       label:'Pear'},
+    {key:'radiant',    label:'Radiant'},
+    {key:'cushion_brilliant',label:'Cushion'},
+    {key:'emerald',    label:'Emerald'},
+    {key:'marquise',   label:'Marq.'},
+    {key:'princess',   label:'Princess'},
+    {key:'heart',      label:'Heart'},
+  ];
+  const savedShape=state.shape;
+  const pts=SHAPES.map(s=>{ state.shape=s.key; const m=compute(state.carat); state.shape=savedShape; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
+  state.shape=savedShape;
+
+  const ymax=Math.max(...pts.map(p=>p.retail))*1.2;
+  const n=SHAPES.length;
+  const xM=i=>pad.l+(i+0.5)/n*(cssW-pad.l-pad.r);
+  const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
+
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=.5;
+  ctx.fillStyle='rgba(255,255,255,0.28)'; ctx.font='9px DM Mono,monospace';
+  for(let i=0;i<=4;i++){
+    const yy=pad.t+i/4*(cssH-pad.t-pad.b);
+    ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(cssW-pad.r,yy); ctx.stroke();
+    ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
+  }
+  const normState=normalizeShapeForComp(state.shape);
+  SHAPES.forEach((s,i)=>{
+    const isActive=s.key===state.shape||normalizeShapeForComp(s.key)===normState;
+    ctx.fillStyle=isActive?'rgba(212,175,114,0.9)':'rgba(255,255,255,0.28)';
+    ctx.fillText(s.label,xM(i)-(s.label.length*3),cssH-10);
+  });
+
+  [['retail','#3e3a36',1.5],['fair','#4caf7a',2],['ws','#d8d5d0',1.5]].forEach(([k,col,w])=>{
+    ctx.strokeStyle=col; ctx.lineWidth=w; ctx.setLineDash([]); ctx.beginPath();
+    pts.forEach((p,i)=>{ i?ctx.lineTo(xM(i),yM(p[k])):ctx.moveTo(xM(i),yM(p[k])); });
+    ctx.stroke();
+  });
+  ctx.fillStyle='rgba(216,213,208,0.45)';
+  pts.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2); ctx.fill(); });
+
+  // Alibaba dots at current carat ±0.4ct per shape
+  if(_compsIdxReady&&_compsIdx) {
+    const clarU=CLARITY_RANK_NUM[state.clarity]??2;
+    const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
+    const ct=state.carat;
+    _compsIdx.comps.forEach(row=>{
+      if(row.colorFamily!==state.colorFamily) return;
+      if(Math.abs(ct-row.carat)>0.4) return;
+      if(state.colorFamily==='white') {
+        if(Math.abs((CLARITY_RANK_NUM[row.clarity]??2)-clarU)>1) return;
+        if(Math.abs((WHITE_COLOR_GRADE_NUM[row.colorNormalized||'D']??0)-colorU)>2) return;
+      }
+      const si=SHAPES.findIndex(s=>s.key===row.shape||normalizeShapeForComp(s.key)===row.shape);
+      if(si<0) return;
+      const px=xM(si); const py=yM(row.priceUsd);
+      if(py<pad.t||py>cssH-pad.b) return;
+      ctx.fillStyle='rgba(212,175,114,0.85)';
+      ctx.beginPath(); ctx.arc(px,py,4.5,0,Math.PI*2); ctx.fill();
+      _chartHitTargets.push({x:px,y:py,row});
+    });
+  }
+
+  const si=SHAPES.findIndex(s=>s.key===state.shape||normalizeShapeForComp(s.key)===normState);
+  if(si>=0) _chartMarkerFull(ctx,xM(si),yM(pts[si].ws),pts[si].ws,cssW,pad,cssH);
+}
+
+function updateChartComps() {
+  const el=document.getElementById('chart-comps');
+  if(!el) return;
+  if(!_chartHitTargets.length) { el.innerHTML=''; return; }
+  const seen=new Set(); const rows=[];
+  for(const t of _chartHitTargets) {
+    const id=t.row.productId||`${t.row.carat}-${t.row.shape}-${t.row.clarity}-${t.row.priceUsd}`;
+    if(!seen.has(id)) { seen.add(id); rows.push(t.row); }
+  }
+  rows.sort((a,b)=>a.carat-b.carat||a.priceUsd-b.priceUsd);
+  const chips=rows.map(row=>{
+    const spec=[row.carat+'ct',row.shape,row.clarity,row.color||row.colorNormalized||''].filter(Boolean).join(' · ');
+    const sup=(row.section||'').replace(/^[^–—-]*[–—-]\s*/,'').split(',')[0].trim().slice(0,20);
+    const url=row.url||'#';
+    return `<a class="comp-chip" href="${escapeAttr(url)}" target="_blank" rel="noopener" title="${escapeAttr((row.section||'')+' – '+spec)}">`+
+      `<span>${escapeHTML(spec)}</span>`+
+      (sup?`<span class="chip-sep">·</span><span style="color:var(--muted);font-size:9px">${escapeHTML(sup)}</span>`:'')+
+      `<span class="chip-sep">→</span><span class="chip-price">${fmt(row.priceUsd)}</span>`+
+      `</a>`;
+  }).join('');
+  el.innerHTML=chips;
 }
 
 function drawChart(){
-  const canvas = document.getElementById('price-chart');
-  const titleEl = document.getElementById('chart-title');
-  if(titleEl) {
-    if(_chartAxis==='clarity') titleEl.textContent='Price by clarity \u00b7 '+state.carat.toFixed(1)+'ct \u00b7 selected grade';
-    else if(_chartAxis==='color') titleEl.textContent='Price by color grade \u00b7 '+state.carat.toFixed(1)+'ct \u00b7 '+state.clarity;
-    else titleEl.textContent='Price curve 0.5\u201310ct \u00b7 selected specs';
+  _chartHitTargets=[];
+  const canvas=document.getElementById('price-chart');
+  const titleEl=document.getElementById('chart-title');
+  const shapeLabel=shapeNames[state.shape]||state.shape;
+  if(titleEl){
+    if(_chartAxis==='clarity')  titleEl.textContent='Price by clarity · '+state.carat.toFixed(1)+'ct · '+shapeLabel+' · '+state.whiteGrade;
+    else if(_chartAxis==='color') titleEl.textContent='Price by color · '+state.carat.toFixed(1)+'ct · '+shapeLabel+' · '+state.clarity;
+    else if(_chartAxis==='shape') titleEl.textContent='Price by shape · '+state.carat.toFixed(1)+'ct · '+state.whiteGrade+' '+state.clarity;
+    else titleEl.textContent='Price curve 0.5–10ct · '+shapeLabel+' · '+state.whiteGrade+' '+state.clarity;
   }
   const {ctx,cssW,cssH}=_chartSetup(canvas);
   if(_chartAxis==='clarity') drawClarityChart(ctx,cssW,cssH);
   else if(_chartAxis==='color') drawColorChart(ctx,cssW,cssH);
+  else if(_chartAxis==='shape') drawShapeChart(ctx,cssW,cssH);
   else drawCaratChart(ctx,cssW,cssH);
+  updateChartComps();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2307,6 +2412,53 @@ document.querySelectorAll('.chart-tab').forEach(btn=>{
     drawChart();
   });
 });
+
+// Canvas hover — show Alibaba dot tooltip
+(function(){
+  const canvas=document.getElementById('price-chart');
+  const tip=document.getElementById('chart-tooltip');
+  if(!canvas||!tip) return;
+
+  function nearestHit(mx,my) {
+    let best=null,bestD=Infinity;
+    for(const t of _chartHitTargets){
+      const d=Math.hypot(t.x-mx,t.y-my);
+      if(d<18&&d<bestD){best=t;bestD=d;}
+    }
+    return best;
+  }
+
+  canvas.addEventListener('mousemove',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+    const hit=nearestHit(mx,my);
+    if(hit) {
+      const r=hit.row;
+      const spec=[r.carat+'ct',r.shape,r.clarity,r.color||r.colorNormalized||''].filter(Boolean).join(' · ');
+      const sup=(r.section||'').replace(/^[^–—-]*[–—-]\s*/,'').split(',')[0].trim();
+      const linkHtml=r.url?`<a href="${escapeAttr(r.url)}" target="_blank" rel="noopener">View on Alibaba ↗</a>`:'';
+      tip.innerHTML=`<strong>${fmt(r.priceUsd)}</strong><div class="tip-spec">${escapeHTML(spec)}</div>${sup?`<div class="tip-spec">${escapeHTML(sup)}</div>`:''}${linkHtml}`;
+      tip.style.display='block';
+      const cw=canvas.clientWidth, ch=canvas.clientHeight;
+      const tx=hit.x+16+220>cw ? hit.x-228 : hit.x+16;
+      const ty=Math.max(0,Math.min(hit.y-24,ch-100));
+      tip.style.left=tx+'px'; tip.style.top=ty+'px';
+      canvas.style.cursor='pointer';
+    } else {
+      tip.style.display='none';
+      canvas.style.cursor='';
+    }
+  });
+  canvas.addEventListener('mouseleave',()=>{
+    tip.style.display='none';
+    canvas.style.cursor='';
+  });
+  canvas.addEventListener('click',e=>{
+    const rect=canvas.getBoundingClientRect();
+    const hit=nearestHit(e.clientX-rect.left,e.clientY-rect.top);
+    if(hit&&hit.row.url) window.open(hit.row.url,'_blank','noopener,noreferrer');
+  });
+})();
 
 // ══════════════════════════════════════════════════════════════════════════════
 // IGI REPORT LOOKUP

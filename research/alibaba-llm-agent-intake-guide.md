@@ -169,9 +169,44 @@ Quarantined rows still matter. Add them to `Clean But Broad Or Specialty`, `Excl
 When a user or bot searches for a stone spec, use this order:
 
 1. **Exact match** in `data/alibaba-comps-index.json`: same `colorFamily`, normalized shape, color (or fancy intensity bucket), clarity, and carat within ±0.08ct (≤2ct) or ±0.18ct (≤6ct). Return `url`, `priceUsd`, `productId`, `confidence`, `matchType: "exact"`.
-2. **Nearest comp** if no exact row: same shape + color family, minimize weighted distance on carat, clarity rank, and color grade. Return best row with `matchType: "nearest"` and list which fields differ.
+2. **Nearest comp** if no exact row: same shape + color family, minimize weighted distance on carat, clarity rank, and color grade. Return best row with `matchType: "nearest"` and the structured comparison block described below.
 3. **Adjusted estimate** when nearest differs: multiply comp `priceUsd` by modifiers from `index.html` (documented in the index `modifierDocs` field): white uses `whiteGradeMult`, carat-aware `clarityBreakpoints`, and `shapeMult` vs round; fancy uses `shapeMultColor` and `fancyColorBase` intensity curves. Never apply shape/clarity modifiers across different fancy intensities without an intensity step from `fancy-color-diamond-pricing.md`.
 4. **No comp** for D-tier gaps (fancy round, orange, purple, G/H/I/J white): return `matchType: "none"` and point to `alibaba-listing-confidence-gaps.md` capture targets.
+
+### Nearest Comp Output Format
+
+For every source link returned as a nearest comp, emit a fixed-layout comparison block so the caller can see at a glance what was locked and what was stretched. Use this exact structure — one block per source link:
+
+```
+Closest Alibaba listing
+  URL       : <full Alibaba product URL>
+  Product   : <productId>  |  Supplier: <supplier name or "unknown">
+  Confidence: <High / Medium-high / Medium / Low>
+
+  Field        Searched         Comp Row         Status
+  ──────────────────────────────────────────────────────
+  Shape        <value>          <value>          MATCH  ✓ / DIFF ✗
+  Color        <value>          <value>          MATCH  ✓ / DIFF ✗
+  Clarity      <value>          <value>          MATCH  ✓ / DIFF ✗
+  Carat        <value>          <value>          MATCH  ✓ / DIFF ✗  (<delta>ct off)
+  Certificate  <value>          <value>          MATCH  ✓ / DIFF ✗
+  Lab-grown    <yes/no>         <yes/no>         MATCH  ✓ / DIFF ✗
+
+  Comp price  : $<priceUsd>
+  Adjustment  : <describe any modifier applied, e.g. "+7% clarity step VS1→VVS2", or "none — using raw comp price">
+  Adj. price  : $<adjusted price, or same as comp price if no adjustment>
+```
+
+Rules for filling in the comparison block:
+
+- **Shape**: use the row-level shape label, not the page-level `Diamond Shape` attribute if the two disagree (see field precedence rules above).
+- **Color**: write the exact row value (D, E, DE, DEF, Fancy Intense Yellow, etc.). If the searched grade is within the comp's range (e.g. D searched, DE row), mark `DIFF ✗` and note the range.
+- **Clarity**: write the exact grade or band. If the comp is a band (VVS) and the search asks for VVS1, mark `DIFF ✗` and note interpolation was used.
+- **Carat**: always show the delta. ≤0.08ct on ≤2ct stones or ≤0.18ct on ≤6ct stones counts as a near-match but still mark the actual delta.
+- **Certificate**: if the search specifies IGI or GIA, list what the comp has. A comp with weak or contradictory cert evidence lowers the overall confidence.
+- **Lab-grown**: flag any mismatch here as a hard blocker — do not blend natural and lab prices.
+- If a field is entirely absent from the comp row, write `—` (not present) under "Comp Row" and mark `DIFF ✗`.
+- When more than one source link exists for the same spec, emit a separate block for each and label them `Comp 1 of N`, `Comp 2 of N`, etc., so the caller can compare supplier spread.
 
 Regenerate the index after promoting rows:
 
