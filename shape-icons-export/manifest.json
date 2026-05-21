@@ -1,0 +1,174 @@
+{
+  "generated": "2026-05-21T21:16:47.465Z",
+  "count": 28,
+  "shapes": [
+    {
+      "key": "asscher",
+      "file": "svgs/asscher.svg",
+      "label": "Square Emerald Cut",
+      "color": "#5b9bd5"
+    },
+    {
+      "key": "baguette",
+      "file": "svgs/baguette.svg",
+      "label": "Baguette Cut",
+      "color": "#4caf7a"
+    },
+    {
+      "key": "briolette",
+      "file": "svgs/briolette.svg",
+      "label": "Briolette",
+      "color": "#9b70d4"
+    },
+    {
+      "key": "carre",
+      "file": "svgs/carre.svg",
+      "label": "Carre Cut",
+      "color": "#5b9bd5"
+    },
+    {
+      "key": "cushion",
+      "file": "svgs/cushion.svg",
+      "label": "Cushion Modified Brilliant",
+      "color": "#4caf7a"
+    },
+    {
+      "key": "cushion_brilliant",
+      "file": "svgs/cushion_brilliant.svg",
+      "label": "Cushion Brilliant",
+      "color": "#4caf7a"
+    },
+    {
+      "key": "emerald",
+      "file": "svgs/emerald.svg",
+      "label": "Emerald Cut",
+      "color": "#5b9bd5"
+    },
+    {
+      "key": "flanders",
+      "file": "svgs/flanders.svg",
+      "label": "Flanders Cut",
+      "color": "#d4af72"
+    },
+    {
+      "key": "half_moon",
+      "file": "svgs/half_moon.svg",
+      "label": "Half Moon Modified Brilliant",
+      "color": "#5b9bd5"
+    },
+    {
+      "key": "heart",
+      "file": "svgs/heart.svg",
+      "label": "Heart Modified Brilliant",
+      "color": "#e070a0"
+    },
+    {
+      "key": "hexagonal",
+      "file": "svgs/hexagonal.svg",
+      "label": "Hexagonal Modified Brilliant",
+      "color": "#5b9bd5"
+    },
+    {
+      "key": "hexagonal_dutch",
+      "file": "svgs/hexagonal_dutch.svg",
+      "label": "Hexagonal Dutch / Dutch Marquise",
+      "color": "#5b9bd5"
+    },
+    {
+      "key": "marquise",
+      "file": "svgs/marquise.svg",
+      "label": "Marquise Brilliant",
+      "color": "#a08060"
+    },
+    {
+      "key": "moval",
+      "file": "svgs/moval.svg",
+      "label": "Moval",
+      "color": "#a08060"
+    },
+    {
+      "key": "old_european",
+      "file": "svgs/old_european.svg",
+      "label": "Old European Brilliant",
+      "color": "#d4af72"
+    },
+    {
+      "key": "old_mine",
+      "file": "svgs/old_mine.svg",
+      "label": "Old Mine Brilliant",
+      "color": "#d4af72"
+    },
+    {
+      "key": "oval",
+      "file": "svgs/oval.svg",
+      "label": "Oval Brilliant",
+      "color": "#a08060"
+    },
+    {
+      "key": "pear",
+      "file": "svgs/pear.svg",
+      "label": "Pear Modified Brilliant",
+      "color": "#9b70d4"
+    },
+    {
+      "key": "portuguese",
+      "file": "svgs/portuguese.svg",
+      "label": "Portuguese / Round Modified Brilliant",
+      "color": "#d4af72"
+    },
+    {
+      "key": "princess",
+      "file": "svgs/princess.svg",
+      "label": "Princess Cut",
+      "color": "#4caf7a"
+    },
+    {
+      "key": "radiant",
+      "file": "svgs/radiant.svg",
+      "label": "Cut Cornered Rectangular Modified Brilliant",
+      "color": "#e06060"
+    },
+    {
+      "key": "rose",
+      "file": "svgs/rose.svg",
+      "label": "Rose Cut",
+      "color": "#e070a0"
+    },
+    {
+      "key": "round",
+      "file": "svgs/round.svg",
+      "label": "Round Brilliant",
+      "color": "#5b9bd5"
+    },
+    {
+      "key": "shield",
+      "file": "svgs/shield.svg",
+      "label": "Shield Modified Brilliant",
+      "color": "#9b70d4"
+    },
+    {
+      "key": "sq_radiant",
+      "file": "svgs/sq_radiant.svg",
+      "label": "Cut Cornered Square Modified Brilliant",
+      "color": "#e06060"
+    },
+    {
+      "key": "square_cushion",
+      "file": "svgs/square_cushion.svg",
+      "label": "Square Cushion Modified Brilliant",
+      "color": "#4caf7a"
+    },
+    {
+      "key": "tapered_baguette",
+      "file": "svgs/tapered_baguette.svg",
+      "label": "Tapered Baguette Cut",
+      "color": "#4caf7a"
+    },
+    {
+      "key": "trilliant",
+      "file": "svgs/trilliant.svg",
+      "label": "Trilliant Cut",
+      "color": "#9b70d4"
+    }
+  ]
+}

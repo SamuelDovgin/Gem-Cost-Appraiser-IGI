@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gem shape icons — export gallery</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #0d0d0d; color: #e8e4dc; padding: 24px; }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 8px; }
+    p { color: #9a958c; font-size: 0.875rem; line-height: 1.5; max-width: 52rem; }
+    .actions { margin: 16px 0 24px; display: flex; flex-wrap: wrap; gap: 10px; }
+    button, a.btn {
+      font-size: 0.8125rem; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+      border: 1px solid #3a3835; background: #1a1a1a; color: #d4af72; text-decoration: none;
+    }
+    button:hover, a.btn:hover { border-color: #d4af72; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: #141414; border: 1px solid #2a2a2a; border-radius: 12px;
+      padding: 14px; text-align: center;
+    }
+    .card .icon {
+      width: 56px; height: 56px; margin: 0 auto 10px;
+      display: flex; align-items: center; justify-content: center;
+      background: #1e1e1e; border-radius: 10px; border: 1px solid #2a2a2a;
+    }
+    .card .key { font-family: ui-monospace, monospace; font-size: 0.75rem; color: #d4af72; }
+    .card .label { font-size: 0.6875rem; color: #7a756c; margin-top: 4px; line-height: 1.35; min-height: 2.5em; }
+    .card a { font-size: 0.625rem; color: #5b9bd5; margin-top: 6px; display: inline-block; }
+    pre {
+      background: #141414; border: 1px solid #2a2a2a; border-radius: 10px;
+      padding: 14px; overflow: auto; font-size: 0.75rem; max-height: 280px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Diamond shape icons</h1>
+  <p>
+    Standalone export from Gem Appraise. Procedural SVGs (viewBox 0 0 24 24).
+    Share <code>shape-icons.js</code> + <code>svgs/</code> or open this gallery locally.
+  </p>
+  <div class="actions">
+    <button type="button" id="copy-usage">Copy usage snippet</button>
+    <a class="btn" href="shape-icons.js" download>Download shape-icons.js</a>
+    <a class="btn" href="manifest.json">manifest.json</a>
+  </div>
+  <div class="grid" id="grid"></div>
+  <h2 style="font-size:0.95rem;margin:28px 0 10px">Quick usage</h2>
+  <pre id="usage-pre"></pre>
+  <script src="shape-icons.js"></script>
+  <script>
+    const G = window.GemShapeIcons;
+    const usage = `// Browser
+&lt;script src="shape-icons.js"&gt;&lt;/script&gt;
+document.getElementById('el').innerHTML = GemShapeIcons.shapeIconSvg('portuguese', 32);
+
+// Node
+const icons = require('./shape-icons.js');
+const fs = require('fs');
+fs.writeFileSync('pear.svg', icons.shapeIconSvgFile('pear', 64));`;
+
+    document.getElementById('usage-pre').textContent = usage.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+    const grid = document.getElementById('grid');
+    for (const key of G.ALL_SHAPE_KEYS) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="icon"></div>
+        <div class="key">${key}</div>
+        <div class="label">${G.shapeNames[key] || key}</div>
+        <a href="svgs/${key}.svg" download>${key}.svg</a>
+      `;
+      card.querySelector('.icon').innerHTML = G.shapeIconSvg(key, 56);
+      grid.appendChild(card);
+    }
+
+    document.getElementById('copy-usage').addEventListener('click', () => {
+      navigator.clipboard.writeText(usage.replace(/&lt;/g, '<').replace(/&gt;/g, '>'));
+    });
+  </script>
+</body>
+</html>

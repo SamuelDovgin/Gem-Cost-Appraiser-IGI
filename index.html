@@ -1036,7 +1036,7 @@ function isWhite(){ return state.colorFamily === 'white'; }
 
 const CLARITY_RANK_NUM = { VVS1:0, VVS2:1, 'VVS-VS':1.5, VS1:2, VS2:3 };
 const WHITE_COLOR_GRADE_NUM = { D:0, DE:0.5, DEF:1, E:1, F:2, G:3, H:4, I:5, J:6, K:7, L:8 };
-const NEAREST_THRESHOLD = 3.5;
+const NEAREST_THRESHOLD = 5.0; // raised from 3.5: catches 4ct+ marquise, 6ct oval, H-color vs D-data (score≤5)
 
 const SHAPE_NORMALIZE = {
   sq_radiant:'radiant', cushion_brilliant:'cushion', square_cushion:'cushion',
@@ -1134,7 +1134,10 @@ function filterCandidates(query, comps) {
 }
 
 function scoreCandidate(query, row) {
-  const caratDist = Math.abs(query.carat - row.carat);
+  // For carat-band rows use the distance to the nearest edge of the band, not just row.carat
+  const caratDist = row.caratBand && row.caratMin != null && row.caratMax != null
+    ? Math.max(0, row.caratMin - query.carat, query.carat - row.caratMax)
+    : Math.abs(query.carat - row.carat);
   const clarU = CLARITY_RANK_NUM[query.clarity] ?? 2;
   const clarC = CLARITY_RANK_NUM[row.clarity] ?? 2;
   const clarDist = Math.abs(clarU - clarC);
@@ -2706,7 +2709,8 @@ function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
   const depthMatch = norm.match(/(\d+(?:\.\d+)?)%\s+Depth/i);
   const tableMatch = norm.match(/(\d+(?:\.\d+)?)%\s+Table/i);
   const isLabGrown = /LABORATORY GROWN/i.test(norm);
-  const shapeMapped = mapReportShapeToState(shape);
+  const shapeHint = [shape, comments, norm].filter(Boolean).join(' | ');
+  const shapeMapped = mapReportShapeToState(shape, shapeHint);
   const notes = [
     !isLabGrown ? 'Report does not appear to say Laboratory Grown Diamond.' : '',
     /Sample Image Used/i.test(norm) ? 'Sample image used on report.' : '',
@@ -3127,6 +3131,52 @@ function iconBaguette(shapeKey, c, f) {
   return s + iconLines(c, f, segs);
 }
 
+function iconRoundBrilliant(box, c, f, extraFacetRing = false) {
+  const r = Math.min(box.hw, box.hh) * 0.95;
+  const cx = box.cx, cy = box.cy;
+  const table = 0.38 * r;
+  const g = r * 0.95;
+  const oct = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4 - Math.PI / 2;
+    oct.push([+(cx + Math.cos(a) * table).toFixed(2), +(cy + Math.sin(a) * table).toFixed(2)]);
+  }
+  let s = `<circle cx="${cx}" cy="${cy}" r="${g.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
+  if (extraFacetRing) {
+    s += `<circle cx="${cx}" cy="${cy}" r="${(g * 0.58).toFixed(2)}" fill="none" stroke="${c}" stroke-width="0.55" opacity="0.55"/>`;
+  }
+  s += iconPath(oct, c, 0.7);
+  const facetSegs = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (i * Math.PI) / 4 - Math.PI / 2;
+    const [tx, ty] = oct[i];
+    facetSegs.push([tx, ty, +(cx + Math.cos(a) * g).toFixed(2), +(cy + Math.sin(a) * g).toFixed(2)]);
+    const a2 = ((i + 1) * Math.PI) / 4 - Math.PI / 2;
+    facetSegs.push([+(cx + Math.cos(a) * g).toFixed(2), +(cy + Math.sin(a) * g).toFixed(2), +(cx + Math.cos(a2) * g).toFixed(2), +(cy + Math.sin(a2) * g).toFixed(2)]);
+  }
+  return s + iconLines(c, f, facetSegs);
+}
+
+const SHAPE_ICON_DRAWN = new Set([
+  'round','oval','pear','marquise','moval','heart','cushion','cushion_brilliant','square_cushion',
+  'princess','emerald','radiant','asscher','sq_radiant','carre','baguette','tapered_baguette',
+  'trilliant','half_moon','shield','hexagonal','hexagonal_dutch','old_european','old_mine',
+  'rose','briolette','portuguese','flanders',
+]);
+const SHAPE_ICON_ALIASES = { elongated_cushion: 'cushion' };
+
+function resolveShapeIconKey(shapeKey, certRatio = null) {
+  const raw = String(shapeKey || '').trim().toLowerCase();
+  if (!raw) return 'round';
+  if (SHAPE_ICON_ALIASES[raw]) return SHAPE_ICON_ALIASES[raw];
+  if (SHAPE_ICON_DRAWN.has(raw)) return raw;
+  const mapped = mapReportShapeToState(raw);
+  if (mapped && SHAPE_ICON_DRAWN.has(mapped)) return mapped;
+  const ratio = certRatio != null ? certRatio : (typeof state !== 'undefined' ? state.ratio : null);
+  if (ratio != null && ratio >= 0.95 && ratio <= 1.08) return 'round';
+  return raw;
+}
+
 function buildShapeIconInner(shapeKey, certRatio) {
   const c = SHAPE_ICON_COLORS[shapeKey] || '#d4af72';
   const f = `stroke="${c}" stroke-width="0.45" opacity="0.62"`;
@@ -3134,28 +3184,8 @@ function buildShapeIconInner(shapeKey, certRatio) {
   const box = iconBox(lw);
   const p = (u, v) => iconXY(box, u, v);
 
-  if (shapeKey === 'round') {
-    const r = Math.min(box.hw, box.hh) * 0.95;
-    const cx = box.cx, cy = box.cy;
-    const table = 0.38 * r;
-    const g = r * 0.95;
-    const oct = [];
-    for (let i = 0; i < 8; i++) {
-      const a = (i * Math.PI) / 4 - Math.PI / 2;
-      oct.push([+(cx + Math.cos(a) * table).toFixed(2), +(cy + Math.sin(a) * table).toFixed(2)]);
-    }
-    let s = `<circle cx="${cx}" cy="${cy}" r="${g.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
-    s += iconPath(oct, c, 0.7);
-    const facetSegs = [];
-    for (let i = 0; i < 8; i++) {
-      const a = (i * Math.PI) / 4 - Math.PI / 2;
-      const [tx, ty] = oct[i];
-      facetSegs.push([tx, ty, +(cx + Math.cos(a) * g).toFixed(2), +(cy + Math.sin(a) * g).toFixed(2)]);
-      const a2 = ((i + 1) * Math.PI) / 4 - Math.PI / 2;
-      facetSegs.push([+(cx + Math.cos(a) * g).toFixed(2), +(cy + Math.sin(a) * g).toFixed(2), +(cx + Math.cos(a2) * g).toFixed(2), +(cy + Math.sin(a2) * g).toFixed(2)]);
-    }
-    return s + iconLines(c, f, facetSegs);
-  }
+  if (shapeKey === 'round') return iconRoundBrilliant(box, c, f, false);
+  if (shapeKey === 'portuguese') return iconRoundBrilliant(box, c, f, true);
   if (shapeKey === 'oval') return iconOval(box, c, f);
   if (shapeKey === 'pear') {
     const pts = [p(-0.58,-0.9), p(-0.66,-0.35), p(-0.5,0.05), p(0,0.96), p(0.5,0.05), p(0.66,-0.35), p(0.58,-0.9), p(0.3,-0.98), p(-0.3,-0.98)];
@@ -3245,16 +3275,6 @@ function buildShapeIconInner(shapeKey, certRatio) {
     for (let i = -0.55; i <= 0.55; i += 0.28) segs.push([...iconXY(br,i,-0.55), ...iconXY(br,i,0.75)]);
     return `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, [[...top,...mid],[...mid,...bot],...segs]);
   }
-  if (shapeKey === 'portuguese') {
-    const pg = iconBox(1);
-    const r = Math.min(pg.hw, pg.hh) * 0.9;
-    let s = `<circle cx="${pg.cx}" cy="${pg.cy}" r="${r.toFixed(2)}" fill="none" stroke="${c}" stroke-width="1.2"/>`;
-    for (let i = 0; i < 12; i++) {
-      const a = (i * Math.PI) / 6;
-      s += iconLines(c, f, [[pg.cx, pg.cy, +(pg.cx + Math.cos(a)*r).toFixed(2), +(pg.cy + Math.sin(a)*r).toFixed(2)]]);
-    }
-    return s;
-  }
   if (shapeKey === 'flanders') {
     const fl = iconBox(1);
     const pts = [iconXY(fl,0,-0.92), iconXY(fl,0.65,-0.65), iconXY(fl,0.92,0), iconXY(fl,0.65,0.65), iconXY(fl,0,0.92), iconXY(fl,-0.65,0.65), iconXY(fl,-0.92,0), iconXY(fl,-0.65,-0.65)];
@@ -3265,10 +3285,11 @@ function buildShapeIconInner(shapeKey, certRatio) {
 
 function shapeIconSvg(shapeKey, size = 26, certRatio = null) {
   const ratio = certRatio != null ? certRatio : (typeof state !== 'undefined' ? state.ratio : null);
-  const inner = buildShapeIconInner(shapeKey, ratio);
-  const title = ratio && ratioGuides[shapeKey]
-    ? `${shapeNames[shapeKey] || shapeKey} · L/W ${ratio.toFixed(2)}`
-    : (shapeNames[shapeKey] || shapeKey);
+  const iconKey = resolveShapeIconKey(shapeKey, ratio);
+  const inner = buildShapeIconInner(iconKey, ratio);
+  const title = ratio && ratioGuides[iconKey]
+    ? `${shapeNames[shapeKey] || shapeNames[iconKey] || shapeKey} · L/W ${ratio.toFixed(2)}`
+    : (shapeNames[shapeKey] || shapeNames[iconKey] || shapeKey);
   return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true"${ratio && ratioGuides[shapeKey] ? ` title="${title}"` : ''}>${inner}</svg>`;
 }
 
@@ -3582,10 +3603,16 @@ function renderIGICard(r) {
   card.style.display = 'block';
 }
 
-function mapReportShapeToState(shape) {
+function mapReportShapeToState(shape, reportHint = '') {
   const sh = (shape || '').toLowerCase().replace(/\./g, '');
-  if (sh.includes('portuguese')) return 'portuguese';
-  if (/\bround\b/.test(sh) && sh.includes('modified') && sh.includes('brilliant')) return 'portuguese';
+  const ctx = (reportHint || '').toLowerCase();
+  const combined = `${sh} ${ctx}`.trim();
+  if (combined.includes('portuguese')) return 'portuguese';
+  if (/\bround\b/.test(combined) && combined.includes('modified') && (combined.includes('brilliant') || combined.includes('portuguese'))) return 'portuguese';
+  if (/\bround\s+modified\b/.test(combined)) return 'portuguese';
+  if (/\bround\b/.test(sh) && sh.includes('brilliant') && !sh.includes('square') && !sh.includes('cornered')) {
+    if (ctx.includes('portuguese') || /\bround\s+modified\b/.test(ctx)) return 'portuguese';
+  }
   if (sh.includes('moval')) return 'moval';
   if (sh.includes('dutch') && (sh.includes('hex') || sh.includes('marquise'))) return 'hexagonal_dutch';
   if (sh.includes('hexagonal') && sh.includes('dutch')) return 'hexagonal_dutch';
