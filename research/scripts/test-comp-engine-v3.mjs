@@ -32,6 +32,7 @@ import {
   CLARITY_MULT_COLOR,
   SHAPE_MULT_WHITE,
   SHAPE_MULT_COLOR,
+  MAX_SUPPLIER_WEIGHT_FRAC,
 } from '../comp-engine-v3.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -187,6 +188,27 @@ function testBlendComps() {
   assertBetween(b3.estimate, 2400, 2600, 'single comp estimate≈2500');
   assert(b3.sigmaLog >= 0.05, 'sigma floor at 0.05');
 
+  // Supplier weight cap should bind final contribution, not just raw pre-cap share.
+  const supplierHeavy = [
+    { logEstimate: Math.log(1000), sigmaLog: 0.05, estimatedPrice: 1000, row: { section: 'A — Messi Gems' } },
+    { logEstimate: Math.log(1010), sigmaLog: 0.05, estimatedPrice: 1010, row: { section: 'B — Messi Gems' } },
+    { logEstimate: Math.log(1500), sigmaLog: 0.30, estimatedPrice: 1500, row: { section: 'C — StarGem' } },
+  ];
+  const b4 = blendComps(supplierHeavy);
+  assert(b4.sourceConcentration.dominated, 'supplier-heavy blend reports source concentration');
+  assert(b4.sourceConcentration.rawDominantFrac > 0.90, 'supplier-heavy raw dominance is high');
+  assert(b4.sourceConcentration.finalDominantFrac <= MAX_SUPPLIER_WEIGHT_FRAC + 0.001,
+    'supplier-heavy final dominance is capped to threshold');
+
+  const singleSource = [
+    { logEstimate: Math.log(1000), sigmaLog: 0.05, estimatedPrice: 1000, row: { section: 'A — Messi Gems' } },
+    { logEstimate: Math.log(1010), sigmaLog: 0.05, estimatedPrice: 1010, row: { section: 'B — Messi Gems' } },
+  ];
+  const b5 = blendComps(singleSource);
+  assert(b5.sourceConcentration.dominated, 'single-source blend reports concentration');
+  assertEqual(b5.sourceConcentration.capPossible, false, 'single-source cap is impossible');
+  assertBetween(b5.sourceConcentration.finalDominantFrac, 0.999, 1.001, 'single-source final share remains 100%');
+
   // Empty → null
   assertEqual(blendComps([]), null, 'empty → null');
 
@@ -265,12 +287,12 @@ function testScoringSemantics() {
   };
   const scoreHeart = compErrorScore(q, vividHeart);
   const scoreBrownish = compErrorScore(q, brownishRadiant);
-  assert(scoreHeart < scoreBrownish, 'same-intensity vivid heart scores better than tiny brownish radiant');
+  assert(scoreHeart.total < scoreBrownish.total, 'same-intensity vivid heart scores better than tiny brownish radiant');
 
   const perfect = { carat: 1, shape: 'round', colorFamily: 'white', colorNormalized: 'D', clarity: 'VS1', priceUsd: 100, confidence: 'high' };
   const crossShape = { ...perfect, shape: 'emerald' };
   const qWhite = { carat: 1, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' };
-  assert(compErrorScore(qWhite, perfect) < compErrorScore(qWhite, crossShape), 'same-shape white comp scores better than cross-shape comp');
+  assert(compErrorScore(qWhite, perfect).total < compErrorScore(qWhite, crossShape).total, 'same-shape white comp scores better than cross-shape comp');
 
   console.log('  compErrorScore semantics: done');
 }
@@ -525,7 +547,7 @@ async function runIntegrationTests() {
     };
     const perfectQuery = { carat: 1.0, shape: 'round', whiteGrade: 'D', clarity: 'VS1', colorFamily: 'white' };
     const scoreExact = compErrorScore(perfectQuery, perfectRow);
-    assertBetween(scoreExact, 0, 0.15, 'T11: perfect match has score ≤ 0.15');
+    assertBetween(scoreExact.total, 0, 0.15, 'T11: perfect match has score ≤ 0.15');
 
     // Far carat gap: 3.8ct vs 0.89ct → high score
     const brownishRow = {
@@ -534,8 +556,8 @@ async function runIntegrationTests() {
     };
     const pinkQuery = { carat: 3.8, shape: 'radiant', colorFamily: 'fancy', colorFamily_key: 'pink_fv', clarity: 'VVS2' };
     const scoreBrownish = compErrorScore(pinkQuery, brownishRow);
-    console.log(`  3.80ct FVP vs 0.89ct brownish: score=${scoreBrownish.toFixed(4)}`);
-    assert(scoreBrownish > 0.35, 'T11: 0.89ct brownish gets high score vs 3.8ct FVP');
+    console.log(`  3.80ct FVP vs 0.89ct brownish: score=${scoreBrownish.total.toFixed(4)}`);
+    assert(scoreBrownish.total > 0.35, 'T11: 0.89ct brownish gets high score vs 3.8ct FVP');
 
     // Close match (different clarity but same shape/color) → moderate score
     const closeRow = {
@@ -544,8 +566,8 @@ async function runIntegrationTests() {
     };
     const closeQuery = { carat: 1.0, shape: 'oval', whiteGrade: 'D', clarity: 'VS1', colorFamily: 'white' };
     const scoreClose = compErrorScore(closeQuery, closeRow);
-    assertBetween(scoreClose, 0.05, 0.30, 'T11: VVS1 vs VS1 → moderate score');
-    console.log(`  1ct D oval, VVS1 vs VS1 comp: score=${scoreClose.toFixed(4)}`);
+    assertBetween(scoreClose.total, 0.05, 0.30, 'T11: VVS1 vs VS1 → moderate score');
+    console.log(`  1ct D oval, VVS1 vs VS1 comp: score=${scoreClose.total.toFixed(4)}`);
   }
 
   // ── T12: adjustCompToQuery spot checks ──────────────────────────────────

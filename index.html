@@ -239,6 +239,9 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .comp-tag.nearest{color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25)}
 .comp-tag.model{color:var(--muted2);background:rgba(255,255,255,.04);border:.5px solid var(--border)}
 .comp-supplier{font-size:11px;color:var(--muted)}
+.comp-links{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.comp-links a{color:var(--blue);text-decoration:none;font-size:11px}
+.comp-links a:hover{text-decoration:underline}
 .comp-mod{font-size:11px;color:var(--muted);margin:1px 0 3px 0;line-height:1.5}
 .comp-alts{margin-top:6px;padding-top:6px;border-top:.5px solid var(--border);display:flex;flex-direction:column;gap:3px}
 .comp-alt-row{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--muted2)}
@@ -1133,6 +1136,7 @@ const WHITE_COLOR_GRADE_NUM = { D:0, DE:0.5, DEF:1, E:1, F:2, G:3, H:4, I:5, J:6
 
 const V3_AXIS_SIGMA = {
   caratPerLogUnit:        0.12,
+  caratLargeExtrapolation:0.28,
   whiteColorPerStep:      0.07,
   fancyIntensityPerLevel: 0.25,
   fancyModifierPerTerm:   0.12,
@@ -1141,7 +1145,7 @@ const V3_AXIS_SIGMA = {
   shapeSame:              0.05,
   shapeFamily:            0.12,
   shapeAdjacent:          0.20,
-  shapeCross:             0.30,
+  shapeCross:             0.40,
   sourceHigh:             0.03,
   sourceMediumHigh:       0.06,
   sourceMedium:           0.10,
@@ -1152,6 +1156,13 @@ const V3_AXIS_SIGMA = {
 };
 const V3_SCORE_CUTOFF = 0.60;
 const V3_MAX_ENSEMBLE = 5;
+const V3_SIGMA_SYSTEMATIC_FLOOR = 0.10;
+const V3_SIGMA_CALIBRATION_FACTOR = 2.0;
+const V3_MAX_SUPPLIER_WEIGHT_FRAC = 0.65;
+const V3_CARAT_THRESHOLDS = [0.5,0.75,1.0,1.5,2.0,3.0,4.0,5.0];
+function v3NearCaratThreshold(ct, tol=0.05) {
+  return V3_CARAT_THRESHOLDS.some(t => Math.abs(ct - t) <= tol);
+}
 
 // Modifier terms and their log-price discount on comp price
 const V3_MODIFIER_LOG_DELTA = {
@@ -1299,7 +1310,7 @@ function caratTolerance(ct) {
 
 function shortLabel(row) {
   if (!row || !row.section) return 'Alibaba';
-  const dashIdx = row.section.lastIndexOf(' - ');
+  const dashIdx = Math.max(row.section.lastIndexOf(' - '), row.section.lastIndexOf(' — '));
   return dashIdx >= 0 ? row.section.slice(dashIdx + 3).trim() : row.section.split(',')[0].trim();
 }
 
@@ -1315,6 +1326,111 @@ function v3CompIdentity(row) {
     row.section || '',
   ];
   return bits.map(v => String(v).toLowerCase().trim()).join('|');
+}
+
+function v3WeightedMedian(values, weights) {
+  const pairs = values.map((v, i) => ({ v, w: weights[i] ?? 1 }))
+    .filter(p => Number.isFinite(p.v) && p.w > 0)
+    .sort((a,b) => a.v - b.v);
+  if (!pairs.length) return null;
+  const total = pairs.reduce((s,p) => s + p.w, 0);
+  let acc = 0;
+  for (const p of pairs) {
+    acc += p.w;
+    if (acc >= total / 2) return p.v;
+  }
+  return pairs[pairs.length - 1].v;
+}
+
+function v3NormalizedLogDpcForCurve(row, query) {
+  let y = Math.log(row.priceUsd / row.carat);
+  if (query.colorFamily === 'white') {
+    const cn = row.colorNormalized || 'D';
+    const compGrade = cn === 'DEF' || cn === 'DE' ? 'E' : cn;
+    const qColor = whiteGradeMult[query.whiteGrade] ?? whiteGradeMult.E;
+    const cColor = whiteGradeMult[compGrade] ?? whiteGradeMult.D;
+    y += Math.log(qColor / Math.max(cColor, 0.01));
+
+    const qClarity = getClarityMult(query.clarity, row.carat);
+    const cClarity = getClarityMult(row.clarity || 'VS1', row.carat);
+    y += Math.log(qClarity / Math.max(cClarity, 0.01));
+
+    const qShape = shapeMult[query.shape] ?? 1.0;
+    const cShape = shapeMult[row.shape] ?? 1.0;
+    y += Math.log(qShape / Math.max(cShape, 0.01));
+  } else {
+    const qShape = shapeMultColor[query.shape] ?? 1.0;
+    const cShape = shapeMultColor[row.shape] ?? 1.0;
+    y += Math.log(qShape / Math.max(cShape, 0.01));
+  }
+  return y;
+}
+
+function v3FitLocalCaratSlope(candidates, query, prior=0.8) {
+  if (!candidates?.length) return null;
+  const clarityRankQ = CLARITY_RANK_NUM[query.clarity] ?? 2;
+  const pool = candidates.filter(row => {
+    if (row.caratBand || row.clarityBand) return false;
+    if (!row.carat || !row.priceUsd || row.carat <= 0 || row.priceUsd <= 0) return false;
+    if (v3ShapeDistance(query.shape, row.shape) > 1) return false;
+    const clarityRankC = CLARITY_RANK_NUM[row.clarity] ?? 2;
+    return Math.abs(clarityRankQ - clarityRankC) <= 2;
+  });
+  if (pool.length < 3) return null;
+
+  const byBin = new Map();
+  for (const row of pool) {
+    const bin = Math.round(row.carat * 4) / 4;
+    if (!byBin.has(bin)) byBin.set(bin, []);
+    byBin.get(bin).push(row);
+  }
+  if (byBin.size < 3) return null;
+
+  const points = [];
+  const sourceSet = new Set();
+  for (const [bin, rows] of byBin.entries()) {
+    const values = [];
+    const weights = [];
+    for (const row of rows) {
+      const y = v3NormalizedLogDpcForCurve(row, query);
+      if (!Number.isFinite(y)) continue;
+      values.push(y);
+      weights.push(Math.min(row.count || 1, 4));
+      sourceSet.add(v3SupplierKey(row));
+    }
+    const y = v3WeightedMedian(values, weights);
+    if (y != null) points.push({ carat: bin, x: Math.log(bin), y, rowCount: rows.length });
+  }
+  points.sort((a,b) => a.carat - b.carat);
+  if (points.length < 3) return null;
+
+  const caratMin = points[0].carat;
+  const caratMax = points[points.length - 1].carat;
+  const caratRange = caratMax - caratMin;
+  if (caratRange < 1.0) return null;
+
+  const weights = points.map(p => 1 / (0.25 + Math.abs(Math.log(query.carat / p.carat))));
+  const totalW = weights.reduce((a,b) => a + b, 0);
+  const xMean = points.reduce((s,p,i) => s + p.x * weights[i], 0) / totalW;
+  const yMean = points.reduce((s,p,i) => s + p.y * weights[i], 0) / totalW;
+  const ssxx = points.reduce((s,p,i) => s + weights[i] * (p.x - xMean) ** 2, 0);
+  const ssxy = points.reduce((s,p,i) => s + weights[i] * (p.x - xMean) * (p.y - yMean), 0);
+  if (ssxx < 1e-6) return null;
+
+  const rawSlope = ssxy / ssxx;
+  const priorWeight = 3;
+  const shrinkFrac = priorWeight / (priorWeight + points.length);
+  const slope = Math.max(-0.2, Math.min(2.0, shrinkFrac * prior + (1 - shrinkFrac) * rawSlope));
+  const sourceCount = sourceSet.size;
+  const confidence = points.length >= 10 && sourceCount >= 2 && caratRange >= 2.0 ? 'high' :
+    points.length >= 5 && caratRange >= 1.5 ? 'medium' : 'low';
+
+  return {
+    slope, rawSlope, n: points.length, rowCount: pool.length, sourceCount,
+    confidence, caratRange, caratMin, caratMax,
+    queryIsExtrapolated: query.carat < caratMin - 0.25 || query.carat > caratMax + 0.25,
+    normalized: true,
+  };
 }
 
 function buildCompQueryFromState(ct) {
@@ -1361,7 +1477,8 @@ function v3FilterCandidates(query, comps) {
 function v3CompErrorScore(query, row) {
   const compCt = row.carat || 1;
   const logCaratRatio = Math.abs(Math.log(query.carat / compCt));
-  const eCarat = logCaratRatio * V3_AXIS_SIGMA.caratPerLogUnit;
+  const eCarat = logCaratRatio * V3_AXIS_SIGMA.caratPerLogUnit +
+    Math.max(0, logCaratRatio - 0.5) * V3_AXIS_SIGMA.caratLargeExtrapolation;
 
   let eColor;
   if (query.colorFamily === 'white') {
@@ -1380,15 +1497,48 @@ function v3CompErrorScore(query, row) {
   const eSource = v3SourceSigma(row.confidence);
   const eBand   = (row.caratBand ? V3_AXIS_SIGMA.caratBand : 0) + (row.clarityBand ? V3_AXIS_SIGMA.clarityBand : 0);
 
-  return Math.sqrt(eCarat**2 + eColor**2 + eClarity**2 + eShape**2 + eSource**2 + eBand**2);
+  const total = Math.sqrt(eCarat**2 + eColor**2 + eClarity**2 + eShape**2 + eSource**2 + eBand**2);
+  return { total, eCarat, eColor, eClarity, eShape, eSource, eBand };
+}
+
+// ── §D2 SUPPLIER CAP ─────────────────────────────────────────────────────────
+
+function v3SupplierKey(row) {
+  const section = row.section || '';
+  // Section strings use either ' - ' (hyphen) or ' — ' (em-dash) as the supplier separator.
+  const lastHyphen = section.lastIndexOf(' - ');
+  const lastEm     = section.lastIndexOf(' — ');
+  const lastDash   = Math.max(lastHyphen, lastEm);
+  const raw = lastDash >= 0 ? section.slice(lastDash + 3).trim() : section.split(',')[0].trim();
+  const norm = raw.replace(/\s*\([^)]+\)\s*$/, '').trim().toLowerCase();
+  if (norm.includes('messi') || norm.includes('wuzhou')) return 'messi';
+  if (norm.includes('starsgem') || norm.includes('stargem')) return 'starsgem';
+  if (norm.includes('mishang')) return 'mishang';
+  if (norm.includes('goldleaf')) return 'goldleaf';
+  return norm || '_unknown';
+}
+
+const V3_MAX_PER_SUPPLIER = 2;
+
+function v3ApplySupplierCap(scored) {
+  const counts = {};
+  const result = [];
+  for (const c of scored) {
+    const sk = v3SupplierKey(c.row);
+    const n = (counts[sk] || 0) + 1;
+    counts[sk] = n;
+    if (n <= V3_MAX_PER_SUPPLIER) result.push(c);
+  }
+  return result;
 }
 
 // ── §E  LOG-SPACE ADJUSTMENT ──────────────────────────────────────────────────
 
-function v3AdjustToQuery(query, row) {
+function v3AdjustToQuery(query, row, context={}) {
   const compCt = row.carat || 1;
   const queryCt = query.carat;
   const logCaratRatio = Math.log(queryCt / compCt);
+  const absLogCaratRatio = Math.abs(logCaratRatio);
   const logDpcComp = Math.log(row.priceUsd / compCt);
 
   let logDpcAdj = logDpcComp;
@@ -1396,11 +1546,17 @@ function v3AdjustToQuery(query, row) {
   let sCarat, sColor, sClarity;
 
   if (query.colorFamily === 'white') {
-    const deltaCarat = 0.8 * logCaratRatio;
-    sCarat = Math.abs(logCaratRatio) * V3_AXIS_SIGMA.caratPerLogUnit;
+    const caratSlope = context.localCaratSlope ?? 0.8;
+    const deltaCarat = caratSlope * logCaratRatio;
+    const slopeSigmaBoost = context.localCaratSlope != null ? Math.abs(context.localCaratSlope - 0.8) * 0.10 : 0;
+    const curveExtrapolationBoost = context.localCaratExtrapolated ? 0.08 : 0;
+    sCarat = absLogCaratRatio * V3_AXIS_SIGMA.caratPerLogUnit +
+      Math.max(0, absLogCaratRatio - 0.5) * V3_AXIS_SIGMA.caratLargeExtrapolation +
+      slopeSigmaBoost + curveExtrapolationBoost;
     logDpcAdj += deltaCarat;
+    const slopeNote = context.localCaratSlope != null ? ` slope=${caratSlope.toFixed(2)}` : '';
     if (Math.abs(deltaCarat) > 0.015)
-      parts.push(`carat ×${Math.exp(deltaCarat).toFixed(2)} (${queryCt}ct vs ${compCt}ct)`);
+      parts.push(`carat ×${Math.exp(deltaCarat).toFixed(2)} (${queryCt}ct vs ${compCt}ct${slopeNote})`);
 
     const cn = row.colorNormalized || 'D';
     const compGrade = cn === 'DEF' ? 'E' : cn === 'DE' ? 'E' : (cn || 'D');
@@ -1447,7 +1603,8 @@ function v3AdjustToQuery(query, row) {
     const cInt = V3_INTENSITY_RANK[cP.intensityKey??'f']??1;
     sColor = Math.abs(uInt - cInt) * V3_AXIS_SIGMA.fancyIntensityPerLevel +
              Math.abs(cP.modifierTerms.length - uP.modifierTerms.length) * V3_AXIS_SIGMA.fancyModifierPerTerm;
-    sCarat = Math.abs(logCaratRatio) * V3_AXIS_SIGMA.caratPerLogUnit;
+    sCarat = absLogCaratRatio * V3_AXIS_SIGMA.caratPerLogUnit +
+      Math.max(0, absLogCaratRatio - 0.5) * V3_AXIS_SIGMA.caratLargeExtrapolation;
   }
 
   // Clarity
@@ -1509,12 +1666,57 @@ function v3Blend(adjustedList) {
       accepted.push(a);
   }
   if (!accepted.length) accepted.push(...rejected), rejected.length=0;
-  const weights = accepted.map(a => 1 / (a.sigmaLog**2 + EPS));
+  const rawWeights = accepted.map(a => 1 / (a.sigmaLog**2 + EPS));
+  let weights = rawWeights;
+  let sourceConcentration = {
+    dominated:false, dominantSupplier:null, dominantFrac:null, rawDominantFrac:null,
+    finalDominantFrac:null, capApplied:false, capPossible:true, supplierFracs:{}
+  };
+  if (accepted.some(a => a.row)) {
+    const rawTotal = rawWeights.reduce((x,y) => x+y, 0);
+    const supplierWeightSum = {};
+    accepted.forEach((a,i) => {
+      const sk = a.row ? v3SupplierKey(a.row) : '_unknown';
+      supplierWeightSum[sk] = (supplierWeightSum[sk] || 0) + rawWeights[i];
+    });
+    const dominant = Object.entries(supplierWeightSum)
+      .sort((a,b) => b[1] - a[1])
+      .find(([,w]) => rawTotal > 0 && w / rawTotal > V3_MAX_SUPPLIER_WEIGHT_FRAC);
+    if (dominant) {
+      const [dominantSk, dominantW] = dominant;
+      const otherW = rawTotal - dominantW;
+      let capApplied = false;
+      const capPossible = otherW > 0;
+      if (capPossible) {
+        const cappedW = (V3_MAX_SUPPLIER_WEIGHT_FRAC * otherW) / (1 - V3_MAX_SUPPLIER_WEIGHT_FRAC);
+        const scale = Math.min(1, cappedW / dominantW);
+        weights = rawWeights.map((w,i) => {
+          const sk = accepted[i].row ? v3SupplierKey(accepted[i].row) : '_unknown';
+          return sk === dominantSk ? w * scale : w;
+        });
+        capApplied = scale < 0.999;
+      }
+      const finalTotal = weights.reduce((x,y) => x+y, 0);
+      const supplierFinalSum = {};
+      accepted.forEach((a,i) => {
+        const sk = a.row ? v3SupplierKey(a.row) : '_unknown';
+        supplierFinalSum[sk] = (supplierFinalSum[sk] || 0) + weights[i];
+      });
+      const supplierFracs = Object.fromEntries(Object.entries(supplierFinalSum).map(([sk,w]) => [sk, finalTotal > 0 ? w / finalTotal : 0]));
+      const finalDominantFrac = finalTotal > 0 ? (supplierFinalSum[dominantSk] || 0) / finalTotal : null;
+      sourceConcentration = {
+        dominated:true, dominantSupplier:dominantSk, dominantFrac:finalDominantFrac,
+        rawDominantFrac: rawTotal > 0 ? dominantW / rawTotal : null,
+        finalDominantFrac, capApplied, capPossible, supplierFracs
+      };
+    }
+  }
   const totalW  = weights.reduce((x,y) => x+y, 0);
   const logEst  = accepted.reduce((s,a,i) => s + a.logEstimate*weights[i], 0) / totalW;
-  const sigmaLog = Math.max(1/Math.sqrt(accepted.reduce((s,a) => s+1/(a.sigmaLog**2+EPS), 0)), 0.05);
+  const sigmaBlend = 1/Math.sqrt(weights.reduce((s,w) => s+w, 0));
+  const sigmaLog = Math.sqrt(sigmaBlend**2 + V3_SIGMA_SYSTEMATIC_FLOOR**2) * V3_SIGMA_CALIBRATION_FACTOR;
   return {
-    logEstimate: logEst, sigmaLog, accepted, rejected,
+    logEstimate: logEst, sigmaLog, accepted, rejected, sourceConcentration,
     estimate: Math.round(Math.exp(logEst)),
     low:      Math.round(Math.exp(logEst - 1.28*sigmaLog)),
     high:     Math.round(Math.exp(logEst + 1.28*sigmaLog)),
@@ -1563,7 +1765,7 @@ function resolveAlibabaComp(ct) {
 
   // 2. Score + de-duplicate by productId
   const scored = candidates
-    .map(row => ({ row, score: v3CompErrorScore(query, row) }))
+    .map(row => { const sc = v3CompErrorScore(query, row); return { row, score: sc.total, scoreComponents: sc }; })
     .sort((a,b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
   const seenPid = new Map();
   for (const c of scored) {
@@ -1573,24 +1775,60 @@ function resolveAlibabaComp(ct) {
   const unique = [...seenPid.values()].sort((a,b) => a.score - b.score);
   const bestScore = unique[0].score;
 
+  const localCaratCurve = query.colorFamily === 'white'
+    ? v3FitLocalCaratSlope(candidates, query, 0.8)
+    : null;
+  if (localCaratCurve?.queryIsExtrapolated) {
+    const dir = query.carat > localCaratCurve.caratMax ? 'above' : 'below';
+    warnings.push(`Carat ${query.carat}ct is ${dir} the local comp range (${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct). Extrapolation uncertainty is high.`);
+  }
+  if (localCaratCurve && Math.abs(localCaratCurve.slope - 0.8) > 0.3) {
+    warnings.push(`Local carat slope ${localCaratCurve.slope.toFixed(2)} differs materially from the 0.8 prior; inspect comp support.`);
+  }
+  if (v3NearCaratThreshold(query.carat)) {
+    warnings.push(`${query.carat}ct is near a market carat threshold — spot price may carry a premium not reflected in nearby comps.`);
+  }
+  const adjContext = {
+    localCaratSlope: localCaratCurve?.slope ?? null,
+    localCaratExtrapolated: !!localCaratCurve?.queryIsExtrapolated,
+  };
+
+  // Exact same-spec rows bypass the selection cap; cap fallback rows only.
+  const exactPool = unique.filter(c => v3IsExactMatch(query, c.row) && c.score < 0.10);
+  const fallbackPool = unique.filter(c => !v3IsExactMatch(query, c.row) || c.score >= 0.10);
+  const supplierCappedFallback = v3ApplySupplierCap(fallbackPool);
+  const supplierCapped = exactPool.length
+    ? [...exactPool, ...supplierCappedFallback].sort((a,b) => a.score - b.score)
+    : supplierCappedFallback;
+
   // 3. Select ensemble (up to MAX within cutoff, or best-3 if all beyond)
   // Exact observations should not be diluted by looser cross-shape comps.
-  const exactScored = unique.filter(c => v3IsExactMatch(query, c.row) && c.score < 0.10);
+  const exactScored = supplierCapped.filter(c => v3IsExactMatch(query, c.row) && c.score < 0.10);
   let selected = exactScored.length
     ? exactScored.slice(0, V3_MAX_ENSEMBLE)
-    : unique.filter(c => c.score <= V3_SCORE_CUTOFF).slice(0, V3_MAX_ENSEMBLE);
+    : supplierCapped.filter(c => c.score <= V3_SCORE_CUTOFF).slice(0, V3_MAX_ENSEMBLE);
   if (!selected.length) {
-    selected = unique.slice(0, Math.min(3, unique.length));
+    selected = supplierCapped.slice(0, Math.min(3, supplierCapped.length));
     warnings.push('No close comps — estimate is highly extrapolated.');
   }
 
   // 4. Adjust + blend
-  const adjustedList = selected.map(({ row, score }) => ({ ...v3AdjustToQuery(query, row), row, score }));
+  const adjustedList = selected.map(({ row, score, scoreComponents }) => ({ ...v3AdjustToQuery(query, row, adjContext), row, score, scoreComponents }));
   const blend = v3Blend(adjustedList);
   if (!blend) return { matchType:'none', estimate:null, low:null, high:null, perCt:null, confidence:null, primary:null, alternatives:[], supportComps:[], rejectedComps:[], warnings:[...warnings,'Blend failed.'], source:null };
 
   if (blend.rejected.length) warnings.push(`${blend.rejected.length} comp(s) rejected as outliers.`);
   if (blend.accepted.length === 1) warnings.push('Single comp — estimate based on one data point.');
+  if (blend.sourceConcentration?.dominated) {
+    const sc = blend.sourceConcentration;
+    if (sc.capPossible && sc.capApplied) {
+      warnings.push(`Source concentrated: ${sc.dominantSupplier} held ${(sc.rawDominantFrac * 100).toFixed(0)}% raw blend weight; capped to ${(sc.finalDominantFrac * 100).toFixed(0)}% final weight.`);
+    } else if (!sc.capPossible) {
+      warnings.push(`Source concentrated: all accepted blend weight came from ${sc.dominantSupplier}; no cross-source cap was possible.`);
+    } else {
+      warnings.push(`Source concentrated: ${sc.dominantSupplier} held ${(sc.finalDominantFrac * 100).toFixed(0)}% final blend weight.`);
+    }
+  }
 
   // 5. matchType
   const hasExact = v3IsExactMatch(query, unique[0].row) && bestScore < 0.10;
@@ -1631,10 +1869,24 @@ function resolveAlibabaComp(ct) {
       url: a.row.url, label: shortLabel(a.row),
       modifiers: { combined: Math.exp(a.logEstimate - Math.log(a.row.priceUsd)), estimated: Math.round(Math.exp(a.logEstimate)), parts: a.parts },
     })),
-    supportComps: blend.accepted.map(a => ({ row: a.row, score: a.score, logEstimate: a.logEstimate, sigmaLog: a.sigmaLog, estimatedPrice: Math.round(Math.exp(a.logEstimate)), parts: a.parts })),
+    supportComps: blend.accepted.map(a => ({ row: a.row, score: a.score, scoreComponents: a.scoreComponents, logEstimate: a.logEstimate, sigmaLog: a.sigmaLog, estimatedPrice: Math.round(Math.exp(a.logEstimate)), parts: a.parts })),
     rejectedComps: blend.rejected.map(a => ({ row: a.row, reason: a.rejectReason, estimatedPrice: Math.round(Math.exp(a.logEstimate)) })),
     warnings,
     source: 'comps-index-v3',
+    sourceConcentration: blend.sourceConcentration,
+    localCaratCurve: localCaratCurve ? {
+      slope: localCaratCurve.slope,
+      rawSlope: localCaratCurve.rawSlope,
+      n: localCaratCurve.n,
+      rowCount: localCaratCurve.rowCount,
+      sourceCount: localCaratCurve.sourceCount,
+      confidence: localCaratCurve.confidence,
+      caratRange: `${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct`,
+      queryIsExtrapolated: localCaratCurve.queryIsExtrapolated,
+      normalized: localCaratCurve.normalized,
+      note: `Normalized local carat slope ${localCaratCurve.slope.toFixed(2)} (prior 0.8), ${localCaratCurve.n} carat knots from ${localCaratCurve.rowCount} rows`,
+    } : null,
+    calibrationNote: `intervals_sigma_inflated_${V3_SIGMA_CALIBRATION_FACTOR}x_uncalibrated`,
   };
 }
 
@@ -2132,11 +2384,90 @@ function fmtCompTag(matchType) {
   return '';
 }
 
+const SOURCE_SHEET_META = {
+  'messi-gems': {
+    label: 'Messi sheet',
+    file: 'research/data/IGI Lab Grown Diamond List.2026.05.18xls.xlsx',
+  },
+  'starsgem': {
+    label: 'StarGem sheet',
+    file: 'research/data/STARS Diamonds Stock2026.5.20.xls',
+  },
+  'messi-color': {
+    label: 'Messi color sheet',
+    file: 'research/data/2026.05.11MESSIGEMS COLORS LAB DIAMONDS LIST.xlsx',
+  },
+};
+
+function getCompSourceMeta(row) {
+  if (!row) return null;
+  const key = row.sourceKey || (row.sourceType === 'supplier-color-sheet' ? 'messi-color' : '');
+  if (key && SOURCE_SHEET_META[key]) return { key, ...SOURCE_SHEET_META[key] };
+  if ((row.supplier || '').toLowerCase().includes('starsgem')) return { key:'starsgem', ...SOURCE_SHEET_META.starsgem };
+  if ((row.supplier || '').toLowerCase().includes('messi')) return { key:'messi-gems', ...SOURCE_SHEET_META['messi-gems'] };
+  return null;
+}
+
+function normalizeReportList(row) {
+  const raw = row?.reportNos || (row?.reportNo ? [row.reportNo] : []);
+  return raw.map(v => String(v).trim()).filter(Boolean);
+}
+
+function normalizeSourceRows(row) {
+  const raw = row?.sourceRows || (row?.rowNo ? [row.rowNo] : []);
+  return raw.map(v => String(v).trim()).filter(Boolean);
+}
+
+function spreadsheetViewerLink(row) {
+  const meta = getCompSourceMeta(row);
+  if (!meta) return '';
+  const params = new URLSearchParams({ source: meta.key });
+  const rows = normalizeSourceRows(row);
+  const reports = normalizeReportList(row);
+  if (rows.length) params.set('rows', rows.join(','));
+  if (reports.length) params.set('reports', reports.join(','));
+  return `research/spreadsheet-viewer.html?${params.toString()}`;
+}
+
+function igiPdfLink(reportNumber) {
+  const clean = extractIGINumber(String(reportNumber || ''));
+  const digits = (clean.match(/\d{6,}/) || [''])[0];
+  return IGI_PDF_BASE + encodeURIComponent(digits || clean) + '.pdf';
+}
+
+function renderCompLinks(entry) {
+  const row = entry?.row;
+  const links = [];
+  const url = entry?.url || row?.url;
+  const isSupplierSheet = !!row && /^supplier/.test(row.sourceType || '');
+  if (url) {
+    links.push(`<a href="${escapeAttr(url)}" target="_blank" rel="noopener">${isSupplierSheet ? 'company' : 'listing'} ↗</a>`);
+  }
+
+  const meta = getCompSourceMeta(row);
+  if (meta) {
+    const rows = normalizeSourceRows(row);
+    const reports = normalizeReportList(row);
+    const rowLabel = rows.length > 1
+      ? `source row sample ${rows.slice(0, 2).map(escapeHTML).join(', ')}${rows.length > 2 ? '…' : ''}`
+      : rows.length === 1 ? `source row ${escapeHTML(rows[0])}` : 'source sheet';
+    links.push(`<a href="${escapeAttr(spreadsheetViewerLink(row))}" target="_blank" rel="noopener">${rowLabel} ↗</a>`);
+    links.push(`<a href="${escapeAttr(meta.file)}" target="_blank" rel="noopener">xlsx ↗</a>`);
+    if (reports.length) {
+      const report = displayIGINumber(extractIGINumber(reports[0]));
+      const suffix = reports.length > 1 ? ` +${reports.length - 1}` : '';
+      links.push(`<a href="${escapeAttr(igiPdfLink(report))}" target="_blank" rel="noopener">IGI ${escapeHTML(report)}${suffix} ↗</a>`);
+    }
+  }
+
+  return links.length ? ` <span class="comp-links">${links.join('')}</span>` : '';
+}
+
 function renderCompEntry(entry, isAlt) {
-  const { row, listingPrice, estimatedPrice, url, label, modifiers } = entry;
+  const { row, listingPrice, estimatedPrice, label, modifiers } = entry;
   const hasAdj = modifiers && Math.abs(modifiers.combined - 1) > 0.03;
   const supplier = escapeHTML(label || 'Alibaba');
-  const viewLink = url ? ` <a href="${escapeAttr(url)}" target="_blank" rel="noopener" style="color:var(--blue)">view ↗</a>` : '';
+  const viewLink = renderCompLinks(entry);
   const rowSpec = row ? `${row.carat}ct ${row.shape} ${row.clarity}${row.color ? ' ' + row.color : row.colorNormalized ? ' ' + row.colorNormalized : ''}` : '';
 
   if (isAlt) {
@@ -2621,7 +2952,7 @@ function updateChartComps() {
   const chips=rows.map(row=>{
     const spec=[row.carat+'ct',row.shape,row.clarity,row.color||row.colorNormalized||''].filter(Boolean).join(' · ');
     const sup=(row.section||'').replace(/^[^–—-]*[–—-]\s*/,'').split(',')[0].trim().slice(0,20);
-    const url=row.url||'#';
+    const url=spreadsheetViewerLink(row) || row.url || '#';
     return `<a class="comp-chip" href="${escapeAttr(url)}" target="_blank" rel="noopener" title="${escapeAttr((row.section||'')+' – '+spec)}">`+
       `<span>${escapeHTML(spec)}</span>`+
       (sup?`<span class="chip-sep">·</span><span style="color:var(--muted);font-size:9px">${escapeHTML(sup)}</span>`:'')+
@@ -2763,7 +3094,7 @@ document.querySelectorAll('.chart-tab').forEach(btn=>{
       const r=hit.row;
       const spec=[r.carat+'ct',r.shape,r.clarity,r.color||r.colorNormalized||''].filter(Boolean).join(' · ');
       const sup=(r.section||'').replace(/^[^–—-]*[–—-]\s*/,'').split(',')[0].trim();
-      const linkHtml=r.url?`<a href="${escapeAttr(r.url)}" target="_blank" rel="noopener">View on Alibaba ↗</a>`:'';
+      const linkHtml=renderCompLinks({ row:r, url:r.url, label:shortLabel(r) });
       tip.innerHTML=`<strong>${fmt(r.priceUsd)}</strong><div class="tip-spec">${escapeHTML(spec)}</div>${sup?`<div class="tip-spec">${escapeHTML(sup)}</div>`:''}${linkHtml}`;
       tip.style.display='block';
       const cw=canvas.clientWidth, ch=canvas.clientHeight;
@@ -2783,7 +3114,10 @@ document.querySelectorAll('.chart-tab').forEach(btn=>{
   canvas.addEventListener('click',e=>{
     const rect=canvas.getBoundingClientRect();
     const hit=nearestHit(e.clientX-rect.left,e.clientY-rect.top);
-    if(hit&&hit.row.url) window.open(hit.row.url,'_blank','noopener,noreferrer');
+    if(hit) {
+      const url = spreadsheetViewerLink(hit.row) || hit.row.url;
+      if (url) window.open(url,'_blank','noopener,noreferrer');
+    }
   });
 })();
 

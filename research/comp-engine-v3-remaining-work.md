@@ -1,145 +1,275 @@
 # Comp Engine v3 - Remaining Work
 
-**Status:** v3 is partially implemented.  
-**Source proposal:** `research/comp-engine-v3-proposal.md`.  
-**Current implementation:** `research/comp-engine-v3.js` and mirrored logic in
-`index.html`.
+Last reviewed: 2026-05-22
 
-## Already Implemented
+Related notes:
 
-The current engine implements the major v3 direction:
+- `research/comp-engine-v3-gap-fixes-implementation.md`
+- `research/estimation-algo-improvement-priorities.md`
+- `research/comp-engine-v3-p0-p1-p1b-implementation.md`
+- `research/comp-engine-v3-implementation-critique.md`
 
-- Log-space adjusted comps.
-- `compErrorScore` instead of the old fixed linear score.
-- Multi-comp blending instead of a single-comp estimate.
-- `supportComps` and `rejectedComps` in the result.
-- Low/median/high uncertainty range.
-- Product-level de-duping by `productId`.
-- Fancy color parsing into hue, intensity, and modifier terms.
-- Brownish/greyish/etc. modifier adjustment.
-- Shape-family distance scoring.
-- The 3.80ct Fancy Vivid Pink case no longer selects the 0.89ct brownish radiant as the primary comp.
-- Expanded tests around hard gates, exact-match semantics, log-space adjustment, modifier handling, pink-case regression, and same-shape exact support.
+## Current State
 
-## What Is Left
+Comp Engine v3 now has the main correctness and plumbing fixes from the P0/P1/P1b critique:
 
-### 1. Full normalized schema and hard gates
+- supplier concentration caps are applied to final blend weight when multiple sources exist;
+- one-source-only estimates are flagged honestly when no cap is mathematically possible;
+- research and production behavior are much closer;
+- local white-diamond carat curves are normalized before fitting;
+- intervals are calibrated with a systematic floor and multiplier;
+- source-row provenance labels no longer imply complete row coverage;
+- the spreadsheet row viewer gives a clear message when opened directly from disk.
 
-Add normalized fields to comp rows and queries:
+Current verification:
 
-- `gemSpecies`
-- `originType`
-- `growthMethod`
-- `majorTreatment`
-- `certificateLab`
-- `marketChannel`
-- `hue`
-- `intensityRank`
-- `colorModifierTerms`
-- `shapeFamily`
-- `facetingFamily`
-- `outlineFamily`
-- `aspectRatio`
-- `sourceGroup`
-- `sourceFlags`
+| Segment | MdAPE | Bias | P80 Coverage | Status |
+|---|---:|---:|---:|---|
+| White | 15.4% | +6.1% | 85.0% | Near target, slightly high error |
+| Fancy | 37.6% | +20.7% | 78.6% | Still weak point accuracy |
 
-Then update candidate filtering so the engine does not cross hard market splits:
+The remaining work is less about obvious implementation bugs and more about model quality, calibration, and long-term maintainability.
 
-- diamond vs other gem species
-- natural vs lab-grown
-- CVD vs HPHT when relevant
-- untreated vs major treatment
-- IGI/GIA/uncertified when the market channel requires it
-- Alibaba wholesale vs retail/importer/auction channels
+## P0 - Remove Research/Production Drift Risk
 
-### 2. Better source de-duping and weight caps
+### What Is Left
 
-Current state: de-dupes by `productId`.
+`research/comp-engine-v3.js` and `index.html` still contain duplicated model logic. The recent pass mirrored the behavior, but future changes can still land in one place and not the other.
 
-Remaining work:
+### Why This Matters
 
-- Cap total weight by supplier.
-- Cap total weight by `sourceGroup`.
-- Distinguish true SKU rows from page-level ranges.
-- Penalize MOQ-only, carat-band, clarity-band, or conflicting rows.
-- Add source age/date decay once capture dates are consistently available.
+This is the highest operational risk because the backtest can say one thing while the user-facing calculator does another. That makes every future pricing improvement harder to trust.
 
-### 3. Dynamic local carat curves
+### Acceptance Criteria
 
-Current state: uses seeded priors and fixed carat slopes.
+- There is one shared source of truth for v3 model logic, or there is a golden parity test that compares research and production outputs for representative queries.
+- Representative parity cases include:
+  - white exact/near-exact match;
+  - white large-carat extrapolation;
+  - fancy vivid pink sparse case;
+  - single-source-only estimate;
+  - multi-source blend with supplier cap applied.
+- Production output matches research output for estimate, low/high range, selected support comps, warnings, and source concentration metadata within defined tolerances.
+- Any future engine change fails CI or the local test suite if production parity is broken.
 
-Remaining work:
+### General Instructions
 
-- Build independent knot sets from the current comp index.
-- Fit local log-log carat curves when there are enough independent rows.
-- Use shrinkage toward priors when data is sparse.
-- Avoid hand-authored per-family spline knots.
-- Prevent one product ladder from becoming the whole market by itself.
+Prefer extracting the shared pricing engine into an importable module if the app structure allows it. If that is too disruptive, add a focused parity harness that evaluates the same query fixtures through both code paths and compares the returned pricing contract.
 
-### 4. Calibrated scoring and uncertainty
+## P1 - Tune Local Carat Curve Usage
 
-Current state: axis sigmas are seeded defaults.
+### What Is Left
 
-Remaining work:
+The local carat slope fit is now cleaner because it normalizes color, clarity, and shape before fitting. However, the white backtest moved slightly in the wrong direction:
 
-- Run grouped backtests to calibrate axis sigmas.
-- Tune `SCORE_HARD_CUTOFF` from observed prediction error.
-- Verify that returned 80% intervals actually contain roughly 80% of held-out rows.
-- Report score components so the UI can explain why a comp was accepted, down-weighted, or rejected.
+- before normalized slope fix: about 15.2% MdAPE;
+- after normalized slope fix: 15.4% MdAPE.
 
-### 5. Robust blend upgrade
+This suggests the slope layer is less contaminated, but not yet well tuned.
 
-Current state: inverse-variance weighted mean in log space with outlier rejection.
+### Why This Matters
 
-Remaining work:
+Carat scaling drives many high-dollar errors. A small slope mistake at 5ct, 8ct, or 12ct can move the estimate by thousands of dollars. The current fit is more defensible statistically, but it needs stronger guardrails.
 
-- Implement weighted median or Huber mean in log space.
-- Add product/supplier/source caps into the blend weights.
-- Make sparse estimates visibly wider.
-- Make exact/near-exact estimates tighter without becoming overconfident.
+### Acceptance Criteria
 
-### 6. Backtest script
+- White MdAPE improves from the current 15.4% baseline without materially worsening bias or P80 coverage.
+- Large-carat worst misses are reduced, especially above 5ct.
+- Local slopes are used aggressively only when there is enough independent support.
+- Extrapolated slopes are either heavily shrunk toward priors or disabled outside observed local carat support.
+- The engine reports when local slope was used, ignored, shrunk, or treated as extrapolated.
 
-Create:
+### General Instructions
 
-```text
-research/scripts/backtest-comp-engine.mjs
-```
+Run grouped backtests while varying slope confidence gates, shrinkage strength, carat binning, and extrapolation behavior. Treat large stones as their own risk area instead of assuming the same curve behavior that works from 1ct to 3ct also works above 5ct.
 
-Backtest requirements:
+## P1 - Improve Fancy Color Point Accuracy
 
-- Hold out one product or supplier group at a time.
-- Predict each held-out row from the remaining rows.
-- Track median absolute percentage error by segment.
-- Track interval calibration for low/high bands.
-- Print worst misses with query, selected comps, score components, adjustment parts, and source rows.
+### What Is Left
 
-Acceptance targets:
+Fancy color estimates remain the largest model-quality gap:
 
-- White commodity segments should beat the old engine.
-- Fancy sparse segments should return honest wide ranges.
-- The 3.80ct Fancy Vivid Pink case must not select the 0.89ct brownish radiant as primary support.
+- Fancy MdAPE: 37.6%;
+- Fancy bias: +20.7%;
+- P80 coverage: 78.6%.
 
-## Recommended Implementation Order
+The widened ranges are close to honest, but the median estimate is still too noisy and biased high.
 
-1. Add normalized schema fields during comp-index generation.
-2. Enforce hard gates using those fields.
-3. Return score components from `compErrorScore`.
-4. Add supplier/source weight caps.
-5. Create the backtest script.
-6. Calibrate axis sigmas and uncertainty bands from backtest results.
-7. Add dynamic carat curves with shrinkage.
-8. Replace the weighted mean with weighted median or Huber blending.
-9. Mirror any production changes from `research/comp-engine-v3.js` into `index.html`.
-10. Expand tests after each phase so proposal acceptance criteria stay pinned.
+### Why This Matters
+
+Fancy pricing is sparse, nonlinear, and highly sensitive to hue, intensity, modifier terms, and shape. A generic comp-distance model can avoid absurd matches, but it still needs better transfer logic to produce useful point estimates.
+
+### Acceptance Criteria
+
+- Fancy MdAPE improves materially from the current 37.6% baseline.
+- Fancy bias moves closer to neutral without simply widening every range.
+- Cross-intensity and cross-hue estimates show visible uncertainty penalties.
+- Known risky transfers, such as brownish to pink or weak-intensity to vivid, are either rejected or heavily discounted.
+- Worst-miss reporting identifies whether the error came from hue transfer, intensity transfer, shape transfer, carat extrapolation, supplier concentration, or sparse data.
+
+### General Instructions
+
+Calibrate fancy color separately from white diamonds. Add segment-specific transfer penalties for hue family, modifier terms, intensity rank, and shape/style. Keep sparse fancy ranges wide, but avoid allowing wide intervals to hide systematically biased median estimates.
+
+## P1b - Add Better Source Independence Signals
+
+### What Is Left
+
+The engine now caps dominant supplier weight when there are multiple suppliers. But when every accepted comp comes from one supplier, it can only flag the concentration; it cannot create independent market evidence.
+
+Also, source identity is still mostly supplier/product based. It does not fully distinguish:
+
+- true single-SKU rows;
+- repeated rows from the same product ladder;
+- page-level range rows;
+- MOQ-only rows;
+- broad carat-band or clarity-band rows;
+- stale source captures.
+
+### Why This Matters
+
+The model can be mathematically correct and still overtrust a supplier ladder that is not truly independent market evidence. Source independence is especially important in sparse fancy segments and large-carat white estimates.
+
+### Acceptance Criteria
+
+- Result metadata separates supplier count, product count, source-group count, and row/sample count.
+- Single-source-only estimates receive a visible confidence penalty or range widening.
+- Page-level ranges, MOQ-only rows, and broad band rows receive lower trust than SKU-specific rows.
+- Product ladders from the same source cannot behave like fully independent market comps.
+- Backtest output can show when an estimate was dominated by supplier concentration or weak source independence.
+
+### General Instructions
+
+Add source-quality fields during index generation and propagate them into scoring and blending. Avoid treating all rows as equal observations. Prefer transparent confidence penalties over hidden hard rejections unless a row is clearly invalid for the query.
+
+## P2 - Calibrate Axis Sigmas And Score Cutoffs From Backtests
+
+### What Is Left
+
+Axis sigmas and score cutoffs are still partly seeded by judgment. The current tests validate behavior, but they do not fully prove that each axis penalty is numerically calibrated.
+
+### Why This Matters
+
+The scoring system controls both which comps are accepted and how much each comp influences the blend. If color, clarity, carat, shape, source, or fancy-intensity penalties are mis-sized, the engine can look reasonable in examples while failing by segment.
+
+### Acceptance Criteria
+
+- Backtests report error by score bucket and by major axis contribution.
+- Accepted comp score bands correspond to observed prediction error.
+- Hard cutoff and soft weighting choices are justified by held-out performance.
+- P80 interval coverage stays near target by segment, not just overall.
+- Calibration outputs make it clear which axes are over- or under-penalized.
+
+### General Instructions
+
+Use grouped holdouts, not random row holdouts that leak near-duplicate supplier ladders into both train and test. Tune white and fancy separately. Preserve readable score components so the UI can explain why a comp was accepted, down-weighted, or rejected.
+
+## P2 - Upgrade Robust Blending
+
+### What Is Left
+
+The engine uses inverse-variance log-space blending with outlier handling and source caps. It does not yet use a robust estimator such as weighted median or Huber-style blending for all sparse/noisy cases.
+
+### Why This Matters
+
+Sparse marketplaces often have one or two bad-but-plausible comps. A robust estimator can reduce sensitivity to those comps without hard-rejecting useful evidence.
+
+### Acceptance Criteria
+
+- Blending is less sensitive to a single extreme accepted comp.
+- Exact and near-exact matches remain tight when support is genuinely strong.
+- Sparse estimates widen rather than overcommitting to one questionable row.
+- Backtests show reduced worst-miss severity without worsening median accuracy.
+
+### General Instructions
+
+Compare current inverse-variance mean against weighted median and Huber variants on the same held-out queries. Keep the implementation understandable; the goal is not a complex optimizer, but a blend that fails more gracefully.
+
+## P2 - Normalize Schema And Hard Gates More Fully
+
+### What Is Left
+
+Some normalized concepts exist implicitly or partially, but the engine still needs a more complete schema for:
+
+- `gemSpecies`;
+- `originType`;
+- `growthMethod`;
+- `majorTreatment`;
+- `certificateLab`;
+- `marketChannel`;
+- `hue`;
+- `intensityRank`;
+- `colorModifierTerms`;
+- `shapeFamily`;
+- `facetingFamily`;
+- `outlineFamily`;
+- `aspectRatio`;
+- `sourceGroup`;
+- `sourceFlags`.
+
+### Why This Matters
+
+The more pricing logic depends on parsed strings, the easier it is to accidentally cross invalid market boundaries. Normalized fields make hard gates, scoring, backtesting, and UI explanations much more reliable.
+
+### Acceptance Criteria
+
+- Index generation emits normalized fields consistently for all supplier sources.
+- Engine gates prevent invalid crosses such as natural vs lab-grown, major treatment mismatch, or incompatible market channel.
+- Missing or low-confidence normalized fields are visible in result metadata.
+- Tests cover both valid transfer cases and invalid hard-gate cases.
+
+### General Instructions
+
+Add schema fields at ingestion/index-generation time rather than repeatedly parsing in the estimator. Keep unknown values explicit. Use hard gates only for true market splits; use penalties for quality differences where transfer is possible but risky.
+
+## P3 - Improve Reporting, Review Tools, And Regression Fixtures
+
+### What Is Left
+
+The backtest and row viewer are useful, but the review loop can still be faster.
+
+Useful additions:
+
+- persistent worst-miss reports;
+- fixture snapshots for known hard cases;
+- side-by-side old/new estimate diffs;
+- compact query cards for manual review;
+- segment dashboards for white vs fancy, shape, carat band, supplier, and source concentration.
+
+### Why This Matters
+
+The next improvements are tuning-heavy. Good review tools will make it easier to tell whether a change is genuinely better or merely moving errors between segments.
+
+### Acceptance Criteria
+
+- A model change can be reviewed by comparing before/after segment metrics.
+- Worst misses include selected comps, rejected comps, score components, adjustment parts, warnings, and source links.
+- Known regression cases are easy to rerun.
+- Manual review does not require reading raw JSON unless debugging a deep issue.
+
+### General Instructions
+
+Keep tooling simple and local-first. Prefer deterministic reports that can be regenerated from the current data snapshot. Make the output useful for pricing judgment, not just engineering metrics.
+
+## Recommended Order
+
+1. Remove or test research/production drift.
+2. Tune white local carat slope gating and extrapolation.
+3. Improve fancy color transfer penalties and calibration.
+4. Add stronger source independence metadata and penalties.
+5. Calibrate axis sigmas and score cutoffs from grouped backtests.
+6. Compare robust blending strategies.
+7. Expand normalized schema and hard gates.
+8. Improve reporting and regression review tools.
 
 ## Definition Of Done
 
-v3 should be considered complete when:
+Comp Engine v3 should be considered mature when:
 
-- Hard gates prevent invalid cross-market comps.
-- The engine learns local carat behavior from the index when enough data exists.
-- Sparse markets return wide, honest ranges.
-- Exact and near-exact comps are not diluted by weak cross-shape evidence.
-- One product, supplier, or bad row cannot dominate the estimate.
-- Backtests show calibrated error bands and no regression on the pink case study.
+- production and research outputs cannot silently diverge;
+- white MdAPE is reliably at or below target with acceptable bias;
+- fancy estimates have materially better point accuracy and honest intervals;
+- large-carat extrapolation no longer dominates worst misses;
+- source concentration and weak independence visibly affect confidence;
+- hard market splits are enforced by normalized fields;
+- backtests explain not just whether the model missed, but why it missed.

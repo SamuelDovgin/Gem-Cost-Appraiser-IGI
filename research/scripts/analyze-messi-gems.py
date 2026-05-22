@@ -326,10 +326,13 @@ def main():
         if r['color'] not in WHITE_GRADES:
             continue
         key = (r['shape'], r['color'], r['clarity'], bin_carat(r['carat']))
-        groups[key].append(r['pricePerStone'])
+        groups[key].append(r)
 
     comps = []
-    for (shape, color, clarity, carat), prices in sorted(groups.items()):
+    for (shape, color, clarity, carat), recs in sorted(groups.items()):
+        prices = [r['pricePerStone'] for r in recs]
+        source_rows = sorted(r['rowNo'] for r in recs if r.get('rowNo') is not None)
+        report_nos = sorted(r['reportNo'] for r in recs if r.get('reportNo') is not None)
         comps.append({
             'priceUsd':        round(_median(prices), 2),
             'carat':           carat,
@@ -349,6 +352,10 @@ def main():
             'section':         f'{shape} {color} {clarity} IGI — Messi Gems',
             'url':             MESSI_FACTORY_URL,
             'sourceType':      'supplier-sheet',
+            'sourceKey':       'messi-gems',
+            'sourceFile':      'IGI Lab Grown Diamond List.2026.05.18xls.xlsx',
+            'sourceRows':      source_rows[:8],
+            'reportNos':       report_nos[:8],
         })
 
     index = {

@@ -417,6 +417,9 @@ def build_comp_pool(records):
             "section": f"{shape} {color} {clarity} — Messi Gems color stock",
             "url": MESSI_FACTORY_URL,
             "sourceType": "supplier-color-sheet",
+            "sourceKey": "messi-color",
+            "sourceFile": "2026.05.11MESSIGEMS COLORS LAB DIAMONDS LIST.xlsx",
+            "sourceRows": sorted(r["rowNo"] for r in recs if r.get("rowNo"))[:8],
         })
     return comps
 

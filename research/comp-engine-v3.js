@@ -157,7 +157,10 @@ const FANCY_LABEL_MAP = {
  */
 function supplierKey(row) {
   const section = row.section || '';
-  const lastDash = section.lastIndexOf(' - ');
+  // Section strings use either ' - ' (hyphen) or ' — ' (em-dash) as the supplier separator.
+  const lastHyphen = section.lastIndexOf(' - ');
+  const lastEm     = section.lastIndexOf(' — ');
+  const lastDash   = Math.max(lastHyphen, lastEm);
   const raw = lastDash >= 0 ? section.slice(lastDash + 3).trim() : section.split(',')[0].trim();
   const norm = raw.replace(/\s*\([^)]+\)\s*$/, '').trim().toLowerCase();
   if (norm.includes('messi') || norm.includes('wuzhou')) return 'messi';
@@ -194,26 +197,50 @@ const SPECIALTY_SHAPE_KEYS = new Set([
   'baguette', 'tapered_baguette', 'carre',
 ]);
 
-// --- Log-space sigma defaults per axis (calibrated priors; Phase 4 will learn from data) ---
+// --- Log-space sigma defaults per axis ---
 const AXIS_SIGMA = {
-  caratPerLogUnit:       0.12,   // per |log(queryCt/compCt)|
-  whiteColorPerStep:     0.07,   // per white grade ordinal step
-  fancyIntensityPerLevel: 0.25,  // per intensity level gap (light→fancy→intense→vivid)
-  fancyModifierPerTerm:  0.12,   // per modifier term (brownish, greyish, etc.)
-  clarityWhitePerStep:   0.06,   // per clarity ordinal step (white)
-  clarityFancyPerStep:   0.04,   // per clarity ordinal step (fancy color, compressed)
-  shapeSame:             0.05,   // same shape
-  shapeFamily:           0.12,   // same shape family (e.g., cushion ↔ cushion_brilliant)
-  shapeAdjacent:         0.20,   // adjacent families (e.g., cushion ↔ radiant)
-  shapeCross:            0.30,   // cross-family (e.g., round ↔ marquise)
-  sourceHigh:            0.03,
-  sourceMediumHigh:      0.06,
-  sourceMedium:          0.10,
-  sourceLowMedium:       0.18,
-  sourceLow:             0.25,
-  caratBand:             0.05,
-  clarityBand:           0.08,
+  caratPerLogUnit:          0.12,   // per |log(queryCt/compCt)|
+  caratLargeExtrapolation:  0.28,   // additional per log unit beyond 0.5 (heavy-tail penalty)
+  whiteColorPerStep:        0.07,   // per white grade ordinal step
+  fancyIntensityPerLevel:   0.25,   // per intensity level gap (light→fancy→intense→vivid)
+  fancyModifierPerTerm:     0.12,   // per modifier term (brownish, greyish, etc.)
+  clarityWhitePerStep:      0.06,   // per clarity ordinal step (white)
+  clarityFancyPerStep:      0.04,   // per clarity ordinal step (fancy color, compressed)
+  shapeSame:                0.05,   // same shape
+  shapeFamily:              0.12,   // same shape family (e.g., cushion ↔ cushion_brilliant)
+  shapeAdjacent:            0.20,   // adjacent families (e.g., cushion ↔ radiant)
+  shapeCross:               0.40,   // cross-family (e.g., round ↔ marquise) — increased to reflect real transfer risk
+  sourceHigh:               0.03,
+  sourceMediumHigh:         0.06,
+  sourceMedium:             0.10,
+  sourceLowMedium:          0.18,
+  sourceLow:                0.25,
+  caratBand:                0.05,
+  clarityBand:              0.08,
 };
+
+// ── Interval calibration ──────────────────────────────────────────────────────
+// Current P80 coverage is ~20% (white) and ~30% (fancy) vs the ≥60% target.
+// These constants widen intervals toward more honest uncertainty representation
+// and are labeled as uncalibrated until a proper empirical pass is done.
+//
+// Irreducible model uncertainty added in quadrature to the pooled blend sigma.
+const SIGMA_SYSTEMATIC_FLOOR = 0.10;
+// Empirical multiplier applied to the final sigma before computing low/high.
+const SIGMA_CALIBRATION_FACTOR = 2.0;
+
+// ── Supplier blend weight cap ─────────────────────────────────────────────────
+// Maximum fraction of total blend weight any single supplier can contribute.
+// This prevents a single supplier from dominating the blended estimate even
+// when its comps happen to have lower per-axis sigma (i.e. are scored as better).
+const MAX_SUPPLIER_WEIGHT_FRAC = 0.65;
+
+// ── Carat threshold magic weights ────────────────────────────────────────────
+// Market premium effects occur at these carat breakpoints (buyers prefer round numbers).
+const CARAT_THRESHOLDS = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0];
+function nearCaratThreshold(ct, tol = 0.05) {
+  return CARAT_THRESHOLDS.some(t => Math.abs(ct - t) <= tol);
+}
 
 // Maximum compErrorScore to include a comp in the ensemble.
 // Roughly: 0.60 log-error = expected ±60% log uncertainty BEFORE blending.
@@ -309,6 +336,167 @@ function inferFancyFamilyKey(colorLabel) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// §2.5  LOCAL CARAT CURVE ESTIMATION
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * fitLocalCaratSlope — OLS fit of log(price/ct) vs log(ct) from the candidate pool.
+ *
+ * The result is the "per-ct exponent": if price ∝ ct^n then slope = n − 1.
+ * White diamond prior is slope = 0.8 (total exponent 1.8).
+ *
+ * Fits normalized, bin-level knots so dense supplier ladders do not dominate.
+ * Shrinks the resulting slope toward the prior using pseudo-observation weight.
+ * Only fits when there are ≥ 3 unique carat bins spanning ≥ 1.0 ct.
+ *
+ * @param {Array}  candidates — pre-filtered comp rows (same colorFamily, hue, etc.)
+ * @param {object} query      — normalized query (shape, clarity, colorFamily, carat)
+ * @param {number} prior      — prior slope (default 0.8 for white, 0.5 for fancy)
+ * @returns {{ slope, n, confidence, caratRange, caratMin, caratMax,
+ *             queryIsExtrapolated } | null}
+ */
+const MIN_FIT_KNOTS  = 3;
+const MIN_CARAT_RANGE = 1.0;
+const SLOPE_PRIOR_WEIGHT = 3;  // pseudo-observations toward the prior slope
+
+function weightedMedian(values, weights) {
+  const pairs = values.map((v, i) => ({ v, w: weights[i] ?? 1 }))
+    .filter(p => Number.isFinite(p.v) && p.w > 0)
+    .sort((a, b) => a.v - b.v);
+  if (!pairs.length) return null;
+  const total = pairs.reduce((s, p) => s + p.w, 0);
+  let acc = 0;
+  for (const p of pairs) {
+    acc += p.w;
+    if (acc >= total / 2) return p.v;
+  }
+  return pairs[pairs.length - 1].v;
+}
+
+function normalizedLogDpcForCurve(row, query) {
+  let y = Math.log(row.priceUsd / row.carat);
+
+  if (query.colorFamily === 'white') {
+    const cn = row.colorNormalized || 'D';
+    const compGrade = (cn === 'DEF' || cn === 'DE') ? 'E' : cn;
+    const qColor = WHITE_GRADE_MULT[query.whiteGrade] ?? WHITE_GRADE_MULT.E;
+    const cColor = WHITE_GRADE_MULT[compGrade] ?? WHITE_GRADE_MULT.D;
+    y += Math.log(qColor / Math.max(cColor, 0.01));
+
+    const qClarity = getClarityMult(query.clarity, row.carat);
+    const cClarity = getClarityMult(row.clarity || 'VS1', row.carat);
+    y += Math.log(qClarity / Math.max(cClarity, 0.01));
+
+    const qShape = SHAPE_MULT_WHITE[query.shape] ?? 1.0;
+    const cShape = SHAPE_MULT_WHITE[row.shape] ?? 1.0;
+    y += Math.log(qShape / Math.max(cShape, 0.01));
+  } else {
+    const qShape = SHAPE_MULT_COLOR[query.shape] ?? 1.0;
+    const cShape = SHAPE_MULT_COLOR[row.shape] ?? 1.0;
+    y += Math.log(qShape / Math.max(cShape, 0.01));
+  }
+
+  return y;
+}
+
+function fitLocalCaratSlope(candidates, query, prior = 0.8) {
+  if (!candidates || !candidates.length) return null;
+
+  const clarityRankQ = CLARITY_RANK_NUM[query.clarity] ?? 2;
+
+  // Only use same-shape-family, concrete (non-band) rows within ±2 clarity steps.
+  const pool = candidates.filter(row => {
+    if (row.caratBand || row.clarityBand) return false;
+    if (!row.carat || !row.priceUsd || row.carat <= 0 || row.priceUsd <= 0) return false;
+    if (shapeDistance(query.shape, row.shape) > 1) return false;
+    const clarityRankC = CLARITY_RANK_NUM[row.clarity] ?? 2;
+    if (Math.abs(clarityRankQ - clarityRankC) > 2) return false;
+    return true;
+  });
+
+  const byBin = new Map();
+  for (const row of pool) {
+    const bin = Math.round(row.carat * 4) / 4;
+    if (!byBin.has(bin)) byBin.set(bin, []);
+    byBin.get(bin).push(row);
+  }
+  if (byBin.size < MIN_FIT_KNOTS) return null;
+
+  const points = [];
+  const sourceSet = new Set();
+  for (const [bin, rows] of byBin.entries()) {
+    const values = [];
+    const weights = [];
+    for (const row of rows) {
+      const y = normalizedLogDpcForCurve(row, query);
+      if (!Number.isFinite(y)) continue;
+      values.push(y);
+      weights.push(Math.min(row.count || 1, 4));
+      sourceSet.add(supplierKey(row));
+    }
+    const y = weightedMedian(values, weights);
+    if (y != null) {
+      points.push({
+        carat: bin,
+        x: Math.log(bin),
+        y,
+        rowCount: rows.length,
+        sourceCount: new Set(rows.map(supplierKey)).size,
+      });
+    }
+  }
+  points.sort((a, b) => a.carat - b.carat);
+  if (points.length < MIN_FIT_KNOTS) return null;
+
+  const caratMin = points[0].carat;
+  const caratMax = points[points.length - 1].carat;
+  const caratRange = caratMax - caratMin;
+  if (caratRange < MIN_CARAT_RANGE) return null;
+
+  // Weighted OLS: log(normalized $/ct) = alpha + rawSlope * log(ct)
+  const weights = points.map(p => 1 / (0.25 + Math.abs(Math.log(query.carat / p.carat))));
+  const totalW = weights.reduce((a, b) => a + b, 0);
+  const xMean = points.reduce((s, p, i) => s + p.x * weights[i], 0) / totalW;
+  const yMean = points.reduce((s, p, i) => s + p.y * weights[i], 0) / totalW;
+  const ssxx = points.reduce((s, p, i) => s + weights[i] * (p.x - xMean) ** 2, 0);
+  const ssxy = points.reduce((s, p, i) => s + weights[i] * (p.x - xMean) * (p.y - yMean), 0);
+
+  if (ssxx < 1e-6) return null;
+
+  const rawSlope = ssxy / ssxx;
+
+  // Shrink the fitted slope toward the prior using bin-level support.
+  const dataN = points.length;
+  const shrinkFrac = SLOPE_PRIOR_WEIGHT / (SLOPE_PRIOR_WEIGHT + dataN);
+  const slope = shrinkFrac * prior + (1 - shrinkFrac) * rawSlope;
+
+  // Clamp to a plausible range for diamond markets
+  const clampedSlope = Math.max(-0.2, Math.min(2.0, slope));
+
+  const queryIsExtrapolated = query.carat < caratMin - 0.25 || query.carat > caratMax + 0.25;
+  const sourceCount = sourceSet.size;
+  const confidence = dataN >= 10 && sourceCount >= 2 && caratRange >= 2.0
+    ? 'high'
+    : dataN >= 5 && caratRange >= 1.5
+      ? 'medium'
+      : 'low';
+
+  return {
+    slope: clampedSlope,
+    rawSlope,
+    n: dataN,
+    rowCount: pool.length,
+    sourceCount,
+    confidence,
+    caratRange,
+    caratMin,
+    caratMax,
+    queryIsExtrapolated,
+    normalized: true,
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // §3  SHAPE FAMILIES & DISTANCE
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -400,7 +588,7 @@ function getClarityMult(clarity, ct) {
 
 function shortLabel(row) {
   if (!row || !row.section) return 'Alibaba';
-  const dashIdx = row.section.lastIndexOf(' - ');
+  const dashIdx = Math.max(row.section.lastIndexOf(' - '), row.section.lastIndexOf(' — '));
   return dashIdx >= 0 ? row.section.slice(dashIdx + 3).trim() : row.section.split(',')[0].trim();
 }
 
@@ -527,9 +715,10 @@ function isExactMatch(query, row) {
 function compErrorScore(query, row) {
   const compCt = row.carat || 1;
 
-  // Carat: per unit of |log(queryCt/compCt)|
+  // Carat: linear base + extra penalty beyond 0.5 log units (heavy-tail extrapolation)
   const logCaratRatio = Math.abs(Math.log(query.carat / compCt));
-  const eCarat = logCaratRatio * AXIS_SIGMA.caratPerLogUnit;
+  const eCarat = logCaratRatio * AXIS_SIGMA.caratPerLogUnit +
+                 Math.max(0, logCaratRatio - 0.5) * AXIS_SIGMA.caratLargeExtrapolation;
 
   // Color / intensity
   let eColor;
@@ -594,8 +783,10 @@ function compErrorScore(query, row) {
  *   - sigmaLog: estimated log-space standard deviation
  *   - estimatedPrice: exp(logEstimate), rounded
  *   - parts: human-readable adjustment explanations
+ *
+ * @param {object} context — optional { localCaratSlope } for data-driven carat scaling
  */
-function adjustCompToQuery(query, row) {
+function adjustCompToQuery(query, row, context = {}) {
   const compCt = row.carat || 1;
   const queryCt = query.carat;
   const logDpcComp = Math.log(row.priceUsd / compCt);
@@ -605,15 +796,26 @@ function adjustCompToQuery(query, row) {
   let sigmaCarat, sigmaColor, sigmaClarity, sigmaShape;
 
   const logCaratRatio = Math.log(queryCt / compCt);
+  const absLogCaratRatio = Math.abs(logCaratRatio);
 
   if (query.colorFamily === 'white') {
     // ── White: separate carat slope + color grade ──────────────────────────
-    const caratSlope = 0.8;  // total exponent 1.8 → per-ct delta = 0.8
+    // Use data-driven local slope when available; fall back to prior 0.8.
+    const caratSlope = context.localCaratSlope ?? 0.8;
     const deltaCarat = caratSlope * logCaratRatio;
-    sigmaCarat = Math.abs(logCaratRatio) * AXIS_SIGMA.caratPerLogUnit;
+    // Extra sigma when local slope deviates from prior (slope uncertainty).
+    const slopeSigmaBoost = context.localCaratSlope != null
+      ? Math.abs(context.localCaratSlope - 0.8) * 0.10
+      : 0;
+    const curveExtrapolationBoost = context.localCaratExtrapolated ? 0.08 : 0;
+    sigmaCarat = absLogCaratRatio * AXIS_SIGMA.caratPerLogUnit +
+                 Math.max(0, absLogCaratRatio - 0.5) * AXIS_SIGMA.caratLargeExtrapolation +
+                 slopeSigmaBoost +
+                 curveExtrapolationBoost;
     logDpcAdj += deltaCarat;
+    const slopeNote = context.localCaratSlope != null ? ` slope=${caratSlope.toFixed(2)}` : '';
     if (Math.abs(deltaCarat) > 0.015)
-      parts.push(`carat ×${Math.exp(deltaCarat).toFixed(2)} (${queryCt}ct vs ${compCt}ct)`);
+      parts.push(`carat ×${Math.exp(deltaCarat).toFixed(2)} (${queryCt}ct vs ${compCt}ct${slopeNote})`);
 
     const cn = row.colorNormalized || 'D';
     const compGrade = (cn === 'DEF' || cn === 'DE') ? 'E' : cn;
@@ -675,7 +877,9 @@ function adjustCompToQuery(query, row) {
     const intensityGap = Math.abs(uInt - cInt);
     const modDiff = Math.abs(compParsed.modifierTerms.length - userParsed.modifierTerms.length);
     sigmaColor = intensityGap * AXIS_SIGMA.fancyIntensityPerLevel + modDiff * AXIS_SIGMA.fancyModifierPerTerm;
-    sigmaCarat = Math.abs(logCaratRatio) * AXIS_SIGMA.caratPerLogUnit;
+    // Apply large-extrapolation penalty for fancy carat gaps too.
+    sigmaCarat = absLogCaratRatio * AXIS_SIGMA.caratPerLogUnit +
+                 Math.max(0, absLogCaratRatio - 0.5) * AXIS_SIGMA.caratLargeExtrapolation;
   }
 
   // ── Clarity adjustment ────────────────────────────────────────────────────
@@ -782,24 +986,91 @@ function blendComps(adjustedList) {
     rejected.length = 0;
   }
 
-  // Inverse-variance weighting
+  // ── Inverse-variance weighting ─────────────────────────────────────────────
   const EPS = 1e-4;
-  const weights = accepted.map(adj => 1 / (adj.sigmaLog ** 2 + EPS));
+  const rawWeights = accepted.map(adj => 1 / (adj.sigmaLog ** 2 + EPS));
+
+  // ── Supplier blend weight cap ──────────────────────────────────────────────
+  // Prevent one supplier from dominating the weighted mean even if its rows
+  // have lower per-axis sigma than others (a selection-cap alone doesn't prevent this).
+  let weights = rawWeights;
+  let sourceConcentration = {
+    dominated: false,
+    dominantSupplier: null,
+    dominantFrac: null,
+    rawDominantFrac: null,
+    finalDominantFrac: null,
+    capApplied: false,
+    capPossible: true,
+    supplierFracs: {},
+  };
+
+  const hasRowInfo = accepted.some(adj => adj.row != null);
+  if (hasRowInfo) {
+    const rawTotal = rawWeights.reduce((a, b) => a + b, 0);
+    const supplierWeightSum = {};
+    for (let i = 0; i < accepted.length; i++) {
+      const sk = accepted[i].row ? supplierKey(accepted[i].row) : '_unknown';
+      supplierWeightSum[sk] = (supplierWeightSum[sk] || 0) + rawWeights[i];
+    }
+    const entries = Object.entries(supplierWeightSum).sort((a, b) => b[1] - a[1]);
+    const dominant = entries.find(([, w]) => rawTotal > 0 && w / rawTotal > MAX_SUPPLIER_WEIGHT_FRAC);
+    if (dominant) {
+      const [dominantSk, dominantW] = dominant;
+      const otherW = rawTotal - dominantW;
+      let capApplied = false;
+      let capPossible = otherW > 0;
+      if (capPossible) {
+        // Solve cappedW / (cappedW + otherW) = MAX_SUPPLIER_WEIGHT_FRAC.
+        const cappedW = (MAX_SUPPLIER_WEIGHT_FRAC * otherW) / (1 - MAX_SUPPLIER_WEIGHT_FRAC);
+        const scale = Math.min(1, cappedW / dominantW);
+        weights = rawWeights.map((w, i) => {
+          const sk = accepted[i].row ? supplierKey(accepted[i].row) : '_unknown';
+          return sk === dominantSk ? w * scale : w;
+        });
+        capApplied = scale < 0.999;
+      }
+      const finalTotal = weights.reduce((a, b) => a + b, 0);
+      const supplierFinalSum = {};
+      for (let i = 0; i < accepted.length; i++) {
+        const sk = accepted[i].row ? supplierKey(accepted[i].row) : '_unknown';
+        supplierFinalSum[sk] = (supplierFinalSum[sk] || 0) + weights[i];
+      }
+      const supplierFracs = Object.fromEntries(
+        Object.entries(supplierFinalSum).map(([sk, w]) => [sk, finalTotal > 0 ? w / finalTotal : 0])
+      );
+      const finalDominantFrac = finalTotal > 0 ? (supplierFinalSum[dominantSk] || 0) / finalTotal : null;
+      sourceConcentration = {
+        dominated: true,
+        dominantSupplier: dominantSk,
+        dominantFrac: finalDominantFrac,
+        rawDominantFrac: rawTotal > 0 ? dominantW / rawTotal : null,
+        finalDominantFrac,
+        capApplied,
+        capPossible,
+        supplierFracs,
+      };
+    }
+  }
+
   const totalW = weights.reduce((a, b) => a + b, 0);
   const logEstimate = accepted.reduce((sum, adj, i) => sum + adj.logEstimate * weights[i], 0) / totalW;
 
-  // Blended sigma from pooled inverse-variance, floored at 0.05
-  const sigmaLog = Math.max(
-    1 / Math.sqrt(accepted.reduce((sum, adj) => sum + 1 / (adj.sigmaLog ** 2 + EPS), 0)),
-    0.05
-  );
+  // ── Blended sigma with systematic floor and empirical calibration factor ───
+  // The pooled inverse-variance sigma is often too narrow (P80 coverage ~20%).
+  // SIGMA_SYSTEMATIC_FLOOR adds irreducible model uncertainty in quadrature.
+  // SIGMA_CALIBRATION_FACTOR widens the final interval empirically.
+  // Both are labeled uncalibrated; tune after a proper coverage measurement.
+  const sigmaBlend = 1 / Math.sqrt(weights.reduce((sum, w) => sum + w, 0));
+  const sigmaWithFloor = Math.sqrt(sigmaBlend ** 2 + SIGMA_SYSTEMATIC_FLOOR ** 2);
+  const sigmaLog = sigmaWithFloor * SIGMA_CALIBRATION_FACTOR;
 
   const estimate = Math.round(Math.exp(logEstimate));
-  // 80% interval (z = 1.28 for normal distribution)
+  // 80% interval label (z = 1.28), but sigmaLog is inflated, so effective coverage > 80%.
   const low  = Math.round(Math.exp(logEstimate - 1.28 * sigmaLog));
   const high = Math.round(Math.exp(logEstimate + 1.28 * sigmaLog));
 
-  return { logEstimate, sigmaLog, estimate, low, high, accepted, rejected };
+  return { logEstimate, sigmaLog, estimate, low, high, accepted, rejected, sourceConcentration };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -920,11 +1191,38 @@ function resolveAlibabaComp(query) {
 
   const bestScore = uniqueScored[0].score;
 
-  // Apply supplier cap: no single supplier can fill all ensemble slots.
-  // uniqueScored is already sorted best-first so this keeps the best rows per supplier.
-  const supplierCapped = applySupplierCap(uniqueScored);
+  // ── 2b. Fit local carat curve ─────────────────────────────────────────────
+  // Only for white diamonds right now; fancy uses the model-based scale param.
+  const localCaratCurve = nq.colorFamily === 'white'
+    ? fitLocalCaratSlope(candidates, nq, /* prior */ 0.8)
+    : null;
+  if (localCaratCurve?.queryIsExtrapolated) {
+    const dir = nq.carat > localCaratCurve.caratMax ? 'above' : 'below';
+    warnings.push(`Carat ${nq.carat}ct is ${dir} the local comp range (${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct). Extrapolation uncertainty is high.`);
+  }
+  if (localCaratCurve && Math.abs(localCaratCurve.slope - 0.8) > 0.3) {
+    warnings.push(`Local carat slope ${localCaratCurve.slope.toFixed(2)} differs materially from the 0.8 prior; inspect comp support.`);
+  }
+  if (nearCaratThreshold(nq.carat)) {
+    warnings.push(`${nq.carat}ct is near a market carat threshold — spot price may carry a premium not reflected in nearby comps.`);
+  }
+  const adjContext = {
+    localCaratSlope: localCaratCurve?.slope ?? null,
+    localCaratExtrapolated: !!localCaratCurve?.queryIsExtrapolated,
+  };
 
-  // ── 3. Select top-N for ensemble ──────────────────────────────────────────
+  // ── 3. Supplier cap: separate exact vs fallback paths ─────────────────────
+  // Exact same-spec rows should not be discarded by the supplier cap — they are
+  // the most reliable observations. The cap is applied more aggressively to
+  // fallback (non-exact) comps where supplier pricing basis is a larger risk.
+  const exactPool = uniqueScored.filter(c => isExactMatch(nq, c.row) && c.score < 0.10);
+  const fallbackPool = uniqueScored.filter(c => !isExactMatch(nq, c.row) || c.score >= 0.10);
+  const supplierCappedFallback = applySupplierCap(fallbackPool);
+  const supplierCapped = exactPool.length
+    ? [...exactPool, ...supplierCappedFallback].sort((a, b) => a.score - b.score)
+    : supplierCappedFallback;
+
+  // ── 4. Select top-N for ensemble ──────────────────────────────────────────
   // Exact observations should not be diluted or outlier-rejected by looser
   // cross-shape comps that happen to be cheaper.
   const exactScored = supplierCapped.filter(c => isExactMatch(nq, c.row) && c.score < 0.10);
@@ -938,13 +1236,13 @@ function resolveAlibabaComp(query) {
     warnings.push('No close comps found — estimate is highly extrapolated.');
   }
 
-  // ── 4. Adjust each comp to query in log space ─────────────────────────────
+  // ── 5. Adjust each comp to query in log space ─────────────────────────────
   const adjustedList = selected.map(({ row, score, scoreComponents }) => {
-    const adj = adjustCompToQuery(nq, row);
+    const adj = adjustCompToQuery(nq, row, adjContext);
     return { ...adj, row, score, scoreComponents };
   });
 
-  // ── 5. Blend ───────────────────────────────────────────────────────────────
+  // ── 6. Blend ───────────────────────────────────────────────────────────────
   const blend = blendComps(adjustedList);
 
   if (!blend) {
@@ -961,8 +1259,18 @@ function resolveAlibabaComp(query) {
   if (blend.accepted.length === 1) {
     warnings.push('Single comp in ensemble — estimate based on one data point.');
   }
+  if (blend.sourceConcentration?.dominated) {
+    const sc = blend.sourceConcentration;
+    if (sc.capPossible && sc.capApplied) {
+      warnings.push(`Source concentrated: ${sc.dominantSupplier} held ${(sc.rawDominantFrac * 100).toFixed(0)}% raw blend weight; capped to ${(sc.finalDominantFrac * 100).toFixed(0)}% final weight.`);
+    } else if (!sc.capPossible) {
+      warnings.push(`Source concentrated: all accepted blend weight came from ${sc.dominantSupplier}; no cross-source cap was possible.`);
+    } else {
+      warnings.push(`Source concentrated: ${sc.dominantSupplier} held ${(sc.finalDominantFrac * 100).toFixed(0)}% final blend weight.`);
+    }
+  }
 
-  // ── 6. Determine matchType ────────────────────────────────────────────────
+  // ── 7. Determine matchType ────────────────────────────────────────────────
   // Check if best comp qualifies as an exact observation
   const hasExact = isExactMatch(nq, uniqueScored[0].row) && bestScore < 0.10;
   let matchType;
@@ -1040,6 +1348,23 @@ function resolveAlibabaComp(query) {
     })),
     warnings,
     source: 'comps-index-v3',
+    // ── P1: source concentration ──────────────────────────────────────────
+    sourceConcentration: blend.sourceConcentration,
+    // ── P1b: local carat curve ────────────────────────────────────────────
+    localCaratCurve: localCaratCurve ? {
+      slope: localCaratCurve.slope,
+      rawSlope: localCaratCurve.rawSlope,
+      n: localCaratCurve.n,
+      rowCount: localCaratCurve.rowCount,
+      sourceCount: localCaratCurve.sourceCount,
+      confidence: localCaratCurve.confidence,
+      caratRange: `${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct`,
+      queryIsExtrapolated: localCaratCurve.queryIsExtrapolated,
+      normalized: localCaratCurve.normalized,
+      note: `Normalized local carat slope ${localCaratCurve.slope.toFixed(2)} (prior 0.8), ${localCaratCurve.n} carat knots from ${localCaratCurve.rowCount} rows`,
+    } : null,
+    // ── P0: calibration label ─────────────────────────────────────────────
+    calibrationNote: `intervals_sigma_inflated_${SIGMA_CALIBRATION_FACTOR}x_uncalibrated`,
   };
 }
 
@@ -1335,6 +1660,9 @@ export {
   shapeSigma,
   getClarityMult,
   medianOf,
+  supplierKey,
+  fitLocalCaratSlope,
+  nearCaratThreshold,
 
   // Reference data
   AXIS_SIGMA,
@@ -1346,6 +1674,7 @@ export {
   WHITE_GRADE_MULT,
   WHITE_COLOR_GRADE_NUM,
   CLARITY_RANK_NUM,
+  CLARITY_CARAT_KNOTS_W,
   CLARITY_CARAT_MULTS_W,
   CLARITY_MULT_COLOR,
   SHAPE_MULT_WHITE,
@@ -1353,4 +1682,8 @@ export {
   SPECIALTY_SHAPE_KEYS,
   SCORE_HARD_CUTOFF,
   MAX_ENSEMBLE,
+  CARAT_THRESHOLDS,
+  SIGMA_CALIBRATION_FACTOR,
+  SIGMA_SYSTEMATIC_FLOOR,
+  MAX_SUPPLIER_WEIGHT_FRAC,
 };

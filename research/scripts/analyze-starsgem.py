@@ -94,8 +94,12 @@ def load_xls(path: str) -> list[dict]:
     wb = xlrd.open_workbook(path)
     ws = wb.sheet_by_name('Table')
     headers = [ws.cell_value(0, j) for j in range(ws.ncols)]
-    return [{headers[j]: ws.cell_value(i, j) for j in range(ws.ncols)}
-            for i in range(1, ws.nrows)]
+    rows = []
+    for i in range(1, ws.nrows):
+        row = {headers[j]: ws.cell_value(i, j) for j in range(ws.ncols)}
+        row['__excelRow'] = i + 1
+        rows.append(row)
+    return rows
 
 
 def parse_measurement(s: str):
@@ -200,6 +204,7 @@ def normalise_row(raw: dict) -> dict | None:
     lab_norm = 'IGI' if 'IGI' in report.upper() else report
 
     return {
+        'rowNo':           int(raw.get('__excelRow')) if raw.get('__excelRow') else None,
         'rawShapeCode':    raw_shape,
         'rawCutCode':      raw_cut,
         'shape':           canonical_shape,
@@ -266,10 +271,13 @@ def build_comp_pool(records: list[dict]) -> list[dict]:
         if r['isIceFlower']:
             continue
         key = (r['shape'], r['color'], r['clarity'], bin_carat(r['carat']))
-        groups[key].append(r['pricePerStone'])
+        groups[key].append(r)
 
     comps = []
-    for (shape, color, clarity, carat), prices in sorted(groups.items()):
+    for (shape, color, clarity, carat), recs in sorted(groups.items()):
+        prices = [r['pricePerStone'] for r in recs]
+        source_rows = sorted(r['rowNo'] for r in recs if r.get('rowNo') is not None)
+        report_nos = sorted(r['reportNo'] for r in recs if r.get('reportNo'))
         comps.append({
             'priceUsd':        round(_median(prices), 2),
             'carat':           carat,
@@ -289,6 +297,10 @@ def build_comp_pool(records: list[dict]) -> list[dict]:
             'section':         f'{shape} {color} {clarity} IGI — StarGem',
             'url':             STARSGEM_FACTORY_URL,
             'sourceType':      'supplier-sheet',
+            'sourceKey':       'starsgem',
+            'sourceFile':      'STARS Diamonds Stock2026.5.20.xls',
+            'sourceRows':      source_rows[:8],
+            'reportNos':       report_nos[:8],
         })
     return comps
 

@@ -3,7 +3,7 @@
   "location": "Guangxi, China",
   "sourceFile": "IGI Lab Grown Diamond List.2026.05.18xls.xlsx",
   "sourceDate": "2026-05-18",
-  "generatedDate": "2026-05-21",
+  "generatedDate": "2026-05-22",
   "purpose": "Secondary source-of-truth comp index for Messi Gems IGI lab-grown diamonds (>=1ct only)",
   "filterApplied": "carat >= 1.00",
   "movalThreshold": 1.75,

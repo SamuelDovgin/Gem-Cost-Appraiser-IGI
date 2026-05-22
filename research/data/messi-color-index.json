@@ -3,7 +3,7 @@
   "location": "Guangxi, China",
   "sourceFile": "2026.05.11MESSIGEMS COLORS LAB DIAMONDS LIST.xlsx",
   "sourceDate": "2026-05-11",
-  "generatedDate": "2026-05-21",
+  "generatedDate": "2026-05-22",
   "purpose": "Fancy-color source-of-truth comp index for Messi Gems lab-grown diamonds",
   "filterApplied": "carat >= 1.00 AND pricePerStone > 0",
   "shapeCodeMap": {
