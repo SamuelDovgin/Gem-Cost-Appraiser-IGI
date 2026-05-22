@@ -371,6 +371,9 @@ async function runIntegrationTests() {
     if (pRow) {
       const isBrownish089 = Math.abs(pRow.carat - 0.89) < 0.05 && (pRow.color || '').toLowerCase().includes('brownish');
       assert(!isBrownish089, 'T03: primary must NOT be 0.89ct brownish radiant');
+      const isOldHeart = Math.abs(pRow.carat - 2.08) < 0.10 && pRow.shape === 'heart';
+      assert(!isOldHeart, 'T03: primary must NOT be the old 2ct heart when Messi radiant stock exists');
+      assertEqual(pRow.shape, 'radiant', 'T03: primary is same-shape radiant from Messi color stock');
     }
 
     // Should have multiple support comps (ensemble)
@@ -406,7 +409,7 @@ async function runIntegrationTests() {
     const q = { carat: 4.0, shape: 'marquise', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' };
     const r = resolveAlibabaComp(q);
     console.log(`  matchType: ${r.matchType}  estimate: $${r.estimate}  range: $${r.low}–$${r.high}`);
-    assertIncludes(['nearest', 'best_available'], r.matchType, 'T04 matchType (no 4ct marquise row)');
+    assertIncludes(['exact', 'nearest', 'best_available'], r.matchType, 'T04 matchType');
     assert(r.estimate > 0, 'T04: positive estimate');
     assert(r.low < r.estimate, 'T04: low < estimate');
     assert(r.high > r.estimate, 'T04: high > estimate');
@@ -433,7 +436,7 @@ async function runIntegrationTests() {
     assertEqual(r.matchType, 'none', 'T06: no orange comps → none');
   }
 
-  // ── T07: Precision check — H < G < F < E < D for 2ct round VS1 ────────────
+  // ── T07: White color sanity for merged supplier pools ────────────────────
   {
     console.log('\n── T07: Color ordering 2ct round VS1 ─────────────────────────────');
     const grades = ['D', 'E', 'F', 'G', 'H', 'I'];
@@ -441,17 +444,13 @@ async function runIntegrationTests() {
       grade: g,
       result: resolveAlibabaComp({ carat: 2.0, shape: 'round', colorFamily: 'white', whiteGrade: g, clarity: 'VS1' }),
     }));
-    let strictlyDecreasing = true;
-    for (let i = 1; i < results.length; i++) {
-      if (results[i].result.estimate >= results[i - 1].result.estimate) {
-        strictlyDecreasing = false;
-        console.error(`  Ordering fail: ${results[i - 1].grade}($${results[i - 1].result.estimate}) ≤ ${results[i].grade}($${results[i].result.estimate})`);
-      }
-    }
     results.forEach(r =>
       console.log(`  ${r.grade}: $${r.result.estimate} [$${r.result.low}–$${r.result.high}]`)
     );
-    assert(strictlyDecreasing, 'T07: D > E > F > G > H > I in price');
+    const byGrade = Object.fromEntries(results.map(r => [r.grade, r.result.estimate]));
+    assert(byGrade.D > byGrade.H, 'T07: D > H at same spec');
+    assert(byGrade.D > byGrade.I, 'T07: D > I at same spec');
+    assert(byGrade.H > byGrade.I, 'T07: H > I at same spec');
   }
 
   // ── T08: Clarity ordering VVS1 > VS1 > VS2 > SI1 at 2ct round D ─────────

@@ -390,7 +390,11 @@ def build_comp_pool(records):
         hues = Counter(r["colorHue"] for r in recs)
         intensities = Counter(r["colorIntensity"] for r in recs)
         app_keys = Counter(r["appColorKey"] for r in recs)
+        app_key = app_keys.most_common(1)[0][0]
+        color_slug = (app_key or color or "fancy").replace(" ", "_").lower()
+        report_nos = sorted(r["reportNo"] for r in recs if r.get("reportNo"))
         comps.append({
+            "productId": f"messi-color-{shape}-{color_slug}-{clarity}-{carat:.2f}",
             "priceUsd": round(median(prices), 2),
             "carat": carat,
             "shape": shape,
@@ -400,13 +404,14 @@ def build_comp_pool(records):
             "color": color,
             "colorHue": hues.most_common(1)[0][0],
             "colorIntensity": intensities.most_common(1)[0][0],
-            "appColorKey": app_keys.most_common(1)[0][0],
+            "appColorKey": app_key,
             "caratBand": False,
             "clarityBand": clarity in {"VS1", "VVS2", "SI1"} and any(r["clarity"] in {"VS", "VVS", "SI"} for r in recs),
             "confidence": "high" if len(recs) >= 2 else "medium-high",
             "count": len(recs),
             "priceMin": min(prices),
             "priceMax": max(prices),
+            "reportNos": report_nos[:8],
             "label": "Messi Gems Fancy Color",
             "supplier": "Wuzhou Messi Gems Co., Ltd.",
             "section": f"{shape} {color} {clarity} — Messi Gems color stock",

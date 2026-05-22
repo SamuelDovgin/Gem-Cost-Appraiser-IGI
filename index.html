@@ -1303,6 +1303,20 @@ function shortLabel(row) {
   return dashIdx >= 0 ? row.section.slice(dashIdx + 3).trim() : row.section.split(',')[0].trim();
 }
 
+function v3CompIdentity(row) {
+  if (row.productId) return `pid:${row.productId}`;
+  const bits = [
+    row.sourceType || row.supplier || row.label || 'comp',
+    row.shape || '',
+    row.color || row.colorNormalized || row.appColorKey || '',
+    row.clarity || '',
+    row.carat ?? '',
+    row.priceUsd ?? '',
+    row.section || '',
+  ];
+  return bits.map(v => String(v).toLowerCase().trim()).join('|');
+}
+
 function buildCompQueryFromState(ct) {
   const shape = normalizeShapeForComp(state.shape);
   if (isWhite()) {
@@ -1549,7 +1563,10 @@ function resolveAlibabaComp(ct) {
     .map(row => ({ row, score: v3CompErrorScore(query, row) }))
     .sort((a,b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
   const seenPid = new Map();
-  for (const c of scored) if (!seenPid.has(c.row.productId)) seenPid.set(c.row.productId, c);
+  for (const c of scored) {
+    const identity = v3CompIdentity(c.row);
+    if (!seenPid.has(identity)) seenPid.set(identity, c);
+  }
   const unique = [...seenPid.values()].sort((a,b) => a.score - b.score);
   const bestScore = unique[0].score;
 

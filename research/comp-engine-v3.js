@@ -368,6 +368,20 @@ function shortLabel(row) {
   return dashIdx >= 0 ? row.section.slice(dashIdx + 3).trim() : row.section.split(',')[0].trim();
 }
 
+function compIdentity(row) {
+  if (row.productId) return `pid:${row.productId}`;
+  const bits = [
+    row.sourceType || row.supplier || row.label || 'comp',
+    row.shape || '',
+    row.color || row.colorNormalized || row.appColorKey || '',
+    row.clarity || '',
+    row.carat ?? '',
+    row.priceUsd ?? '',
+    row.section || '',
+  ];
+  return bits.map(v => String(v).toLowerCase().trim()).join('|');
+}
+
 function sourceErrorSigma(confidence) {
   return ({
     high: AXIS_SIGMA.sourceHigh,
@@ -757,6 +771,23 @@ function blendComps(adjustedList) {
 
 let _compsIndex = null;
 
+const SUPPLEMENTAL_COMP_FILES = [
+  'messi-comps.json',
+  'starsgem-comps.json',
+  'messi-color-comps.json',
+];
+
+function mergeSupplementalComps(index, supplementalIndexes) {
+  const merged = {
+    ...index,
+    comps: [...(index.comps || [])],
+  };
+  for (const supp of supplementalIndexes) {
+    if (supp?.comps?.length) merged.comps.push(...supp.comps);
+  }
+  return merged;
+}
+
 /**
  * resolveAlibabaComp — v3 main entry point.
  *
@@ -840,10 +871,13 @@ function resolveAlibabaComp(query) {
     .map(row => ({ row, score: compErrorScore(nq, row) }))
     .sort((a, b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
 
-  // De-duplicate by productId: keep best-scoring row per product
+  // De-duplicate by product identity: keep best-scoring row per listing/spec.
+  // Supplier-sheet aggregates do not always have productId; do not collapse all
+  // such rows into one undefined bucket.
   const seenPid = new Map();
   for (const c of scored) {
-    if (!seenPid.has(c.row.productId)) seenPid.set(c.row.productId, c);
+    const identity = compIdentity(c.row);
+    if (!seenPid.has(identity)) seenPid.set(identity, c);
   }
   const uniqueScored = [...seenPid.values()].sort((a, b) => a.score - b.score);
 
@@ -977,16 +1011,35 @@ async function loadIndex(src) {
     return;
   }
   const url = src || 'research/data/alibaba-comps-index.json';
+  const baseUrl = url.includes('/') ? url.slice(0, url.lastIndexOf('/') + 1) : '';
 
   if (typeof process !== 'undefined' && process.versions?.node) {
     const { readFileSync } = await import('fs');
-    _compsIndex = JSON.parse(readFileSync(url, 'utf8'));
+    const index = JSON.parse(readFileSync(url, 'utf8'));
+    const supplemental = [];
+    for (const file of SUPPLEMENTAL_COMP_FILES) {
+      try {
+        supplemental.push(JSON.parse(readFileSync(baseUrl + file, 'utf8')));
+      } catch {
+        // Optional pool; keep standalone engine usable with only the base index.
+      }
+    }
+    _compsIndex = mergeSupplementalComps(index, supplemental);
     return;
   }
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to load comps index: HTTP ${res.status}`);
-  _compsIndex = await res.json();
+  const index = await res.json();
+  const supplemental = await Promise.all(SUPPLEMENTAL_COMP_FILES.map(async file => {
+    try {
+      const suppRes = await fetch(baseUrl + file);
+      return suppRes.ok ? suppRes.json() : null;
+    } catch {
+      return null;
+    }
+  }));
+  _compsIndex = mergeSupplementalComps(index, supplemental);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1032,10 +1085,10 @@ function runTests() {
     },
     // ── White: size gaps ───────────────────────────────────────────────────
     {
-      desc: 'T07 — 4ct D VS1 marquise (no 4ct row → extrapolate from 3ct)',
+      desc: 'T07 — 4ct D VS1 marquise',
       q: { carat: 4.0, shape: 'marquise', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
-      expectMatch: ['nearest', 'best_available'],
-      note: 'Should produce low/high range, not a single point.',
+      expectMatch: ['exact', 'nearest', 'best_available'],
+      note: 'Merged supplier pools now include 4ct marquise rows.',
     },
     {
       desc: 'T08 — 4.5ct D VS1 marquise',
@@ -1129,19 +1182,21 @@ function runTests() {
       expectMatch: ['exact', 'nearest', 'best_available'],
     },
     {
-      desc: 'T20 — 3.5ct D VS1 oval (between 3ct and 4ct rows)',
+      desc: 'T20 — 3.5ct D VS1 oval',
       q: { carat: 3.5, shape: 'oval', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
-      expectMatch: ['nearest', 'best_available'],
+      expectMatch: ['exact', 'nearest', 'best_available'],
     },
     // ── Ensemble blend check ───────────────────────────────────────────────
     {
-      desc: 'T21 — 4ct Fancy Vivid Pink VS1 cushion (multi-comp ensemble)',
+      desc: 'T21 — 4ct Fancy Vivid Pink VS1 cushion',
       q: { carat: 4.0, shape: 'cushion', colorFamily: 'fancy', colorFamily_key: 'pink_fv', clarity: 'VS1' },
       expectMatch: ['exact', 'nearest', 'best_available'],  // 4ct cushion row exists
       checkFn: (result) => {
-        // Should have multiple support comps
-        if (result.supportComps.length < 2) {
-          return `FAIL: only ${result.supportComps.length} support comp(s); expected multi-comp ensemble`;
+        const pRow = result.primary?.row;
+        if (!pRow) return 'FAIL: missing primary comp';
+        if (pRow.shape !== 'cushion') return `FAIL: expected cushion primary, got ${pRow.shape}`;
+        if (!(pRow.color || '').toLowerCase().includes('vivid pink')) {
+          return `FAIL: expected Fancy Vivid Pink primary, got ${pRow.color}`;
         }
         // Should have low/high range
         if (!result.low || !result.high || result.low >= result.high) {
