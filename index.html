@@ -1423,7 +1423,10 @@ function v3AdjustToQuery(query, row) {
       const delta = logModelQ - logModelC;
       logDpcAdj += delta;
       if (Math.abs(delta) > 0.015)
-        parts.push(`intensity+carat ×${Math.exp(delta).toFixed(2)} (${query.colorFamily_key} vs ${compKey})`);
+        parts.push(`color model $/ct ×${Math.exp(delta).toFixed(2)} (${query.colorFamily_key} vs ${compKey})`);
+      const totalCaratDelta = Math.log(queryCt / compCt) + ((ub.scale - 1) * Math.log(queryCt) - (ub.scale - 1) * Math.log(compCt));
+      if (compKey === query.colorFamily_key && Math.abs(totalCaratDelta) > 0.03)
+        parts.push(`carat total ×${Math.exp(totalCaratDelta).toFixed(2)} (${queryCt}ct vs ${compCt}ct)`);
     } else {
       const delta = 0.5 * logCaratRatio;
       logDpcAdj += delta;

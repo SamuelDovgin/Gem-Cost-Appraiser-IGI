@@ -151,6 +151,42 @@ const FANCY_LABEL_MAP = {
   'fancy orange': 'orange_f',
 };
 
+/**
+ * supplierKey — extract a normalized supplier identifier from a comp row.
+ * Used to prevent one supplier from filling all ensemble slots.
+ */
+function supplierKey(row) {
+  const section = row.section || '';
+  const lastDash = section.lastIndexOf(' - ');
+  const raw = lastDash >= 0 ? section.slice(lastDash + 3).trim() : section.split(',')[0].trim();
+  const norm = raw.replace(/\s*\([^)]+\)\s*$/, '').trim().toLowerCase();
+  if (norm.includes('messi') || norm.includes('wuzhou')) return 'messi';
+  if (norm.includes('starsgem') || norm.includes('stargem')) return 'starsgem';
+  if (norm.includes('mishang')) return 'mishang';
+  if (norm.includes('goldleaf')) return 'goldleaf';
+  return norm || '_unknown';
+}
+
+// Maximum rows any single supplier can contribute to the ensemble.
+const MAX_PER_SUPPLIER = 2;
+
+/**
+ * applySupplierCap — limit each supplier to at most MAX_PER_SUPPLIER rows.
+ * Called on the deduplicated, sorted candidate list before ensemble selection.
+ * Rows are already sorted best-first, so we keep the highest-quality rows per supplier.
+ */
+function applySupplierCap(scored) {
+  const counts = {};
+  const result = [];
+  for (const c of scored) {
+    const sk = supplierKey(c.row);
+    const n = (counts[sk] || 0) + 1;
+    counts[sk] = n;
+    if (n <= MAX_PER_SUPPLIER) result.push(c);
+  }
+  return result;
+}
+
 // Specialty shapes that skip the best_available fallback (no cross-shape comp makes sense)
 const SPECIALTY_SHAPE_KEYS = new Set([
   'moval', 'trilliant', 'half_moon', 'shield', 'hexagonal', 'hexagonal_dutch',
@@ -529,7 +565,8 @@ function compErrorScore(query, row) {
   const eBand = (row.caratBand ? AXIS_SIGMA.caratBand : 0) +
                 (row.clarityBand ? AXIS_SIGMA.clarityBand : 0);
 
-  return Math.sqrt(eCarat**2 + eColor**2 + eClarity**2 + eShape**2 + eSource**2 + eBand**2);
+  const total = Math.sqrt(eCarat**2 + eColor**2 + eClarity**2 + eShape**2 + eSource**2 + eBand**2);
+  return { total, eCarat, eColor, eClarity, eShape, eSource, eBand };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -868,7 +905,7 @@ function resolveAlibabaComp(query) {
 
   // ── 2. Score all candidates ───────────────────────────────────────────────
   const scored = candidates
-    .map(row => ({ row, score: compErrorScore(nq, row) }))
+    .map(row => { const sc = compErrorScore(nq, row); return { row, score: sc.total, scoreComponents: sc }; })
     .sort((a, b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
 
   // De-duplicate by product identity: keep best-scoring row per listing/spec.
@@ -883,24 +920,28 @@ function resolveAlibabaComp(query) {
 
   const bestScore = uniqueScored[0].score;
 
+  // Apply supplier cap: no single supplier can fill all ensemble slots.
+  // uniqueScored is already sorted best-first so this keeps the best rows per supplier.
+  const supplierCapped = applySupplierCap(uniqueScored);
+
   // ── 3. Select top-N for ensemble ──────────────────────────────────────────
   // Exact observations should not be diluted or outlier-rejected by looser
   // cross-shape comps that happen to be cheaper.
-  const exactScored = uniqueScored.filter(c => isExactMatch(nq, c.row) && c.score < 0.10);
+  const exactScored = supplierCapped.filter(c => isExactMatch(nq, c.row) && c.score < 0.10);
   let selected = exactScored.length
     ? exactScored.slice(0, MAX_ENSEMBLE)
-    : uniqueScored.filter(c => c.score <= SCORE_HARD_CUTOFF).slice(0, MAX_ENSEMBLE);
+    : supplierCapped.filter(c => c.score <= SCORE_HARD_CUTOFF).slice(0, MAX_ENSEMBLE);
 
   if (!selected.length) {
     // No comp within cutoff — use best available with a warning
-    selected = uniqueScored.slice(0, Math.min(3, uniqueScored.length));
+    selected = supplierCapped.slice(0, Math.min(3, supplierCapped.length));
     warnings.push('No close comps found — estimate is highly extrapolated.');
   }
 
   // ── 4. Adjust each comp to query in log space ─────────────────────────────
-  const adjustedList = selected.map(({ row, score }) => {
+  const adjustedList = selected.map(({ row, score, scoreComponents }) => {
     const adj = adjustCompToQuery(nq, row);
-    return { ...adj, row, score };
+    return { ...adj, row, score, scoreComponents };
   });
 
   // ── 5. Blend ───────────────────────────────────────────────────────────────
@@ -986,6 +1027,7 @@ function resolveAlibabaComp(query) {
     supportComps: blend.accepted.map(adj => ({
       row: adj.row,
       score: adj.score,
+      scoreComponents: adj.scoreComponents,
       logEstimate: adj.logEstimate,
       sigmaLog: adj.sigmaLog,
       estimatedPrice: Math.round(Math.exp(adj.logEstimate)),
