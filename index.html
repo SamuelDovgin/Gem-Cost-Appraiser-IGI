@@ -84,6 +84,14 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .slider-value{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--accent);min-width:74px;text-align:right}
 .slider-ticks{display:flex;justify-content:space-between;margin-top:5px}
 .slider-ticks span{font-family:'DM Mono',monospace;font-size:8px;color:var(--muted)}
+.carat-override{display:flex;align-items:baseline;justify-content:flex-end;gap:6px;min-width:118px;border:.5px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 10px 8px 12px;transition:border-color .15s}
+.carat-override:focus-within{border-color:var(--accent)}
+.carat-input{width:72px;border:0;background:transparent;color:var(--accent);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;text-align:right;outline:none;padding:0}
+.carat-input::-webkit-outer-spin-button,.carat-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.carat-input[type=number]{-moz-appearance:textfield}
+.carat-unit{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted2)}
+.slider-row.outside-slider .carat-override{border-color:rgba(212,175,114,.45);background:rgba(212,175,114,.06)}
+.slider-row.outside-slider .slider-wrap{opacity:.72}
 
 /* ── ASK INPUT ── */
 .ask-row{display:flex;align-items:center;gap:14px}
@@ -261,6 +269,9 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   .results-header{flex-direction:column;align-items:flex-start}
   .ask-row{flex-direction:column;align-items:flex-start}
   .ask-input{width:100%}
+  .slider-row{align-items:stretch;flex-direction:column}
+  .carat-override{width:100%;justify-content:flex-start}
+  .carat-input{text-align:left;width:94px}
 }
 
 /* ── IGI LOOKUP ── */
@@ -315,7 +326,10 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         <span>0.5</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
       </div>
     </div>
-    <div class="slider-value" id="carat-display">3.0 ct</div>
+    <label class="carat-override" aria-label="Manual carat override">
+      <input class="carat-input" id="carat-input" type="number" min="0.01" max="100" step="0.01" value="3.00" inputmode="decimal">
+      <span class="carat-unit">ct</span>
+    </label>
   </div>
 </div>
 
@@ -423,6 +437,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         <optgroup label="Cushion / radiant / princess">
           <option value="cushion_brilliant">Cushion Brilliant</option>
           <option value="cushion">Cushion Modified Brilliant</option>
+          <option value="elongated_cushion">Elongated / Rectangular Cushion</option>
           <option value="square_cushion">Square Cushion Modified Brilliant</option>
           <option value="radiant">Cut Cornered Rectangular Modified Brilliant</option>
           <option value="sq_radiant">Cut Cornered Square Modified Brilliant</option>
@@ -721,13 +736,31 @@ let _chartAxis = 'carat'; // 'carat' | 'clarity' | 'color'
 async function loadAlibabaCompsIndex() {
   if (_compsIdxReady) return;
   try {
-    const res = await fetch('research/data/alibaba-comps-index.json');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    _compsIdx = await res.json();
+    const [alibRes, messiRes, starsRes, messiColorRes] = await Promise.all([
+      fetch('research/data/alibaba-comps-index.json'),
+      fetch('research/data/messi-comps.json'),
+      fetch('research/data/starsgem-comps.json'),
+      fetch('research/data/messi-color-comps.json'),
+    ]);
+    if (!alibRes.ok) throw new Error('HTTP ' + alibRes.status);
+    _compsIdx = await alibRes.json();
+    // Merge Messi + StarGem aggregated comp pools into the main index
+    if (messiRes.ok) {
+      const messiData = await messiRes.json();
+      _compsIdx.comps.push(...(messiData.comps || []));
+    }
+    if (starsRes.ok) {
+      const starsData = await starsRes.json();
+      _compsIdx.comps.push(...(starsData.comps || []));
+    }
+    if (messiColorRes.ok) {
+      const messiColorData = await messiColorRes.json();
+      _compsIdx.comps.push(...(messiColorData.comps || []));
+    }
     _compsIdxReady = true;
     update(); // re-render now that comps are available
   } catch (e) {
-    console.warn('Alibaba comps index unavailable — falling back to legacy ceiling.', e);
+    console.warn('Comps index unavailable — falling back to legacy ceiling.', e);
   }
 }
 
@@ -760,6 +793,61 @@ const state = {
 // PRICING MODEL
 // ══════════════════════════════════════════════════════════════════════════════
 function lerp(a,b,t){ return a+(b-a)*t; }
+
+const CARAT_SLIDER_MIN = 0.5;
+const CARAT_SLIDER_MAX = 10;
+const CARAT_INPUT_MIN = 0.01;
+const CARAT_INPUT_MAX = 100;
+
+function clamp(n, min, max) {
+  return Math.min(max, Math.max(min, n));
+}
+
+function normalizeCaratValue(value) {
+  const n = parseFloat(value);
+  if (!Number.isFinite(n)) return null;
+  return clamp(Math.round(n * 100) / 100, CARAT_INPUT_MIN, CARAT_INPUT_MAX);
+}
+
+function formatCarat(ct) {
+  const n = Number.isFinite(ct) ? ct : CARAT_INPUT_MIN;
+  const isTenth = Math.abs(n * 10 - Math.round(n * 10)) < 0.001;
+  const minDigits = n < 1 ? (isTenth ? 1 : 2) : 1;
+  return n.toLocaleString(undefined, {
+    minimumFractionDigits: minDigits,
+    maximumFractionDigits: 2,
+  });
+}
+
+function formatCaratInput(ct) {
+  const n = normalizeCaratValue(ct) ?? CARAT_INPUT_MIN;
+  return n.toFixed(2);
+}
+
+function syncCaratControls(options = {}) {
+  const slider = document.getElementById('carat');
+  const input = document.getElementById('carat-input');
+  const row = slider?.closest('.slider-row');
+  const sliderValue = clamp(state.carat, CARAT_SLIDER_MIN, CARAT_SLIDER_MAX);
+  if (slider) slider.value = sliderValue;
+  if (input && (!options.preserveInput || document.activeElement !== input)) {
+    input.value = formatCaratInput(state.carat);
+  }
+  if (row) {
+    row.classList.toggle('outside-slider', state.carat < CARAT_SLIDER_MIN || state.carat > CARAT_SLIDER_MAX);
+  }
+}
+
+function setCaratValue(value, options = {}) {
+  const ct = normalizeCaratValue(value);
+  if (ct == null) return false;
+  state.carat = ct;
+  state.ratio = null;
+  state.ratioAssessment = null;
+  syncCaratControls(options);
+  update();
+  return true;
+}
 
 // White diamond baseline per carat (round, E, VS1, ideal) — recalibrated May 2026
 // Alibaba/Messi factory stock is overwhelmingly DEF color and VS1+ clarity; E/VS1 is the
@@ -924,7 +1012,7 @@ const clarityMultColor = { IF:1.12, VVS1:1.08, VVS2:1.04, VS1:1.00, VS2:0.95, SI
 const shapeMult = {
   round:1.00, oval:1.08, moval:0.94, pear:1.05, marquise:0.87, heart:0.86, trilliant:0.82,
   old_european:0.92, old_mine:0.88,
-  cushion:0.90, cushion_brilliant:0.91, square_cushion:0.90, radiant:0.87, sq_radiant:0.88,
+  cushion:0.90, cushion_brilliant:0.91, elongated_cushion:0.89, square_cushion:0.90, radiant:0.87, sq_radiant:0.88,
   princess:0.86, half_moon:0.80, shield:0.78, hexagonal:0.79, hexagonal_dutch:0.82,
   emerald:0.83, asscher:0.84, baguette:0.76, tapered_baguette:0.74, carre:0.80,
   rose:0.72, briolette:0.70, portuguese:0.85, flanders:0.83,
@@ -946,6 +1034,7 @@ const SHAPE_MARKET_APPEAL = {
   heart: { demand:'★★★☆☆', resale:'moderate', appeal:'Romantic silhouette; consistent niche bridal demand.', trend:'Steady specialty choice; pink/yellow hearts often preferred over white.', summary:'Emotional purchase cut — narrower buyer pool than ovals.' },
   cushion: { demand:'★★★★☆', resale:'good', appeal:'Soft vintage pillow look; excellent for fancy color saturation.', trend:'Sustained popularity; crushed-ice vs chunky facet styles split buyers.', summary:'Mainstream fancy — good factory stock, softer than round resale.' },
   cushion_brilliant: { demand:'★★★★☆', resale:'good', appeal:'Chunkier facet pattern than modified cushion; slightly more brilliance.', trend:'Same cushion family demand; verify facet pattern in video.', summary:'Common lab fancy — appeal hinges on face-up pattern.' },
+  elongated_cushion: { demand:'★★★★☆', resale:'good', appeal:'Rectangular cushion with L/W 1.25–1.50; reads larger face-up, trending with elongated-shape buyers.', trend:'Rising 2025–26 alongside rectangular radiants; GIA grades as "Cushion Modified Brilliant."', summary:'Growing fancy — factory supply solid (Messi/StarGem stock confirmed), elongated trend favors it.' },
   square_cushion: { demand:'★★★☆☆', resale:'moderate', appeal:'Square pillow outline; less elongated trend appeal than rectangular cushion.', trend:'Square variants trail elongated cushions in 2026 fashion.', summary:'Fine for bespoke; slightly thinner demand than rectangular cushion.' },
   radiant: { demand:'★★★★☆', resale:'good', appeal:'Brilliant + trimmed corners; strong light return, popular elongated fancy.', trend:'~5% market share; steady demand especially in lab-grown listings.', summary:'Workhorse fancy — liquid with clean corners and no watery center.' },
   sq_radiant: { demand:'★★★☆☆', resale:'moderate', appeal:'Square radiant; art-deco geometry without full step-cut windowing.', trend:'Less trendy than elongated radiant; still common in three-stone builds.', summary:'Moderate fancy liquidity — square outline is a narrower taste.' },
@@ -998,7 +1087,7 @@ function isExoticOrLowLiquidityShape(shapeKey) {
 const shapeMultColor = {
   round:0.90, oval:1.05, moval:0.99, pear:1.03, marquise:0.93, heart:0.96, trilliant:0.84,
   old_european:0.88, old_mine:0.86,
-  cushion:1.00, cushion_brilliant:1.00, square_cushion:1.00, radiant:1.02, sq_radiant:1.00,
+  cushion:1.00, cushion_brilliant:1.00, elongated_cushion:1.00, square_cushion:1.00, radiant:1.02, sq_radiant:1.00,
   princess:0.90, half_moon:0.82, shield:0.80, hexagonal:0.81, hexagonal_dutch:0.85,
   emerald:0.96, asscher:1.02, baguette:0.78, tapered_baguette:0.76, carre:0.86,
   rose:0.75, briolette:0.72, portuguese:0.88, flanders:0.85,
@@ -1006,21 +1095,22 @@ const shapeMultColor = {
 const cutMult = { ideal:1.00, vg:0.94, good:0.87, unset:0.88 };
 
 const ratioGuides = {
-  round: { lo:0.98, hi:1.02, idealLo:0.99, idealHi:1.01, label:'round outline' },
-  oval: { lo:1.30, hi:1.50, idealLo:1.35, idealHi:1.45, label:'oval' },
-  moval: { lo:1.55, hi:2.05, idealLo:1.65, idealHi:1.90, label:'moval' },
-  pear: { lo:1.50, hi:1.75, idealLo:1.55, idealHi:1.70, label:'pear' },
-  marquise: { lo:1.80, hi:2.20, idealLo:1.90, idealHi:2.10, label:'marquise' },
-  hexagonal_dutch: { lo:1.75, hi:2.25, idealLo:1.85, idealHi:2.10, label:'Dutch marquise' },
-  heart: { lo:0.90, hi:1.10, idealLo:0.95, idealHi:1.05, label:'heart' },
-  cushion: { lo:1.00, hi:1.30, idealLo:1.00, idealHi:1.20, label:'cushion' },
-  cushion_brilliant: { lo:1.00, hi:1.30, idealLo:1.00, idealHi:1.20, label:'cushion' },
-  square_cushion: { lo:0.98, hi:1.05, idealLo:0.99, idealHi:1.03, label:'square cushion' },
-  radiant: { lo:1.25, hi:1.55, idealLo:1.30, idealHi:1.45, label:'rectangular radiant' },
-  sq_radiant: { lo:0.98, hi:1.08, idealLo:1.00, idealHi:1.05, label:'square radiant' },
-  emerald: { lo:1.30, hi:1.60, idealLo:1.35, idealHi:1.50, label:'emerald' },
-  asscher: { lo:0.98, hi:1.08, idealLo:1.00, idealHi:1.05, label:'asscher' },
-  princess: { lo:0.98, hi:1.08, idealLo:1.00, idealHi:1.05, label:'princess' },
+  round:             { lo:0.98, hi:1.02,  idealLo:0.99, idealHi:1.01, label:'round outline' },
+  oval:              { lo:1.30, hi:1.55,  idealLo:1.35, idealHi:1.50, label:'standard oval' },
+  moval:             { lo:1.55, hi:2.10,  idealLo:1.65, idealHi:1.90, label:'moval (elongated oval)' },
+  pear:              { lo:1.45, hi:1.75,  idealLo:1.55, idealHi:1.65, label:'pear' },
+  marquise:          { lo:1.80, hi:2.20,  idealLo:1.90, idealHi:2.10, label:'marquise' },
+  hexagonal_dutch:   { lo:1.75, hi:2.25,  idealLo:1.85, idealHi:2.10, label:'Dutch marquise' },
+  heart:             { lo:0.90, hi:1.15,  idealLo:0.95, idealHi:1.05, label:'heart' },
+  cushion:           { lo:1.00, hi:1.25,  idealLo:1.02, idealHi:1.10, label:'cushion' },
+  cushion_brilliant: { lo:1.00, hi:1.25,  idealLo:1.02, idealHi:1.10, label:'cushion' },
+  elongated_cushion: { lo:1.10, hi:1.55,  idealLo:1.25, idealHi:1.45, label:'elongated / rectangular cushion' },
+  square_cushion:    { lo:0.98, hi:1.05,  idealLo:0.99, idealHi:1.03, label:'square cushion' },
+  radiant:           { lo:1.10, hi:1.60,  idealLo:1.30, idealHi:1.45, label:'rectangular radiant' },
+  sq_radiant:        { lo:0.97, hi:1.10,  idealLo:1.00, idealHi:1.06, label:'square radiant' },
+  emerald:           { lo:1.25, hi:2.10,  idealLo:1.35, idealHi:1.55, label:'emerald' },
+  asscher:           { lo:0.98, hi:1.08,  idealLo:1.00, idealHi:1.05, label:'asscher' },
+  princess:          { lo:0.98, hi:1.08,  idealLo:1.00, idealHi:1.05, label:'princess' },
 };
 
 const CHINA_WS = 0.78;
@@ -1093,8 +1183,28 @@ const FANCY_LABEL_MAP = {
   'fancy blue':'blue_f','blue':'blue_f',
   'fancy intense green':'green_fi','fancy vivid green':'green_fv',
   'fancy intense greyish green':'green_fi','fancy green':'green_f',
-  'fancy red':'red_f',
+  'fancy light green':'green_fl','fancy blue green':'green_f',
+  'fancy red':'red_f','fancy vivid red':'red_fv',
+  'fancy brown':'brown_f','fancy brown / coffee':'brown_f','coffee':'brown_f','champagne':'brown_f',
   'fancy intense brownish pink':'pink_fi','brownish pink':'pink_f',
+  'fancy vivid orange':'orange_fv','vivid orange':'orange_fv',
+  'fancy intense orange':'orange_fi','intense orange':'orange_fi',
+  'fancy light orange':'orange_fl','light orange':'orange_fl',
+  'fancy orange':'orange_f','orange':'orange_f',
+  'fancy purple':'purple_f','fancy violet':'purple_f','purple':'purple_f','violet':'purple_f',
+  'fancy intense purple':'purple_fi','fancy intense violet':'purple_fi',
+  'fancy light purple':'purple_fl','fancy light violet':'purple_fl',
+};
+const FANCY_HUE_ALIASES = {
+  yellow:['yellow'],
+  pink:['pink'],
+  blue:['blue'],
+  green:['green'],
+  orange:['orange','orangy'],
+  purple:['purple','violet'],
+  red:['red'],
+  brown:['brown','coffee','champagne'],
+  black:['black'],
 };
 
 // Shape family system for cross-shape sigma assignment
@@ -1126,14 +1236,13 @@ const V3_ADJACENT = {
 
 const SHAPE_NORMALIZE = {
   sq_radiant:'radiant',cushion_brilliant:'cushion',square_cushion:'cushion',
-  elongated_cushion:'cushion',trilliant:'marquise',
+  trilliant:'marquise',
   old_european:'round',old_mine:'round',
 };
 function normalizeShapeForComp(s) { return SHAPE_NORMALIZE[s] || s; }
 
 function v3ShapeDistance(uShape, cShape) {
   if (uShape === cShape) return 0;
-  if (cShape === 'elongated_cushion' && uShape === 'cushion') return 0;
   const fU = V3_SHAPE_FAMILY[uShape], fC = V3_SHAPE_FAMILY[cShape];
   if (!fU || !fC) return 3;
   if (fU === fC) return 1;
@@ -1153,14 +1262,17 @@ function inferFancyFamilyKey(colorLabel) {
   if (FANCY_LABEL_MAP[cl]) return FANCY_LABEL_MAP[cl];
   // Fallback: parse hue + intensity from label
   let hue=null, iKey='f';
-  if (cl.includes('pink')) hue='pink';
-  else if (cl.includes('yellow')) hue='yellow';
-  else if (cl.includes('blue')) hue='blue';
-  else if (cl.includes('green')) hue='green';
-  else if (cl.includes('orange')) hue='orange';
+  for (const [h, terms] of Object.entries(FANCY_HUE_ALIASES)) {
+    if (terms.some(term => cl.includes(term))) hue = h;
+  }
   if (cl.includes('vivid')) iKey='fv';
   else if (cl.includes('intense')) iKey='fi';
   else if (cl.includes('light')) iKey='fl';
+  if (hue === 'brown') return 'brown_f';
+  if (hue === 'black') return 'black';
+  if (hue === 'red' && iKey === 'fv') return 'red_fv';
+  if (hue === 'red') return 'red_f';
+  if (hue === 'purple' && iKey === 'fv') iKey = 'fi';
   const k = hue ? `${hue}_${iKey}` : null;
   return k && fancyColorBase[k] ? k : null;
 }
@@ -1205,13 +1317,14 @@ function v3FancyHueCompatible(queryKey, compColorLabel) {
   if (!compColorLabel) return false;
   const rl = compColorLabel.toLowerCase();
   const uf = (queryKey||'').toLowerCase();
-  if (uf.includes('pink')   && !rl.includes('pink'))   return false;
-  if (uf.includes('yellow') && !rl.includes('yellow')) return false;
-  if (uf.includes('blue')   && !rl.includes('blue'))   return false;
-  if (uf.includes('green')  && !rl.includes('green'))  return false;
-  if (uf.includes('orange') && !rl.includes('orange')) return false;
-  if (uf.includes('red')    && !rl.includes('red'))    return false;
-  return true;
+  const queryHue = Object.entries(FANCY_HUE_ALIASES).find(([h]) => uf.includes(h))?.[0];
+  if (!queryHue) return true;
+  return FANCY_HUE_ALIASES[queryHue].some(term => rl.includes(term));
+}
+
+function currentColorMatchesCompRow(row) {
+  if (isWhite()) return row.colorFamily === 'white';
+  return row.colorFamily === 'fancy' && v3FancyHueCompatible(state.colorFamily, row.color || row.colorHue || row.appColorKey);
 }
 
 function v3WhiteColorDist(queryGrade, rowColorNormalized) {
@@ -1397,13 +1510,14 @@ function v3IsExactMatch(query, row) {
   if (row.caratBand || row.clarityBand) return false;
   if (Math.abs(query.carat - (row.carat||0)) > caratTolerance(row.carat||0)) return false;
   if (row.clarity !== query.clarity) return false;
+  if (v3ShapeDistance(query.shape, row.shape) !== 0) return false;
   if (query.colorFamily === 'white') {
     const cn = row.colorNormalized || 'D';
     if (cn === 'DE')  return ['D','E'].includes(query.whiteGrade);
     if (cn === 'DEF') return ['D','E','F'].includes(query.whiteGrade);
     return cn === query.whiteGrade;
   }
-  return true; // fancy: hue already filtered
+  return true; // fancy: hue already filtered; same-shape/same-clarity/near-carat is exact.
 }
 
 // ── §H  RESOLVE — v3 pipeline ─────────────────────────────────────────────────
@@ -1440,7 +1554,11 @@ function resolveAlibabaComp(ct) {
   const bestScore = unique[0].score;
 
   // 3. Select ensemble (up to MAX within cutoff, or best-3 if all beyond)
-  let selected = unique.filter(c => c.score <= V3_SCORE_CUTOFF).slice(0, V3_MAX_ENSEMBLE);
+  // Exact observations should not be diluted by looser cross-shape comps.
+  const exactScored = unique.filter(c => v3IsExactMatch(query, c.row) && c.score < 0.10);
+  let selected = exactScored.length
+    ? exactScored.slice(0, V3_MAX_ENSEMBLE)
+    : unique.filter(c => c.score <= V3_SCORE_CUTOFF).slice(0, V3_MAX_ENSEMBLE);
   if (!selected.length) {
     selected = unique.slice(0, Math.min(3, unique.length));
     warnings.push('No close comps — estimate is highly extrapolated.');
@@ -1674,7 +1792,7 @@ function getMessiRoundBenchmarkHtml(ct = state.carat) {
 
   const shapeNote = state.shape === 'round'
     ? 'Verified Messi round IGI selector — same shape as your stone.'
-    : `Round benchmark for ${ct.toFixed(1)}ct — use to sanity-check ${shapeNames[state.shape] || state.shape} factory asks.`;
+    : `Round benchmark for ${formatCarat(ct)}ct — use to sanity-check ${shapeNames[state.shape] || state.shape} factory asks.`;
 
   const adj = getAlibabaOffCatalogAdjust(ct);
   const catalog = getMessiCatalogRoundCeiling(ct);
@@ -1816,6 +1934,7 @@ const shapeNames = {
   pear:'Pear Modified Brilliant',marquise:'Marquise Brilliant',heart:'Heart Modified Brilliant',
   trilliant:'Trilliant Cut',old_european:'Old European Brilliant',old_mine:'Old Mine Brilliant',
   cushion:'Cushion Modified Brilliant',cushion_brilliant:'Cushion Brilliant',
+  elongated_cushion:'Elongated / Rectangular Cushion Modified Brilliant',
   square_cushion:'Square Cushion Modified Brilliant',
   radiant:'Cut Cornered Rectangular Modified Brilliant',sq_radiant:'Cut Cornered Square Modified Brilliant',
   princess:'Princess Cut',half_moon:'Half Moon Modified Brilliant',shield:'Shield Modified Brilliant',
@@ -1852,11 +1971,12 @@ function syncSelectControls() {
 }
 
 function update() {
+  syncCaratControls({ preserveInput: true });
   const ct = state.carat;
   const m = compute(ct);
 
   document.getElementById('stone-summary').textContent =
-    ct.toFixed(1)+'ct · '+(shapeNames[state.shape]||state.shape)+' · '+colorLabel()+' · '+state.clarity+' · '+capCut(state.cut);
+    formatCarat(ct)+'ct · '+(shapeNames[state.shape]||state.shape)+' · '+colorLabel()+' · '+state.clarity+' · '+capCut(state.cut);
   setShapeIcon('summary-shape-icon', state.shape);
   setShapeIcon('weak-shape-icon', state.shape);
   updateWeakPointsBar();
@@ -1870,7 +1990,10 @@ function update() {
     } else if (ac && (ac.matchType === 'nearest' || ac.matchType === 'best_available') && ac.estimate) {
       wsDisplay = fmtR(ac.low, ac.high);
       const nComps = ac.supportComps?.length || 1;
-      wsSub = fmt(ac.perCt) + '/ct · Alibaba est. (' + nComps + ' comp' + (nComps > 1 ? 's' : '') + ')';
+      const primaryCt = ac.primary?.row?.carat;
+      const farFromPrimary = primaryCt ? Math.max(ct, primaryCt) / Math.max(Math.min(ct, primaryCt), 0.01) > 1.35 : false;
+      const extrapolated = farFromPrimary || ac.matchType === 'best_available' || (ac.warnings || []).some(w => /extrapolat|No close comps/i.test(w));
+      wsSub = fmt(ac.perCt) + '/ct · Alibaba ' + (extrapolated ? 'extrap.' : 'est.') + ' (' + nComps + ' comp' + (nComps > 1 ? 's' : '') + ')';
     } else if (ac && ac.matchType === 'model_fallback' && ac.estimate) {
       wsDisplay = fmtR(ac.low, ac.high);
       wsSub = fmt(ac.perCt) + '/ct est. (model · no direct comp)';
@@ -2153,16 +2276,49 @@ function _chartMarkerFull(ctx,cx,wsY,wsPrice,cssW,pad,cssH) {
   ctx.restore();
 }
 
+function caratChartBounds() {
+  const ct = state.carat;
+  const xMin = ct < CARAT_SLIDER_MIN ? Math.max(CARAT_INPUT_MIN, Math.floor(ct * 100) / 100) : CARAT_SLIDER_MIN;
+  const xMax = ct > CARAT_SLIDER_MAX ? Math.ceil(ct) : CARAT_SLIDER_MAX;
+  return { xMin, xMax: Math.max(xMax, xMin + 0.5) };
+}
+
+function caratChartStep(xMin, xMax) {
+  const span = xMax - xMin;
+  if (span > 24) return 1;
+  if (span > 12) return 0.5;
+  return 0.25;
+}
+
+function caratChartTicks(xMin, xMax) {
+  const ticks = [];
+  if (xMin < CARAT_SLIDER_MIN) ticks.push(xMin);
+  const majors = xMax > 14
+    ? [0.5, 5, 10]
+    : [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  for (const c of majors) if (c >= xMin && c <= xMax) ticks.push(c);
+  if (xMax > 10) {
+    const inc = xMax > 35 ? 10 : 5;
+    for (let c = 15; c <= xMax + 0.001; c += inc) ticks.push(c);
+    if (!ticks.some(c => Math.abs(c - xMax) < 0.01)) ticks.push(xMax);
+  }
+  return [...new Set(ticks.map(c => Math.round(c * 100) / 100))].sort((a,b) => a-b);
+}
+
 function drawCaratChart(ctx,cssW,cssH) {
   const pad={l:58,r:20,t:22,b:32};
   const savedCt=state.carat;
+  const { xMin, xMax } = caratChartBounds();
+  const step = caratChartStep(xMin, xMax);
   const xs=[];
-  for(let c=0.5;c<=10.05;c+=0.25) xs.push(Math.round(c*100)/100);
+  for(let c=xMin;c<=xMax+step/2;c+=step) xs.push(Math.round(c*100)/100);
+  if (!xs.some(c => Math.abs(c - savedCt) < 0.01)) xs.push(savedCt);
+  xs.sort((a,b) => a-b);
   const series=xs.map(c=>{ state.carat=c; const m=compute(c); state.carat=savedCt; return {c,ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
   state.carat=savedCt;
 
   const ymax=Math.max(...series.map(p=>p.retail))*1.12;
-  const xM=c=>pad.l+(c-0.5)/9.5*(cssW-pad.l-pad.r);
+  const xM=c=>pad.l+(c-xMin)/(xMax-xMin)*(cssW-pad.l-pad.r);
   const yM=v=>pad.t+(1-v/ymax)*(cssH-pad.t-pad.b);
 
   ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=.5;
@@ -2172,7 +2328,10 @@ function drawCaratChart(ctx,cssW,cssH) {
     ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(cssW-pad.r,yy); ctx.stroke();
     ctx.fillText(fmt(ymax*(1-i/4)),4,yy+3);
   }
-  [0.5,1,2,3,4,5,6,7,8,9,10].forEach(c=>{ ctx.fillText(c+'ct',xM(c)-10,cssH-10); });
+  caratChartTicks(xMin, xMax).forEach(c=>{
+    const label = formatCarat(c)+'ct';
+    ctx.fillText(label,xM(c)-Math.min(18,label.length*3),cssH-10);
+  });
 
   function plotLine(key,color,width){
     ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash([]); ctx.beginPath();
@@ -2189,7 +2348,7 @@ function drawCaratChart(ctx,cssW,cssH) {
     const clarU=CLARITY_RANK_NUM[state.clarity]??2;
     const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
     _compsIdx.comps.forEach(row=>{
-      if(row.colorFamily!==state.colorFamily) return;
+      if(!currentColorMatchesCompRow(row)) return;
       if(row.shape!==userShape) return;
       if(state.colorFamily==='white') {
         if(Math.abs((CLARITY_RANK_NUM[row.clarity]??2)-clarU)>1) return;
@@ -2224,8 +2383,8 @@ function drawCaratChart(ctx,cssW,cssH) {
   }
 
   // Current stone ring marker
-  const curPt=series.find(p=>Math.abs(p.c-state.carat)<0.14)||series[0];
-  _chartMarkerFull(ctx,xM(state.carat),curPt?yM(curPt.ws):null,curPt?curPt.ws:null,cssW,pad,cssH);
+  const curM = compute(state.carat);
+  _chartMarkerFull(ctx,xM(state.carat),curM?yM(curM.ws):null,curM?curM.ws:null,cssW,pad,cssH);
 }
 
 function drawClarityChart(ctx,cssW,cssH) {
@@ -2264,7 +2423,7 @@ function drawClarityChart(ctx,cssW,cssH) {
     const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
     const ct=state.carat;
     _compsIdx.comps.forEach(row=>{
-      if(row.colorFamily!==state.colorFamily) return;
+      if(!currentColorMatchesCompRow(row)) return;
       if(row.shape!==userShape) return;
       if(Math.abs(ct-row.carat)>0.4) return;
       if(state.colorFamily==='white'&&Math.abs((WHITE_COLOR_GRADE_NUM[row.colorNormalized||'D']??0)-colorU)>2) return;
@@ -2345,16 +2504,17 @@ function drawColorChart(ctx,cssW,cssH) {
 function drawShapeChart(ctx,cssW,cssH) {
   const pad={l:58,r:20,t:22,b:32};
   const SHAPES=[
-    {key:'round',      label:'Round'},
-    {key:'oval',       label:'Oval'},
-    {key:'moval',      label:'Moval'},
-    {key:'pear',       label:'Pear'},
-    {key:'radiant',    label:'Radiant'},
+    {key:'round',            label:'Round'},
+    {key:'oval',             label:'Oval'},
+    {key:'moval',            label:'Moval'},
+    {key:'pear',             label:'Pear'},
+    {key:'radiant',          label:'Radiant'},
     {key:'cushion_brilliant',label:'Cushion'},
-    {key:'emerald',    label:'Emerald'},
-    {key:'marquise',   label:'Marq.'},
-    {key:'princess',   label:'Princess'},
-    {key:'heart',      label:'Heart'},
+    {key:'elongated_cushion',label:'Elong. Cushion'},
+    {key:'emerald',          label:'Emerald'},
+    {key:'marquise',         label:'Marq.'},
+    {key:'princess',         label:'Princess'},
+    {key:'heart',            label:'Heart'},
   ];
   const savedShape=state.shape;
   const pts=SHAPES.map(s=>{ state.shape=s.key; const m=compute(state.carat); state.shape=savedShape; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
@@ -2393,7 +2553,7 @@ function drawShapeChart(ctx,cssW,cssH) {
     const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
     const ct=state.carat;
     _compsIdx.comps.forEach(row=>{
-      if(row.colorFamily!==state.colorFamily) return;
+      if(!currentColorMatchesCompRow(row)) return;
       if(Math.abs(ct-row.carat)>0.4) return;
       if(state.colorFamily==='white') {
         if(Math.abs((CLARITY_RANK_NUM[row.clarity]??2)-clarU)>1) return;
@@ -2442,10 +2602,14 @@ function drawChart(){
   const titleEl=document.getElementById('chart-title');
   const shapeLabel=shapeNames[state.shape]||state.shape;
   if(titleEl){
-    if(_chartAxis==='clarity')  titleEl.textContent='Price by clarity · '+state.carat.toFixed(1)+'ct · '+shapeLabel+' · '+state.whiteGrade;
-    else if(_chartAxis==='color') titleEl.textContent='Price by color · '+state.carat.toFixed(1)+'ct · '+shapeLabel+' · '+state.clarity;
-    else if(_chartAxis==='shape') titleEl.textContent='Price by shape · '+state.carat.toFixed(1)+'ct · '+state.whiteGrade+' '+state.clarity;
-    else titleEl.textContent='Price curve 0.5–10ct · '+shapeLabel+' · '+state.whiteGrade+' '+state.clarity;
+    const ctLabel = formatCarat(state.carat)+'ct';
+    if(_chartAxis==='clarity')  titleEl.textContent='Price by clarity · '+ctLabel+' · '+shapeLabel+' · '+state.whiteGrade;
+    else if(_chartAxis==='color') titleEl.textContent='Price by color · '+ctLabel+' · '+shapeLabel+' · '+state.clarity;
+    else if(_chartAxis==='shape') titleEl.textContent='Price by shape · '+ctLabel+' · '+state.whiteGrade+' '+state.clarity;
+    else {
+      const { xMin, xMax } = caratChartBounds();
+      titleEl.textContent='Price curve '+formatCarat(xMin)+'–'+formatCarat(xMax)+'ct · '+shapeLabel+' · '+state.whiteGrade+' '+state.clarity;
+    }
   }
   const {ctx,cssW,cssH}=_chartSetup(canvas);
   if(_chartAxis==='clarity') drawClarityChart(ctx,cssW,cssH);
@@ -2479,12 +2643,16 @@ document.querySelectorAll('.pill').forEach(pill=>{
   });
 });
 
-document.getElementById('carat').addEventListener('input',e=>{
-  state.carat=parseFloat(e.target.value);
-  state.ratio = null;
-  state.ratioAssessment = null;
-  document.getElementById('carat-display').textContent=state.carat.toFixed(1)+' ct';
-  update();
+document.getElementById('carat').addEventListener('input', e => {
+  setCaratValue(e.target.value);
+});
+
+document.getElementById('carat-input').addEventListener('input', e => {
+  setCaratValue(e.target.value, { preserveInput: true });
+});
+
+document.getElementById('carat-input').addEventListener('blur', e => {
+  if (!setCaratValue(e.target.value)) syncCaratControls();
 });
 
 document.getElementById('color-select').addEventListener('change',e=>{
@@ -2922,7 +3090,7 @@ function extractCaratWeight(lines, norm, measurements, shape) {
   const candidates = [];
   const addCandidate = value => {
     const n = parseFloat(value);
-    if (Number.isFinite(n) && n > 0 && n <= 50) candidates.push(n);
+    if (Number.isFinite(n) && n > 0 && n <= CARAT_INPUT_MAX) candidates.push(n);
   };
 
   const direct = norm.match(/Carat Weight\s+(\d+(?:\.\d+)?)\s*CARATS?\b/i);
@@ -3827,12 +3995,8 @@ function applyIGIReport(options = {}) {
 
   // Map carat
   const ct = parseFloat(r.caratWeight);
-  if (ct >= 0.5 && ct <= 8) {
-    state.carat = Math.round(ct * 10) / 10;
-    const slider = document.getElementById('carat');
-    slider.value = state.carat;
-    document.getElementById('carat-display').textContent = state.carat.toFixed(1) + ' ct';
-  }
+  const normalizedCt = normalizeCaratValue(ct);
+  if (normalizedCt != null) state.carat = normalizedCt;
 
   // Map color
   const col = (r.color || '').trim();

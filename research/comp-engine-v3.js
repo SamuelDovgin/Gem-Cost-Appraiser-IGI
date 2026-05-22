@@ -315,9 +315,7 @@ const ADJACENT_FAMILIES = {
  *   3 = cross-family or unknown
  */
 function shapeDistance(userShape, compShape) {
-  // Aliases like elongated_cushion = cushion for user queries
   if (userShape === compShape) return 0;
-  if (compShape === 'elongated_cushion' && userShape === 'cushion') return 0;
   const fU = SHAPE_FAMILY_MAP[userShape];
   const fC = SHAPE_FAMILY_MAP[compShape];
   if (!fU || !fC || fU === 'SPECIALTY' || fC === 'SPECIALTY') return 3;
@@ -340,7 +338,6 @@ const SHAPE_NORMALIZE = {
   sq_radiant: 'radiant',
   cushion_brilliant: 'cushion',
   square_cushion: 'cushion',
-  elongated_cushion: 'cushion',
   trilliant: 'marquise',
   old_european: 'round',
   old_mine: 'round',
@@ -450,7 +447,7 @@ function isExactMatch(query, row) {
   if (Math.abs(query.carat - (row.carat || 0)) > caratTolerance(row.carat)) return false;
   if (row.clarityBand) return false;
   if (row.clarity !== query.clarity) return false;
-  if (query.colorFamily !== 'fancy' && !shapeDistance(query.shape, row.shape) === 0) return false;
+  if (shapeDistance(query.shape, row.shape) !== 0) return false;
   if (query.colorFamily === 'white') {
     const cn = row.colorNormalized || 'D';
     if (cn === 'D' || cn === null) return query.whiteGrade === 'D';
@@ -460,7 +457,7 @@ function isExactMatch(query, row) {
     if (cn === 'DEF')              return ['D', 'E', 'F'].includes(query.whiteGrade);
     return false;
   }
-  // Fancy: shape is not required to match for exact (color already matched above)
+  // Fancy: hue already matched above; same-shape/same-clarity/near-carat is exact.
   return true;
 }
 
@@ -853,7 +850,12 @@ function resolveAlibabaComp(query) {
   const bestScore = uniqueScored[0].score;
 
   // ── 3. Select top-N for ensemble ──────────────────────────────────────────
-  let selected = uniqueScored.filter(c => c.score <= SCORE_HARD_CUTOFF).slice(0, MAX_ENSEMBLE);
+  // Exact observations should not be diluted or outlier-rejected by looser
+  // cross-shape comps that happen to be cheaper.
+  const exactScored = uniqueScored.filter(c => isExactMatch(nq, c.row) && c.score < 0.10);
+  let selected = exactScored.length
+    ? exactScored.slice(0, MAX_ENSEMBLE)
+    : uniqueScored.filter(c => c.score <= SCORE_HARD_CUTOFF).slice(0, MAX_ENSEMBLE);
 
   if (!selected.length) {
     // No comp within cutoff — use best available with a warning

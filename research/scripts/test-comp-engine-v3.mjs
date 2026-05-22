@@ -118,7 +118,7 @@ function testShapeDistance() {
   console.log('\n── shapeDistance ────────────────────────────────────────────────────');
   assertEqual(shapeDistance('oval', 'oval'), 0, 'oval=oval same');
   assertEqual(shapeDistance('cushion', 'cushion'), 0, 'cushion=cushion same');
-  assertEqual(shapeDistance('cushion', 'elongated_cushion'), 0, 'cushion≈elongated_cushion');
+  assertEqual(shapeDistance('cushion', 'elongated_cushion'), 1, 'cushion-elongated_cushion same family, not alias');
   assertEqual(shapeDistance('oval', 'cushion'), 1, 'oval-cushion same family');
   assertEqual(shapeDistance('oval', 'radiant'), 2, 'oval-radiant adjacent');
   assertEqual(shapeDistance('round', 'oval'), 2, 'round-oval adjacent (different families)');
@@ -193,6 +193,132 @@ function testBlendComps() {
   console.log('  blendComps: done');
 }
 
+function testCandidateHardGates() {
+  console.log('\n── candidate hard gates ─────────────────────────────────────────────');
+
+  const rows = [
+    { colorFamily: 'white', shape: 'round', colorNormalized: 'D', clarity: 'VS1', carat: 1, priceUsd: 100 },
+    { colorFamily: 'white', shape: 'round', colorNormalized: 'J', clarity: 'VS1', carat: 1, priceUsd: 50 },
+    { colorFamily: 'fancy', shape: 'oval', color: 'Fancy Vivid Pink', clarity: 'VS1', carat: 1, priceUsd: 400 },
+    { colorFamily: 'fancy', shape: 'oval', color: 'Fancy Vivid Yellow', clarity: 'VS1', carat: 1, priceUsd: 250 },
+  ];
+
+  const whiteD = filterCandidates(
+    { carat: 1, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
+    rows
+  );
+  assertEqual(whiteD.length, 1, 'white query rejects fancy rows and >5-step white color gaps');
+  assertEqual(whiteD[0].colorNormalized, 'D', 'white query keeps compatible white row');
+
+  const pink = filterCandidates(
+    { carat: 1, shape: 'oval', colorFamily: 'fancy', colorFamily_key: 'pink_fv', clarity: 'VS1' },
+    rows
+  );
+  assertEqual(pink.length, 1, 'pink query keeps only pink fancy rows');
+  assertEqual(pink[0].color, 'Fancy Vivid Pink', 'pink hard gate does not cross to yellow');
+
+  const orange = filterCandidates(
+    { carat: 1, shape: 'oval', colorFamily: 'fancy', colorFamily_key: 'orange_fv', clarity: 'VS1' },
+    rows
+  );
+  assertEqual(orange.length, 0, 'orange query does not borrow non-orange fancy rows');
+
+  console.log('  candidate hard gates: done');
+}
+
+function testExactMatchSemantics() {
+  console.log('\n── isExactMatch semantics ───────────────────────────────────────────');
+
+  const exactWhite = {
+    carat: 2, shape: 'round', colorFamily: 'white', colorNormalized: 'D',
+    clarity: 'VS1', caratBand: false, clarityBand: false, priceUsd: 300,
+  };
+  const qWhite = { carat: 2, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' };
+  assert(isExactMatch(qWhite, exactWhite), 'same white shape/color/clarity/carat is exact');
+  assert(!isExactMatch({ ...qWhite, shape: 'pear' }, exactWhite), 'different white shape is not exact');
+  assert(!isExactMatch({ ...qWhite, carat: 2.4 }, exactWhite), 'outside carat tolerance is not exact');
+  assert(!isExactMatch(qWhite, { ...exactWhite, clarityBand: true }), 'clarity bands are not exact');
+  assert(isExactMatch({ ...qWhite, whiteGrade: 'E' }, { ...exactWhite, colorNormalized: 'DE' }), 'DE row can exact-match E');
+
+  const exactFancy = {
+    carat: 2.08, shape: 'heart', colorFamily: 'fancy', color: 'Fancy Vivid Pink',
+    clarity: 'VVS2', caratBand: false, clarityBand: false, priceUsd: 770,
+  };
+  const qFancy = { carat: 2.0, shape: 'heart', colorFamily: 'fancy', colorFamily_key: 'pink_fv', clarity: 'VVS2' };
+  assert(isExactMatch(qFancy, exactFancy), 'near-carat same-shape fancy row is exact');
+  assert(!isExactMatch({ ...qFancy, shape: 'oval' }, exactFancy), 'different fancy shape is not exact');
+
+  console.log('  isExactMatch semantics: done');
+}
+
+function testScoringSemantics() {
+  console.log('\n── compErrorScore semantics ─────────────────────────────────────────');
+
+  const q = { carat: 3.8, shape: 'radiant', colorFamily: 'fancy', colorFamily_key: 'pink_fv', clarity: 'VVS2' };
+  const vividHeart = {
+    carat: 2.08, shape: 'heart', colorFamily: 'fancy', color: 'Fancy Vivid Pink',
+    clarity: 'VVS2', priceUsd: 770, confidence: 'medium',
+  };
+  const brownishRadiant = {
+    carat: 0.89, shape: 'radiant', colorFamily: 'fancy', color: 'Fancy Intense Brownish Pink',
+    clarity: 'VS2', priceUsd: 262, confidence: 'medium',
+  };
+  const scoreHeart = compErrorScore(q, vividHeart);
+  const scoreBrownish = compErrorScore(q, brownishRadiant);
+  assert(scoreHeart < scoreBrownish, 'same-intensity vivid heart scores better than tiny brownish radiant');
+
+  const perfect = { carat: 1, shape: 'round', colorFamily: 'white', colorNormalized: 'D', clarity: 'VS1', priceUsd: 100, confidence: 'high' };
+  const crossShape = { ...perfect, shape: 'emerald' };
+  const qWhite = { carat: 1, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' };
+  assert(compErrorScore(qWhite, perfect) < compErrorScore(qWhite, crossShape), 'same-shape white comp scores better than cross-shape comp');
+
+  console.log('  compErrorScore semantics: done');
+}
+
+function testAdjustmentSemantics() {
+  console.log('\n── adjustCompToQuery semantics ─────────────────────────────────────');
+
+  const baseWhite = {
+    carat: 1, shape: 'round', colorFamily: 'white', colorNormalized: 'D',
+    clarity: 'VS1', priceUsd: 100, confidence: 'high',
+  };
+  const same = adjustCompToQuery(
+    { carat: 1, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
+    baseWhite
+  );
+  assertBetween(same.estimatedPrice, 99, 101, 'same white spec returns listing price');
+
+  const upTo2 = adjustCompToQuery(
+    { carat: 2, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
+    baseWhite
+  );
+  const backTo1 = adjustCompToQuery(
+    { carat: 1, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
+    { ...baseWhite, carat: 2, priceUsd: upTo2.estimatedPrice }
+  );
+  assertBetween(upTo2.estimatedPrice, 340, 355, 'white carat transform uses log-space 1.8 total exponent');
+  assertBetween(backTo1.estimatedPrice, 98, 102, 'white carat transform is approximately reversible when row price is model-consistent');
+
+  const hFromD = adjustCompToQuery(
+    { carat: 1, shape: 'round', colorFamily: 'white', whiteGrade: 'H', clarity: 'VS1' },
+    baseWhite
+  );
+  assert(hFromD.estimatedPrice < same.estimatedPrice, 'H query adjusts down from D comp');
+
+  const brownishRow = {
+    carat: 0.89, shape: 'radiant', colorFamily: 'fancy', color: 'Fancy Intense Brownish Pink',
+    clarity: 'VS2', priceUsd: 262, confidence: 'medium',
+  };
+  const cleanPink = adjustCompToQuery(
+    { carat: 0.89, shape: 'radiant', colorFamily: 'fancy', colorFamily_key: 'pink_fi', clarity: 'VS2' },
+    brownishRow
+  );
+  assert(cleanPink.estimatedPrice > brownishRow.priceUsd, 'clean pink query adjusts up from brownish pink comp');
+  assert(cleanPink.parts.some(p => p.startsWith('modifier')), 'brownish cleanup exposes modifier part');
+
+  console.log('  adjustCompToQuery semantics: done');
+}
+
 // ── integration tests (require loaded index) ───────────────────────────────────
 
 async function runIntegrationTests() {
@@ -249,10 +375,22 @@ async function runIntegrationTests() {
 
     // Should have multiple support comps (ensemble)
     assert(r.supportComps.length >= 1, 'T03: at least one support comp');
+    assert(r.supportComps.length > 1, 'T03: sparse pink case uses an ensemble, not a lone comp');
 
     // Estimate in low-to-mid thousands range
     assertBetween(r.estimate, 800, 8000, 'T03: estimate in expected range');
     assert(r.low < r.estimate && r.estimate < r.high, 'T03: low < est < high');
+
+    const hasVividSupport = r.supportComps.some(sc => (sc.row.color || '').toLowerCase().includes('vivid'));
+    const hasNearCaratPinkSupport = r.supportComps.some(sc =>
+      sc.row.carat >= 3.5 && (sc.row.color || '').toLowerCase().includes('pink')
+    );
+    const acceptedBrownish089 = r.supportComps.some(sc =>
+      Math.abs(sc.row.carat - 0.89) < 0.05 && (sc.row.color || '').toLowerCase().includes('brownish')
+    );
+    assert(hasVividSupport, 'T03: ensemble includes vivid-pink evidence');
+    assert(hasNearCaratPinkSupport, 'T03: ensemble includes a near-carat pink anchor');
+    assert(!acceptedBrownish089, 'T03: 0.89ct brownish radiant is not accepted support');
 
     // Check the 0.89ct brownish, if present, is scored worse than 4.13ct cushion
     const sc089 = r.supportComps.find(sc => Math.abs(sc.row.carat - 0.89) < 0.05 && (sc.row.color || '').toLowerCase().includes('brownish'));
@@ -472,6 +610,23 @@ async function runIntegrationTests() {
       console.log('  WARNING: 4.13ct cushion pink not found in index');
     }
   }
+
+  // ── T14: real-index exact matches keep same-shape primary comps ──────────
+  {
+    console.log('\n── T14: Real-index exact shape semantics ───────────────────────────');
+    const cases = [
+      { carat: 2.0, shape: 'portuguese', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
+      { carat: 2.0, shape: 'moval', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
+      { carat: 2.0, shape: 'heart', colorFamily: 'fancy', colorFamily_key: 'pink_fv', clarity: 'VVS2' },
+    ];
+    for (const q of cases) {
+      const r = resolveAlibabaComp(q);
+      console.log(`  ${q.carat}ct ${q.shape}: matchType=${r.matchType} primary=${r.primary?.row?.shape} estimate=$${r.estimate}`);
+      assertEqual(r.matchType, 'exact', `T14: ${q.shape} has exact match`);
+      assertEqual(r.primary.row.shape, normalizeShapeForComp(q.shape), `T14: ${q.shape} primary keeps exact shape`);
+      assert(r.supportComps.every(sc => sc.row.shape === normalizeShapeForComp(q.shape)), `T14: ${q.shape} exact ensemble does not mix cross-shape rows`);
+    }
+  }
 }
 
 // ── entry point ──────────────────────────────────────────────────────────────
@@ -490,6 +645,10 @@ async function main() {
   testMedianOf();
   testModifierLogDelta();
   testBlendComps();
+  testCandidateHardGates();
+  testExactMatchSemantics();
+  testScoringSemantics();
+  testAdjustmentSemantics();
 
   // ── Integration tests (need index) ─────────────────────────────────────────
   try {

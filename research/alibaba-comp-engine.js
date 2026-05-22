@@ -189,14 +189,13 @@ const NEAREST_THRESHOLD = 5.0;
 
 // Aliases: multiple app shapes → single index shape
 // KNOWN ISSUES TO INVESTIGATE:
-//   - 'elongated_cushion' is an index shape; it maps to cushion for user queries but
-//     is kept as its own shape in the index. shapeMatches() handles both directions.
+//   - 'elongated_cushion' is a first-class index shape; it falls back through
+//     broader shape-distance logic in v3, not through a cushion alias.
 //   - 'moval' has no alias; it falls through to the specialty-shape no-comp path.
 const SHAPE_NORMALIZE = {
   sq_radiant: 'radiant',
   cushion_brilliant: 'cushion',
   square_cushion: 'cushion',
-  elongated_cushion: 'cushion',
   trilliant: 'marquise',
   old_european: 'round',
   old_mine: 'round',
@@ -207,11 +206,7 @@ function normalizeShapeForComp(s) {
 }
 
 function shapeMatches(userShape, compShape) {
-  return (
-    normalizeShapeForComp(userShape) === compShape ||
-    // A user querying cushion also matches elongated_cushion rows
-    (compShape === 'elongated_cushion' && normalizeShapeForComp(userShape) === 'cushion')
-  );
+  return normalizeShapeForComp(userShape) === compShape;
 }
 
 function inferFancyFamilyKey(colorLabel) {
