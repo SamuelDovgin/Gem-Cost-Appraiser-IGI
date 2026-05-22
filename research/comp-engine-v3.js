@@ -190,6 +190,32 @@ function applySupplierCap(scored) {
   return result;
 }
 
+/**
+ * buildOtherFactoryExactList — same-spec exact rows from suppliers other than the
+ * floor (cheapest) supplier. Shown separately; never blended into the estimate.
+ */
+function buildOtherFactoryExactList(exactScored, floorSupplierKey) {
+  return exactScored
+    .filter(c => supplierKey(c.row) !== floorSupplierKey)
+    .sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.row.carat - b.row.carat)
+    .map(c => ({
+      row: c.row,
+      listingPrice: c.row.priceUsd,
+      url: c.row.url,
+      label: shortLabel(c.row),
+      supplierKey: supplierKey(c.row),
+    }));
+}
+
+/**
+ * selectCheapestExactEnsemble — price-sorted exact comps for blend/anchor only.
+ */
+function selectCheapestExactEnsemble(exactScored, maxN = MAX_ENSEMBLE) {
+  return [...exactScored]
+    .sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.score - b.score)
+    .slice(0, maxN);
+}
+
 // Specialty shapes that skip the best_available fallback (no cross-shape comp makes sense)
 const SPECIALTY_SHAPE_KEYS = new Set([
   'moval', 'trilliant', 'half_moon', 'shield', 'hexagonal', 'hexagonal_dutch',
@@ -960,20 +986,22 @@ function medianOf(arr) {
  *  6. 80% interval = estimate × exp(±1.28 × sigmaBlend).
  *
  * @param {Array} adjustedList  — [{ logEstimate, sigmaLog, estimatedPrice, parts, row, score }]
+ * @param {{ multiSupplierExact?: boolean }} options
  * @returns {{ logEstimate, sigmaLog, estimate, low, high, accepted, rejected }}
  */
-function blendComps(adjustedList) {
+function blendComps(adjustedList, options = {}) {
   if (!adjustedList.length) return null;
 
   const logEsts = adjustedList.map(a => a.logEstimate);
   const medianLogEst = medianOf(logEsts);
+  const skipOutlierRejection = !!options.multiSupplierExact;
 
   const accepted = [];
   const rejected = [];
 
   for (const adj of adjustedList) {
     const deviation = Math.abs(adj.logEstimate - medianLogEst);
-    if (adjustedList.length > 1 && deviation > 2.5 * adj.sigmaLog) {
+    if (!skipOutlierRejection && adjustedList.length > 1 && deviation > 2.5 * adj.sigmaLog) {
       rejected.push({ ...adj, rejectReason: `outlier: deviation ${deviation.toFixed(3)} > 2.5×σ(${adj.sigmaLog.toFixed(3)})` });
     } else {
       accepted.push(adj);
@@ -1227,7 +1255,7 @@ function resolveAlibabaComp(query) {
   // cross-shape comps that happen to be cheaper.
   const exactScored = supplierCapped.filter(c => isExactMatch(nq, c.row) && c.score < 0.10);
   let selected = exactScored.length
-    ? exactScored.slice(0, MAX_ENSEMBLE)
+    ? selectCheapestExactEnsemble(exactScored, MAX_ENSEMBLE)
     : supplierCapped.filter(c => c.score <= SCORE_HARD_CUTOFF).slice(0, MAX_ENSEMBLE);
 
   if (!selected.length) {
@@ -1242,7 +1270,7 @@ function resolveAlibabaComp(query) {
     return { ...adj, row, score, scoreComponents };
   });
 
-  // ── 6. Blend ───────────────────────────────────────────────────────────────
+  // ── 6. Blend (cheapest-supplier comps only on exact path) ───────────────────
   const blend = blendComps(adjustedList);
 
   if (!blend) {
@@ -1283,11 +1311,30 @@ function resolveAlibabaComp(query) {
   }
 
   // ── 7. Build output ───────────────────────────────────────────────────────
-  // Primary = best-scoring accepted comp
-  const primaryAdj = blend.accepted[0];
+  const exactAdjustedOrdered = matchType === 'exact'
+    ? selected.map(({ row, score, scoreComponents }) => ({
+        ...adjustCompToQuery(nq, row, adjContext),
+        row,
+        score,
+        scoreComponents,
+      })).sort((a, b) => (a.row?.priceUsd ?? 0) - (b.row?.priceUsd ?? 0) || a.score - b.score)
+    : [];
+  const acceptedOrdered = matchType === 'exact'
+    ? exactAdjustedOrdered
+    : blend.accepted;
+  const primaryAdj = acceptedOrdered[0];
+  const floorSupplierKey = primaryAdj?.row ? supplierKey(primaryAdj.row) : null;
+  const otherFactoryExact = (matchType === 'exact' && floorSupplierKey)
+    ? buildOtherFactoryExactList(exactScored, floorSupplierKey)
+    : [];
+  if (otherFactoryExact.length) {
+    const names = [...new Set(otherFactoryExact.map(e => e.supplierKey))].join(', ');
+    warnings.push(`Same-spec listings also at ${names} — shown below, not averaged into floor price.`);
+  }
   const primaryEstPrice = matchType === 'exact'
     ? primaryAdj.row.priceUsd
     : blend.estimate;
+  const pointEstimate = matchType === 'exact' ? primaryEstPrice : blend.estimate;
 
   // Legacy modifiers object (for UI compatibility)
   const legacyModifiers = (matchType === 'exact')
@@ -1305,10 +1352,14 @@ function resolveAlibabaComp(query) {
     url: primaryAdj.row.url,
     label: shortLabel(primaryAdj.row),
     modifiers: legacyModifiers,
-    blendedFrom: blend.accepted.length,
+    blendedFrom: matchType === 'exact' ? exactAdjustedOrdered.length : blend.accepted.length,
   };
 
-  const alternatives = blend.accepted.slice(1).map(adj => ({
+  // Near-carat variants from the floor supplier only (not other factories).
+  const alternatives = (matchType === 'exact'
+    ? acceptedOrdered.slice(1).filter(adj => supplierKey(adj.row) === floorSupplierKey)
+    : acceptedOrdered.slice(1)
+  ).map(adj => ({
     row: adj.row,
     listingPrice: adj.row.priceUsd,
     estimatedPrice: Math.round(Math.exp(adj.logEstimate)),
@@ -1325,14 +1376,15 @@ function resolveAlibabaComp(query) {
 
   return {
     matchType,
-    estimate: blend.estimate,
-    low: blend.low,
-    high: blend.high,
-    perCt: Math.round(blend.estimate / query.carat),
+    estimate: pointEstimate,
+    low: matchType === 'exact' ? Math.round(pointEstimate * 0.87) : blend.low,
+    high: matchType === 'exact' ? Math.round(pointEstimate * 1.13) : blend.high,
+    perCt: Math.round(pointEstimate / query.carat),
     confidence,
     primary,
     alternatives,
-    supportComps: blend.accepted.map(adj => ({
+    otherFactoryExact,
+    supportComps: acceptedOrdered.map(adj => ({
       row: adj.row,
       score: adj.score,
       scoreComponents: adj.scoreComponents,
@@ -1586,6 +1638,88 @@ function runTests() {
         return null;
       },
     },
+    // ── Multi-supplier exact (Messi sheet + StarGem) ─────────────────────────
+    {
+      desc: 'T24 — 3.01ct E VS1 pear (Messi + StarGem both in blend)',
+      q: { carat: 3.01, shape: 'pear', colorFamily: 'white', whiteGrade: 'E', clarity: 'VS1' },
+      expectMatch: ['exact'],
+      checkFn: (result) => {
+        if (supplierKey(result.primary?.row) !== 'starsgem') {
+          return 'FAIL: floor primary should be cheapest StarGem';
+        }
+        const messi = (result.otherFactoryExact || []).filter(e => e.supplierKey === 'messi');
+        if (!messi.length) return 'FAIL: Messi same-spec listings missing from otherFactoryExact';
+        if (!messi.some(e => e.listingPrice >= 420 && e.listingPrice <= 460)) {
+          return `FAIL: expected Messi ~$430–460, got ${messi.map(e => e.listingPrice).join(', ')}`;
+        }
+        if (result.estimate > 360) return `FAIL: estimate should be floor ~$348, got ${result.estimate}`;
+        return null;
+      },
+    },
+    {
+      desc: 'T25 — 3ct E VS1 pear (Messi row 17673 / sheet PS)',
+      q: { carat: 3.0, shape: 'pear', colorFamily: 'white', whiteGrade: 'E', clarity: 'VS1' },
+      expectMatch: ['exact'],
+      checkFn: (result) => {
+        const messi = (result.otherFactoryExact || []).filter(e => e.supplierKey === 'messi');
+        if (!messi.length) return 'FAIL: no Messi otherFactoryExact';
+        const near438 = messi.some(e => e.listingPrice >= 430 && e.listingPrice <= 445);
+        if (!near438) return `FAIL: expected ~$438 Messi 3ct, got ${messi.map(e => e.listingPrice).join(', ')}`;
+        return null;
+      },
+    },
+    {
+      desc: 'T26 — 3.02ct E VVS2 pear (Messi ~$498 sheet)',
+      q: { carat: 3.02, shape: 'pear', colorFamily: 'white', whiteGrade: 'E', clarity: 'VVS2' },
+      expectMatch: ['exact', 'nearest'],
+      checkFn: (result) => {
+        const messi = (result.otherFactoryExact || []).filter(e => e.supplierKey === 'messi');
+        if (!messi.length) return 'FAIL: Messi VVS2 pear missing from otherFactoryExact';
+        if (!messi.some(e => e.row.clarity === 'VVS2' && e.listingPrice >= 480)) {
+          return 'FAIL: expected Messi 3ct E VVS2 near $498';
+        }
+        return null;
+      },
+    },
+    {
+      desc: 'T27 — 3.02ct E VS2 pear (Messi ~$423 sheet)',
+      q: { carat: 3.02, shape: 'pear', colorFamily: 'white', whiteGrade: 'E', clarity: 'VS2' },
+      expectMatch: ['exact', 'nearest'],
+      checkFn: (result) => {
+        const messi = (result.otherFactoryExact || []).filter(e => e.supplierKey === 'messi');
+        if (!messi.length) return 'FAIL: Messi VS2 pear missing from otherFactoryExact';
+        if (!messi.some(e => e.row.clarity === 'VS2' && e.listingPrice >= 400 && e.listingPrice <= 440)) {
+          return `FAIL: expected Messi VS2 ~$423, got ${messi.map(e => e.listingPrice).join(', ')}`;
+        }
+        return null;
+      },
+    },
+    {
+      desc: 'T28 — 1ct D VS1 pear (shape pear, not round)',
+      q: { carat: 1.0, shape: 'pear', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
+      expectMatch: ['exact', 'nearest'],
+      checkFn: (result) => {
+        const shapes = new Set((result.supportComps || []).map(c => c.row.shape));
+        if (!shapes.has('pear')) return `FAIL: support comps not pear: ${[...shapes].join(', ')}`;
+        return null;
+      },
+    },
+    {
+      desc: 'T29 — 3.01ct E VS1 pear primary is cheapest exact (StarGem)',
+      q: { carat: 3.01, shape: 'pear', colorFamily: 'white', whiteGrade: 'E', clarity: 'VS1' },
+      expectMatch: ['exact'],
+      checkFn: (result) => {
+        const p = result.primary?.row;
+        if (!p) return 'FAIL: no primary';
+        if (p.shape !== 'pear') return `FAIL: primary shape ${p.shape}`;
+        if (supplierKey(p) !== 'starsgem') return `FAIL: primary should be cheapest StarGem, got ${supplierKey(p)}`;
+        const messiListed = (result.otherFactoryExact || []).some(e => e.supplierKey === 'messi');
+        if (!messiListed) return 'FAIL: Messi should appear in otherFactoryExact, not alternatives';
+        const altMessi = (result.alternatives || []).some(a => supplierKey(a.row) === 'messi');
+        if (altMessi) return 'FAIL: Messi should not be in alternatives (floor supplier only)';
+        return null;
+      },
+    },
   ];
 
   let passed = 0, failed = 0;
@@ -1653,6 +1787,8 @@ export {
   compErrorScore,
   adjustCompToQuery,
   blendComps,
+  buildOtherFactoryExactList,
+  selectCheapestExactEnsemble,
   filterCandidates,
   isExactMatch,
   normalizeShapeForComp,

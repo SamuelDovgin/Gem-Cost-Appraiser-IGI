@@ -79,7 +79,14 @@ const wantedReports = new Set((params.get('reports') || '').split(',').map(s => 
 function esc(v){return String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function money(v){return Number.isFinite(Number(v)) ? '$' + Math.round(Number(v)).toLocaleString() : '';}
 function num(v,d=2){return Number.isFinite(Number(v)) ? Number(v).toFixed(d).replace(/\.?0+$/,'') : '';}
-function reportUrl(v){return IGI_PDF_BASE + encodeURIComponent(String(v || '').trim()) + '.pdf';}
+function igiPdfSlug(v){
+  const clean = String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (/^(ID|FRD|FDR)\d{6,}$/.test(clean)) return clean;
+  const digits = (clean.match(/\d{6,}/) || [''])[0];
+  if (!digits) return clean;
+  return 'FDR' + digits;
+}
+function reportUrl(v){return IGI_PDF_BASE + encodeURIComponent(igiPdfSlug(v)) + '.pdf';}
 function isHit(r){
   const rowNo = String(r.rowNo ?? '').trim();
   const report = String(r.reportNo ?? '').trim();

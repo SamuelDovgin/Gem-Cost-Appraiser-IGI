@@ -1568,6 +1568,25 @@ function v3ApplySupplierCap(scored) {
   return result;
 }
 
+function v3BuildOtherFactoryExactList(exactScored, floorSupplierKey) {
+  return exactScored
+    .filter(c => v3SupplierKey(c.row) !== floorSupplierKey)
+    .sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.row.carat - b.row.carat)
+    .map(c => ({
+      row: c.row,
+      listingPrice: c.row.priceUsd,
+      url: c.row.url,
+      label: shortLabel(c.row),
+      supplierKey: v3SupplierKey(c.row),
+    }));
+}
+
+function v3SelectCheapestExactEnsemble(exactScored, maxN = V3_MAX_ENSEMBLE) {
+  return [...exactScored]
+    .sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.score - b.score)
+    .slice(0, maxN);
+}
+
 // ── §E  LOG-SPACE ADJUSTMENT ──────────────────────────────────────────────────
 
 function v3AdjustToQuery(query, row, context={}) {
@@ -1689,14 +1708,15 @@ function v3Median(arr) {
   return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
 }
 
-function v3Blend(adjustedList) {
+function v3Blend(adjustedList, options = {}) {
   if (!adjustedList.length) return null;
   const med = v3Median(adjustedList.map(a => a.logEstimate));
+  const skipOutlierRejection = !!options.multiSupplierExact;
   const EPS = 1e-4;
   const accepted=[], rejected=[];
   for (const a of adjustedList) {
     const dev = Math.abs(a.logEstimate - med);
-    if (adjustedList.length > 1 && dev > 2.5 * a.sigmaLog)
+    if (!skipOutlierRejection && adjustedList.length > 1 && dev > 2.5 * a.sigmaLog)
       rejected.push({ ...a, rejectReason:`outlier: dev ${dev.toFixed(3)} > 2.5σ` });
     else
       accepted.push(a);
@@ -1841,7 +1861,7 @@ function resolveAlibabaComp(ct) {
   // Exact observations should not be diluted by looser cross-shape comps.
   const exactScored = supplierCapped.filter(c => v3IsExactMatch(query, c.row) && c.score < 0.10);
   let selected = exactScored.length
-    ? exactScored.slice(0, V3_MAX_ENSEMBLE)
+    ? v3SelectCheapestExactEnsemble(exactScored, V3_MAX_ENSEMBLE)
     : supplierCapped.filter(c => c.score <= V3_SCORE_CUTOFF).slice(0, V3_MAX_ENSEMBLE);
   if (!selected.length) {
     selected = supplierCapped.slice(0, Math.min(3, supplierCapped.length));
@@ -1887,25 +1907,49 @@ function resolveAlibabaComp(ct) {
   }
 
   // 7. Build output
-  const pa = blend.accepted[0];
+  const exactAdjustedOrdered = matchType === 'exact'
+    ? selected.map(({ row, score, scoreComponents }) => ({
+        ...v3AdjustToQuery(query, row, adjContext),
+        row,
+        score,
+        scoreComponents,
+      })).sort((a, b) => (a.row?.priceUsd ?? 0) - (b.row?.priceUsd ?? 0) || a.score - b.score)
+    : [];
+  const acceptedOrdered = matchType === 'exact'
+    ? exactAdjustedOrdered
+    : blend.accepted;
+  const pa = acceptedOrdered[0];
+  const floorSupplierKey = pa?.row ? v3SupplierKey(pa.row) : null;
+  const otherFactoryExact = (matchType === 'exact' && floorSupplierKey)
+    ? v3BuildOtherFactoryExactList(exactScored, floorSupplierKey)
+    : [];
+  if (otherFactoryExact.length) {
+    const names = [...new Set(otherFactoryExact.map(e => e.supplierKey))].join(', ');
+    warnings.push(`Same-spec listings also at ${names} — shown below, not averaged into floor price.`);
+  }
   const primEstPrice = matchType === 'exact' ? pa.row.priceUsd : Math.round(Math.exp(pa.logEstimate));
+  const pointEstimate = matchType === 'exact' ? primEstPrice : blend.estimate;
   const legacyMods   = matchType === 'exact' ? null : { combined: Math.exp(pa.logEstimate - Math.log(pa.row.priceUsd)), estimated: primEstPrice, parts: pa.parts };
   const confidence   = bestScore <= 0.10 ? 'high' : bestScore <= 0.25 ? 'medium' : 'low';
+  const altPool = matchType === 'exact'
+    ? acceptedOrdered.slice(1).filter(a => v3SupplierKey(a.row) === floorSupplierKey)
+    : acceptedOrdered.slice(1);
 
   return {
     matchType,
-    estimate:   blend.estimate,
-    low:        blend.low,
-    high:       blend.high,
-    perCt:      Math.round(blend.estimate / ct),
+    estimate:   pointEstimate,
+    low:        matchType === 'exact' ? Math.round(pointEstimate * 0.87) : blend.low,
+    high:       matchType === 'exact' ? Math.round(pointEstimate * 1.13) : blend.high,
+    perCt:      Math.round(pointEstimate / ct),
     confidence,
     primary: { row: pa.row, listingPrice: pa.row.priceUsd, estimatedPrice: primEstPrice, url: pa.row.url, label: shortLabel(pa.row), modifiers: legacyMods },
-    alternatives: blend.accepted.slice(1).map(a => ({
+    otherFactoryExact,
+    alternatives: altPool.map(a => ({
       row: a.row, listingPrice: a.row.priceUsd, estimatedPrice: Math.round(Math.exp(a.logEstimate)),
       url: a.row.url, label: shortLabel(a.row),
       modifiers: { combined: Math.exp(a.logEstimate - Math.log(a.row.priceUsd)), estimated: Math.round(Math.exp(a.logEstimate)), parts: a.parts },
     })),
-    supportComps: blend.accepted.map(a => ({ row: a.row, score: a.score, scoreComponents: a.scoreComponents, logEstimate: a.logEstimate, sigmaLog: a.sigmaLog, estimatedPrice: Math.round(Math.exp(a.logEstimate)), parts: a.parts })),
+    supportComps: acceptedOrdered.map(a => ({ row: a.row, score: a.score, scoreComponents: a.scoreComponents, logEstimate: a.logEstimate, sigmaLog: a.sigmaLog, estimatedPrice: Math.round(Math.exp(a.logEstimate)), parts: a.parts })),
     rejectedComps: blend.rejected.map(a => ({ row: a.row, reason: a.rejectReason, estimatedPrice: Math.round(Math.exp(a.logEstimate)) })),
     warnings,
     source: 'comps-index-v3',
@@ -2467,10 +2511,17 @@ function spreadsheetViewerLink(row) {
   return `research/spreadsheet-viewer.html?${params.toString()}`;
 }
 
+function igiPdfSlug(clean) {
+  const norm = String(clean || '').toUpperCase();
+  if (/^(ID|FRD|FDR)\d{6,}$/.test(norm)) return norm;
+  const digits = (norm.match(/\d{6,}/) || [''])[0];
+  if (!digits) return norm;
+  return 'FDR' + digits;
+}
+
 function igiPdfLink(reportNumber) {
   const clean = extractIGINumber(String(reportNumber || ''));
-  const digits = (clean.match(/\d{6,}/) || [''])[0];
-  return IGI_PDF_BASE + encodeURIComponent(digits || clean) + '.pdf';
+  return IGI_PDF_BASE + encodeURIComponent(igiPdfSlug(clean)) + '.pdf';
 }
 
 function renderCompLinks(entry) {
@@ -2576,15 +2627,22 @@ function updateMarketBar(m){
   }
 
   if (ac.matchType === 'exact') {
-    html = `<div class="comp-block"><strong>Alibaba exact listing price:</strong> ${fmtCompTag('exact')}<br>`;
+    html = `<div class="comp-block"><strong>Alibaba exact listing price (floor):</strong> ${fmtCompTag('exact')}<br>`;
     html += renderCompEntry(ac.primary, false);
     if (ac.alternatives && ac.alternatives.length) {
       html += `<div class="comp-alts">`;
+      html += `<div style="font-size:11px;color:var(--muted2);margin:6px 0 4px">Same supplier, nearby carat bins:</div>`;
       html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
       html += `</div>`;
     }
+    if (ac.otherFactoryExact && ac.otherFactoryExact.length) {
+      html += `<div class="comp-alts" style="margin-top:10px">`;
+      html += `<div style="font-size:11px;color:var(--muted2);margin:0 0 6px"><strong>Same spec at other factories</strong> — actual sheet/listing prices, not blended into floor:</div>`;
+      html += ac.otherFactoryExact.map(entry => renderCompEntry(entry, true)).join('');
+      html += `</div>`;
+    }
     const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Factory-direct.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Factory floor = cheapest exact match.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
   } else if (ac.matchType === 'nearest') {
     const nComps = ac.supportComps?.length || 1;
     html = `<div class="comp-block"><strong>Closest Alibaba comps — weighted blend ${fmt(ac.estimate)}</strong> ${fmtCompTag('nearest')}<br>`;
