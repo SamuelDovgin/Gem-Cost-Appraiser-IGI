@@ -820,13 +820,26 @@ function filterCandidates(query, comps) {
   });
 }
 
+/** Minimum |log adjustment| before a part is shown in the UI (≈0.1% price). */
+const LOG_PART_MIN = 0.001;
+
+/** Carat gap (ct) at or above which an exact-match listing is scaled to the query. */
+const EXACT_CARAT_ADJ_EPSILON = 0.005;
+
 /**
  * caratTolerance — maximum carat gap for an exact match.
+ * Uses the larger of query and comp carat so tolerance reflects the size class
+ * being compared, even when only one side crosses a threshold.
  */
-function caratTolerance(ct) {
-  if (ct <= 2) return 0.08;
-  if (ct <= 6) return 0.18;
+function caratTolerance(queryCt, compCt) {
+  const anchor = Math.max(queryCt || 0, compCt || 0);
+  if (anchor <= 2) return 0.08;
+  if (anchor <= 6) return 0.18;
   return 0.25;
+}
+
+function caratGapNeedsExactAdjustment(queryCt, compCt) {
+  return Math.abs(queryCt - (compCt || 0)) >= EXACT_CARAT_ADJ_EPSILON;
 }
 
 /**
@@ -835,7 +848,7 @@ function caratTolerance(ct) {
  */
 function isExactMatch(query, row) {
   if (row.caratBand) return false;
-  if (Math.abs(query.carat - (row.carat || 0)) > caratTolerance(row.carat)) return false;
+  if (Math.abs(query.carat - (row.carat || 0)) > caratTolerance(query.carat, row.carat)) return false;
   if (row.clarityBand) return false;
   if (row.clarity !== query.clarity) return false;
   if (shapeDistance(query.shape, row.shape) !== 0) return false;
@@ -977,8 +990,9 @@ function adjustCompToQuery(query, row, context = {}) {
                  modeBoost;
     logDpcAdj += deltaCarat;
     const slopeNote = context.localCaratSlope != null ? ` slope=${caratSlope.toFixed(2)}` : '';
-    if (Math.abs(deltaCarat) > 0.015)
-      parts.push(`carat ×${Math.exp(deltaCarat).toFixed(2)} (${queryCt}ct vs ${compCt}ct${slopeNote})`);
+    const totalCaratFactor = Math.exp(logCaratRatio + deltaCarat);
+    if (Math.abs(deltaCarat) > LOG_PART_MIN)
+      parts.push(`carat total ×${totalCaratFactor.toFixed(3)} (price/ct ×${Math.exp(deltaCarat).toFixed(3)}; ${queryCt}ct vs ${compCt}ct${slopeNote})`);
 
     const cn = row.colorNormalized || 'D';
     const compGrade = (cn === 'DEF' || cn === 'DE') ? 'E' : cn;
@@ -988,8 +1002,8 @@ function adjustCompToQuery(query, row, context = {}) {
     const gradeSteps = whiteColorDistance(query.whiteGrade, cn);
     sigmaColor = gradeSteps * AXIS_SIGMA.whiteColorPerStep;
     logDpcAdj += deltaColor;
-    if (Math.abs(deltaColor) > 0.015)
-      parts.push(`color ×${Math.exp(deltaColor).toFixed(2)} (${query.whiteGrade} vs ${cn})`);
+    if (Math.abs(deltaColor) > LOG_PART_MIN)
+      parts.push(`color ×${Math.exp(deltaColor).toFixed(3)} (${query.whiteGrade} vs ${cn})`);
 
   } else {
     // ── Fancy: combined intensity+carat model delta ────────────────────────
@@ -1003,14 +1017,14 @@ function adjustCompToQuery(query, row, context = {}) {
       const logModelC = Math.log(cb.ws1) + (cb.scale - 1) * Math.log(compCt);
       const deltaIntensityCarat = logModelQ - logModelC;
       logDpcAdj += deltaIntensityCarat;
-      if (Math.abs(deltaIntensityCarat) > 0.015)
-        parts.push(`intensity+carat ×${Math.exp(deltaIntensityCarat).toFixed(2)} (${query.colorFamily_key} vs ${compKey})`);
+      if (Math.abs(deltaIntensityCarat) > LOG_PART_MIN)
+        parts.push(`intensity+carat ×${Math.exp(deltaIntensityCarat).toFixed(3)} (${query.colorFamily_key} vs ${compKey})`);
     } else {
       // Can't model comp color — fallback to carat-only slope
       const delta = 0.5 * logCaratRatio; // fancy carat slope prior
       logDpcAdj += delta;
-      if (Math.abs(delta) > 0.015)
-        parts.push(`carat ×${Math.exp(delta).toFixed(2)} (${queryCt}ct vs ${compCt}ct, model unknown)`);
+      if (Math.abs(delta) > LOG_PART_MIN)
+        parts.push(`carat ×${Math.exp(delta).toFixed(3)} (${queryCt}ct vs ${compCt}ct, model unknown)`);
     }
 
     // Modifier adjustment: comp modifiers vs query modifiers
@@ -1029,8 +1043,8 @@ function adjustCompToQuery(query, row, context = {}) {
         deltaModifier += (MODIFIER_LOG_DELTA[m] || 0);
       }
     }
-    if (Math.abs(deltaModifier) > 0.015)
-      parts.push(`modifier ×${Math.exp(deltaModifier).toFixed(2)}`);
+    if (Math.abs(deltaModifier) > LOG_PART_MIN)
+      parts.push(`modifier ×${Math.exp(deltaModifier).toFixed(3)}`);
     logDpcAdj += deltaModifier;
 
     // Compute color sigma from intensity/modifier gaps
@@ -1056,8 +1070,8 @@ function adjustCompToQuery(query, row, context = {}) {
     const clarC = CLARITY_MULT_COLOR[row.clarity] ?? 1;
     deltaClarity = Math.log(clarU / Math.max(clarC, 0.01));
   }
-  if (Math.abs(deltaClarity) > 0.015)
-    parts.push(`clarity ×${Math.exp(deltaClarity).toFixed(2)} (${query.clarity} vs ${row.clarity})`);
+  if (Math.abs(deltaClarity) > LOG_PART_MIN)
+    parts.push(`clarity ×${Math.exp(deltaClarity).toFixed(3)} (${query.clarity} vs ${row.clarity})`);
   const clarOrdinalGap = Math.abs((CLARITY_RANK_NUM[query.clarity] ?? 2) - (CLARITY_RANK_NUM[row.clarity] ?? 2));
   const clarPerStep = query.colorFamily === 'white'
     ? AXIS_SIGMA.clarityWhitePerStep
@@ -1078,8 +1092,8 @@ function adjustCompToQuery(query, row, context = {}) {
   } else {
     deltaShape = shapeMultCompColor > 0 ? Math.log(shapeMultColor / shapeMultCompColor) : 0;
   }
-  if (Math.abs(deltaShape) > 0.015)
-    parts.push(`shape ×${Math.exp(deltaShape).toFixed(2)} (${normShape} vs ${row.shape})`);
+  if (Math.abs(deltaShape) > LOG_PART_MIN)
+    parts.push(`shape ×${Math.exp(deltaShape).toFixed(3)} (${normShape} vs ${row.shape})`);
   sigmaShape = shapeSigma(query.shape, row.shape);
   logDpcAdj += deltaShape;
 
@@ -1479,14 +1493,24 @@ function resolveAlibabaComp(query) {
     const names = [...new Set(otherFactoryExact.map(e => e.supplierKey))].join(', ');
     warnings.push(`Same-spec listings also at ${names} — shown below, not averaged into floor price.`);
   }
+  const exactUsesCaratScale = matchType === 'exact'
+    && caratGapNeedsExactAdjustment(nq.carat, primaryAdj.row?.carat);
   const primaryEstPrice = matchType === 'exact'
-    ? primaryAdj.row.priceUsd
+    ? (exactUsesCaratScale
+        ? Math.round(Math.exp(primaryAdj.logEstimate))
+        : primaryAdj.row.priceUsd)
     : blend.estimate;
   const pointEstimate = matchType === 'exact' ? primaryEstPrice : blend.estimate;
 
   // Legacy modifiers object (for UI compatibility)
   const legacyModifiers = (matchType === 'exact')
-    ? null
+    ? (exactUsesCaratScale || (primaryAdj.parts && primaryAdj.parts.length)
+        ? {
+            combined: Math.exp(primaryAdj.logEstimate - Math.log(primaryAdj.row.priceUsd)),
+            estimated: primaryEstPrice,
+            parts: primaryAdj.parts,
+          }
+        : null)
     : {
         combined: Math.exp(primaryAdj.logEstimate - Math.log(primaryAdj.row.priceUsd)),
         estimated: blend.estimate,

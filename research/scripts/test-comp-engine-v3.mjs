@@ -364,8 +364,8 @@ async function testExactFloorDisplayGuards() {
 
   await loadIndex({
     comps: [
-      row('test low floor — StarGem', 100, 1.98),
-      row('test low neighbor — StarGem', 105, 2.02),
+      row('test low floor — StarGem', 100, 2.0),
+      row('test low neighbor — StarGem', 105, 2.0),
       row('test high factory 1 — Messi Gems', 980, 2.0),
       row('test high factory 2 — Messi Gems', 990, 2.01),
       row('test high factory 3 — Messi Gems', 1000, 1.99),
@@ -723,6 +723,8 @@ async function runIntegrationTests() {
     assert((r.alternatives || []).every(a => supplierKey(a.row) === 'starsgem'),
       'T15: alternatives are same floor supplier only');
   }
+
+  await testExactMatchCaratScale();
 }
 
 // ── P1 carat slope policy unit tests (no index needed) ───────────────────────
@@ -945,6 +947,63 @@ function testExactMatchSlopeIrrelevant() {
   );
 
   console.log('  Exact match slope irrelevance: done');
+}
+
+async function testExactMatchCaratScale() {
+  console.log('\n── Exact match: carat scale on near-size floor ───────────────────────');
+
+  await loadIndex(indexPath);
+  const r = resolveAlibabaComp({
+    carat: 2.32,
+    shape: 'round',
+    colorFamily: 'white',
+    whiteGrade: 'F',
+    clarity: 'VVS2',
+  });
+
+  assertEqual(r.matchType, 'exact', '2.32ct F VVS2 round stays exact vs 2.2ct Messi floor');
+  assert(r.primary.row.carat !== 2.32, 'floor row is a nearby ladder carat, not query carat');
+  assert(
+    r.primary.estimatedPrice > r.primary.listingPrice,
+    `exact floor scales up for heavier query (${r.primary.listingPrice} → ${r.primary.estimatedPrice})`,
+  );
+  assert(r.primary.modifiers?.parts?.length, 'exact floor exposes carat adjustment parts');
+  assert(
+    r.primary.modifiers.parts.some(p => p.startsWith('carat')),
+    'modifier parts include carat scaling',
+  );
+  assert(
+    r.primary.modifiers.parts.some(p => p.includes('total ×')),
+    'carat modifier exposes total listing-to-query factor',
+  );
+  assertEqual(r.estimate, r.primary.estimatedPrice, 'point estimate uses carat-adjusted exact floor');
+
+  await loadIndex({
+    comps: [{
+      section: 'test .01ct floor — StarGem',
+      carat: 2.2,
+      shape: 'round',
+      colorFamily: 'white',
+      colorNormalized: 'F',
+      clarity: 'VVS2',
+      priceUsd: 316.1,
+      confidence: 'high',
+    }],
+  });
+  const tinyGap = resolveAlibabaComp({
+    carat: 2.21,
+    shape: 'round',
+    colorFamily: 'white',
+    whiteGrade: 'F',
+    clarity: 'VVS2',
+  });
+  assertEqual(tinyGap.matchType, 'exact', '.01ct gap stays exact');
+  assert(tinyGap.primary.estimatedPrice !== tinyGap.primary.listingPrice, '.01ct gap still adjusts exact floor price');
+  assert(tinyGap.primary.modifiers?.parts?.some(p => p.startsWith('carat')), '.01ct gap shows carat modifier');
+
+  await loadIndex(indexPath);
+
+  console.log('  Exact match carat scale: done');
 }
 
 function testFitLocalCaratSlopeCratBandExclusion() {

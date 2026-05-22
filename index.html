@@ -1826,7 +1826,11 @@ function renderCompLinks(entry) {
 
 function renderCompEntry(entry, isAlt) {
   const { row, listingPrice, estimatedPrice, label, modifiers } = entry;
-  const hasAdj = modifiers && Math.abs(modifiers.combined - 1) > 0.03;
+  const hasAdj = modifiers && (
+    (modifiers.parts && modifiers.parts.length > 0) ||
+    Math.abs(modifiers.combined - 1) > 0.005 ||
+    (Number.isFinite(listingPrice) && Number.isFinite(estimatedPrice) && listingPrice !== estimatedPrice)
+  );
   const supplier = escapeHTML(label || 'Alibaba');
   const viewLink = renderCompLinks(entry);
   const rowSpec = row ? `${row.carat}ct ${row.shape} ${row.clarity}${row.color ? ' ' + row.color : row.colorNormalized ? ' ' + row.colorNormalized : ''}` : '';
