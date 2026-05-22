@@ -766,39 +766,39 @@ async function loadAlibabaCompsIndex() {
   if (_compsIdxLoadPromise) return _compsIdxLoadPromise;
 
   _compsIdxLoadPromise = (async () => {
-  try {
-    const [alibRes, messiRes, starsRes, messiColorRes] = await Promise.all([
-      fetch('research/data/alibaba-comps-index.json'),
-      fetch('research/data/messi-comps.json'),
-      fetch('research/data/starsgem-comps.json'),
-      fetch('research/data/messi-color-comps.json'),
-    ]);
-    if (!alibRes.ok) throw new Error('HTTP ' + alibRes.status);
-    _compsIdx = await alibRes.json();
-    // Merge Messi + StarGem aggregated comp pools into the main index
-    if (messiRes.ok) {
-      const messiData = await messiRes.json();
-      _compsIdx.comps.push(...(messiData.comps || []));
+    try {
+      const [alibRes, messiRes, starsRes, messiColorRes] = await Promise.all([
+        fetch('research/data/alibaba-comps-index.json'),
+        fetch('research/data/messi-comps.json'),
+        fetch('research/data/starsgem-comps.json'),
+        fetch('research/data/messi-color-comps.json'),
+      ]);
+      if (!alibRes.ok) throw new Error('HTTP ' + alibRes.status);
+      _compsIdx = await alibRes.json();
+      // Merge Messi + StarGem aggregated comp pools into the main index
+      if (messiRes.ok) {
+        const messiData = await messiRes.json();
+        _compsIdx.comps.push(...(messiData.comps || []));
+      }
+      if (starsRes.ok) {
+        const starsData = await starsRes.json();
+        _compsIdx.comps.push(...(starsData.comps || []));
+      }
+      if (messiColorRes.ok) {
+        const messiColorData = await messiColorRes.json();
+        _compsIdx.comps.push(...(messiColorData.comps || []));
+      }
+      const engine = window._v3engine || await waitForV3Engine();
+      if (engine) {
+        await engine.loadIndex(_compsIdx);
+        _compsIdxReady = true;
+      } else {
+        console.warn('V3 engine module not available (file:// access?). resolveAlibabaComp will return null.');
+      }
+      update(); // re-render now that comps are available
+    } catch (e) {
+      console.warn('Comps index unavailable — falling back to legacy ceiling.', e);
     }
-    if (starsRes.ok) {
-      const starsData = await starsRes.json();
-      _compsIdx.comps.push(...(starsData.comps || []));
-    }
-    if (messiColorRes.ok) {
-      const messiColorData = await messiColorRes.json();
-      _compsIdx.comps.push(...(messiColorData.comps || []));
-    }
-    const engine = window._v3engine || await waitForV3Engine();
-    if (engine) {
-      await engine.loadIndex(_compsIdx);
-      _compsIdxReady = true;
-    } else {
-      console.warn('V3 engine module not available (file:// access?). resolveAlibabaComp will return null.');
-    }
-    update(); // re-render now that comps are available
-  } catch (e) {
-    console.warn('Comps index unavailable — falling back to legacy ceiling.', e);
-  }
   })();
   return _compsIdxLoadPromise;
 }
