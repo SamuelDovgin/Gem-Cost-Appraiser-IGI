@@ -1031,30 +1031,51 @@ const AUC_FAIR_LO = 1.20, AUC_FAIR_HI = 1.45;
 function isWhite(){ return state.colorFamily === 'white'; }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ALIBABA COMP MATCHER — resolveAlibabaComp(ct)
+// ALIBABA COMP MATCHER v3 — resolveAlibabaComp(ct)
+// Log-space adjusted ensemble with inverse-variance blending.
+// See research/comp-engine-v3.js for the standalone module with full comments.
 // ══════════════════════════════════════════════════════════════════════════════
 
-const CLARITY_RANK_NUM = { VVS1:0, VVS2:1, 'VVS-VS':1.5, VS1:2, VS2:3 };
+const CLARITY_RANK_NUM = { IF:-1, VVS1:0, VVS2:1, 'VVS-VS':1.5, VS1:2, VS2:3, SI1:4, SI2:5 };
 const WHITE_COLOR_GRADE_NUM = { D:0, DE:0.5, DEF:1, E:1, F:2, G:3, H:4, I:5, J:6, K:7, L:8 };
-const NEAREST_THRESHOLD = 5.0; // raised from 3.5: catches 4ct+ marquise, 6ct oval, H-color vs D-data (score≤5)
 
-const SHAPE_NORMALIZE = {
-  sq_radiant:'radiant', cushion_brilliant:'cushion', square_cushion:'cushion',
-  elongated_cushion:'cushion', trilliant:'marquise',
-  old_european:'round', old_mine:'round',
+// ── §A  V3 CONSTANTS ──────────────────────────────────────────────────────────
+
+const V3_AXIS_SIGMA = {
+  caratPerLogUnit:        0.12,
+  whiteColorPerStep:      0.07,
+  fancyIntensityPerLevel: 0.25,
+  fancyModifierPerTerm:   0.12,
+  clarityWhitePerStep:    0.06,
+  clarityFancyPerStep:    0.04,
+  shapeSame:              0.05,
+  shapeFamily:            0.12,
+  shapeAdjacent:          0.20,
+  shapeCross:             0.30,
+  sourceHigh:             0.03,
+  sourceMediumHigh:       0.06,
+  sourceMedium:           0.10,
+  sourceLowMedium:        0.18,
+  sourceLow:              0.25,
+  caratBand:              0.05,
+  clarityBand:            0.08,
 };
-function normalizeShapeForComp(s) { return SHAPE_NORMALIZE[s] || s; }
-function shapeMatches(userShape, compShape) {
-  return normalizeShapeForComp(userShape) === compShape ||
-    (compShape === 'elongated_cushion' && normalizeShapeForComp(userShape) === 'cushion');
-}
+const V3_SCORE_CUTOFF = 0.60;
+const V3_MAX_ENSEMBLE = 5;
 
-function whiteColorDistance(query, row) {
-  const uR = WHITE_COLOR_GRADE_NUM[query.whiteGrade] ?? 2;
-  const cR = WHITE_COLOR_GRADE_NUM[row.colorNormalized || 'D'] ?? 0;
-  return Math.abs(uR - cR);
-}
-function whiteColorCompatible(query, row) { return whiteColorDistance(query, row) <= 5; }
+// Modifier terms and their log-price discount on comp price
+const V3_MODIFIER_LOG_DELTA = {
+  brownish:  Math.log(0.82),
+  greyish:   Math.log(0.87),
+  grayish:   Math.log(0.87),
+  orangy:    Math.log(0.90),
+  purplish:  Math.log(0.88),
+  yellowish: Math.log(0.91),
+  pinkish:   Math.log(0.93),
+  bluish:    Math.log(0.93),
+};
+const V3_MODIFIER_TERMS = ['brownish','greyish','grayish','orangy','purplish','yellowish','pinkish','bluish'];
+const V3_INTENSITY_RANK = { fl:0, f:1, fi:2, fv:3 };
 
 // Map fancy color label text → nearest fancyColorBase key
 const FANCY_LABEL_MAP = {
@@ -1072,36 +1093,90 @@ const FANCY_LABEL_MAP = {
   'fancy blue':'blue_f','blue':'blue_f',
   'fancy intense green':'green_fi','fancy vivid green':'green_fv',
   'fancy intense greyish green':'green_fi','fancy green':'green_f',
-  'fancy red':'red_f','fancy intense brownish pink':'pink_fi',
-  'brownish pink':'pink_f',
+  'fancy red':'red_f',
+  'fancy intense brownish pink':'pink_fi','brownish pink':'pink_f',
 };
+
+// Shape family system for cross-shape sigma assignment
+const V3_SHAPE_FAMILY = {
+  round:'ROUND',old_european:'ROUND',old_mine:'ROUND',
+  oval:'OVAL_CUSHION',cushion:'OVAL_CUSHION',elongated_cushion:'OVAL_CUSHION',
+  moval:'OVAL_CUSHION',cushion_brilliant:'OVAL_CUSHION',square_cushion:'OVAL_CUSHION',
+  radiant:'RADIANT',sq_radiant:'RADIANT',
+  pear:'PEAR',
+  marquise:'MARQUISE',trilliant:'MARQUISE',
+  heart:'HEART',
+  emerald:'STEP',asscher:'STEP',
+  baguette:'STEP_BAGUETTE',tapered_baguette:'STEP_BAGUETTE',carre:'STEP_BAGUETTE',
+  princess:'PRINCESS',
+};
+const V3_ADJACENT = {
+  ROUND:        new Set(['OVAL_CUSHION']),
+  OVAL_CUSHION: new Set(['ROUND','RADIANT','STEP']),
+  RADIANT:      new Set(['OVAL_CUSHION','PRINCESS','STEP']),
+  PEAR:         new Set(['MARQUISE','OVAL_CUSHION']),
+  MARQUISE:     new Set(['PEAR','HEART']),
+  HEART:        new Set(['MARQUISE','PEAR']),
+  STEP:         new Set(['OVAL_CUSHION','RADIANT','PRINCESS','STEP_BAGUETTE']),
+  PRINCESS:     new Set(['RADIANT','STEP']),
+  STEP_BAGUETTE:new Set(['STEP']),
+};
+
+// ── §B  NORMALIZATION HELPERS ─────────────────────────────────────────────────
+
+const SHAPE_NORMALIZE = {
+  sq_radiant:'radiant',cushion_brilliant:'cushion',square_cushion:'cushion',
+  elongated_cushion:'cushion',trilliant:'marquise',
+  old_european:'round',old_mine:'round',
+};
+function normalizeShapeForComp(s) { return SHAPE_NORMALIZE[s] || s; }
+
+function v3ShapeDistance(uShape, cShape) {
+  if (uShape === cShape) return 0;
+  if (cShape === 'elongated_cushion' && uShape === 'cushion') return 0;
+  const fU = V3_SHAPE_FAMILY[uShape], fC = V3_SHAPE_FAMILY[cShape];
+  if (!fU || !fC) return 3;
+  if (fU === fC) return 1;
+  if (V3_ADJACENT[fU]?.has(fC)) return 2;
+  return 3;
+}
+function v3ShapeSigma(u, c) {
+  return [V3_AXIS_SIGMA.shapeSame, V3_AXIS_SIGMA.shapeFamily, V3_AXIS_SIGMA.shapeAdjacent, V3_AXIS_SIGMA.shapeCross][v3ShapeDistance(u, c)];
+}
+function v3SourceSigma(conf) {
+  return ({high:V3_AXIS_SIGMA.sourceHigh,'medium-high':V3_AXIS_SIGMA.sourceMediumHigh,medium:V3_AXIS_SIGMA.sourceMedium,'low-medium':V3_AXIS_SIGMA.sourceLowMedium,low:V3_AXIS_SIGMA.sourceLow})[conf] ?? V3_AXIS_SIGMA.sourceMedium;
+}
+
 function inferFancyFamilyKey(colorLabel) {
   if (!colorLabel) return null;
   const cl = colorLabel.toLowerCase().trim();
-  return FANCY_LABEL_MAP[cl] || null;
+  if (FANCY_LABEL_MAP[cl]) return FANCY_LABEL_MAP[cl];
+  // Fallback: parse hue + intensity from label
+  let hue=null, iKey='f';
+  if (cl.includes('pink')) hue='pink';
+  else if (cl.includes('yellow')) hue='yellow';
+  else if (cl.includes('blue')) hue='blue';
+  else if (cl.includes('green')) hue='green';
+  else if (cl.includes('orange')) hue='orange';
+  if (cl.includes('vivid')) iKey='fv';
+  else if (cl.includes('intense')) iKey='fi';
+  else if (cl.includes('light')) iKey='fl';
+  const k = hue ? `${hue}_${iKey}` : null;
+  return k && fancyColorBase[k] ? k : null;
 }
-function fancyColorFamilyBase(colorLabel) {
-  return fancyColorBase[inferFancyFamilyKey(colorLabel)];
-}
-function fancyColorCompatible(query, row) {
-  if (!row.color) return false;
-  const rl = row.color.toLowerCase();
-  const uf = query.colorFamily_key;
-  if (uf.includes('pink') && !rl.includes('pink')) return false;
-  if (uf.includes('yellow') && !rl.includes('yellow')) return false;
-  if (uf.includes('blue') && !rl.includes('blue')) return false;
-  if (uf.includes('green') && !rl.includes('green')) return false;
-  if (uf.includes('red') && !rl.includes('red')) return false;
-  return true;
-}
-function fancyIntensityMult(userFamilyKey, compColorLabel, ct) {
-  const ub = fancyColorBase[userFamilyKey];
-  const compKey = inferFancyFamilyKey(compColorLabel);
-  const cb = compKey ? fancyColorBase[compKey] : null;
-  if (!ub || !cb) return 1.0;
-  const uWs = ub.ws1 * Math.pow(ct, ub.scale - 1);
-  const cWs = cb.ws1 * Math.pow(ct, cb.scale - 1);
-  return cWs > 0 ? uWs / cWs : 1.0;
+
+function v3ParseFancy(label) {
+  if (!label) return { intensityKey:'f', modifierTerms:[] };
+  const s = label.toLowerCase();
+  // Compact key format: "pink_fv", "yellow_fi"
+  const km = s.match(/^[a-z]+_(fl|fi|fv|f)$/);
+  if (km) return { intensityKey: km[1], modifierTerms:[] };
+  const modifierTerms = V3_MODIFIER_TERMS.filter(m => s.includes(m));
+  let iKey = 'f';
+  if (s.includes('vivid')) iKey = 'fv';
+  else if (s.includes('intense')) iKey = 'fi';
+  else if (s.includes('light')) iKey = 'fl';
+  return { intensityKey: iKey, modifierTerms };
 }
 
 function caratTolerance(ct) {
@@ -1109,282 +1184,320 @@ function caratTolerance(ct) {
   if (ct <= 6) return 0.18;
   return 0.25;
 }
-function isExactCarat(userCt, row) {
-  if (row.caratBand) return false; // band rows are never exact
-  return Math.abs(userCt - row.carat) <= caratTolerance(row.carat);
+
+function shortLabel(row) {
+  if (!row || !row.section) return 'Alibaba';
+  const dashIdx = row.section.lastIndexOf(' - ');
+  return dashIdx >= 0 ? row.section.slice(dashIdx + 3).trim() : row.section.split(',')[0].trim();
 }
 
 function buildCompQueryFromState(ct) {
   const shape = normalizeShapeForComp(state.shape);
   if (isWhite()) {
-    return { colorFamily: 'white', shape, whiteGrade: state.whiteGrade, clarity: state.clarity, carat: ct };
+    return { colorFamily:'white', shape, whiteGrade:state.whiteGrade, clarity:state.clarity, carat:ct };
   }
-  return { colorFamily: 'fancy', shape, colorFamily_key: state.colorFamily, clarity: state.clarity, carat: ct };
+  return { colorFamily:'fancy', shape, colorFamily_key:state.colorFamily, clarity:state.clarity, carat:ct };
 }
 
-function filterCandidates(query, comps) {
+// ── §C  CANDIDATE FILTERING ───────────────────────────────────────────────────
+
+function v3FancyHueCompatible(queryKey, compColorLabel) {
+  if (!compColorLabel) return false;
+  const rl = compColorLabel.toLowerCase();
+  const uf = (queryKey||'').toLowerCase();
+  if (uf.includes('pink')   && !rl.includes('pink'))   return false;
+  if (uf.includes('yellow') && !rl.includes('yellow')) return false;
+  if (uf.includes('blue')   && !rl.includes('blue'))   return false;
+  if (uf.includes('green')  && !rl.includes('green'))  return false;
+  if (uf.includes('orange') && !rl.includes('orange')) return false;
+  if (uf.includes('red')    && !rl.includes('red'))    return false;
+  return true;
+}
+
+function v3WhiteColorDist(queryGrade, rowColorNormalized) {
+  const uR = WHITE_COLOR_GRADE_NUM[queryGrade] ?? 2;
+  const cR = WHITE_COLOR_GRADE_NUM[rowColorNormalized||'D'] ?? 0;
+  return Math.abs(uR - cR);
+}
+
+function v3FilterCandidates(query, comps) {
   return comps.filter(row => {
     if (row.colorFamily !== query.colorFamily) return false;
-    if (!shapeMatches(query.shape, row.shape)) return false;
-    if (query.colorFamily === 'white' && !whiteColorCompatible(query, row)) return false;
-    if (query.colorFamily === 'fancy' && !fancyColorCompatible(query, row)) return false;
-    if (row.clarityBand && query.colorFamily === 'white') return true; // allow band for nearest
+    if (query.colorFamily === 'fancy' && !v3FancyHueCompatible(query.colorFamily_key, row.color)) return false;
+    if (query.colorFamily === 'white' && v3WhiteColorDist(query.whiteGrade, row.colorNormalized) > 5) return false;
     return true;
   });
 }
 
-function scoreCandidate(query, row) {
-  // For carat-band rows use the distance to the nearest edge of the band, not just row.carat
-  const caratDist = row.caratBand && row.caratMin != null && row.caratMax != null
-    ? Math.max(0, row.caratMin - query.carat, query.carat - row.caratMax)
-    : Math.abs(query.carat - row.carat);
-  const clarU = CLARITY_RANK_NUM[query.clarity] ?? 2;
-  const clarC = CLARITY_RANK_NUM[row.clarity] ?? 2;
-  const clarDist = Math.abs(clarU - clarC);
-  const colorDist = query.colorFamily === 'white' ? whiteColorDistance(query, row) : 0;
-  const shapePenalty = shapeMatches(query.shape, row.shape) ? 0 : 3.0;
-  const bandPenalty = (row.caratBand ? 0.3 : 0) + (row.clarityBand ? 0.5 : 0);
-  return caratDist * 4.0 + clarDist * 1.5 + colorDist * 1.0 + shapePenalty + bandPenalty;
-}
+// ── §D  ERROR SCORE ───────────────────────────────────────────────────────────
 
-function confidenceRank(conf) {
-  return { high:3, 'medium-high':2, medium:1, 'low-medium':0, low:0 }[conf] ?? -1;
-}
+function v3CompErrorScore(query, row) {
+  const compCt = row.carat || 1;
+  const logCaratRatio = Math.abs(Math.log(query.carat / compCt));
+  const eCarat = logCaratRatio * V3_AXIS_SIGMA.caratPerLogUnit;
 
-function findExactComp(query, comps) {
-  const candidates = filterCandidates(query, comps).filter(row => {
-    if (!isExactCarat(query.carat, row)) return false;
-    if (row.clarityBand) return false;
-    if (row.clarity !== query.clarity) return false;
-    if (query.colorFamily === 'white') {
-      const cn = row.colorNormalized || 'D';
-      if (cn === 'D' || cn === null) return query.whiteGrade === 'D';
-      if (cn === 'E') return query.whiteGrade === 'E';
-      if (cn === 'F') return query.whiteGrade === 'F';
-      if (cn === 'DE') return query.whiteGrade === 'D' || query.whiteGrade === 'E';
-      if (cn === 'DEF') return query.whiteGrade === 'D' || query.whiteGrade === 'E' || query.whiteGrade === 'F';
-      return false;
-    }
-    return true; // fancy: color already filtered
-  });
-  if (!candidates.length) return null;
-  candidates.sort((a, b) =>
-    confidenceRank(b.confidence) - confidenceRank(a.confidence) ||
-    a.priceUsd - b.priceUsd ||
-    (a.productId > b.productId ? 1 : -1)
-  );
-  return candidates[0];
-}
-
-function findAllExactComps(query, comps) {
-  const best = findExactComp(query, comps);
-  if (!best) return [];
-  const seen = new Set();
-  const results = [];
-  for (const row of comps) {
-    if (row.productId === best.productId && !seen.has(row.productId)) {
-      seen.add(row.productId);
-      results.push(best);
-    }
+  let eColor;
+  if (query.colorFamily === 'white') {
+    eColor = v3WhiteColorDist(query.whiteGrade, row.colorNormalized) * V3_AXIS_SIGMA.whiteColorPerStep;
+  } else {
+    const uP = v3ParseFancy(query.colorFamily_key || '');
+    const cP = v3ParseFancy(row.color || '');
+    const intensityGap = Math.abs((V3_INTENSITY_RANK[uP.intensityKey]??1) - (V3_INTENSITY_RANK[cP.intensityKey]??1));
+    const modifierDiff = Math.abs(cP.modifierTerms.length - uP.modifierTerms.length);
+    eColor = intensityGap * V3_AXIS_SIGMA.fancyIntensityPerLevel + modifierDiff * V3_AXIS_SIGMA.fancyModifierPerTerm;
   }
-  // Also collect other product IDs that are exact
-  const others = filterCandidates(query, comps).filter(row =>
-    row !== best &&
-    !seen.has(row.productId) &&
-    isExactCarat(query.carat, row) &&
-    !row.clarityBand &&
-    row.clarity === query.clarity
-  );
-  const seenOther = new Set();
-  for (const row of others) {
-    if (!seenOther.has(row.productId)) {
-      seenOther.add(row.productId);
-      results.push(row);
-    }
-  }
-  return results;
+
+  const clarOrd = query.colorFamily === 'white' ? V3_AXIS_SIGMA.clarityWhitePerStep : V3_AXIS_SIGMA.clarityFancyPerStep;
+  const eClarity = Math.abs((CLARITY_RANK_NUM[query.clarity]??2) - (CLARITY_RANK_NUM[row.clarity]??2)) * clarOrd;
+  const eShape  = v3ShapeSigma(query.shape, row.shape);
+  const eSource = v3SourceSigma(row.confidence);
+  const eBand   = (row.caratBand ? V3_AXIS_SIGMA.caratBand : 0) + (row.clarityBand ? V3_AXIS_SIGMA.clarityBand : 0);
+
+  return Math.sqrt(eCarat**2 + eColor**2 + eClarity**2 + eShape**2 + eSource**2 + eBand**2);
 }
 
-function findNearestComps(query, comps, maxN) {
-  maxN = maxN || 3;
-  const scored = filterCandidates(query, comps)
-    .map(row => ({ row, score: scoreCandidate(query, row) }))
-    .filter(c => c.score <= NEAREST_THRESHOLD)
-    .sort((a, b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
-  const seenPid = new Set();
-  const result = [];
-  for (const c of scored) {
-    if (!seenPid.has(c.row.productId)) {
-      seenPid.add(c.row.productId);
-      result.push(c.row);
-      if (result.length >= maxN) break;
-    }
-  }
-  return result;
-}
+// ── §E  LOG-SPACE ADJUSTMENT ──────────────────────────────────────────────────
 
-// findAbsoluteBestComps — no score threshold; always returns the closest N comps.
-// Used as final fallback to guarantee a comp estimate even for uncovered sizes/shapes.
-function findAbsoluteBestComps(query, comps, maxN) {
-  maxN = maxN || 3;
-  // Try same color family + shape first
-  let candidates = filterCandidates(query, comps);
-  // Broaden to same color family if no shape candidates
-  if (!candidates.length) {
-    candidates = comps.filter(row => row.colorFamily === query.colorFamily);
-  }
-  if (!candidates.length) return [];
-  const scored = candidates
-    .map(row => ({ row, score: scoreCandidate(query, row) }))
-    .sort((a, b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
-  const seenPid = new Set();
-  const result = [];
-  for (const c of scored) {
-    if (!seenPid.has(c.row.productId)) {
-      seenPid.add(c.row.productId);
-      result.push(c.row);
-      if (result.length >= maxN) break;
-    }
-  }
-  return result;
-}
+function v3AdjustToQuery(query, row) {
+  const compCt = row.carat || 1;
+  const queryCt = query.carat;
+  const logCaratRatio = Math.log(queryCt / compCt);
+  const logDpcComp = Math.log(row.priceUsd / compCt);
 
-function applyWhiteModifiers(query, compRow) {
-  const ct = query.carat;
-  const cn = compRow.colorNormalized || 'D';
-  const compGrade = cn === 'DEF' ? 'E' : cn === 'DE' ? 'E' : (cn || 'D');
-  const colorMult = (whiteGradeMult[query.whiteGrade] ?? 0.70) /
-                    (whiteGradeMult[compGrade] ?? whiteGradeMult.D);
-  const clarU = CLARITY_RANK_NUM[query.clarity] ?? 2;
-  const clarC = CLARITY_RANK_NUM[compRow.clarity] ?? 2;
-  const clarityMult = (clarU !== clarC)
-    ? getClarityMult(query.clarity, ct) / Math.max(getClarityMult(compRow.clarity || 'VS1', ct), 0.01)
-    : 1;
-  const userSh = getShapeMultForPricing(query.shape);
-  const compSh = getShapeMultForPricing(compRow.shape);
-  const shapeMult = compSh > 0 ? userSh / compSh : 1;
-  const caratDiff = Math.abs(query.carat - compRow.carat);
-  const caratMult = caratDiff > 0.05
-    ? Math.pow(query.carat / compRow.carat, 1.8)
-    : 1;
-  const combined = colorMult * clarityMult * shapeMult * caratMult;
+  let logDpcAdj = logDpcComp;
   const parts = [];
-  if (Math.abs(colorMult - 1) > 0.02) parts.push(`color ×${colorMult.toFixed(2)} (${query.whiteGrade} vs ${cn})`);
-  if (Math.abs(clarityMult - 1) > 0.02) parts.push(`clarity ×${clarityMult.toFixed(2)} (${query.clarity} vs ${compRow.clarity})`);
-  if (Math.abs(shapeMult - 1) > 0.02) parts.push(`shape ×${shapeMult.toFixed(2)} (${query.shape} vs ${compRow.shape})`);
-  if (Math.abs(caratMult - 1) > 0.05) parts.push(`carat ×${caratMult.toFixed(2)} (${query.carat}ct vs ${compRow.carat}ct)`);
-  return { combined, estimated: Math.round(compRow.priceUsd * combined), parts };
+  let sCarat, sColor, sClarity;
+
+  if (query.colorFamily === 'white') {
+    const deltaCarat = 0.8 * logCaratRatio;
+    sCarat = Math.abs(logCaratRatio) * V3_AXIS_SIGMA.caratPerLogUnit;
+    logDpcAdj += deltaCarat;
+    if (Math.abs(deltaCarat) > 0.015)
+      parts.push(`carat ×${Math.exp(deltaCarat).toFixed(2)} (${queryCt}ct vs ${compCt}ct)`);
+
+    const cn = row.colorNormalized || 'D';
+    const compGrade = cn === 'DEF' ? 'E' : cn === 'DE' ? 'E' : (cn || 'D');
+    const uMult = whiteGradeMult[query.whiteGrade] ?? 0.70;
+    const cMult = whiteGradeMult[compGrade] ?? whiteGradeMult.D;
+    const deltaColor = Math.log(uMult / cMult);
+    sColor = v3WhiteColorDist(query.whiteGrade, cn) * V3_AXIS_SIGMA.whiteColorPerStep;
+    logDpcAdj += deltaColor;
+    if (Math.abs(deltaColor) > 0.015)
+      parts.push(`color ×${Math.exp(deltaColor).toFixed(2)} (${query.whiteGrade} vs ${cn})`);
+
+  } else {
+    const ub = fancyColorBase[query.colorFamily_key];
+    const compKey = inferFancyFamilyKey(row.color);
+    const cb = compKey ? fancyColorBase[compKey] : null;
+
+    if (ub && cb) {
+      const logModelQ = Math.log(ub.ws1) + (ub.scale - 1) * Math.log(queryCt);
+      const logModelC = Math.log(cb.ws1) + (cb.scale - 1) * Math.log(compCt);
+      const delta = logModelQ - logModelC;
+      logDpcAdj += delta;
+      if (Math.abs(delta) > 0.015)
+        parts.push(`intensity+carat ×${Math.exp(delta).toFixed(2)} (${query.colorFamily_key} vs ${compKey})`);
+    } else {
+      const delta = 0.5 * logCaratRatio;
+      logDpcAdj += delta;
+      if (Math.abs(delta) > 0.015)
+        parts.push(`carat ×${Math.exp(delta).toFixed(2)} (model unknown)`);
+    }
+
+    const uP = v3ParseFancy(query.colorFamily_key || '');
+    const cP = v3ParseFancy(row.color || '');
+    let deltaModifier = 0;
+    for (const m of cP.modifierTerms) if (!uP.modifierTerms.includes(m)) deltaModifier -= (V3_MODIFIER_LOG_DELTA[m]||0);
+    for (const m of uP.modifierTerms) if (!cP.modifierTerms.includes(m)) deltaModifier += (V3_MODIFIER_LOG_DELTA[m]||0);
+    logDpcAdj += deltaModifier;
+    if (Math.abs(deltaModifier) > 0.015)
+      parts.push(`modifier ×${Math.exp(deltaModifier).toFixed(2)}`);
+
+    const uInt = V3_INTENSITY_RANK[uP.intensityKey??'f']??1;
+    const cInt = V3_INTENSITY_RANK[cP.intensityKey??'f']??1;
+    sColor = Math.abs(uInt - cInt) * V3_AXIS_SIGMA.fancyIntensityPerLevel +
+             Math.abs(cP.modifierTerms.length - uP.modifierTerms.length) * V3_AXIS_SIGMA.fancyModifierPerTerm;
+    sCarat = Math.abs(logCaratRatio) * V3_AXIS_SIGMA.caratPerLogUnit;
+  }
+
+  // Clarity
+  let deltaClarity;
+  if (query.colorFamily === 'white') {
+    deltaClarity = Math.log(getClarityMult(query.clarity, queryCt) / Math.max(getClarityMult(row.clarity||'VS1', queryCt), 0.01));
+  } else {
+    const cU = clarityMultColor[query.clarity]??1, cC = clarityMultColor[row.clarity]??1;
+    deltaClarity = Math.log(cU / Math.max(cC, 0.01));
+  }
+  logDpcAdj += deltaClarity;
+  sClarity = Math.abs((CLARITY_RANK_NUM[query.clarity]??2)-(CLARITY_RANK_NUM[row.clarity]??2)) *
+             (query.colorFamily==='white' ? V3_AXIS_SIGMA.clarityWhitePerStep : V3_AXIS_SIGMA.clarityFancyPerStep);
+  if (Math.abs(deltaClarity) > 0.015)
+    parts.push(`clarity ×${Math.exp(deltaClarity).toFixed(2)} (${query.clarity} vs ${row.clarity})`);
+
+  // Shape
+  let deltaShape;
+  if (query.colorFamily === 'white') {
+    const uS = shapeMult[query.shape]??1, cS = shapeMult[row.shape]??1;
+    deltaShape = cS > 0 ? Math.log(uS / cS) : 0;
+  } else {
+    const uS = shapeMultColor[query.shape]??1, cS = shapeMultColor[row.shape]??1;
+    deltaShape = cS > 0 ? Math.log(uS / cS) : 0;
+  }
+  logDpcAdj += deltaShape;
+  if (Math.abs(deltaShape) > 0.015)
+    parts.push(`shape ×${Math.exp(deltaShape).toFixed(2)} (${query.shape} vs ${row.shape})`);
+
+  const logEstimate = logDpcAdj + Math.log(queryCt);
+  const estimatedPrice = Math.round(Math.exp(logEstimate));
+  const sShape  = v3ShapeSigma(query.shape, row.shape);
+  const sSource = v3SourceSigma(row.confidence);
+  const sBand   = (row.caratBand ? V3_AXIS_SIGMA.caratBand : 0) + (row.clarityBand ? V3_AXIS_SIGMA.clarityBand : 0);
+  const sigmaLog = Math.sqrt((sCarat||0)**2+(sColor||0)**2+sClarity**2+sShape**2+sSource**2+sBand**2);
+
+  return { logEstimate, sigmaLog, estimatedPrice, parts };
 }
 
-function applyFancyModifiers(query, compRow) {
-  const ct = query.carat;
-  const intensityMult = fancyIntensityMult(query.colorFamily_key, compRow.color, ct);
-  const clarC = clarityMultColor[compRow.clarity] ?? 1;
-  const clarU = clarityMultColor[query.clarity] ?? 1;
-  const clarityMult = clarC > 0 ? clarU / clarC : 1;
-  const userSh = shapeMultColor[query.shape] ?? 1;
-  const compSh = shapeMultColor[compRow.shape] ?? 1;
-  const shapeMult = compSh > 0 ? userSh / compSh : 1;
-  const caratDiff = Math.abs(query.carat - compRow.carat);
-  const caratMult = caratDiff > 0.05 ? Math.pow(query.carat / compRow.carat, 1.5) : 1;
-  const combined = intensityMult * clarityMult * shapeMult * caratMult;
-  const parts = [];
-  const compKey = inferFancyFamilyKey(compRow.color);
-  if (Math.abs(intensityMult - 1) > 0.05) parts.push(`intensity ×${intensityMult.toFixed(2)} (${query.colorFamily_key} vs ${compKey || '?'})`);
-  if (Math.abs(clarityMult - 1) > 0.02) parts.push(`clarity ×${clarityMult.toFixed(2)}`);
-  if (Math.abs(shapeMult - 1) > 0.02) parts.push(`shape ×${shapeMult.toFixed(2)}`);
-  if (Math.abs(caratMult - 1) > 0.05) parts.push(`carat ×${caratMult.toFixed(2)} (${query.carat}ct vs ${compRow.carat}ct)`);
-  return { combined, estimated: Math.round(compRow.priceUsd * combined), parts };
+// ── §F  ENSEMBLE BLEND ────────────────────────────────────────────────────────
+
+function v3Median(arr) {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a,b) => a-b);
+  const m = Math.floor(s.length/2);
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
 }
 
-function shortLabel(row) {
-  if (!row || !row.section) return 'Alibaba';
-  // Extract supplier name from section title: take text after the last ' - '
-  const dashIdx = row.section.lastIndexOf(' - ');
-  return dashIdx >= 0 ? row.section.slice(dashIdx + 3).trim() : row.section.split(',')[0].trim();
+function v3Blend(adjustedList) {
+  if (!adjustedList.length) return null;
+  const med = v3Median(adjustedList.map(a => a.logEstimate));
+  const EPS = 1e-4;
+  const accepted=[], rejected=[];
+  for (const a of adjustedList) {
+    const dev = Math.abs(a.logEstimate - med);
+    if (adjustedList.length > 1 && dev > 2.5 * a.sigmaLog)
+      rejected.push({ ...a, rejectReason:`outlier: dev ${dev.toFixed(3)} > 2.5σ` });
+    else
+      accepted.push(a);
+  }
+  if (!accepted.length) accepted.push(...rejected), rejected.length=0;
+  const weights = accepted.map(a => 1 / (a.sigmaLog**2 + EPS));
+  const totalW  = weights.reduce((x,y) => x+y, 0);
+  const logEst  = accepted.reduce((s,a,i) => s + a.logEstimate*weights[i], 0) / totalW;
+  const sigmaLog = Math.max(1/Math.sqrt(accepted.reduce((s,a) => s+1/(a.sigmaLog**2+EPS), 0)), 0.05);
+  return {
+    logEstimate: logEst, sigmaLog, accepted, rejected,
+    estimate: Math.round(Math.exp(logEst)),
+    low:      Math.round(Math.exp(logEst - 1.28*sigmaLog)),
+    high:     Math.round(Math.exp(logEst + 1.28*sigmaLog)),
+  };
 }
+
+// ── §G  V3 EXACT CHECK ────────────────────────────────────────────────────────
+
+function v3IsExactMatch(query, row) {
+  if (row.caratBand || row.clarityBand) return false;
+  if (Math.abs(query.carat - (row.carat||0)) > caratTolerance(row.carat||0)) return false;
+  if (row.clarity !== query.clarity) return false;
+  if (query.colorFamily === 'white') {
+    const cn = row.colorNormalized || 'D';
+    if (cn === 'DE')  return ['D','E'].includes(query.whiteGrade);
+    if (cn === 'DEF') return ['D','E','F'].includes(query.whiteGrade);
+    return cn === query.whiteGrade;
+  }
+  return true; // fancy: hue already filtered
+}
+
+// ── §H  RESOLVE — v3 pipeline ─────────────────────────────────────────────────
 
 function resolveAlibabaComp(ct) {
   if (!_compsIdxReady || !_compsIdx) return null;
   const query = buildCompQueryFromState(ct);
   const comps = _compsIdx.comps;
+  const warnings = [];
 
-  // 1. Exact match
-  const exact = findExactComp(query, comps);
-  if (exact) {
-    const alts = findAllExactComps(query, comps)
-      .filter(r => r.productId !== exact.productId)
-      .slice(0, 2)
-      .map(r => ({ row: r, listingPrice: r.priceUsd, estimatedPrice: r.priceUsd, url: r.url, label: shortLabel(r), modifiers: null }));
-    return {
-      matchType: 'exact',
-      primary: { row: exact, listingPrice: exact.priceUsd, estimatedPrice: exact.priceUsd, url: exact.url, label: shortLabel(exact), modifiers: null },
-      alternatives: alts,
-      confidence: exact.confidence || 'high',
-      source: 'comps-index',
-    };
-  }
-
-  // 2. Nearest match
-  const nearestRows = findNearestComps(query, comps, 3);
-  if (nearestRows.length) {
-    const applyMods = r => isWhite() ? applyWhiteModifiers(query, r) : applyFancyModifiers(query, r);
-    const pRow = nearestRows[0];
-    const pMod = applyMods(pRow);
-    return {
-      matchType: 'nearest',
-      primary: { row: pRow, listingPrice: pRow.priceUsd, estimatedPrice: pMod.estimated, url: pRow.url, label: shortLabel(pRow), modifiers: pMod },
-      alternatives: nearestRows.slice(1).map(r => { const mod = applyMods(r); return { row: r, listingPrice: r.priceUsd, estimatedPrice: mod.estimated, url: r.url, label: shortLabel(r), modifiers: mod }; }),
-      confidence: pRow.confidence,
-      source: 'comps-index',
-    };
-  }
-
-  // 3. Model fallback (white only) — round ladder × shape mult
-  if (isWhite()) {
-    const bench = lookupMessiRoundLadder(ct, state.clarity, state.whiteGrade);
-    if (bench) {
-      const shapeMult = getShapeMultForPricing(state.shape);
-      const estimated = Math.round(bench.price * shapeMult);
-      const parts = [`Messi D ${state.clarity} ${bench.ladderSize}ct = ${fmt(bench.price)}`];
-      if (Math.abs(shapeMult - 1) > 0.02) parts.push(`shape ×${shapeMult.toFixed(2)} (${state.shape} vs round)`);
-      if (state.whiteGrade !== 'D') parts.push(`grade ×${((whiteGradeMult[state.whiteGrade]??0.7)/whiteGradeMult.D).toFixed(2)} (${state.whiteGrade} vs D — already in bench price)`);
-      return {
-        matchType: 'model_fallback',
-        primary: { row: null, listingPrice: null, estimatedPrice: estimated, url: MESSI_D_ROUND_URL, label: 'Messi round ladder (estimated)', modifiers: { combined: shapeMult, estimated, parts } },
-        alternatives: [],
-        confidence: null,
-        source: 'messi-ladder',
-      };
+  // 1. Filter candidates (hard gates: color family, hue, white grade proximity)
+  let candidates = v3FilterCandidates(query, comps);
+  let broadened = false;
+  if (!candidates.length || !candidates.some(r => v3ShapeDistance(query.shape, r.shape) <= 2)) {
+    if (!SPECIALTY_SHAPE_KEYS.has(state.shape)) {
+      const broad = comps.filter(r => {
+        if (r.colorFamily !== query.colorFamily) return false;
+        if (query.colorFamily === 'fancy' && !v3FancyHueCompatible(query.colorFamily_key, r.color)) return false;
+        if (query.colorFamily === 'white' && v3WhiteColorDist(query.whiteGrade, r.colorNormalized) > 5) return false;
+        return true;
+      });
+      if (broad.length) { candidates = broad; broadened = true; warnings.push('No shape-compatible comps — broadened to same color family.'); }
     }
   }
+  if (!candidates.length) return { matchType:'none', estimate:null, low:null, high:null, perCt:null, confidence:null, primary:null, alternatives:[], supportComps:[], rejectedComps:[], warnings:['No comps found for this spec.'], source:null };
 
-  // 4. Best-available — no score threshold; avoid cross-shape round comps for specialty cuts
-  if (SPECIALTY_SHAPE_KEYS.has(state.shape)) return { matchType: 'none', primary: null, alternatives: [], confidence: null, source: null };
+  // 2. Score + de-duplicate by productId
+  const scored = candidates
+    .map(row => ({ row, score: v3CompErrorScore(query, row) }))
+    .sort((a,b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
+  const seenPid = new Map();
+  for (const c of scored) if (!seenPid.has(c.row.productId)) seenPid.set(c.row.productId, c);
+  const unique = [...seenPid.values()].sort((a,b) => a.score - b.score);
+  const bestScore = unique[0].score;
 
-  const bestAvailRows = findAbsoluteBestComps(query, comps, 3);
-  if (bestAvailRows.length) {
-    const applyMods = r => isWhite() ? applyWhiteModifiers(query, r) : applyFancyModifiers(query, r);
-    const mods = bestAvailRows.map(r => {
-      const m = applyMods(r);
-      return { row: r, listingPrice: r.priceUsd, estimatedPrice: m.estimated, url: r.url, label: shortLabel(r), modifiers: m };
-    });
-    // Weighted blend: weight each estimate by 1/(score+0.5) so closest data wins more
-    const scores = bestAvailRows.map(r => scoreCandidate(query, r));
-    const weights = scores.map(s => 1 / (s + 0.5));
-    const totalW = weights.reduce((a, b) => a + b, 0);
-    const blendedEst = Math.round(mods.reduce((sum, m, i) => sum + m.estimatedPrice * weights[i], 0) / totalW);
-    const primary = { ...mods[0], estimatedPrice: blendedEst, blendedFrom: mods.length };
-    return {
-      matchType: 'best_available',
-      primary,
-      alternatives: mods.slice(1),
-      confidence: null,
-      source: 'comps-index-extrapolated',
-    };
+  // 3. Select ensemble (up to MAX within cutoff, or best-3 if all beyond)
+  let selected = unique.filter(c => c.score <= V3_SCORE_CUTOFF).slice(0, V3_MAX_ENSEMBLE);
+  if (!selected.length) {
+    selected = unique.slice(0, Math.min(3, unique.length));
+    warnings.push('No close comps — estimate is highly extrapolated.');
   }
 
-  return { matchType: 'none', primary: null, alternatives: [], confidence: null, source: null };
+  // 4. Adjust + blend
+  const adjustedList = selected.map(({ row, score }) => ({ ...v3AdjustToQuery(query, row), row, score }));
+  const blend = v3Blend(adjustedList);
+  if (!blend) return { matchType:'none', estimate:null, low:null, high:null, perCt:null, confidence:null, primary:null, alternatives:[], supportComps:[], rejectedComps:[], warnings:[...warnings,'Blend failed.'], source:null };
+
+  if (blend.rejected.length) warnings.push(`${blend.rejected.length} comp(s) rejected as outliers.`);
+  if (blend.accepted.length === 1) warnings.push('Single comp — estimate based on one data point.');
+
+  // 5. matchType
+  const hasExact = v3IsExactMatch(query, unique[0].row) && bestScore < 0.10;
+  let matchType = hasExact ? 'exact' : bestScore <= 0.20 ? 'nearest' : 'best_available';
+  if (SPECIALTY_SHAPE_KEYS.has(state.shape) && broadened) matchType = 'none';
+
+  // 6. Model fallback (white, only when truly no comps)
+  if (matchType === 'none' && isWhite()) {
+    const bench = lookupMessiRoundLadder(ct, state.clarity, state.whiteGrade);
+    if (bench) {
+      const sm = getShapeMultForPricing(state.shape);
+      const est = Math.round(bench.price * sm);
+      const parts = [`Messi D ${state.clarity} ${bench.ladderSize}ct = ${fmt(bench.price)}`];
+      if (Math.abs(sm-1) > 0.02) parts.push(`shape ×${sm.toFixed(2)} (${state.shape} vs round)`);
+      return { matchType:'model_fallback', estimate:est, low:Math.round(est*0.87), high:Math.round(est*1.13), perCt:Math.round(est/ct), confidence:null,
+        primary:{ row:null, listingPrice:null, estimatedPrice:est, url:MESSI_D_ROUND_URL, label:'Messi round ladder', modifiers:{ combined:sm, estimated:est, parts } },
+        alternatives:[], supportComps:[], rejectedComps:[], warnings, source:'messi-ladder' };
+    }
+    return { matchType:'none', estimate:null, low:null, high:null, perCt:null, confidence:null, primary:null, alternatives:[], supportComps:[], rejectedComps:[], warnings, source:null };
+  }
+
+  // 7. Build output
+  const pa = blend.accepted[0];
+  const primEstPrice = matchType === 'exact' ? pa.row.priceUsd : blend.estimate;
+  const legacyMods   = matchType === 'exact' ? null : { combined: Math.exp(pa.logEstimate - Math.log(pa.row.priceUsd)), estimated: blend.estimate, parts: pa.parts };
+  const confidence   = bestScore <= 0.10 ? 'high' : bestScore <= 0.25 ? 'medium' : 'low';
+
+  return {
+    matchType,
+    estimate:   blend.estimate,
+    low:        blend.low,
+    high:       blend.high,
+    perCt:      Math.round(blend.estimate / ct),
+    confidence,
+    primary: { row: pa.row, listingPrice: pa.row.priceUsd, estimatedPrice: primEstPrice, url: pa.row.url, label: shortLabel(pa.row), modifiers: legacyMods },
+    alternatives: blend.accepted.slice(1).map(a => ({
+      row: a.row, listingPrice: a.row.priceUsd, estimatedPrice: Math.round(Math.exp(a.logEstimate)),
+      url: a.row.url, label: shortLabel(a.row),
+      modifiers: { combined: Math.exp(a.logEstimate - Math.log(a.row.priceUsd)), estimated: Math.round(Math.exp(a.logEstimate)), parts: a.parts },
+    })),
+    supportComps: blend.accepted.map(a => ({ row: a.row, score: a.score, logEstimate: a.logEstimate, sigmaLog: a.sigmaLog, estimatedPrice: Math.round(Math.exp(a.logEstimate)), parts: a.parts })),
+    rejectedComps: blend.rejected.map(a => ({ row: a.row, reason: a.rejectReason, estimatedPrice: Math.round(Math.exp(a.logEstimate)) })),
+    warnings,
+    source: 'comps-index-v3',
+  };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1751,20 +1864,16 @@ function update() {
   // Wire Alibaba comp data to "What they paid" (factory-direct trade cost)
   { const ac = m.alibabaComp;
     let wsDisplay, wsSub;
-    if (ac && ac.matchType === 'exact' && ac.primary) {
-      const lp = ac.primary.listingPrice;
-      const altPrices = [lp, ...(ac.alternatives||[]).map(a=>a.listingPrice)].filter(Boolean);
-      const lo = Math.round(Math.min(...altPrices) * 0.95);
-      const hi = Math.round(Math.max(...altPrices) * 1.08);
-      wsDisplay = lo === hi ? fmt(lo) : fmtR(lo, hi);
-      wsSub = fmt(Math.round(lp/ct)) + '/ct · IGI factory direct';
-    } else if (ac && ac.matchType === 'nearest' && ac.primary) {
-      const est = ac.primary.estimatedPrice;
-      wsDisplay = fmtR(Math.round(est * 0.88), Math.round(est * 1.14));
-      wsSub = fmt(Math.round(est/ct)) + '/ct · Alibaba est.';
-    } else if (ac && ac.matchType === 'model_fallback' && ac.primary) {
-      wsDisplay = fmtR(m.ws*0.87, m.ws*1.13);
-      wsSub = fmt(m.wsPerCt) + '/ct est. (model · no direct comp)';
+    if (ac && ac.matchType === 'exact' && ac.estimate) {
+      wsDisplay = fmtR(ac.low, ac.high);
+      wsSub = fmt(ac.perCt) + '/ct · IGI factory direct';
+    } else if (ac && (ac.matchType === 'nearest' || ac.matchType === 'best_available') && ac.estimate) {
+      wsDisplay = fmtR(ac.low, ac.high);
+      const nComps = ac.supportComps?.length || 1;
+      wsSub = fmt(ac.perCt) + '/ct · Alibaba est. (' + nComps + ' comp' + (nComps > 1 ? 's' : '') + ')';
+    } else if (ac && ac.matchType === 'model_fallback' && ac.estimate) {
+      wsDisplay = fmtR(ac.low, ac.high);
+      wsSub = fmt(ac.perCt) + '/ct est. (model · no direct comp)';
     } else {
       wsDisplay = fmtR(m.ws*0.87, m.ws*1.13);
       wsSub = fmt(m.wsPerCt) + '/ct est. trade cost';
@@ -1948,8 +2057,10 @@ function updateMarketBar(m){
       html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
       html += `</div>`;
     }
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Factory-direct. Treat as ceiling before beauty/video premium.</div></div>`;
+    const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Factory-direct.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
   } else if (ac.matchType === 'nearest') {
+    const nComps = ac.supportComps?.length || 1;
     html = `<div class="comp-block"><strong>Closest Alibaba listing</strong> ${fmtCompTag('nearest')}<br>`;
     html += renderCompEntry(ac.primary, false);
     if (ac.alternatives && ac.alternatives.length) {
@@ -1957,15 +2068,18 @@ function updateMarketBar(m){
       html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
       html += `</div>`;
     }
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">No exact listing captured — modifier applied from nearest available data point.</div></div>`;
+    const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
+    const warnNote = ac.warnings?.length ? ` ${ac.warnings.join(' ')}` : '';
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimate blended from ${nComps} comp${nComps > 1 ? 's' : ''} — adjusted for carat, clarity, color, and shape.${rangeNote}${warnNote}</div></div>`;
   } else if (ac.matchType === 'model_fallback') {
     html = `<div class="comp-block"><strong>No shape comp — model estimate</strong> ${fmtCompTag('model_fallback')}<br>`;
     html += renderCompEntry(ac.primary, false);
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimated from Messi round IGI ladder × shape multiplier. No direct ${escapeHTML(shapeNames[state.shape]||state.shape)} Alibaba data captured yet.</div></div>`;
+    const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimated from Messi round IGI ladder × shape multiplier. No direct ${escapeHTML(shapeNames[state.shape]||state.shape)} Alibaba data captured yet.${rangeNote}</div></div>`;
   } else if (ac.matchType === 'best_available') {
-    const blendedFrom = ac.primary.blendedFrom || 1;
-    const blendNote = blendedFrom > 1
-      ? `No direct listing at this spec — blended estimate from ${blendedFrom} closest available Alibaba data points, each adjusted for carat, clarity, and shape delta.`
+    const nComps = ac.supportComps?.length || 1;
+    const blendNote = nComps > 1
+      ? `No direct listing at this spec — blended from ${nComps} nearest Alibaba data points, each adjusted for carat, clarity, and shape.`
       : 'No direct listing at this spec — extrapolated from nearest available Alibaba data point.';
     html = `<div class="comp-block"><strong>Closest Alibaba estimate</strong> ${fmtCompTag('best_available')}<br>`;
     html += renderCompEntry(ac.primary, false);
@@ -1974,7 +2088,9 @@ function updateMarketBar(m){
       html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
       html += `</div>`;
     }
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">${blendNote}</div></div>`;
+    const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
+    const warnNote = ac.warnings?.length ? ` ${ac.warnings.join(' ')}` : '';
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">${blendNote}${rangeNote}${warnNote}</div></div>`;
   }
 
   if (roundBench && state.shape !== 'round') html += roundBench;

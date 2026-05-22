@@ -1,5 +1,11 @@
 # Comp Engine v2 — Unified Design Proposal
 
+> Status: reviewed and superseded by `research/comp-engine-v3-proposal.md`.
+> v2 identifies the right failure modes, but it is too tied to one pink-diamond
+> example, overstates that the 2.08ct heart is the single correct anchor, and
+> hard-codes scoring/spline assumptions that should instead be learned and
+> calibrated from the comp index. Use v3 as the implementation plan.
+
 **Problem areas addressed:**
 1. Comparable-stone selection is broken for fancy color (and for large/rare sizes of white stones)
 2. Price extrapolation math compounds errors geometrically when stretching across carat/intensity/clarity gaps
@@ -79,7 +85,7 @@ For the **3.80ct Fancy Vivid Pink VVS2 cut-cornered rectangular** stone, this su
 | Princess | Fancy Light Pink | 3.03 | VS1 | $1,126 | $372 | Close carat, three intensity steps |
 | Radiant | Fancy Intense Brownish Pink | 0.89 | VS2 | $262 | $294 | **Currently chosen — wrong** |
 
-The heart at 2.08ct is the correct anchor: same intensity, same clarity, 1.72ct gap, and it has a corroborating vivid-pink heart ladder (`10000038791251`).
+Original v2 takeaway: the heart at 2.08ct looked like the correct anchor because it has the same intensity and clarity. After review, that is too narrow. For a general engine, the 4.13ct cushion is a better carat anchor, the 2.08ct heart is a better intensity/clarity anchor, and both should inform the estimate through a weighted multi-comp model. See v3 for the implementation plan.
 
 ### Root causes
 
@@ -209,7 +215,7 @@ Query shape = `radiant` (cut-cornered rectangular maps to radiant via `SHAPE_NOR
 | Princess FLP 3.03ct VS1 | 0.77/3.8=0.20→**0.08** | 3 steps=1.0→**0.30** | 1 step→**0.03** | diff fam→**0.15** | **0.56** |
 | Radiant FIBrownishP 0.89ct VS2 | 2.91/3.8=0.77→**0.31** | 1+0.5brn=1.0→**0.30** | 1→**0.03** | STEP same→0.4→**0.06** | **0.70** ✗ |
 
-**Heart wins with score 0.33.** Brownish-pink radiant is correctly last at 0.70.
+**Under this fixed-weight v2 score, the heart wins with score 0.33.** Brownish-pink radiant is correctly last at 0.70, but v3 does not use this as a final single-anchor decision.
 
 ### Updated score tiers and thresholds
 
@@ -681,4 +687,3 @@ Inter-comp spread = (1718 − 940)/1280 = 61%; band = max(19%, 61%×0.5=30%) = *
 13. Track predicted vs actual prices to empirically calibrate the uncertainty sigmas in `estimateUncertainty`.
 14. Surface the `estimatedLow`/`estimatedHigh` band in the UI so buyers see a range, not a false-precision point.
 15. Build a 2D $/ct surface (carat × intensity) for yellow and pink once 8+ data points per family are available.
-
