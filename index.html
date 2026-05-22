@@ -1611,8 +1611,8 @@ function resolveAlibabaComp(ct) {
 
   // 7. Build output
   const pa = blend.accepted[0];
-  const primEstPrice = matchType === 'exact' ? pa.row.priceUsd : blend.estimate;
-  const legacyMods   = matchType === 'exact' ? null : { combined: Math.exp(pa.logEstimate - Math.log(pa.row.priceUsd)), estimated: blend.estimate, parts: pa.parts };
+  const primEstPrice = matchType === 'exact' ? pa.row.priceUsd : Math.round(Math.exp(pa.logEstimate));
+  const legacyMods   = matchType === 'exact' ? null : { combined: Math.exp(pa.logEstimate - Math.log(pa.row.priceUsd)), estimated: primEstPrice, parts: pa.parts };
   const confidence   = bestScore <= 0.10 ? 'high' : bestScore <= 0.25 ? 'medium' : 'low';
 
   return {
@@ -2162,6 +2162,20 @@ function renderCompEntry(entry, isAlt) {
   return `<div class="comp-row">${priceHtml}${viewLink}${specHtml}</div>${modHtml}`;
 }
 
+function renderBlendBreakdown(ac) {
+  const comps = (ac.supportComps || []).filter(c => c && c.row && Number.isFinite(c.sigmaLog));
+  if (comps.length <= 1) return '';
+  const weights = comps.map(c => 1 / (c.sigmaLog**2 + 1e-4));
+  const totalW = weights.reduce((sum, w) => sum + w, 0) || 1;
+  const rows = comps.map((c, i) => {
+    const row = c.row;
+    const pct = Math.round((weights[i] / totalW) * 100);
+    const spec = `${row.carat}ct ${row.shape} ${row.clarity}${row.color ? ' ' + row.color : row.colorNormalized ? ' ' + row.colorNormalized : ''}`;
+    return `<div class="comp-alt-row"><span class="comp-alt-price">${pct}%</span> <span style="color:var(--muted)">${escapeHTML(spec)}</span> <span class="comp-alt-arr">→</span> <span class="comp-alt-adj">~${fmt(c.estimatedPrice)}</span></div>`;
+  }).join('');
+  return `<details class="comp-alts" style="margin-top:8px"><summary style="cursor:pointer;color:var(--muted2)">Show blend math</summary>${rows}</details>`;
+}
+
 function updateMarketBar(m){
   const bar = document.getElementById('market-bar');
   const txt = document.getElementById('market-text');
@@ -2201,16 +2215,17 @@ function updateMarketBar(m){
     html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Factory-direct.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
   } else if (ac.matchType === 'nearest') {
     const nComps = ac.supportComps?.length || 1;
-    html = `<div class="comp-block"><strong>Closest Alibaba listing</strong> ${fmtCompTag('nearest')}<br>`;
+    html = `<div class="comp-block"><strong>Closest Alibaba comps — weighted blend ${fmt(ac.estimate)}</strong> ${fmtCompTag('nearest')}<br>`;
     html += renderCompEntry(ac.primary, false);
     if (ac.alternatives && ac.alternatives.length) {
       html += `<div class="comp-alts">`;
       html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
       html += `</div>`;
     }
+    html += renderBlendBreakdown(ac);
     const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
     const warnNote = ac.warnings?.length ? ` ${ac.warnings.join(' ')}` : '';
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimate blended from ${nComps} comp${nComps > 1 ? 's' : ''} — adjusted for carat, clarity, color, and shape.${rangeNote}${warnNote}</div></div>`;
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimate is a weighted blend of ${nComps} adjusted comp${nComps > 1 ? 's' : ''}; closer/lower-uncertainty comps receive more weight.${rangeNote}${warnNote}</div></div>`;
   } else if (ac.matchType === 'model_fallback') {
     html = `<div class="comp-block"><strong>No shape comp — model estimate</strong> ${fmtCompTag('model_fallback')}<br>`;
     html += renderCompEntry(ac.primary, false);
