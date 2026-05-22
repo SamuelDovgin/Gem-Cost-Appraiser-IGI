@@ -507,6 +507,14 @@ function fitLocalCaratSlope(candidates, query, prior = 0.8) {
       ? 'medium'
       : 'low';
 
+  // Guard for large-carat queries: require at least 2 knots at or above 4ct.
+  // Without high-carat knots, any slope is extrapolated upward from 1–3ct data,
+  // and resolveEffectiveCaratSlope cannot distinguish this from in-hull fits.
+  if (query.carat >= 5.0) {
+    const highKnots = points.filter(p => p.carat >= 4.0).length;
+    if (highKnots < 2) return null;
+  }
+
   return {
     slope: clampedSlope,
     rawSlope,
@@ -520,6 +528,125 @@ function fitLocalCaratSlope(candidates, query, prior = 0.8) {
     queryIsExtrapolated,
     normalized: true,
   };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// §2.6  CARAT SLOPE POLICY
+// ══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Segment-aware priors for the log($/ct) vs log(ct) exponent.
+ *
+ * Below 5ct, white wholesale curvature is well-represented by 0.8 (total
+ * price exponent ~1.8). At 5ct+, $/ct flattens and threshold premiums are
+ * embedded in quoted SKU prices; 0.65 is a conservative prior that avoids
+ * systematically over-extrapolating curvature learned from 1–3ct knots.
+ *
+ * minSourceCountToApply: require independent suppliers before applying a
+ * fitted slope aggressively. A single-supplier pool may reflect that
+ * supplier's ladder economics, not the broader market.
+ *
+ * maxAppliedDeviation: hard cap on |effectiveSlope − prior| so a runaway
+ * OLS estimate from sparse knots cannot drive large adjustments.
+ *
+ * extrapolationShrink: when query is outside the knot hull and confidence
+ * is medium (not low — that path is a hard stop), retain only this fraction
+ * of the deviation from prior.
+ */
+const CARAT_SLOPE_POLICY = {
+  priorBelow5ct:        0.8,
+  prior5ctPlus:         0.65,
+  minSourceCountToApply: 2,
+  maxAppliedDeviation:   0.25,
+  extrapolationShrink:   0.15,
+};
+
+/** Segment-aware prior slope for white diamonds. */
+function caratPriorForQuery(carat) {
+  return carat >= 5 ? CARAT_SLOPE_POLICY.prior5ctPlus : CARAT_SLOPE_POLICY.priorBelow5ct;
+}
+
+/**
+ * Per-mode sigma boost added to the carat uncertainty axis in adjustCompToQuery.
+ * Replaces the previous hardcoded slopeSigmaBoost and curveExtrapolationBoost.
+ * Higher values → wider confidence intervals when we trust the local slope less.
+ */
+const MODE_SIGMA_BOOST = {
+  prior_only:             0,
+  fitted:                 0,
+  fitted_capped:          0.04,
+  shrunk_low_confidence:  0.06,
+  shrunk_single_source:   0.08,
+  shrunk_extrapolated:    0.10,
+  ignored_fallback_prior: 0.12,
+};
+
+/**
+ * resolveEffectiveCaratSlope — apply policy rules to a fitted local carat curve.
+ *
+ * Evaluation follows the priority ordering documented in §12.12 of
+ * p1-tune-local-carat-curve-research.md. Each step is a distinct failure mode
+ * with a specific mitigation; the function returns on the first triggered
+ * condition so the mode reflects the most conservative constraint applied.
+ *
+ * Steps:
+ *   1. Compute segment prior (caratPriorForQuery).
+ *   2. No curve → prior_only.
+ *   3. confidence=low AND extrapolated → ignored_fallback_prior (hard stop).
+ *   4. Extrapolated AND confidence≠high → shrunk_extrapolated (heavy blend).
+ *   5. sourceCount < minSourceCountToApply → shrunk_single_source.
+ *   6. confidence=low (not extrapolated, multi-source) → shrunk_low_confidence.
+ *   7. |slope − prior| > maxAppliedDeviation → fitted_capped.
+ *   8. else → fitted.
+ *
+ * @param {object|null} curve — result of fitLocalCaratSlope, or null.
+ * @param {object}      query — normalized query (carat, colorFamily).
+ * @returns {{ slope: number, mode: string, prior: number, rawFitted: number|null }}
+ */
+function resolveEffectiveCaratSlope(curve, query) {
+  const prior = caratPriorForQuery(query.carat);
+
+  // Step 2 — no local fit possible
+  if (!curve) {
+    return { slope: prior, mode: 'prior_only', prior, rawFitted: null };
+  }
+
+  const raw = curve.slope;  // post-shrink, post-clamp slope from fitLocalCaratSlope
+
+  // Step 3 — hard stop: low confidence AND outside knot hull → ignore entirely
+  if (curve.confidence === 'low' && curve.queryIsExtrapolated) {
+    return { slope: prior, mode: 'ignored_fallback_prior', prior, rawFitted: raw };
+  }
+
+  // Step 4 — extrapolated with medium confidence → heavy shrink toward prior
+  // (high confidence extrapolation is allowed through to steps 5–8)
+  if (curve.queryIsExtrapolated && curve.confidence !== 'high') {
+    const slope = prior + CARAT_SLOPE_POLICY.extrapolationShrink * (raw - prior);
+    return { slope, mode: 'shrunk_extrapolated', prior, rawFitted: raw };
+  }
+
+  // Step 5 — single-supplier pool: LOO holdout risk
+  if (curve.sourceCount < CARAT_SLOPE_POLICY.minSourceCountToApply) {
+    const slope = prior + 0.35 * (raw - prior);
+    return { slope, mode: 'shrunk_single_source', prior, rawFitted: raw };
+  }
+
+  // Step 6 — low confidence but in-hull and multi-source: moderate shrink
+  if (curve.confidence === 'low') {
+    const slope = prior + 0.25 * (raw - prior);
+    return { slope, mode: 'shrunk_low_confidence', prior, rawFitted: raw };
+  }
+
+  // Step 7 — deviation cap: clamp slope within prior ± maxAppliedDeviation
+  let slope = raw;
+  let mode = 'fitted';
+  if (Math.abs(slope - prior) > CARAT_SLOPE_POLICY.maxAppliedDeviation) {
+    slope = prior + Math.sign(slope - prior) * CARAT_SLOPE_POLICY.maxAppliedDeviation;
+    mode = 'fitted_capped';
+  }
+
+  // Step 8 — use fitted slope (possibly capped)
+  return { slope, mode, prior, rawFitted: raw };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -826,18 +953,28 @@ function adjustCompToQuery(query, row, context = {}) {
 
   if (query.colorFamily === 'white') {
     // ── White: separate carat slope + color grade ──────────────────────────
-    // Use data-driven local slope when available; fall back to prior 0.8.
-    const caratSlope = context.localCaratSlope ?? 0.8;
+    // Use the effective slope from resolveEffectiveCaratSlope when provided,
+    // falling back to the segment-aware prior (0.8 below 5ct, 0.65 at 5ct+).
+    const fallbackPrior = caratPriorForQuery(queryCt);
+    const caratSlope = context.localCaratSlope ?? fallbackPrior;
     const deltaCarat = caratSlope * logCaratRatio;
-    // Extra sigma when local slope deviates from prior (slope uncertainty).
-    const slopeSigmaBoost = context.localCaratSlope != null
-      ? Math.abs(context.localCaratSlope - 0.8) * 0.10
-      : 0;
-    const curveExtrapolationBoost = context.localCaratExtrapolated ? 0.08 : 0;
+
+    // Sigma boost: use mode-keyed table when mode is provided (new path);
+    // otherwise fall back to the legacy deviation + extrapolation formula.
+    let modeBoost;
+    if (context.localCaratSlopeMode != null) {
+      modeBoost = MODE_SIGMA_BOOST[context.localCaratSlopeMode] ?? 0.05;
+    } else {
+      const effectivePrior = context.localCaratSlopePrior ?? 0.8;
+      modeBoost = context.localCaratSlope != null
+        ? Math.abs(context.localCaratSlope - effectivePrior) * 0.10
+        : 0;
+      modeBoost += context.localCaratExtrapolated ? 0.08 : 0;
+    }
+
     sigmaCarat = absLogCaratRatio * AXIS_SIGMA.caratPerLogUnit +
                  Math.max(0, absLogCaratRatio - 0.5) * AXIS_SIGMA.caratLargeExtrapolation +
-                 slopeSigmaBoost +
-                 curveExtrapolationBoost;
+                 modeBoost;
     logDpcAdj += deltaCarat;
     const slopeNote = context.localCaratSlope != null ? ` slope=${caratSlope.toFixed(2)}` : '';
     if (Math.abs(deltaCarat) > 0.015)
@@ -1221,22 +1358,33 @@ function resolveAlibabaComp(query) {
 
   // ── 2b. Fit local carat curve ─────────────────────────────────────────────
   // Only for white diamonds right now; fancy uses the model-based scale param.
+  // Pass the segment-aware prior so shrinkage targets the right anchor.
   const localCaratCurve = nq.colorFamily === 'white'
-    ? fitLocalCaratSlope(candidates, nq, /* prior */ 0.8)
+    ? fitLocalCaratSlope(candidates, nq, caratPriorForQuery(nq.carat))
     : null;
+
+  // Apply slope policy: determine effective slope, mode, and segment prior.
+  const effective = nq.colorFamily === 'white'
+    ? resolveEffectiveCaratSlope(localCaratCurve, nq)
+    : null;
+
   if (localCaratCurve?.queryIsExtrapolated) {
     const dir = nq.carat > localCaratCurve.caratMax ? 'above' : 'below';
     warnings.push(`Carat ${nq.carat}ct is ${dir} the local comp range (${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct). Extrapolation uncertainty is high.`);
   }
-  if (localCaratCurve && Math.abs(localCaratCurve.slope - 0.8) > 0.3) {
-    warnings.push(`Local carat slope ${localCaratCurve.slope.toFixed(2)} differs materially from the 0.8 prior; inspect comp support.`);
+  // Use effective.prior (segment-aware) for the slope deviation warning.
+  if (localCaratCurve?.rawSlope != null && effective && Math.abs(localCaratCurve.rawSlope - effective.prior) > 0.3) {
+    warnings.push(`Local carat slope ${localCaratCurve.rawSlope.toFixed(2)} differs materially from the ${effective.prior} prior; inspect comp support.`);
   }
   if (nearCaratThreshold(nq.carat)) {
     warnings.push(`${nq.carat}ct is near a market carat threshold — spot price may carry a premium not reflected in nearby comps.`);
   }
   const adjContext = {
-    localCaratSlope: localCaratCurve?.slope ?? null,
+    localCaratSlope:      effective ? effective.slope : null,
     localCaratExtrapolated: !!localCaratCurve?.queryIsExtrapolated,
+    localCaratSlopeMode:  effective ? effective.mode : null,
+    localCaratSlopePrior: effective ? effective.prior : null,
+    localCaratSlopeRaw:   effective ? effective.rawFitted : null,
   };
 
   // ── 3. Supplier cap: separate exact vs fallback paths ─────────────────────
@@ -1403,18 +1551,45 @@ function resolveAlibabaComp(query) {
     // ── P1: source concentration ──────────────────────────────────────────
     sourceConcentration: blend.sourceConcentration,
     // ── P1b: local carat curve ────────────────────────────────────────────
-    localCaratCurve: localCaratCurve ? {
-      slope: localCaratCurve.slope,
-      rawSlope: localCaratCurve.rawSlope,
-      n: localCaratCurve.n,
-      rowCount: localCaratCurve.rowCount,
-      sourceCount: localCaratCurve.sourceCount,
-      confidence: localCaratCurve.confidence,
-      caratRange: `${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct`,
-      queryIsExtrapolated: localCaratCurve.queryIsExtrapolated,
-      normalized: localCaratCurve.normalized,
-      note: `Normalized local carat slope ${localCaratCurve.slope.toFixed(2)} (prior 0.8), ${localCaratCurve.n} carat knots from ${localCaratCurve.rowCount} rows`,
-    } : null,
+    // For white diamonds, always emit localCaratCurve so callers can read .mode.
+    // When no local fit was possible, emit a minimal prior_only descriptor.
+    localCaratCurve: nq.colorFamily === 'white'
+      ? localCaratCurve
+        ? {
+            // Effective slope after policy (used in all adjustments)
+            slope:        effective.slope,
+            // Pre-policy slope (post-shrink, post-clamp from OLS fit)
+            fittedSlope:  localCaratCurve.slope,
+            // Raw OLS slope before shrinkage
+            rawSlope:     localCaratCurve.rawSlope,
+            prior:        effective.prior,
+            mode:         effective.mode,
+            n:            localCaratCurve.n,
+            rowCount:     localCaratCurve.rowCount,
+            sourceCount:  localCaratCurve.sourceCount,
+            confidence:   localCaratCurve.confidence,
+            caratRange:   `${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct`,
+            queryIsExtrapolated: localCaratCurve.queryIsExtrapolated,
+            normalized:   localCaratCurve.normalized,
+            note: `Slope policy: ${effective.mode} → ${effective.slope.toFixed(3)} (prior ${effective.prior}, fitted ${localCaratCurve.slope.toFixed(3)}, raw OLS ${localCaratCurve.rawSlope.toFixed(3)})`,
+          }
+        : {
+            // No local fit — using segment prior
+            slope:        effective.slope,
+            fittedSlope:  null,
+            rawSlope:     null,
+            prior:        effective.prior,
+            mode:         'prior_only',
+            n:            0,
+            rowCount:     0,
+            sourceCount:  0,
+            confidence:   null,
+            caratRange:   null,
+            queryIsExtrapolated: false,
+            normalized:   false,
+            note: `No local fit — using segment prior ${effective.prior}`,
+          }
+      : null,
     // ── P0: calibration label ─────────────────────────────────────────────
     calibrationNote: `intervals_sigma_inflated_${SIGMA_CALIBRATION_FACTOR}x_uncalibrated`,
   };
@@ -1799,6 +1974,12 @@ export {
   supplierKey,
   fitLocalCaratSlope,
   nearCaratThreshold,
+
+  // Carat slope policy (§2.6)
+  caratPriorForQuery,
+  resolveEffectiveCaratSlope,
+  CARAT_SLOPE_POLICY,
+  MODE_SIGMA_BOOST,
 
   // Reference data
   AXIS_SIGMA,

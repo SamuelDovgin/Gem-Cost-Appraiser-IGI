@@ -728,6 +728,13 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 </div><!-- /wrapper -->
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script type="module">
+  // Shared comp engine — eliminates research/production implementation drift.
+  // Requires an HTTP server (not file:// access). Run: python3 -m http.server 8765
+  // The main (classic) script reads window._v3engine after the first async await.
+  import { loadIndex, resolveAlibabaComp } from './research/comp-engine-v3.js';
+  window._v3engine = { loadIndex, resolveAlibabaComp };
+</script>
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
 // ALIBABA COMPS INDEX — pre-fetched at startup
@@ -759,6 +766,14 @@ async function loadAlibabaCompsIndex() {
     if (messiColorRes.ok) {
       const messiColorData = await messiColorRes.json();
       _compsIdx.comps.push(...(messiColorData.comps || []));
+    }
+    // Load merged index into the shared research engine module.
+    // window._v3engine is set by <script type="module"> (deferred, runs before
+    // any fetch promise can resolve, so it is always available here).
+    if (window._v3engine) {
+      await window._v3engine.loadIndex(_compsIdx);
+    } else {
+      console.warn('V3 engine module not available (file:// access?). resolveAlibabaComp will return null.');
     }
     _compsIdxReady = true;
     update(); // re-render now that comps are available
@@ -1160,88 +1175,18 @@ const AUC_FAIR_LO = 1.20, AUC_FAIR_HI = 1.45;
 function isWhite(){ return state.colorFamily === 'white'; }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ALIBABA COMP MATCHER v3 — resolveAlibabaComp(ct)
-// Log-space adjusted ensemble with inverse-variance blending.
-// See research/comp-engine-v3.js for the standalone module with full comments.
+// COMP ENGINE v3 — powered by research/comp-engine-v3.js (shared ES module)
+// The ~800-line inline implementation has been removed. The module is imported
+// via <script type="module"> and exposed as window._v3engine.
+//
+// BEGIN V3 ENGINE SYNC — chart helpers retained here (read from state + _compsIdx)
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Clarity and color ordinals used by chart rendering code
 const CLARITY_RANK_NUM = { IF:-1, VVS1:0, VVS2:1, 'VVS-VS':1.5, VS1:2, VS2:3, SI1:4, SI2:5 };
 const WHITE_COLOR_GRADE_NUM = { D:0, DE:0.5, DEF:1, E:1, F:2, G:3, H:4, I:5, J:6, K:7, L:8 };
 
-// ── §A  V3 CONSTANTS ──────────────────────────────────────────────────────────
-
-const V3_AXIS_SIGMA = {
-  caratPerLogUnit:        0.12,
-  caratLargeExtrapolation:0.28,
-  whiteColorPerStep:      0.07,
-  fancyIntensityPerLevel: 0.25,
-  fancyModifierPerTerm:   0.12,
-  clarityWhitePerStep:    0.06,
-  clarityFancyPerStep:    0.04,
-  shapeSame:              0.05,
-  shapeFamily:            0.12,
-  shapeAdjacent:          0.20,
-  shapeCross:             0.40,
-  sourceHigh:             0.03,
-  sourceMediumHigh:       0.06,
-  sourceMedium:           0.10,
-  sourceLowMedium:        0.18,
-  sourceLow:              0.25,
-  caratBand:              0.05,
-  clarityBand:            0.08,
-};
-const V3_SCORE_CUTOFF = 0.60;
-const V3_MAX_ENSEMBLE = 5;
-const V3_SIGMA_SYSTEMATIC_FLOOR = 0.10;
-const V3_SIGMA_CALIBRATION_FACTOR = 2.0;
-const V3_MAX_SUPPLIER_WEIGHT_FRAC = 0.65;
-const V3_CARAT_THRESHOLDS = [0.5,0.75,1.0,1.5,2.0,3.0,4.0,5.0];
-function v3NearCaratThreshold(ct, tol=0.05) {
-  return V3_CARAT_THRESHOLDS.some(t => Math.abs(ct - t) <= tol);
-}
-
-// Modifier terms and their log-price discount on comp price
-const V3_MODIFIER_LOG_DELTA = {
-  brownish:  Math.log(0.82),
-  greyish:   Math.log(0.87),
-  grayish:   Math.log(0.87),
-  orangy:    Math.log(0.90),
-  purplish:  Math.log(0.88),
-  yellowish: Math.log(0.91),
-  pinkish:   Math.log(0.93),
-  bluish:    Math.log(0.93),
-};
-const V3_MODIFIER_TERMS = ['brownish','greyish','grayish','orangy','purplish','yellowish','pinkish','bluish'];
-const V3_INTENSITY_RANK = { fl:0, f:1, fi:2, fv:3 };
-
-// Map fancy color label text → nearest fancyColorBase key
-const FANCY_LABEL_MAP = {
-  'fancy vivid pink':'pink_fv','vivid pink':'pink_fv',
-  'fancy intense pink':'pink_fi','intense pink':'pink_fi',
-  'fancy light pink':'pink_fl','light pink':'pink_fl',
-  'fancy pink':'pink_f','pink':'pink_f',
-  'fancy vivid yellow':'yellow_fv','vivid yellow':'yellow_fv',
-  'fancy intense yellow':'yellow_fi','intense yellow':'yellow_fi',
-  'fancy light yellow':'yellow_fl','light yellow':'yellow_fl',
-  'fancy yellow':'yellow_f','yellow':'yellow_f',
-  'fancy vivid blue':'blue_fv','vivid blue':'blue_fv',
-  'fancy intense blue':'blue_fi','intense blue':'blue_fi',
-  'fancy light blue':'blue_fl','light blue':'blue_fl',
-  'fancy blue':'blue_f','blue':'blue_f',
-  'fancy intense green':'green_fi','fancy vivid green':'green_fv',
-  'fancy intense greyish green':'green_fi','fancy green':'green_f',
-  'fancy light green':'green_fl','fancy blue green':'green_f',
-  'fancy red':'red_f','fancy vivid red':'red_fv',
-  'fancy brown':'brown_f','fancy brown / coffee':'brown_f','coffee':'brown_f','champagne':'brown_f',
-  'fancy intense brownish pink':'pink_fi','brownish pink':'pink_f',
-  'fancy vivid orange':'orange_fv','vivid orange':'orange_fv',
-  'fancy intense orange':'orange_fi','intense orange':'orange_fi',
-  'fancy light orange':'orange_fl','light orange':'orange_fl',
-  'fancy orange':'orange_f','orange':'orange_f',
-  'fancy purple':'purple_f','fancy violet':'purple_f','purple':'purple_f','violet':'purple_f',
-  'fancy intense purple':'purple_fi','fancy intense violet':'purple_fi',
-  'fancy light purple':'purple_fl','fancy light violet':'purple_fl',
-};
+// Hue aliases used by currentColorMatchesCompRow for chart filtering
 const FANCY_HUE_ALIASES = {
   yellow:['yellow'],
   pink:['pink'],
@@ -1254,221 +1199,15 @@ const FANCY_HUE_ALIASES = {
   black:['black'],
 };
 
-// Shape family system for cross-shape sigma assignment
-const V3_SHAPE_FAMILY = {
-  round:'ROUND',old_european:'ROUND',old_mine:'ROUND',
-  oval:'OVAL_CUSHION',cushion:'OVAL_CUSHION',elongated_cushion:'OVAL_CUSHION',
-  moval:'OVAL_CUSHION',cushion_brilliant:'OVAL_CUSHION',square_cushion:'OVAL_CUSHION',
-  radiant:'RADIANT',sq_radiant:'RADIANT',
-  pear:'PEAR',
-  marquise:'MARQUISE',trilliant:'MARQUISE',
-  heart:'HEART',
-  emerald:'STEP',asscher:'STEP',
-  baguette:'STEP_BAGUETTE',tapered_baguette:'STEP_BAGUETTE',carre:'STEP_BAGUETTE',
-  princess:'PRINCESS',
-};
-const V3_ADJACENT = {
-  ROUND:        new Set(['OVAL_CUSHION']),
-  OVAL_CUSHION: new Set(['ROUND','RADIANT','STEP']),
-  RADIANT:      new Set(['OVAL_CUSHION','PRINCESS','STEP']),
-  PEAR:         new Set(['MARQUISE','OVAL_CUSHION']),
-  MARQUISE:     new Set(['PEAR','HEART']),
-  HEART:        new Set(['MARQUISE','PEAR']),
-  STEP:         new Set(['OVAL_CUSHION','RADIANT','PRINCESS','STEP_BAGUETTE']),
-  PRINCESS:     new Set(['RADIANT','STEP']),
-  STEP_BAGUETTE:new Set(['STEP']),
-};
-
-// ── §B  NORMALIZATION HELPERS ─────────────────────────────────────────────────
-
+// Shape normalization used by chart rendering and buildCompQueryFromState
 const SHAPE_NORMALIZE = {
-  sq_radiant:'radiant',cushion_brilliant:'cushion',square_cushion:'cushion',
+  sq_radiant:'radiant', cushion_brilliant:'cushion', square_cushion:'cushion',
   trilliant:'marquise',
-  old_european:'round',old_mine:'round',
+  old_european:'round', old_mine:'round',
 };
 function normalizeShapeForComp(s) { return SHAPE_NORMALIZE[s] || s; }
 
-function v3ShapeDistance(uShape, cShape) {
-  if (uShape === cShape) return 0;
-  const fU = V3_SHAPE_FAMILY[uShape], fC = V3_SHAPE_FAMILY[cShape];
-  if (!fU || !fC) return 3;
-  if (fU === fC) return 1;
-  if (V3_ADJACENT[fU]?.has(fC)) return 2;
-  return 3;
-}
-function v3ShapeSigma(u, c) {
-  return [V3_AXIS_SIGMA.shapeSame, V3_AXIS_SIGMA.shapeFamily, V3_AXIS_SIGMA.shapeAdjacent, V3_AXIS_SIGMA.shapeCross][v3ShapeDistance(u, c)];
-}
-function v3SourceSigma(conf) {
-  return ({high:V3_AXIS_SIGMA.sourceHigh,'medium-high':V3_AXIS_SIGMA.sourceMediumHigh,medium:V3_AXIS_SIGMA.sourceMedium,'low-medium':V3_AXIS_SIGMA.sourceLowMedium,low:V3_AXIS_SIGMA.sourceLow})[conf] ?? V3_AXIS_SIGMA.sourceMedium;
-}
-
-function inferFancyFamilyKey(colorLabel) {
-  if (!colorLabel) return null;
-  const cl = colorLabel.toLowerCase().trim();
-  if (FANCY_LABEL_MAP[cl]) return FANCY_LABEL_MAP[cl];
-  // Fallback: parse hue + intensity from label
-  let hue=null, iKey='f';
-  for (const [h, terms] of Object.entries(FANCY_HUE_ALIASES)) {
-    if (terms.some(term => cl.includes(term))) hue = h;
-  }
-  if (cl.includes('vivid')) iKey='fv';
-  else if (cl.includes('intense')) iKey='fi';
-  else if (cl.includes('light')) iKey='fl';
-  if (hue === 'brown') return 'brown_f';
-  if (hue === 'black') return 'black';
-  if (hue === 'red' && iKey === 'fv') return 'red_fv';
-  if (hue === 'red') return 'red_f';
-  if (hue === 'purple' && iKey === 'fv') iKey = 'fi';
-  const k = hue ? `${hue}_${iKey}` : null;
-  return k && fancyColorBase[k] ? k : null;
-}
-
-function v3ParseFancy(label) {
-  if (!label) return { intensityKey:'f', modifierTerms:[] };
-  const s = label.toLowerCase();
-  // Compact key format: "pink_fv", "yellow_fi"
-  const km = s.match(/^[a-z]+_(fl|fi|fv|f)$/);
-  if (km) return { intensityKey: km[1], modifierTerms:[] };
-  const modifierTerms = V3_MODIFIER_TERMS.filter(m => s.includes(m));
-  let iKey = 'f';
-  if (s.includes('vivid')) iKey = 'fv';
-  else if (s.includes('intense')) iKey = 'fi';
-  else if (s.includes('light')) iKey = 'fl';
-  return { intensityKey: iKey, modifierTerms };
-}
-
-function caratTolerance(ct) {
-  if (ct <= 2) return 0.08;
-  if (ct <= 6) return 0.18;
-  return 0.25;
-}
-
-function shortLabel(row) {
-  if (!row || !row.section) return 'Alibaba';
-  const dashIdx = Math.max(row.section.lastIndexOf(' - '), row.section.lastIndexOf(' — '));
-  return dashIdx >= 0 ? row.section.slice(dashIdx + 3).trim() : row.section.split(',')[0].trim();
-}
-
-function v3CompIdentity(row) {
-  if (row.productId) return `pid:${row.productId}`;
-  const bits = [
-    row.sourceType || row.supplier || row.label || 'comp',
-    row.shape || '',
-    row.color || row.colorNormalized || row.appColorKey || '',
-    row.clarity || '',
-    row.carat ?? '',
-    row.priceUsd ?? '',
-    row.section || '',
-  ];
-  return bits.map(v => String(v).toLowerCase().trim()).join('|');
-}
-
-function v3WeightedMedian(values, weights) {
-  const pairs = values.map((v, i) => ({ v, w: weights[i] ?? 1 }))
-    .filter(p => Number.isFinite(p.v) && p.w > 0)
-    .sort((a,b) => a.v - b.v);
-  if (!pairs.length) return null;
-  const total = pairs.reduce((s,p) => s + p.w, 0);
-  let acc = 0;
-  for (const p of pairs) {
-    acc += p.w;
-    if (acc >= total / 2) return p.v;
-  }
-  return pairs[pairs.length - 1].v;
-}
-
-function v3NormalizedLogDpcForCurve(row, query) {
-  let y = Math.log(row.priceUsd / row.carat);
-  if (query.colorFamily === 'white') {
-    const cn = row.colorNormalized || 'D';
-    const compGrade = cn === 'DEF' || cn === 'DE' ? 'E' : cn;
-    const qColor = whiteGradeMult[query.whiteGrade] ?? whiteGradeMult.E;
-    const cColor = whiteGradeMult[compGrade] ?? whiteGradeMult.D;
-    y += Math.log(qColor / Math.max(cColor, 0.01));
-
-    const qClarity = getClarityMult(query.clarity, row.carat);
-    const cClarity = getClarityMult(row.clarity || 'VS1', row.carat);
-    y += Math.log(qClarity / Math.max(cClarity, 0.01));
-
-    const qShape = shapeMult[query.shape] ?? 1.0;
-    const cShape = shapeMult[row.shape] ?? 1.0;
-    y += Math.log(qShape / Math.max(cShape, 0.01));
-  } else {
-    const qShape = shapeMultColor[query.shape] ?? 1.0;
-    const cShape = shapeMultColor[row.shape] ?? 1.0;
-    y += Math.log(qShape / Math.max(cShape, 0.01));
-  }
-  return y;
-}
-
-function v3FitLocalCaratSlope(candidates, query, prior=0.8) {
-  if (!candidates?.length) return null;
-  const clarityRankQ = CLARITY_RANK_NUM[query.clarity] ?? 2;
-  const pool = candidates.filter(row => {
-    if (row.caratBand || row.clarityBand) return false;
-    if (!row.carat || !row.priceUsd || row.carat <= 0 || row.priceUsd <= 0) return false;
-    if (v3ShapeDistance(query.shape, row.shape) > 1) return false;
-    const clarityRankC = CLARITY_RANK_NUM[row.clarity] ?? 2;
-    return Math.abs(clarityRankQ - clarityRankC) <= 2;
-  });
-  if (pool.length < 3) return null;
-
-  const byBin = new Map();
-  for (const row of pool) {
-    const bin = Math.round(row.carat * 4) / 4;
-    if (!byBin.has(bin)) byBin.set(bin, []);
-    byBin.get(bin).push(row);
-  }
-  if (byBin.size < 3) return null;
-
-  const points = [];
-  const sourceSet = new Set();
-  for (const [bin, rows] of byBin.entries()) {
-    const values = [];
-    const weights = [];
-    for (const row of rows) {
-      const y = v3NormalizedLogDpcForCurve(row, query);
-      if (!Number.isFinite(y)) continue;
-      values.push(y);
-      weights.push(Math.min(row.count || 1, 4));
-      sourceSet.add(v3SupplierKey(row));
-    }
-    const y = v3WeightedMedian(values, weights);
-    if (y != null) points.push({ carat: bin, x: Math.log(bin), y, rowCount: rows.length });
-  }
-  points.sort((a,b) => a.carat - b.carat);
-  if (points.length < 3) return null;
-
-  const caratMin = points[0].carat;
-  const caratMax = points[points.length - 1].carat;
-  const caratRange = caratMax - caratMin;
-  if (caratRange < 1.0) return null;
-
-  const weights = points.map(p => 1 / (0.25 + Math.abs(Math.log(query.carat / p.carat))));
-  const totalW = weights.reduce((a,b) => a + b, 0);
-  const xMean = points.reduce((s,p,i) => s + p.x * weights[i], 0) / totalW;
-  const yMean = points.reduce((s,p,i) => s + p.y * weights[i], 0) / totalW;
-  const ssxx = points.reduce((s,p,i) => s + weights[i] * (p.x - xMean) ** 2, 0);
-  const ssxy = points.reduce((s,p,i) => s + weights[i] * (p.x - xMean) * (p.y - yMean), 0);
-  if (ssxx < 1e-6) return null;
-
-  const rawSlope = ssxy / ssxx;
-  const priorWeight = 3;
-  const shrinkFrac = priorWeight / (priorWeight + points.length);
-  const slope = Math.max(-0.2, Math.min(2.0, shrinkFrac * prior + (1 - shrinkFrac) * rawSlope));
-  const sourceCount = sourceSet.size;
-  const confidence = points.length >= 10 && sourceCount >= 2 && caratRange >= 2.0 ? 'high' :
-    points.length >= 5 && caratRange >= 1.5 ? 'medium' : 'low';
-
-  return {
-    slope, rawSlope, n: points.length, rowCount: pool.length, sourceCount,
-    confidence, caratRange, caratMin, caratMax,
-    queryIsExtrapolated: query.carat < caratMin - 0.25 || query.carat > caratMax + 0.25,
-    normalized: true,
-  };
-}
-
+// State → query object mapper (UI-specific; reads global `state`)
 function buildCompQueryFromState(ct) {
   const shape = normalizeShapeForComp(state.shape);
   if (isWhite()) {
@@ -1477,8 +1216,7 @@ function buildCompQueryFromState(ct) {
   return { colorFamily:'fancy', shape, colorFamily_key:state.colorFamily, clarity:state.clarity, carat:ct };
 }
 
-// ── §C  CANDIDATE FILTERING ───────────────────────────────────────────────────
-
+// Hue compatibility helper used by currentColorMatchesCompRow
 function v3FancyHueCompatible(queryKey, compColorLabel) {
   if (!compColorLabel) return false;
   const rl = compColorLabel.toLowerCase();
@@ -1488,487 +1226,21 @@ function v3FancyHueCompatible(queryKey, compColorLabel) {
   return FANCY_HUE_ALIASES[queryHue].some(term => rl.includes(term));
 }
 
+// Color match predicate for chart row filtering
 function currentColorMatchesCompRow(row) {
   if (isWhite()) return row.colorFamily === 'white';
   return row.colorFamily === 'fancy' && v3FancyHueCompatible(state.colorFamily, row.color || row.colorHue || row.appColorKey);
 }
 
-function v3WhiteColorDist(queryGrade, rowColorNormalized) {
-  const uR = WHITE_COLOR_GRADE_NUM[queryGrade] ?? 2;
-  const cR = WHITE_COLOR_GRADE_NUM[rowColorNormalized||'D'] ?? 0;
-  return Math.abs(uR - cR);
-}
-
-function v3FilterCandidates(query, comps) {
-  return comps.filter(row => {
-    if (row.colorFamily !== query.colorFamily) return false;
-    if (query.colorFamily === 'fancy' && !v3FancyHueCompatible(query.colorFamily_key, row.color)) return false;
-    if (query.colorFamily === 'white' && v3WhiteColorDist(query.whiteGrade, row.colorNormalized) > 5) return false;
-    return true;
-  });
-}
-
-// ── §D  ERROR SCORE ───────────────────────────────────────────────────────────
-
-function v3CompErrorScore(query, row) {
-  const compCt = row.carat || 1;
-  const logCaratRatio = Math.abs(Math.log(query.carat / compCt));
-  const eCarat = logCaratRatio * V3_AXIS_SIGMA.caratPerLogUnit +
-    Math.max(0, logCaratRatio - 0.5) * V3_AXIS_SIGMA.caratLargeExtrapolation;
-
-  let eColor;
-  if (query.colorFamily === 'white') {
-    eColor = v3WhiteColorDist(query.whiteGrade, row.colorNormalized) * V3_AXIS_SIGMA.whiteColorPerStep;
-  } else {
-    const uP = v3ParseFancy(query.colorFamily_key || '');
-    const cP = v3ParseFancy(row.color || '');
-    const intensityGap = Math.abs((V3_INTENSITY_RANK[uP.intensityKey]??1) - (V3_INTENSITY_RANK[cP.intensityKey]??1));
-    const modifierDiff = Math.abs(cP.modifierTerms.length - uP.modifierTerms.length);
-    eColor = intensityGap * V3_AXIS_SIGMA.fancyIntensityPerLevel + modifierDiff * V3_AXIS_SIGMA.fancyModifierPerTerm;
-  }
-
-  const clarOrd = query.colorFamily === 'white' ? V3_AXIS_SIGMA.clarityWhitePerStep : V3_AXIS_SIGMA.clarityFancyPerStep;
-  const eClarity = Math.abs((CLARITY_RANK_NUM[query.clarity]??2) - (CLARITY_RANK_NUM[row.clarity]??2)) * clarOrd;
-  const eShape  = v3ShapeSigma(query.shape, row.shape);
-  const eSource = v3SourceSigma(row.confidence);
-  const eBand   = (row.caratBand ? V3_AXIS_SIGMA.caratBand : 0) + (row.clarityBand ? V3_AXIS_SIGMA.clarityBand : 0);
-
-  const total = Math.sqrt(eCarat**2 + eColor**2 + eClarity**2 + eShape**2 + eSource**2 + eBand**2);
-  return { total, eCarat, eColor, eClarity, eShape, eSource, eBand };
-}
-
-// ── §D2 SUPPLIER CAP ─────────────────────────────────────────────────────────
-
-function v3SupplierKey(row) {
-  const section = row.section || '';
-  // Section strings use either ' - ' (hyphen) or ' — ' (em-dash) as the supplier separator.
-  const lastHyphen = section.lastIndexOf(' - ');
-  const lastEm     = section.lastIndexOf(' — ');
-  const lastDash   = Math.max(lastHyphen, lastEm);
-  const raw = lastDash >= 0 ? section.slice(lastDash + 3).trim() : section.split(',')[0].trim();
-  const norm = raw.replace(/\s*\([^)]+\)\s*$/, '').trim().toLowerCase();
-  if (norm.includes('messi') || norm.includes('wuzhou')) return 'messi';
-  if (norm.includes('starsgem') || norm.includes('stargem')) return 'starsgem';
-  if (norm.includes('mishang')) return 'mishang';
-  if (norm.includes('goldleaf')) return 'goldleaf';
-  return norm || '_unknown';
-}
-
-const V3_MAX_PER_SUPPLIER = 2;
-
-function v3ApplySupplierCap(scored) {
-  const counts = {};
-  const result = [];
-  for (const c of scored) {
-    const sk = v3SupplierKey(c.row);
-    const n = (counts[sk] || 0) + 1;
-    counts[sk] = n;
-    if (n <= V3_MAX_PER_SUPPLIER) result.push(c);
-  }
-  return result;
-}
-
-function v3BuildOtherFactoryExactList(exactScored, floorSupplierKey) {
-  return exactScored
-    .filter(c => v3SupplierKey(c.row) !== floorSupplierKey)
-    .sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.row.carat - b.row.carat)
-    .map(c => ({
-      row: c.row,
-      listingPrice: c.row.priceUsd,
-      url: c.row.url,
-      label: shortLabel(c.row),
-      supplierKey: v3SupplierKey(c.row),
-    }));
-}
-
-function v3SelectCheapestExactEnsemble(exactScored, maxN = V3_MAX_ENSEMBLE) {
-  return [...exactScored]
-    .sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.score - b.score)
-    .slice(0, maxN);
-}
-
-// ── §E  LOG-SPACE ADJUSTMENT ──────────────────────────────────────────────────
-
-function v3AdjustToQuery(query, row, context={}) {
-  const compCt = row.carat || 1;
-  const queryCt = query.carat;
-  const logCaratRatio = Math.log(queryCt / compCt);
-  const absLogCaratRatio = Math.abs(logCaratRatio);
-  const logDpcComp = Math.log(row.priceUsd / compCt);
-
-  let logDpcAdj = logDpcComp;
-  const parts = [];
-  let sCarat, sColor, sClarity;
-
-  if (query.colorFamily === 'white') {
-    const caratSlope = context.localCaratSlope ?? 0.8;
-    const deltaCarat = caratSlope * logCaratRatio;
-    const slopeSigmaBoost = context.localCaratSlope != null ? Math.abs(context.localCaratSlope - 0.8) * 0.10 : 0;
-    const curveExtrapolationBoost = context.localCaratExtrapolated ? 0.08 : 0;
-    sCarat = absLogCaratRatio * V3_AXIS_SIGMA.caratPerLogUnit +
-      Math.max(0, absLogCaratRatio - 0.5) * V3_AXIS_SIGMA.caratLargeExtrapolation +
-      slopeSigmaBoost + curveExtrapolationBoost;
-    logDpcAdj += deltaCarat;
-    const slopeNote = context.localCaratSlope != null ? ` slope=${caratSlope.toFixed(2)}` : '';
-    if (Math.abs(deltaCarat) > 0.015)
-      parts.push(`carat ×${Math.exp(deltaCarat).toFixed(2)} (${queryCt}ct vs ${compCt}ct${slopeNote})`);
-
-    const cn = row.colorNormalized || 'D';
-    const compGrade = cn === 'DEF' ? 'E' : cn === 'DE' ? 'E' : (cn || 'D');
-    const uMult = whiteGradeMult[query.whiteGrade] ?? 0.70;
-    const cMult = whiteGradeMult[compGrade] ?? whiteGradeMult.D;
-    const deltaColor = Math.log(uMult / cMult);
-    sColor = v3WhiteColorDist(query.whiteGrade, cn) * V3_AXIS_SIGMA.whiteColorPerStep;
-    logDpcAdj += deltaColor;
-    if (Math.abs(deltaColor) > 0.015)
-      parts.push(`color ×${Math.exp(deltaColor).toFixed(2)} (${query.whiteGrade} vs ${cn})`);
-
-  } else {
-    const ub = fancyColorBase[query.colorFamily_key];
-    const compKey = inferFancyFamilyKey(row.color);
-    const cb = compKey ? fancyColorBase[compKey] : null;
-
-    if (ub && cb) {
-      const logModelQ = Math.log(ub.ws1) + (ub.scale - 1) * Math.log(queryCt);
-      const logModelC = Math.log(cb.ws1) + (cb.scale - 1) * Math.log(compCt);
-      const delta = logModelQ - logModelC;
-      logDpcAdj += delta;
-      if (Math.abs(delta) > 0.015)
-        parts.push(`color model $/ct ×${Math.exp(delta).toFixed(2)} (${query.colorFamily_key} vs ${compKey})`);
-      const totalCaratDelta = Math.log(queryCt / compCt) + ((ub.scale - 1) * Math.log(queryCt) - (ub.scale - 1) * Math.log(compCt));
-      if (compKey === query.colorFamily_key && Math.abs(totalCaratDelta) > 0.03)
-        parts.push(`carat total ×${Math.exp(totalCaratDelta).toFixed(2)} (${queryCt}ct vs ${compCt}ct)`);
-    } else {
-      const delta = 0.5 * logCaratRatio;
-      logDpcAdj += delta;
-      if (Math.abs(delta) > 0.015)
-        parts.push(`carat ×${Math.exp(delta).toFixed(2)} (model unknown)`);
-    }
-
-    const uP = v3ParseFancy(query.colorFamily_key || '');
-    const cP = v3ParseFancy(row.color || '');
-    let deltaModifier = 0;
-    for (const m of cP.modifierTerms) if (!uP.modifierTerms.includes(m)) deltaModifier -= (V3_MODIFIER_LOG_DELTA[m]||0);
-    for (const m of uP.modifierTerms) if (!cP.modifierTerms.includes(m)) deltaModifier += (V3_MODIFIER_LOG_DELTA[m]||0);
-    logDpcAdj += deltaModifier;
-    if (Math.abs(deltaModifier) > 0.015)
-      parts.push(`modifier ×${Math.exp(deltaModifier).toFixed(2)}`);
-
-    const uInt = V3_INTENSITY_RANK[uP.intensityKey??'f']??1;
-    const cInt = V3_INTENSITY_RANK[cP.intensityKey??'f']??1;
-    sColor = Math.abs(uInt - cInt) * V3_AXIS_SIGMA.fancyIntensityPerLevel +
-             Math.abs(cP.modifierTerms.length - uP.modifierTerms.length) * V3_AXIS_SIGMA.fancyModifierPerTerm;
-    sCarat = absLogCaratRatio * V3_AXIS_SIGMA.caratPerLogUnit +
-      Math.max(0, absLogCaratRatio - 0.5) * V3_AXIS_SIGMA.caratLargeExtrapolation;
-  }
-
-  // Clarity
-  let deltaClarity;
-  if (query.colorFamily === 'white') {
-    deltaClarity = Math.log(getClarityMult(query.clarity, queryCt) / Math.max(getClarityMult(row.clarity||'VS1', queryCt), 0.01));
-  } else {
-    const cU = clarityMultColor[query.clarity]??1, cC = clarityMultColor[row.clarity]??1;
-    deltaClarity = Math.log(cU / Math.max(cC, 0.01));
-  }
-  logDpcAdj += deltaClarity;
-  sClarity = Math.abs((CLARITY_RANK_NUM[query.clarity]??2)-(CLARITY_RANK_NUM[row.clarity]??2)) *
-             (query.colorFamily==='white' ? V3_AXIS_SIGMA.clarityWhitePerStep : V3_AXIS_SIGMA.clarityFancyPerStep);
-  if (Math.abs(deltaClarity) > 0.015)
-    parts.push(`clarity ×${Math.exp(deltaClarity).toFixed(2)} (${query.clarity} vs ${row.clarity})`);
-
-  // Shape
-  let deltaShape;
-  if (query.colorFamily === 'white') {
-    const uS = shapeMult[query.shape]??1, cS = shapeMult[row.shape]??1;
-    deltaShape = cS > 0 ? Math.log(uS / cS) : 0;
-  } else {
-    const uS = shapeMultColor[query.shape]??1, cS = shapeMultColor[row.shape]??1;
-    deltaShape = cS > 0 ? Math.log(uS / cS) : 0;
-  }
-  logDpcAdj += deltaShape;
-  if (Math.abs(deltaShape) > 0.015)
-    parts.push(`shape ×${Math.exp(deltaShape).toFixed(2)} (${query.shape} vs ${row.shape})`);
-
-  const logEstimate = logDpcAdj + Math.log(queryCt);
-  const estimatedPrice = Math.round(Math.exp(logEstimate));
-  const sShape  = v3ShapeSigma(query.shape, row.shape);
-  const sSource = v3SourceSigma(row.confidence);
-  const sBand   = (row.caratBand ? V3_AXIS_SIGMA.caratBand : 0) + (row.clarityBand ? V3_AXIS_SIGMA.clarityBand : 0);
-  const sigmaLog = Math.sqrt((sCarat||0)**2+(sColor||0)**2+sClarity**2+sShape**2+sSource**2+sBand**2);
-
-  return { logEstimate, sigmaLog, estimatedPrice, parts };
-}
-
-// ── §F  ENSEMBLE BLEND ────────────────────────────────────────────────────────
-
-function v3Median(arr) {
-  if (!arr.length) return 0;
-  const s = [...arr].sort((a,b) => a-b);
-  const m = Math.floor(s.length/2);
-  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
-}
-
-function v3Blend(adjustedList, options = {}) {
-  if (!adjustedList.length) return null;
-  const med = v3Median(adjustedList.map(a => a.logEstimate));
-  const skipOutlierRejection = !!options.multiSupplierExact;
-  const EPS = 1e-4;
-  const accepted=[], rejected=[];
-  for (const a of adjustedList) {
-    const dev = Math.abs(a.logEstimate - med);
-    if (!skipOutlierRejection && adjustedList.length > 1 && dev > 2.5 * a.sigmaLog)
-      rejected.push({ ...a, rejectReason:`outlier: dev ${dev.toFixed(3)} > 2.5σ` });
-    else
-      accepted.push(a);
-  }
-  if (!accepted.length) accepted.push(...rejected), rejected.length=0;
-  const rawWeights = accepted.map(a => 1 / (a.sigmaLog**2 + EPS));
-  let weights = rawWeights;
-  let sourceConcentration = {
-    dominated:false, dominantSupplier:null, dominantFrac:null, rawDominantFrac:null,
-    finalDominantFrac:null, capApplied:false, capPossible:true, supplierFracs:{}
-  };
-  if (accepted.some(a => a.row)) {
-    const rawTotal = rawWeights.reduce((x,y) => x+y, 0);
-    const supplierWeightSum = {};
-    accepted.forEach((a,i) => {
-      const sk = a.row ? v3SupplierKey(a.row) : '_unknown';
-      supplierWeightSum[sk] = (supplierWeightSum[sk] || 0) + rawWeights[i];
-    });
-    const dominant = Object.entries(supplierWeightSum)
-      .sort((a,b) => b[1] - a[1])
-      .find(([,w]) => rawTotal > 0 && w / rawTotal > V3_MAX_SUPPLIER_WEIGHT_FRAC);
-    if (dominant) {
-      const [dominantSk, dominantW] = dominant;
-      const otherW = rawTotal - dominantW;
-      let capApplied = false;
-      const capPossible = otherW > 0;
-      if (capPossible) {
-        const cappedW = (V3_MAX_SUPPLIER_WEIGHT_FRAC * otherW) / (1 - V3_MAX_SUPPLIER_WEIGHT_FRAC);
-        const scale = Math.min(1, cappedW / dominantW);
-        weights = rawWeights.map((w,i) => {
-          const sk = accepted[i].row ? v3SupplierKey(accepted[i].row) : '_unknown';
-          return sk === dominantSk ? w * scale : w;
-        });
-        capApplied = scale < 0.999;
-      }
-      const finalTotal = weights.reduce((x,y) => x+y, 0);
-      const supplierFinalSum = {};
-      accepted.forEach((a,i) => {
-        const sk = a.row ? v3SupplierKey(a.row) : '_unknown';
-        supplierFinalSum[sk] = (supplierFinalSum[sk] || 0) + weights[i];
-      });
-      const supplierFracs = Object.fromEntries(Object.entries(supplierFinalSum).map(([sk,w]) => [sk, finalTotal > 0 ? w / finalTotal : 0]));
-      const finalDominantFrac = finalTotal > 0 ? (supplierFinalSum[dominantSk] || 0) / finalTotal : null;
-      sourceConcentration = {
-        dominated:true, dominantSupplier:dominantSk, dominantFrac:finalDominantFrac,
-        rawDominantFrac: rawTotal > 0 ? dominantW / rawTotal : null,
-        finalDominantFrac, capApplied, capPossible, supplierFracs
-      };
-    }
-  }
-  const totalW  = weights.reduce((x,y) => x+y, 0);
-  const logEst  = accepted.reduce((s,a,i) => s + a.logEstimate*weights[i], 0) / totalW;
-  const sigmaBlend = 1/Math.sqrt(weights.reduce((s,w) => s+w, 0));
-  const sigmaLog = Math.sqrt(sigmaBlend**2 + V3_SIGMA_SYSTEMATIC_FLOOR**2) * V3_SIGMA_CALIBRATION_FACTOR;
-  return {
-    logEstimate: logEst, sigmaLog, accepted, rejected, sourceConcentration,
-    estimate: Math.round(Math.exp(logEst)),
-    low:      Math.round(Math.exp(logEst - 1.28*sigmaLog)),
-    high:     Math.round(Math.exp(logEst + 1.28*sigmaLog)),
-  };
-}
-
-// ── §G  V3 EXACT CHECK ────────────────────────────────────────────────────────
-
-function v3IsExactMatch(query, row) {
-  if (row.caratBand || row.clarityBand) return false;
-  if (Math.abs(query.carat - (row.carat||0)) > caratTolerance(row.carat||0)) return false;
-  if (row.clarity !== query.clarity) return false;
-  if (v3ShapeDistance(query.shape, row.shape) !== 0) return false;
-  if (query.colorFamily === 'white') {
-    const cn = row.colorNormalized || 'D';
-    if (cn === 'DE')  return ['D','E'].includes(query.whiteGrade);
-    if (cn === 'DEF') return ['D','E','F'].includes(query.whiteGrade);
-    return cn === query.whiteGrade;
-  }
-  return true; // fancy: hue already filtered; same-shape/same-clarity/near-carat is exact.
-}
-
-// ── §H  RESOLVE — v3 pipeline ─────────────────────────────────────────────────
-
+// Thin resolver — delegates to the shared module set by <script type="module">
+// Returns null if the module is not yet available (file:// access without server).
 function resolveAlibabaComp(ct) {
-  if (!_compsIdxReady || !_compsIdx) return null;
-  const query = buildCompQueryFromState(ct);
-  const comps = _compsIdx.comps;
-  const warnings = [];
-
-  // 1. Filter candidates (hard gates: color family, hue, white grade proximity)
-  let candidates = v3FilterCandidates(query, comps);
-  let broadened = false;
-  if (!candidates.length || !candidates.some(r => v3ShapeDistance(query.shape, r.shape) <= 2)) {
-    if (!SPECIALTY_SHAPE_KEYS.has(state.shape)) {
-      const broad = comps.filter(r => {
-        if (r.colorFamily !== query.colorFamily) return false;
-        if (query.colorFamily === 'fancy' && !v3FancyHueCompatible(query.colorFamily_key, r.color)) return false;
-        if (query.colorFamily === 'white' && v3WhiteColorDist(query.whiteGrade, r.colorNormalized) > 5) return false;
-        return true;
-      });
-      if (broad.length) { candidates = broad; broadened = true; warnings.push('No shape-compatible comps — broadened to same color family.'); }
-    }
-  }
-  if (!candidates.length) return { matchType:'none', estimate:null, low:null, high:null, perCt:null, confidence:null, primary:null, alternatives:[], supportComps:[], rejectedComps:[], warnings:['No comps found for this spec.'], source:null };
-
-  // 2. Score + de-duplicate by productId
-  const scored = candidates
-    .map(row => { const sc = v3CompErrorScore(query, row); return { row, score: sc.total, scoreComponents: sc }; })
-    .sort((a,b) => a.score - b.score || a.row.priceUsd - b.row.priceUsd);
-  const seenPid = new Map();
-  for (const c of scored) {
-    const identity = v3CompIdentity(c.row);
-    if (!seenPid.has(identity)) seenPid.set(identity, c);
-  }
-  const unique = [...seenPid.values()].sort((a,b) => a.score - b.score);
-  const bestScore = unique[0].score;
-
-  const localCaratCurve = query.colorFamily === 'white'
-    ? v3FitLocalCaratSlope(candidates, query, 0.8)
-    : null;
-  if (localCaratCurve?.queryIsExtrapolated) {
-    const dir = query.carat > localCaratCurve.caratMax ? 'above' : 'below';
-    warnings.push(`Carat ${query.carat}ct is ${dir} the local comp range (${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct). Extrapolation uncertainty is high.`);
-  }
-  if (localCaratCurve && Math.abs(localCaratCurve.slope - 0.8) > 0.3) {
-    warnings.push(`Local carat slope ${localCaratCurve.slope.toFixed(2)} differs materially from the 0.8 prior; inspect comp support.`);
-  }
-  if (v3NearCaratThreshold(query.carat)) {
-    warnings.push(`${query.carat}ct is near a market carat threshold — spot price may carry a premium not reflected in nearby comps.`);
-  }
-  const adjContext = {
-    localCaratSlope: localCaratCurve?.slope ?? null,
-    localCaratExtrapolated: !!localCaratCurve?.queryIsExtrapolated,
-  };
-
-  // Exact same-spec rows bypass the selection cap; cap fallback rows only.
-  const exactPool = unique.filter(c => v3IsExactMatch(query, c.row) && c.score < 0.10);
-  const fallbackPool = unique.filter(c => !v3IsExactMatch(query, c.row) || c.score >= 0.10);
-  const supplierCappedFallback = v3ApplySupplierCap(fallbackPool);
-  const supplierCapped = exactPool.length
-    ? [...exactPool, ...supplierCappedFallback].sort((a,b) => a.score - b.score)
-    : supplierCappedFallback;
-
-  // 3. Select ensemble (up to MAX within cutoff, or best-3 if all beyond)
-  // Exact observations should not be diluted by looser cross-shape comps.
-  const exactScored = supplierCapped.filter(c => v3IsExactMatch(query, c.row) && c.score < 0.10);
-  let selected = exactScored.length
-    ? v3SelectCheapestExactEnsemble(exactScored, V3_MAX_ENSEMBLE)
-    : supplierCapped.filter(c => c.score <= V3_SCORE_CUTOFF).slice(0, V3_MAX_ENSEMBLE);
-  if (!selected.length) {
-    selected = supplierCapped.slice(0, Math.min(3, supplierCapped.length));
-    warnings.push('No close comps — estimate is highly extrapolated.');
-  }
-
-  // 4. Adjust + blend
-  const adjustedList = selected.map(({ row, score, scoreComponents }) => ({ ...v3AdjustToQuery(query, row, adjContext), row, score, scoreComponents }));
-  const blend = v3Blend(adjustedList);
-  if (!blend) return { matchType:'none', estimate:null, low:null, high:null, perCt:null, confidence:null, primary:null, alternatives:[], supportComps:[], rejectedComps:[], warnings:[...warnings,'Blend failed.'], source:null };
-
-  if (blend.rejected.length) warnings.push(`${blend.rejected.length} comp(s) rejected as outliers.`);
-  if (blend.accepted.length === 1) warnings.push('Single comp — estimate based on one data point.');
-  if (blend.sourceConcentration?.dominated) {
-    const sc = blend.sourceConcentration;
-    if (sc.capPossible && sc.capApplied) {
-      warnings.push(`Source concentrated: ${sc.dominantSupplier} held ${(sc.rawDominantFrac * 100).toFixed(0)}% raw blend weight; capped to ${(sc.finalDominantFrac * 100).toFixed(0)}% final weight.`);
-    } else if (!sc.capPossible) {
-      warnings.push(`Source concentrated: all accepted blend weight came from ${sc.dominantSupplier}; no cross-source cap was possible.`);
-    } else {
-      warnings.push(`Source concentrated: ${sc.dominantSupplier} held ${(sc.finalDominantFrac * 100).toFixed(0)}% final blend weight.`);
-    }
-  }
-
-  // 5. matchType
-  const hasExact = v3IsExactMatch(query, unique[0].row) && bestScore < 0.10;
-  let matchType = hasExact ? 'exact' : bestScore <= 0.20 ? 'nearest' : 'best_available';
-  if (SPECIALTY_SHAPE_KEYS.has(state.shape) && broadened) matchType = 'none';
-
-  // 6. Model fallback (white, only when truly no comps)
-  if (matchType === 'none' && isWhite()) {
-    const bench = lookupMessiRoundLadder(ct, state.clarity, state.whiteGrade);
-    if (bench) {
-      const sm = getShapeMultForPricing(state.shape);
-      const est = Math.round(bench.price * sm);
-      const parts = [`Messi D ${state.clarity} ${bench.ladderSize}ct = ${fmt(bench.price)}`];
-      if (Math.abs(sm-1) > 0.02) parts.push(`shape ×${sm.toFixed(2)} (${state.shape} vs round)`);
-      return { matchType:'model_fallback', estimate:est, low:Math.round(est*0.87), high:Math.round(est*1.13), perCt:Math.round(est/ct), confidence:null,
-        primary:{ row:null, listingPrice:null, estimatedPrice:est, url:MESSI_D_ROUND_URL, label:'Messi round ladder', modifiers:{ combined:sm, estimated:est, parts } },
-        alternatives:[], supportComps:[], rejectedComps:[], warnings, source:'messi-ladder' };
-    }
-    return { matchType:'none', estimate:null, low:null, high:null, perCt:null, confidence:null, primary:null, alternatives:[], supportComps:[], rejectedComps:[], warnings, source:null };
-  }
-
-  // 7. Build output
-  const exactAdjustedOrdered = matchType === 'exact'
-    ? selected.map(({ row, score, scoreComponents }) => ({
-        ...v3AdjustToQuery(query, row, adjContext),
-        row,
-        score,
-        scoreComponents,
-      })).sort((a, b) => (a.row?.priceUsd ?? 0) - (b.row?.priceUsd ?? 0) || a.score - b.score)
-    : [];
-  const acceptedOrdered = matchType === 'exact'
-    ? exactAdjustedOrdered
-    : blend.accepted;
-  const pa = acceptedOrdered[0];
-  const floorSupplierKey = pa?.row ? v3SupplierKey(pa.row) : null;
-  const otherFactoryExact = (matchType === 'exact' && floorSupplierKey)
-    ? v3BuildOtherFactoryExactList(exactScored, floorSupplierKey)
-    : [];
-  if (otherFactoryExact.length) {
-    const names = [...new Set(otherFactoryExact.map(e => e.supplierKey))].join(', ');
-    warnings.push(`Same-spec listings also at ${names} — shown below, not averaged into floor price.`);
-  }
-  const primEstPrice = matchType === 'exact' ? pa.row.priceUsd : Math.round(Math.exp(pa.logEstimate));
-  const pointEstimate = matchType === 'exact' ? primEstPrice : blend.estimate;
-  const legacyMods   = matchType === 'exact' ? null : { combined: Math.exp(pa.logEstimate - Math.log(pa.row.priceUsd)), estimated: primEstPrice, parts: pa.parts };
-  const confidence   = bestScore <= 0.10 ? 'high' : bestScore <= 0.25 ? 'medium' : 'low';
-  const altPool = matchType === 'exact'
-    ? acceptedOrdered.slice(1).filter(a => v3SupplierKey(a.row) === floorSupplierKey)
-    : acceptedOrdered.slice(1);
-
-  return {
-    matchType,
-    estimate:   pointEstimate,
-    low:        matchType === 'exact' ? Math.round(pointEstimate * 0.87) : blend.low,
-    high:       matchType === 'exact' ? Math.round(pointEstimate * 1.13) : blend.high,
-    perCt:      Math.round(pointEstimate / ct),
-    confidence,
-    primary: { row: pa.row, listingPrice: pa.row.priceUsd, estimatedPrice: primEstPrice, url: pa.row.url, label: shortLabel(pa.row), modifiers: legacyMods },
-    otherFactoryExact,
-    alternatives: altPool.map(a => ({
-      row: a.row, listingPrice: a.row.priceUsd, estimatedPrice: Math.round(Math.exp(a.logEstimate)),
-      url: a.row.url, label: shortLabel(a.row),
-      modifiers: { combined: Math.exp(a.logEstimate - Math.log(a.row.priceUsd)), estimated: Math.round(Math.exp(a.logEstimate)), parts: a.parts },
-    })),
-    supportComps: acceptedOrdered.map(a => ({ row: a.row, score: a.score, scoreComponents: a.scoreComponents, logEstimate: a.logEstimate, sigmaLog: a.sigmaLog, estimatedPrice: Math.round(Math.exp(a.logEstimate)), parts: a.parts })),
-    rejectedComps: blend.rejected.map(a => ({ row: a.row, reason: a.rejectReason, estimatedPrice: Math.round(Math.exp(a.logEstimate)) })),
-    warnings,
-    source: 'comps-index-v3',
-    sourceConcentration: blend.sourceConcentration,
-    localCaratCurve: localCaratCurve ? {
-      slope: localCaratCurve.slope,
-      rawSlope: localCaratCurve.rawSlope,
-      n: localCaratCurve.n,
-      rowCount: localCaratCurve.rowCount,
-      sourceCount: localCaratCurve.sourceCount,
-      confidence: localCaratCurve.confidence,
-      caratRange: `${localCaratCurve.caratMin.toFixed(1)}–${localCaratCurve.caratMax.toFixed(1)}ct`,
-      queryIsExtrapolated: localCaratCurve.queryIsExtrapolated,
-      normalized: localCaratCurve.normalized,
-      note: `Normalized local carat slope ${localCaratCurve.slope.toFixed(2)} (prior 0.8), ${localCaratCurve.n} carat knots from ${localCaratCurve.rowCount} rows`,
-    } : null,
-    calibrationNote: `intervals_sigma_inflated_${V3_SIGMA_CALIBRATION_FACTOR}x_uncalibrated`,
-  };
+  if (!window._v3engine || !_compsIdxReady) return null;
+  return window._v3engine.resolveAlibabaComp(buildCompQueryFromState(ct));
 }
+
+// END V3 ENGINE SYNC
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // LEGACY SHOWROOM COMPS (kept as last-resort fallback for uncovered fancy colors)
@@ -2645,7 +1917,7 @@ function updateMarketBar(m){
     html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Factory floor = cheapest exact match.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
   } else if (ac.matchType === 'nearest') {
     const nComps = ac.supportComps?.length || 1;
-    html = `<div class="comp-block"><strong>Closest Alibaba comps — weighted blend ${fmt(ac.estimate)}</strong> ${fmtCompTag('nearest')}<br>`;
+    html = `<div class="comp-block"><strong>Closest Alibaba comps — weighted blend <span style="color:var(--accent);font-size:1.08em;letter-spacing:.01em">${fmt(ac.estimate)}</span></strong> ${fmtCompTag('nearest')}<br>`;
     html += renderCompEntry(ac.primary, false);
     if (ac.alternatives && ac.alternatives.length) {
       html += `<div class="comp-alts">`;

@@ -34,6 +34,11 @@ import {
   SHAPE_MULT_COLOR,
   MAX_SUPPLIER_WEIGHT_FRAC,
   supplierKey,
+  fitLocalCaratSlope,
+  resolveEffectiveCaratSlope,
+  caratPriorForQuery,
+  CARAT_SLOPE_POLICY,
+  MODE_SIGMA_BOOST,
 } from '../comp-engine-v3.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -720,6 +725,249 @@ async function runIntegrationTests() {
   }
 }
 
+// ── P1 carat slope policy unit tests (no index needed) ───────────────────────
+
+function testCaratPriorForQuery() {
+  console.log('\n── caratPriorForQuery ───────────────────────────────────────────────');
+  assertEqual(caratPriorForQuery(1.0),  0.8,  '1ct → prior 0.8');
+  assertEqual(caratPriorForQuery(4.99), 0.8,  '4.99ct → prior 0.8');
+  assertEqual(caratPriorForQuery(5.0),  0.65, '5ct → prior 0.65');
+  assertEqual(caratPriorForQuery(8.0),  0.65, '8ct → prior 0.65');
+  console.log('  caratPriorForQuery: done');
+}
+
+function testResolveEffectiveCaratSlope() {
+  console.log('\n── resolveEffectiveCaratSlope ───────────────────────────────────────');
+
+  // ── Step 2: no curve → prior_only ──────────────────────────────────────────
+  {
+    const r = resolveEffectiveCaratSlope(null, { carat: 2.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'prior_only', 'null curve → prior_only');
+    assertEqual(r.slope, 0.8, 'null curve → slope is 0.8 prior');
+    assertEqual(r.prior, 0.8, 'null curve → prior field 0.8');
+    assertEqual(r.rawFitted, null, 'null curve → rawFitted null');
+  }
+
+  // ── Step 2: no curve, 5ct query → prior_only with 0.65 ────────────────────
+  {
+    const r = resolveEffectiveCaratSlope(null, { carat: 6.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'prior_only', '5ct+ null curve → prior_only');
+    assertEqual(r.slope, 0.65, '5ct+ null curve → 0.65 prior');
+    assertEqual(r.prior, 0.65, '5ct+ null curve → prior field 0.65');
+  }
+
+  // ── Step 3: low confidence + extrapolated → ignored_fallback_prior ─────────
+  {
+    const curve = { slope: 1.1, rawSlope: 1.3, confidence: 'low', queryIsExtrapolated: true, sourceCount: 1, n: 4 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 6.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'ignored_fallback_prior', 'low+extrapolated → ignored_fallback_prior');
+    assertEqual(r.slope, 0.65, 'ignored → 0.65 prior (5ct+ query)');
+    assert(Math.abs(r.rawFitted - 1.1) < 0.001, 'rawFitted preserves fitted slope');
+  }
+
+  // ── Step 3: same but below 5ct → 0.8 prior ────────────────────────────────
+  {
+    const curve = { slope: 1.1, confidence: 'low', queryIsExtrapolated: true, sourceCount: 1, n: 4 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 2.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'ignored_fallback_prior', 'low+extrapolated 2ct → ignored_fallback_prior');
+    assertEqual(r.prior, 0.8, 'prior 0.8 for 2ct');
+    assertEqual(r.slope, 0.8, 'slope 0.8 for 2ct ignored');
+  }
+
+  // ── Step 4: extrapolated, medium confidence → shrunk_extrapolated ──────────
+  {
+    const curve = { slope: 1.0, confidence: 'medium', queryIsExtrapolated: true, sourceCount: 2, n: 6 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 2.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'shrunk_extrapolated', 'medium+extrapolated → shrunk_extrapolated');
+    // slope = prior + 0.15 * (1.0 - 0.8) = 0.8 + 0.03 = 0.83
+    assertBetween(r.slope, 0.829, 0.831, 'shrunk_extrapolated slope ~ 0.83');
+  }
+
+  // ── Step 4: extrapolated, high confidence → NOT shrunk_extrapolated ────────
+  {
+    const curve = { slope: 0.95, confidence: 'high', queryIsExtrapolated: true, sourceCount: 2, n: 12 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 2.0, colorFamily: 'white' });
+    assert(r.mode !== 'shrunk_extrapolated' && r.mode !== 'ignored_fallback_prior',
+      'high confidence extrapolation passes through to steps 5-8');
+  }
+
+  // ── Step 5: single source → shrunk_single_source ───────────────────────────
+  {
+    const curve = { slope: 1.2, confidence: 'medium', queryIsExtrapolated: false, sourceCount: 1, n: 8 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 2.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'shrunk_single_source', 'single source → shrunk_single_source');
+    // slope = 0.8 + 0.35 * (1.2 - 0.8) = 0.8 + 0.14 = 0.94
+    assertBetween(r.slope, 0.939, 0.941, 'shrunk_single_source slope ~ 0.94');
+  }
+
+  // ── Step 6: low confidence, multi-source, in-hull → shrunk_low_confidence ──
+  {
+    const curve = { slope: 1.1, confidence: 'low', queryIsExtrapolated: false, sourceCount: 2, n: 4 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 2.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'shrunk_low_confidence', 'low conf in-hull multi-source → shrunk_low_confidence');
+    // slope = 0.8 + 0.25 * (1.1 - 0.8) = 0.8 + 0.075 = 0.875
+    assertBetween(r.slope, 0.874, 0.876, 'shrunk_low_confidence slope ~ 0.875');
+  }
+
+  // ── Step 7: deviation cap → fitted_capped ──────────────────────────────────
+  {
+    const curve = { slope: 1.2, confidence: 'high', queryIsExtrapolated: false, sourceCount: 3, n: 12 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 2.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'fitted_capped', 'slope > prior + 0.25 → fitted_capped');
+    // slope capped at 0.8 + 0.25 = 1.05
+    assertBetween(r.slope, 1.049, 1.051, 'fitted_capped slope = 1.05');
+  }
+
+  // ── Step 8: clean fit → fitted ─────────────────────────────────────────────
+  {
+    const curve = { slope: 0.95, confidence: 'high', queryIsExtrapolated: false, sourceCount: 3, n: 12 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 2.0, colorFamily: 'white' });
+    assertEqual(r.mode, 'fitted', 'clean high-confidence fit → fitted');
+    assertBetween(r.slope, 0.949, 0.951, 'fitted slope preserved');
+  }
+
+  // ── 5ct+ prior interaction with fitted_capped ──────────────────────────────
+  {
+    // At 5ct+, prior is 0.65, maxDeviation = 0.25 → cap at 0.90
+    const curve = { slope: 1.0, confidence: 'high', queryIsExtrapolated: false, sourceCount: 3, n: 12 };
+    const r = resolveEffectiveCaratSlope(curve, { carat: 6.0, colorFamily: 'white' });
+    assertEqual(r.prior, 0.65, '5ct+ fitted_capped uses 0.65 prior');
+    assertEqual(r.mode, 'fitted_capped', '5ct+ slope 1.0 > 0.65+0.25 → capped');
+    assertBetween(r.slope, 0.899, 0.901, '5ct+ cap at 0.65+0.25 = 0.90');
+  }
+
+  console.log('  resolveEffectiveCaratSlope: done');
+}
+
+function testModeSigmaBoost() {
+  console.log('\n── MODE_SIGMA_BOOST / adjustCompToQuery sigma ───────────────────────');
+
+  const baseQuery  = { carat: 2.0, colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1', shape: 'round' };
+  const compRow    = { carat: 1.0, priceUsd: 800, shape: 'round', clarity: 'VS1', colorNormalized: 'D' };
+
+  // ── (a) prior_only mode → sigma boost = 0 ─────────────────────────────────
+  const adjPriorOnly = adjustCompToQuery(baseQuery, compRow, {
+    localCaratSlope: 0.8, localCaratSlopeMode: 'prior_only',
+    localCaratSlopePrior: 0.8, localCaratExtrapolated: false,
+  });
+  const adjNoContext = adjustCompToQuery(baseQuery, compRow, {});
+  assert(
+    Math.abs(adjPriorOnly.sigmaLog - adjNoContext.sigmaLog) < 0.001,
+    'prior_only mode → same sigma as no-context (boost = 0)',
+  );
+
+  // ── (b) ignored_fallback_prior mode → sigma boost = 0.12 ──────────────────
+  const adjIgnored = adjustCompToQuery(baseQuery, compRow, {
+    localCaratSlope: 0.65, localCaratSlopeMode: 'ignored_fallback_prior',
+    localCaratSlopePrior: 0.65, localCaratExtrapolated: true,
+  });
+  assert(
+    adjIgnored.sigmaLog > adjPriorOnly.sigmaLog,
+    'ignored_fallback_prior → wider sigma than prior_only',
+  );
+
+  // ── (c) slopeSigmaBoost uses effective prior, not hardcoded 0.8 ───────────
+  // With slope=0.75, prior=0.65 → deviation 0.10 → larger boost than prior=0.8 (deviation 0.05).
+  // The point: for 5ct+ queries the correct reference is 0.65, not 0.8.
+  const adjLegacyNewPrior = adjustCompToQuery(baseQuery, compRow, {
+    localCaratSlope: 0.75, localCaratSlopePrior: 0.65,
+    localCaratExtrapolated: false,
+    // no localCaratSlopeMode → triggers legacy path
+  });
+  const adjLegacyOldPrior = adjustCompToQuery(baseQuery, compRow, {
+    localCaratSlope: 0.75,
+    localCaratExtrapolated: false,
+    // legacy: no prior → defaults to 0.8
+  });
+  // With prior 0.65, slope 0.75 is 0.10 away → bigger boost than prior 0.8 (0.05 away).
+  assert(
+    adjLegacyNewPrior.sigmaLog > adjLegacyOldPrior.sigmaLog,
+    'slopeSigmaBoost with segment prior=0.65 is larger for slope=0.75 (deviation 0.10 > 0.05)',
+  );
+
+  console.log('  MODE_SIGMA_BOOST/sigma: done');
+}
+
+function testFitLocalCaratSlopeLargeCaratGuard() {
+  console.log('\n── fitLocalCaratSlope 5ct+ guard ────────────────────────────────────');
+
+  // Build synthetic candidates: knots only at 1, 2, 3ct — no coverage above 4ct
+  const makeRow = (carat, priceUsd) => ({
+    carat, priceUsd, shape: 'round', clarity: 'VS1', colorNormalized: 'D',
+    colorFamily: 'white', count: 1, section: 'test - supplier_a',
+  });
+
+  const lowKnotCandidates = [
+    makeRow(1.0, 800), makeRow(1.0, 810), makeRow(1.25, 850),
+    makeRow(1.5, 920), makeRow(2.0, 1100), makeRow(2.5, 1300),
+    makeRow(3.0, 1600),
+  ];
+
+  const query5ct = { carat: 5.0, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' };
+  const curveFor5ct = fitLocalCaratSlope(lowKnotCandidates, query5ct, 0.65);
+  assert(curveFor5ct === null, '5ct query with knots max 3ct → fitLocalCaratSlope returns null');
+
+  // Same pool, 2ct query → should succeed (no 5ct guard)
+  const query2ct = { carat: 2.0, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' };
+  const curveFor2ct = fitLocalCaratSlope(lowKnotCandidates, query2ct, 0.8);
+  assert(curveFor2ct !== null, '2ct query with same pool → fit succeeds');
+
+  // Pool with knots at 1, 2, 3, 5ct → 5ct query should succeed (has 2 knots ≥ 4ct)
+  const highKnotCandidates = [
+    ...lowKnotCandidates,
+    makeRow(4.5, 3500), makeRow(5.0, 4500),
+  ];
+  const curveFor5ctHigh = fitLocalCaratSlope(highKnotCandidates, query5ct, 0.65);
+  assert(curveFor5ctHigh !== null, '5ct query with knots at 4.5+5ct → fit succeeds');
+
+  console.log('  fitLocalCaratSlope 5ct+ guard: done');
+}
+
+function testExactMatchSlopeIrrelevant() {
+  console.log('\n── Exact match: slope irrelevance ───────────────────────────────────');
+
+  // When query carat == comp carat, log(q/c) = 0 → deltaCarat = 0 regardless of slope.
+  const q   = { carat: 1.0, colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1', shape: 'round' };
+  const row = { carat: 1.0, priceUsd: 800, shape: 'round', clarity: 'VS1', colorNormalized: 'D' };
+
+  const adjFitted = adjustCompToQuery(q, row, {
+    localCaratSlope: 1.5, localCaratSlopeMode: 'fitted',
+    localCaratSlopePrior: 0.8, localCaratExtrapolated: false,
+  });
+  const adjPrior = adjustCompToQuery(q, row, {
+    localCaratSlope: 0.8, localCaratSlopeMode: 'prior_only',
+    localCaratSlopePrior: 0.8, localCaratExtrapolated: false,
+  });
+
+  assert(
+    Math.abs(adjFitted.estimatedPrice - adjPrior.estimatedPrice) < 2,
+    'Exact match: slope 1.5 vs 0.8 does not move price estimate',
+  );
+
+  console.log('  Exact match slope irrelevance: done');
+}
+
+function testFitLocalCaratSlopeCratBandExclusion() {
+  console.log('\n── fitLocalCaratSlope: caratBand rows excluded ──────────────────────');
+
+  const makeRow = (carat, priceUsd, caratBand = false) => ({
+    carat, priceUsd, shape: 'round', clarity: 'VS1', colorNormalized: 'D',
+    colorFamily: 'white', count: 1, section: 'test - supplier_a',
+    ...(caratBand ? { caratBand: true } : {}),
+  });
+  const query = { carat: 2.0, shape: 'round', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' };
+
+  // Pool with ONLY caratBand rows → should return null (no concrete points)
+  const bandOnly = [
+    makeRow(1.0, 800, true), makeRow(2.0, 1100, true), makeRow(3.0, 1600, true),
+    makeRow(1.5, 920, true), makeRow(2.5, 1300, true),
+  ];
+  const curveBandOnly = fitLocalCaratSlope(bandOnly, query, 0.8);
+  assert(curveBandOnly === null, 'caratBand-only pool → null curve (no concrete knots)');
+
+  console.log('  caratBand exclusion: done');
+}
+
 // ── entry point ──────────────────────────────────────────────────────────────
 
 async function main() {
@@ -741,6 +989,15 @@ async function main() {
   testScoringSemantics();
   testAdjustmentSemantics();
   await testExactFloorDisplayGuards();
+
+  // ── P1 carat slope policy unit tests ─────────────────────────────────────
+  console.log('\n── P1 CARAT SLOPE POLICY UNIT TESTS ─────────────────────────────────');
+  testCaratPriorForQuery();
+  testResolveEffectiveCaratSlope();
+  testModeSigmaBoost();
+  testFitLocalCaratSlopeLargeCaratGuard();
+  testExactMatchSlopeIrrelevant();
+  testFitLocalCaratSlopeCratBandExclusion();
 
   // ── Integration tests (need index) ─────────────────────────────────────────
   try {

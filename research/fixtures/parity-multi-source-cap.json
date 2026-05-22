@@ -1,0 +1,53 @@
+{
+  "_comment": "Micro-index Tier C — multi-source supplier cap fixture. Query: 1ct round D VS1. All rows are VVS1 (one clarity step off), so they are nearest matches rather than exact, going through the blend path where supplier-weight cap math operates. Dominant Factory has 3 rows → raw weight fraction ≈ 0.75 > MAX_SUPPLIER_WEIGHT_FRAC (0.65), forcing capApplied=true. After per-supplier row cap (MAX_PER_SUPPLIER=2), 2 Dominant + 1 Other make the ensemble.",
+  "comps": [
+    {
+      "productId": "ms-dominant-001",
+      "section": "D VVS1 round ladder — Dominant Factory",
+      "shape": "round",
+      "colorFamily": "white",
+      "colorNormalized": "D",
+      "clarity": "VVS1",
+      "carat": 1.0,
+      "priceUsd": 130,
+      "confidence": "high",
+      "url": "https://example.com/ms-dominant-001"
+    },
+    {
+      "productId": "ms-dominant-002",
+      "section": "D VVS1 round ladder — Dominant Factory",
+      "shape": "round",
+      "colorFamily": "white",
+      "colorNormalized": "D",
+      "clarity": "VVS1",
+      "carat": 0.98,
+      "priceUsd": 128,
+      "confidence": "high",
+      "url": "https://example.com/ms-dominant-002"
+    },
+    {
+      "productId": "ms-dominant-003",
+      "section": "D VVS1 round ladder — Dominant Factory",
+      "shape": "round",
+      "colorFamily": "white",
+      "colorNormalized": "D",
+      "clarity": "VVS1",
+      "carat": 1.02,
+      "priceUsd": 132,
+      "confidence": "high",
+      "url": "https://example.com/ms-dominant-003"
+    },
+    {
+      "productId": "ms-other-001",
+      "section": "D VVS1 round — Other Factory",
+      "shape": "round",
+      "colorFamily": "white",
+      "colorNormalized": "D",
+      "clarity": "VVS1",
+      "carat": 1.0,
+      "priceUsd": 125,
+      "confidence": "high",
+      "url": "https://example.com/ms-other-001"
+    }
+  ]
+}

@@ -32,29 +32,28 @@ The remaining work is less about obvious implementation bugs and more about mode
 
 ## P0 - Remove Research/Production Drift Risk
 
+**Full plan:** `research/p0-remove-research-production-drift-research.md` (tiered fixtures, warning normalization, micro-index strategy, false-positive playbook).
+
 ### What Is Left
 
-`research/comp-engine-v3.js` and `index.html` still contain duplicated model logic. The recent pass mirrored the behavior, but future changes can still land in one place and not the other.
+`research/comp-engine-v3.js` and `index.html` still contain duplicated model logic (~1,825 vs ~808 mirrored lines). The May 2026 gap-fix pass aligned behavior (calibration, supplier cap, local carat curve, exact-floor semantics), but future edits can still land in one file only.
 
 ### Why This Matters
 
-This is the highest operational risk because the backtest can say one thing while the user-facing calculator does another. That makes every future pricing improvement harder to trust.
+The backtest imports **only** the research module. The UI runs inline `v3*`. This is the highest operational risk for trusting any future P1/P2 tuning.
 
 ### Acceptance Criteria
 
-- There is one shared source of truth for v3 model logic, or there is a golden parity test that compares research and production outputs for representative queries.
-- Representative parity cases include:
-  - white exact/near-exact match;
-  - white large-carat extrapolation;
-  - fancy vivid pink sparse case;
-  - single-source-only estimate;
-  - multi-source blend with supplier cap applied.
-- Production output matches research output for estimate, low/high range, selected support comps, warnings, and source concentration metadata within defined tolerances.
-- Any future engine change fails CI or the local test suite if production parity is broken.
+- One shared source of truth **or** automated parity (minimum: Tier A + Tier C on every PR).
+- **Tier A** (5): white exact, white 6ct extrapolation (T09 oval), fancy T16 pink, single-source synthetic, multi-source cap.
+- **Tier B** (optional CI tier): `runTests()` T01–T29 queries on index slice or full index.
+- Compare estimate, low/high, `supportComps`, `sourceConcentration`, `otherFactoryExact` (exact cases); warnings via normalized codes (raw strings differ today).
+- `model_fallback` / legacy ceilings are production-only — not parity failures.
+- PRs touching v3 logic fail CI if parity breaks.
 
 ### General Instructions
 
-Prefer extracting the shared pricing engine into an importable module if the app structure allows it. If that is too disruptive, add a focused parity harness that evaluates the same query fixtures through both code paths and compares the returned pricing contract.
+Prefer ES module import from `research/comp-engine-v3.js`. Otherwise: golden parity harness + sync markers (`// BEGIN V3 ENGINE SYNC`). See the full doc for entry-point mapping (`buildCompQueryFromState`), fixture JSON layout, and CI workflow sketch.
 
 ## P1 - Tune Local Carat Curve Usage
 

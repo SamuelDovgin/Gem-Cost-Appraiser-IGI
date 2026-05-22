@@ -1,0 +1,48 @@
+name: comp-engine
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Engine tests + parity gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Unit + integration tests on the research module
+      - name: Engine unit tests (test-comp-engine-v3.mjs)
+        run: node research/scripts/test-comp-engine-v3.mjs
+
+      # Tier A + Tier C golden cases + mapper tests
+      # Validates: exact, large-carat, T16 fancy pink, supplier cap, exact floor
+      - name: Parity regression gate (Tier A + C)
+        run: node research/scripts/parity-regression.mjs
+
+  test-full:
+    name: Full behavioural test suite (Tier B)
+    runs-on: ubuntu-latest
+    # Run on main-branch pushes only — heavier Tier B tests on full real index
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Full parity regression (Tier A + B + C)
+        run: node research/scripts/parity-regression.mjs --tier=full

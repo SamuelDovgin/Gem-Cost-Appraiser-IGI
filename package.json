@@ -1,0 +1,16 @@
+{
+  "name": "gem-appraise",
+  "version": "3.1.0",
+  "description": "Lab-grown diamond comp engine and pricing calculator",
+  "type": "module",
+  "scripts": {
+    "test:engine": "node research/scripts/test-comp-engine-v3.mjs",
+    "test:parity": "node research/scripts/parity-regression.mjs",
+    "test:parity:full": "node research/scripts/parity-regression.mjs --tier=full",
+    "test": "npm run test:engine && npm run test:parity",
+    "serve": "python3 -m http.server 8765"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

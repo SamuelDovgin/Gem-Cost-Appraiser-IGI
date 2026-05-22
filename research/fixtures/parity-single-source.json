@@ -1,0 +1,41 @@
+{
+  "_comment": "Micro-index Tier C — single-source fixture. All rows from one supplier so capPossible must be false. Used by parity-regression.mjs. Query: 2ct pear white E VS1.",
+  "comps": [
+    {
+      "productId": "ss-001",
+      "section": "Pear E VS1 ladder — Solo Factory",
+      "shape": "pear",
+      "colorFamily": "white",
+      "colorNormalized": "E",
+      "clarity": "VS1",
+      "carat": 1.95,
+      "priceUsd": 480,
+      "confidence": "high",
+      "url": "https://example.com/ss-001"
+    },
+    {
+      "productId": "ss-002",
+      "section": "Pear E VS1 ladder — Solo Factory",
+      "shape": "pear",
+      "colorFamily": "white",
+      "colorNormalized": "E",
+      "clarity": "VS1",
+      "carat": 2.05,
+      "priceUsd": 520,
+      "confidence": "high",
+      "url": "https://example.com/ss-002"
+    },
+    {
+      "productId": "ss-003",
+      "section": "Pear E VS1 ladder — Solo Factory",
+      "shape": "pear",
+      "colorFamily": "white",
+      "colorNormalized": "E",
+      "clarity": "VS1",
+      "carat": 2.0,
+      "priceUsd": 500,
+      "confidence": "high",
+      "url": "https://example.com/ss-003"
+    }
+  ]
+}
