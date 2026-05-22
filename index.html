@@ -731,9 +731,9 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 <script type="module">
   // Shared comp engine — eliminates research/production implementation drift.
   // Requires an HTTP server (not file:// access). Run: python3 -m http.server 8765
-  // The main (classic) script reads window._v3engine after the first async await.
   import { loadIndex, resolveAlibabaComp } from './research/comp-engine-v3.js';
   window._v3engine = { loadIndex, resolveAlibabaComp };
+  window.dispatchEvent(new Event('v3engine-ready'));
 </script>
 <script>
 // ══════════════════════════════════════════════════════════════════════════════
@@ -741,10 +741,31 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 // ══════════════════════════════════════════════════════════════════════════════
 let _compsIdx = null;   // { comps: [...], indexVersion, rowCount }
 let _compsIdxReady = false;
+let _compsIdxLoadPromise = null;
+let _v3engineReadyPromise = null;
 let _chartAxis = 'carat'; // 'carat' | 'clarity' | 'color'
+
+function waitForV3Engine(timeoutMs = 8000) {
+  if (window._v3engine) return Promise.resolve(window._v3engine);
+  if (_v3engineReadyPromise) return _v3engineReadyPromise;
+
+  _v3engineReadyPromise = new Promise(resolve => {
+    const done = () => {
+      clearTimeout(timer);
+      window.removeEventListener('v3engine-ready', done);
+      resolve(window._v3engine || null);
+    };
+    const timer = setTimeout(done, timeoutMs);
+    window.addEventListener('v3engine-ready', done, { once:true });
+  });
+  return _v3engineReadyPromise;
+}
 
 async function loadAlibabaCompsIndex() {
   if (_compsIdxReady) return;
+  if (_compsIdxLoadPromise) return _compsIdxLoadPromise;
+
+  _compsIdxLoadPromise = (async () => {
   try {
     const [alibRes, messiRes, starsRes, messiColorRes] = await Promise.all([
       fetch('research/data/alibaba-comps-index.json'),
@@ -767,19 +788,19 @@ async function loadAlibabaCompsIndex() {
       const messiColorData = await messiColorRes.json();
       _compsIdx.comps.push(...(messiColorData.comps || []));
     }
-    // Load merged index into the shared research engine module.
-    // window._v3engine is set by <script type="module"> (deferred, runs before
-    // any fetch promise can resolve, so it is always available here).
-    if (window._v3engine) {
-      await window._v3engine.loadIndex(_compsIdx);
+    const engine = window._v3engine || await waitForV3Engine();
+    if (engine) {
+      await engine.loadIndex(_compsIdx);
+      _compsIdxReady = true;
     } else {
       console.warn('V3 engine module not available (file:// access?). resolveAlibabaComp will return null.');
     }
-    _compsIdxReady = true;
     update(); // re-render now that comps are available
   } catch (e) {
     console.warn('Comps index unavailable — falling back to legacy ceiling.', e);
   }
+  })();
+  return _compsIdxLoadPromise;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1236,7 +1257,14 @@ function currentColorMatchesCompRow(row) {
 // Returns null if the module is not yet available (file:// access without server).
 function resolveAlibabaComp(ct) {
   if (!window._v3engine || !_compsIdxReady) return null;
-  return window._v3engine.resolveAlibabaComp(buildCompQueryFromState(ct));
+  try {
+    return window._v3engine.resolveAlibabaComp(buildCompQueryFromState(ct));
+  } catch (err) {
+    console.warn('V3 comp engine unavailable — falling back to legacy ceiling.', err);
+    _compsIdxReady = false;
+    loadAlibabaCompsIndex();
+    return null;
+  }
 }
 
 // END V3 ENGINE SYNC
