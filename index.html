@@ -324,7 +324,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   <div class="section-label">Carat weight</div>
   <div class="slider-row">
     <div class="slider-wrap">
-      <input type="range" id="carat" min="0.5" max="10" step="0.1" value="3">
+      <input type="range" id="carat" min="0.5" max="10" step="0.01" value="3">
       <div class="slider-ticks">
         <span>0.5</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
       </div>
@@ -848,8 +848,44 @@ function setCaratValue(value, options = {}) {
   state.ratio = null;
   state.ratioAssessment = null;
   syncCaratControls(options);
-  update();
+  if (options.deferRender) scheduleRender({ interactive: !!options.interactive });
+  else update();
   return true;
+}
+
+let _renderFrame = null;
+let _settledRenderTimer = null;
+let _lastSettledRenderCarat = null;
+const SETTLED_RENDER_DELAY = 140;
+
+function scheduleRender(options = {}) {
+  const interactive = !!options.interactive;
+  if (_renderFrame != null) cancelAnimationFrame(_renderFrame);
+  _renderFrame = requestAnimationFrame(() => {
+    _renderFrame = null;
+    update({ interactive });
+  });
+
+  if (interactive) {
+    clearTimeout(_settledRenderTimer);
+    _settledRenderTimer = setTimeout(() => {
+      _settledRenderTimer = null;
+      scheduleRender({ interactive: false });
+    }, SETTLED_RENDER_DELAY);
+  }
+}
+
+function flushSettledRender() {
+  const hadPendingRender = _renderFrame != null || _settledRenderTimer != null;
+  clearTimeout(_settledRenderTimer);
+  _settledRenderTimer = null;
+  if (_renderFrame != null) {
+    cancelAnimationFrame(_renderFrame);
+    _renderFrame = null;
+  }
+  if (!hadPendingRender && _lastSettledRenderCarat === state.carat) return;
+  update({ interactive: false });
+  _lastSettledRenderCarat = state.carat;
 }
 
 // White diamond baseline per carat (round, E, VS1, ideal) — recalibrated May 2026
@@ -1925,8 +1961,9 @@ function getEffectiveCutMult() {
   return cutMult[state.cut] ?? cutMult.good;
 }
 
-function compute(ct) {
+function compute(ct, options = {}) {
   ct = ct || state.carat;
+  const includeComps = options.includeComps !== false;
   const sh = getShapeMultForPricing(state.shape);
   const shC = shapeMultColor[state.shape] || 1.0;
   const cl = getClarityMult(state.clarity, ct);
@@ -1985,8 +2022,8 @@ function compute(ct) {
   const retailLo = baseWsRetail * retailMult[0] * (state.gia ? 1.12 : 1.0);
   const retailHi = baseWsRetail * retailMult[1] * (state.gia ? 1.12 : 1.0);
 
-  const alibabaMatch = getAlibabaCeiling(ct); // legacy (kept for floor bar)
-  const alibabaComp = resolveAlibabaComp(ct);  // new nearest-match system
+  const alibabaMatch = includeComps ? getAlibabaCeiling(ct) : null; // legacy (kept for floor bar)
+  const alibabaComp = includeComps ? resolveAlibabaComp(ct) : null;  // new nearest-match system
 
   return { ws, wsPerCt:wsPerCt*wsMultiplier, fairLo, fairHi, fairMid:(fairLo+fairHi)/2,
            retailLo, retailHi, retailMid:(retailLo+retailHi)/2, alibabaMatch, alibabaComp };
@@ -2242,10 +2279,11 @@ function syncSelectControls() {
   if (shapeSelect) shapeSelect.value = state.shape;
 }
 
-function update() {
+function update(options = {}) {
+  const interactive = !!options.interactive;
   syncCaratControls({ preserveInput: true });
   const ct = state.carat;
-  const m = compute(ct);
+  const m = compute(ct, { includeComps: !interactive });
 
   document.getElementById('stone-summary').textContent =
     formatCarat(ct)+'ct · '+(shapeNames[state.shape]||state.shape)+' · '+colorLabel()+' · '+state.clarity+' · '+capCut(state.cut);
@@ -2283,9 +2321,9 @@ function update() {
 
   updateBadges();
   updateRatioBar();
-  updateMarketBar(m);
+  if (!interactive) updateMarketBar(m);
   updateAlibabaFloorBar();
-  drawChart();
+  drawChart({ includeComps: !interactive });
 }
 
 function updateBadges(){
@@ -2671,7 +2709,8 @@ function caratChartTicks(xMin, xMax) {
   return [...new Set(ticks.map(c => Math.round(c * 100) / 100))].sort((a,b) => a-b);
 }
 
-function drawCaratChart(ctx,cssW,cssH) {
+function drawCaratChart(ctx,cssW,cssH,options = {}) {
+  const includeComps = options.includeComps !== false;
   const pad={l:58,r:20,t:22,b:32};
   const savedCt=state.carat;
   const { xMin, xMax } = caratChartBounds();
@@ -2680,7 +2719,7 @@ function drawCaratChart(ctx,cssW,cssH) {
   for(let c=xMin;c<=xMax+step/2;c+=step) xs.push(Math.round(c*100)/100);
   if (!xs.some(c => Math.abs(c - savedCt) < 0.01)) xs.push(savedCt);
   xs.sort((a,b) => a-b);
-  const series=xs.map(c=>{ state.carat=c; const m=compute(c); state.carat=savedCt; return {c,ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
+  const series=xs.map(c=>{ state.carat=c; const m=compute(c, { includeComps:false }); state.carat=savedCt; return {c,ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
   state.carat=savedCt;
 
   const ymax=Math.max(...series.map(p=>p.retail))*1.12;
@@ -2709,7 +2748,7 @@ function drawCaratChart(ctx,cssW,cssH) {
   plotLine('ws','#d8d5d0',1.5);
 
   // Alibaba scatter dots — register hit targets for hover
-  if(_compsIdxReady&&_compsIdx) {
+  if(includeComps&&_compsIdxReady&&_compsIdx) {
     const userShape=normalizeShapeForComp(state.shape);
     const clarU=CLARITY_RANK_NUM[state.clarity]??2;
     const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
@@ -2749,15 +2788,16 @@ function drawCaratChart(ctx,cssW,cssH) {
   }
 
   // Current stone ring marker
-  const curM = compute(state.carat);
+  const curM = compute(state.carat, { includeComps:false });
   _chartMarkerFull(ctx,xM(state.carat),curM?yM(curM.ws):null,curM?curM.ws:null,cssW,pad,cssH);
 }
 
-function drawClarityChart(ctx,cssW,cssH) {
+function drawClarityChart(ctx,cssW,cssH,options = {}) {
+  const includeComps = options.includeComps !== false;
   const pad={l:58,r:20,t:22,b:32};
   const clarities=['VS2','VS1','VVS2','VVS1','IF'];
   const savedClarity=state.clarity;
-  const pts=clarities.map(cl=>{ state.clarity=cl; const m=compute(state.carat); state.clarity=savedClarity; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
+  const pts=clarities.map(cl=>{ state.clarity=cl; const m=compute(state.carat, { includeComps:false }); state.clarity=savedClarity; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
 
   const ymax=Math.max(...pts.map(p=>p.retail))*1.2;
   const n=clarities.length;
@@ -2784,7 +2824,7 @@ function drawClarityChart(ctx,cssW,cssH) {
   ctx.fillStyle='rgba(216,213,208,0.45)';
   pts.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2); ctx.fill(); });
 
-  if(_compsIdxReady&&_compsIdx) {
+  if(includeComps&&_compsIdxReady&&_compsIdx) {
     const userShape=normalizeShapeForComp(state.shape);
     const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
     const ct=state.carat;
@@ -2807,7 +2847,8 @@ function drawClarityChart(ctx,cssW,cssH) {
   if(ci>=0) _chartMarkerFull(ctx,xM(ci),yM(pts[ci].ws),pts[ci].ws,cssW,pad,cssH);
 }
 
-function drawColorChart(ctx,cssW,cssH) {
+function drawColorChart(ctx,cssW,cssH,options = {}) {
+  const includeComps = options.includeComps !== false;
   const pad={l:58,r:20,t:22,b:32};
   if(!isWhite()) {
     ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='11px DM Mono,monospace'; ctx.textAlign='center';
@@ -2816,7 +2857,7 @@ function drawColorChart(ctx,cssW,cssH) {
   }
   const grades=['D','E','F','G','H'];
   const savedGrade=state.whiteGrade;
-  const pts=grades.map(g=>{ state.whiteGrade=g; const m=compute(state.carat); state.whiteGrade=savedGrade; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
+  const pts=grades.map(g=>{ state.whiteGrade=g; const m=compute(state.carat, { includeComps:false }); state.whiteGrade=savedGrade; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
 
   const ymax=Math.max(...pts.map(p=>p.retail))*1.2;
   const n=grades.length;
@@ -2843,7 +2884,7 @@ function drawColorChart(ctx,cssW,cssH) {
   ctx.fillStyle='rgba(216,213,208,0.45)';
   pts.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2); ctx.fill(); });
 
-  if(_compsIdxReady&&_compsIdx) {
+  if(includeComps&&_compsIdxReady&&_compsIdx) {
     const userShape=normalizeShapeForComp(state.shape);
     const clarU=CLARITY_RANK_NUM[state.clarity]??2;
     const ct=state.carat;
@@ -2867,7 +2908,8 @@ function drawColorChart(ctx,cssW,cssH) {
   if(ci>=0) _chartMarkerFull(ctx,xM(ci),yM(pts[ci].ws),pts[ci].ws,cssW,pad,cssH);
 }
 
-function drawShapeChart(ctx,cssW,cssH) {
+function drawShapeChart(ctx,cssW,cssH,options = {}) {
+  const includeComps = options.includeComps !== false;
   const pad={l:58,r:20,t:22,b:32};
   const SHAPES=[
     {key:'round',            label:'Round'},
@@ -2883,7 +2925,7 @@ function drawShapeChart(ctx,cssW,cssH) {
     {key:'heart',            label:'Heart'},
   ];
   const savedShape=state.shape;
-  const pts=SHAPES.map(s=>{ state.shape=s.key; const m=compute(state.carat); state.shape=savedShape; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
+  const pts=SHAPES.map(s=>{ state.shape=s.key; const m=compute(state.carat, { includeComps:false }); state.shape=savedShape; return {ws:m.ws,fair:m.fairMid,retail:m.retailMid}; });
   state.shape=savedShape;
 
   const ymax=Math.max(...pts.map(p=>p.retail))*1.2;
@@ -2914,7 +2956,7 @@ function drawShapeChart(ctx,cssW,cssH) {
   pts.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(xM(i),yM(p.ws),4,0,Math.PI*2); ctx.fill(); });
 
   // Alibaba dots at current carat ±0.4ct per shape
-  if(_compsIdxReady&&_compsIdx) {
+  if(includeComps&&_compsIdxReady&&_compsIdx) {
     const clarU=CLARITY_RANK_NUM[state.clarity]??2;
     const colorU=WHITE_COLOR_GRADE_NUM[state.whiteGrade]??2;
     const ct=state.carat;
@@ -2962,7 +3004,8 @@ function updateChartComps() {
   el.innerHTML=chips;
 }
 
-function drawChart(){
+function drawChart(options = {}){
+  const includeComps = options.includeComps !== false;
   _chartHitTargets=[];
   const canvas=document.getElementById('price-chart');
   const titleEl=document.getElementById('chart-title');
@@ -2978,11 +3021,11 @@ function drawChart(){
     }
   }
   const {ctx,cssW,cssH}=_chartSetup(canvas);
-  if(_chartAxis==='clarity') drawClarityChart(ctx,cssW,cssH);
-  else if(_chartAxis==='color') drawColorChart(ctx,cssW,cssH);
-  else if(_chartAxis==='shape') drawShapeChart(ctx,cssW,cssH);
-  else drawCaratChart(ctx,cssW,cssH);
-  updateChartComps();
+  if(_chartAxis==='clarity') drawClarityChart(ctx,cssW,cssH,{ includeComps });
+  else if(_chartAxis==='color') drawColorChart(ctx,cssW,cssH,{ includeComps });
+  else if(_chartAxis==='shape') drawShapeChart(ctx,cssW,cssH,{ includeComps });
+  else drawCaratChart(ctx,cssW,cssH,{ includeComps });
+  if (includeComps) updateChartComps();
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -3009,16 +3052,27 @@ document.querySelectorAll('.pill').forEach(pill=>{
   });
 });
 
-document.getElementById('carat').addEventListener('input', e => {
-  setCaratValue(e.target.value);
+const caratSlider = document.getElementById('carat');
+caratSlider.addEventListener('input', e => {
+  setCaratValue(e.target.value, { deferRender: true, interactive: true });
+});
+caratSlider.addEventListener('change', () => {
+  flushSettledRender();
+});
+caratSlider.addEventListener('pointerup', () => {
+  flushSettledRender();
+});
+caratSlider.addEventListener('pointercancel', () => {
+  flushSettledRender();
 });
 
 document.getElementById('carat-input').addEventListener('input', e => {
-  setCaratValue(e.target.value, { preserveInput: true });
+  setCaratValue(e.target.value, { preserveInput: true, deferRender: true, interactive: true });
 });
 
 document.getElementById('carat-input').addEventListener('blur', e => {
-  if (!setCaratValue(e.target.value)) syncCaratControls();
+  if (!setCaratValue(e.target.value, { preserveInput: true, deferRender: true })) syncCaratControls();
+  flushSettledRender();
 });
 
 document.getElementById('color-select').addEventListener('change',e=>{
