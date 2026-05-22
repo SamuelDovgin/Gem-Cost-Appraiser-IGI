@@ -1903,7 +1903,7 @@ function updateMarketBar(m){
   }
 
   if (ac.matchType === 'exact') {
-    html = `<div class="comp-block"><strong>Alibaba exact listing price (floor):</strong> ${fmtCompTag('exact')}<br>`;
+    html = `<div class="comp-block"><strong>Alibaba nearest exact listing:</strong> ${fmtCompTag('exact')}<br>`;
     html += renderCompEntry(ac.primary, false);
     if (ac.alternatives && ac.alternatives.length) {
       html += `<div class="comp-alts">`;
@@ -1913,12 +1913,12 @@ function updateMarketBar(m){
     }
     if (ac.otherFactoryExact && ac.otherFactoryExact.length) {
       html += `<div class="comp-alts" style="margin-top:10px">`;
-      html += `<div style="font-size:11px;color:var(--muted2);margin:0 0 6px"><strong>Same spec at other factories</strong> — actual sheet/listing prices, not blended into floor:</div>`;
+      html += `<div style="font-size:11px;color:var(--muted2);margin:0 0 6px"><strong>Same spec at other factories</strong> — actual sheet/listing prices, not blended into primary:</div>`;
       html += ac.otherFactoryExact.map(entry => renderCompEntry(entry, true)).join('');
       html += `</div>`;
     }
     const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Factory floor = cheapest exact match.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Primary exact comp = nearest carat bin, adjusted to your carat; same-supplier rows below show nearby bins.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
   } else if (ac.matchType === 'nearest') {
     const nComps = ac.supportComps?.length || 1;
     html = `<div class="comp-block"><strong>Closest Alibaba comps — weighted blend <span style="color:var(--accent);font-size:1.08em;letter-spacing:.01em">${fmt(ac.estimate)}</span></strong> ${fmtCompTag('nearest')}<br>`;

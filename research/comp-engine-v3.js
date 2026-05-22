@@ -192,23 +192,36 @@ function applySupplierCap(scored) {
 
 /**
  * buildOtherFactoryExactList — same-spec exact rows from suppliers other than the
- * floor (cheapest) supplier. Shown separately; never blended into the estimate.
+ * floor/nearest supplier. Shown separately; never blended into the estimate.
  */
-function buildOtherFactoryExactList(exactScored, floorSupplierKey) {
-  return exactScored
-    .filter(c => supplierKey(c.row) !== floorSupplierKey)
-    .sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.row.carat - b.row.carat)
-    .map(c => ({
-      row: c.row,
-      listingPrice: c.row.priceUsd,
-      url: c.row.url,
-      label: shortLabel(c.row),
-      supplierKey: supplierKey(c.row),
-    }));
+function buildOtherFactoryExactList(exactAdjustedOrdered, floorSupplierKey, queryCarat) {
+  return exactAdjustedOrdered
+    .filter(adj => supplierKey(adj.row) !== floorSupplierKey)
+    .map(adj => {
+      const estimatedPrice = Math.round(Math.exp(adj.logEstimate));
+      const hasModifier = caratGapNeedsExactAdjustment(queryCarat, adj.row?.carat)
+        || (adj.parts && adj.parts.length);
+      return {
+        row: adj.row,
+        listingPrice: adj.row.priceUsd,
+        estimatedPrice,
+        url: adj.row.url,
+        label: shortLabel(adj.row),
+        supplierKey: supplierKey(adj.row),
+        modifiers: hasModifier
+          ? {
+              combined: Math.exp(adj.logEstimate - Math.log(adj.row.priceUsd)),
+              estimated: estimatedPrice,
+              parts: adj.parts,
+            }
+          : null,
+      };
+    });
 }
 
 /**
- * selectCheapestExactEnsemble — price-sorted exact comps for blend/anchor only.
+ * selectCheapestExactEnsemble — raw price-sorted exact comps for blend support.
+ * Exact display/primary ranking is done by nearest carat after query adjustment.
  */
 function selectCheapestExactEnsemble(exactScored, maxN = MAX_ENSEMBLE) {
   return [...exactScored]
@@ -1474,12 +1487,19 @@ function resolveAlibabaComp(query) {
 
   // ── 7. Build output ───────────────────────────────────────────────────────
   const exactAdjustedOrdered = matchType === 'exact'
-    ? selected.map(({ row, score, scoreComponents }) => ({
+    ? exactScored.map(({ row, score, scoreComponents }) => ({
         ...adjustCompToQuery(nq, row, adjContext),
         row,
         score,
         scoreComponents,
-      })).sort((a, b) => (a.row?.priceUsd ?? 0) - (b.row?.priceUsd ?? 0) || a.score - b.score)
+      })).sort((a, b) => {
+        const aEst = Math.exp(a.logEstimate);
+        const bEst = Math.exp(b.logEstimate);
+        return Math.abs((a.row?.carat ?? 0) - nq.carat) - Math.abs((b.row?.carat ?? 0) - nq.carat)
+          || aEst - bEst
+          || (a.row?.priceUsd ?? 0) - (b.row?.priceUsd ?? 0)
+          || a.score - b.score;
+      })
     : [];
   const acceptedOrdered = matchType === 'exact'
     ? exactAdjustedOrdered
@@ -1487,7 +1507,7 @@ function resolveAlibabaComp(query) {
   const primaryAdj = acceptedOrdered[0];
   const floorSupplierKey = primaryAdj?.row ? supplierKey(primaryAdj.row) : null;
   const otherFactoryExact = (matchType === 'exact' && floorSupplierKey)
-    ? buildOtherFactoryExactList(exactScored, floorSupplierKey)
+    ? buildOtherFactoryExactList(exactAdjustedOrdered, floorSupplierKey, nq.carat)
     : [];
   if (otherFactoryExact.length) {
     const names = [...new Set(otherFactoryExact.map(e => e.supplierKey))].join(', ');

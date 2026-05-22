@@ -715,7 +715,7 @@ async function runIntegrationTests() {
     assertEqual(r.primary.row.shape, 'pear', 'T15: primary shape is pear');
     assertEqual(r.primary.row.colorNormalized, 'E', 'T15: primary color is E');
     assertEqual(r.primary.row.clarity, 'VS1', 'T15: primary clarity is VS1');
-    assertEqual(supplierKey(r.primary.row), 'starsgem', 'T15: cheapest StarGem is floor primary');
+    assertEqual(supplierKey(r.primary.row), 'starsgem', 'T15: nearest StarGem is primary');
     assertBetween(r.estimate, 330, 350, 'T15: estimate stays on StarGem floor, not blended with Messi');
     assert(otherSuppliers.has('messi'), 'T15: Messi exact rows are shown as otherFactoryExact');
     assert((r.otherFactoryExact || []).every(e => e.row.shape === 'pear' && e.row.colorNormalized === 'E' && e.row.clarity === 'VS1'),
@@ -725,6 +725,7 @@ async function runIntegrationTests() {
   }
 
   await testExactMatchCaratScale();
+  await testExactPrimaryRanksByNearestAdjustedCarat();
 }
 
 // ── P1 carat slope policy unit tests (no index needed) ───────────────────────
@@ -1004,6 +1005,34 @@ async function testExactMatchCaratScale() {
   await loadIndex(indexPath);
 
   console.log('  Exact match carat scale: done');
+}
+
+async function testExactPrimaryRanksByNearestAdjustedCarat() {
+  console.log('\n── Exact match: primary ranks by nearest adjusted carat ─────────────');
+
+  await loadIndex(indexPath);
+  const r = resolveAlibabaComp({
+    carat: 3.08,
+    shape: 'pear',
+    colorFamily: 'white',
+    whiteGrade: 'E',
+    clarity: 'VS1',
+  });
+
+  assertEqual(r.matchType, 'exact', '3.08ct E VS1 pear resolves as exact');
+  assertEqual(supplierKey(r.primary.row), 'starsgem', 'StarGem remains primary supplier');
+  assertEqual(r.primary.row.carat, 3.1, '3.10ct row beats cheaper raw 2.95ct after carat adjustment');
+  assert(r.primary.estimatedPrice < 359, `nearest row avoids the farther 2.95ct anchor, got ${r.primary.estimatedPrice}`);
+  assert(
+    r.alternatives.some(a => a.row.carat === 2.95 && a.estimatedPrice > r.primary.estimatedPrice),
+    '2.95ct raw-cheaper row is demoted when adjusted price is higher',
+  );
+  assert(
+    (r.otherFactoryExact || []).some(e => e.supplierKey === 'messi' && e.modifiers?.parts?.some(p => p.startsWith('carat'))),
+    'other-factory exact rows expose their own carat modifiers',
+  );
+
+  console.log('  Exact nearest adjusted ranking: done');
 }
 
 function testFitLocalCaratSlopeCratBandExclusion() {
