@@ -156,6 +156,29 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .pa.fair{color:var(--green)}
 .pa.retail{color:var(--muted2)}
 .ppc{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.5}
+.pricing-intel{border-top:.5px solid var(--border);display:grid;grid-template-columns:1fr 1fr .9fr;background:rgba(255,255,255,0.012)}
+.pricing-intel-panel{padding:15px 22px 16px;min-width:0}
+.pricing-intel-panel:not(:last-child){border-right:.5px solid var(--border)}
+.intel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.intel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.intel-pill{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25);border-radius:4px;padding:2px 6px;white-space:nowrap}
+.intel-formula{font-family:'DM Serif Display',serif;font-size:17px;line-height:1.25;color:var(--text);margin-bottom:4px}
+.intel-sub{font-size:11px;line-height:1.55;color:var(--muted2)}
+.intel-sub strong{color:var(--text);font-weight:600}
+.lookup-mini{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.lookup-mini div{min-width:0}
+.lookup-k{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+.lookup-v{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.model-list{display:flex;flex-direction:column;gap:6px}
+.model-row{display:grid;grid-template-columns:minmax(0,1.2fr) auto;gap:10px;align-items:baseline;font-size:11px;color:var(--muted2);line-height:1.35}
+.model-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+.model-score{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);text-align:right;white-space:nowrap}
+.model-score.best{color:var(--accent)}
+@media(max-width:760px){
+  .pricing-intel{grid-template-columns:1fr}
+  .pricing-intel-panel:not(:last-child){border-right:0;border-bottom:.5px solid var(--border)}
+  .lookup-mini{grid-template-columns:1fr 1fr}
+}
 
 /* ── CHART ── */
 .chart-wrap{border-top:.5px solid var(--border);padding:16px 22px 20px;position:relative}
@@ -597,6 +620,63 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
     </div>
   </div>
 
+  <div class="pricing-intel">
+    <div class="pricing-intel-panel">
+      <div class="intel-head">
+        <div class="intel-title">Best ML price guess</div>
+        <div class="intel-pill" id="starsgem-ml-model">Extra Trees</div>
+      </div>
+      <div class="intel-formula" id="starsgem-ml-price">Loading ML model…</div>
+      <div class="intel-sub" id="starsgem-ml-note">Uses the best held-out StarGem model when the browser model has loaded.</div>
+      <div class="lookup-mini">
+        <div>
+          <div class="lookup-k">Model MAPE</div>
+          <div class="lookup-v" id="starsgem-ml-mape">—</div>
+        </div>
+        <div>
+          <div class="lookup-k">Features</div>
+          <div class="lookup-v" id="starsgem-ml-features">—</div>
+        </div>
+        <div>
+          <div class="lookup-k">Trees</div>
+          <div class="lookup-v" id="starsgem-ml-trees">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="pricing-intel-panel">
+      <div class="intel-head">
+        <div class="intel-title">StarGem lookup reconstruction</div>
+        <div class="intel-pill" id="starsgem-factor">/170</div>
+      </div>
+      <div class="intel-formula" id="starsgem-lookup-price">Loading StarGem formula…</div>
+      <div class="intel-sub" id="starsgem-lookup-note">Checking the supplier sheet lookup against your selected stone.</div>
+      <div class="lookup-mini">
+        <div>
+          <div class="lookup-k">Matched key</div>
+          <div class="lookup-v" id="starsgem-lookup-level">—</div>
+        </div>
+        <div>
+          <div class="lookup-k">Internal rate</div>
+          <div class="lookup-v" id="starsgem-lookup-rate">—</div>
+        </div>
+        <div>
+          <div class="lookup-k">Bucket</div>
+          <div class="lookup-v" id="starsgem-lookup-bucket">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="pricing-intel-panel">
+      <div class="intel-head">
+        <div class="intel-title">Lookup vs ML benchmark</div>
+        <div class="intel-pill" id="starsgem-model-split">80/20</div>
+      </div>
+      <div class="model-list" id="starsgem-model-list">
+        <div class="model-row"><span class="model-name">Loading model comparison</span><span class="model-score">—</span></div>
+      </div>
+      <div class="intel-sub" id="starsgem-model-note" style="margin-top:8px">The lookup model runs first; ML should only be used for residuals or missing combinations.</div>
+    </div>
+  </div>
+
   <div class="chart-wrap">
     <div class="chart-head">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -743,6 +823,10 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 let _compsIdx = null;   // { comps: [...], indexVersion, rowCount }
 let _compsIdxReady = false;
 let _compsIdxLoadPromise = null;
+let _starsgemPricingIntel = null;
+let _starsgemPricingIntelPromise = null;
+let _starsgemMlModel = null;
+let _starsgemMlModelPromise = null;
 let _v3engineReadyPromise = null;
 let _chartAxis = 'carat'; // 'carat' | 'clarity' | 'color'
 
@@ -804,6 +888,46 @@ async function loadAlibabaCompsIndex() {
   return _compsIdxLoadPromise;
 }
 
+async function loadStarsgemPricingIntel() {
+  if (_starsgemPricingIntel) return _starsgemPricingIntel;
+  if (_starsgemPricingIntelPromise) return _starsgemPricingIntelPromise;
+  _starsgemPricingIntelPromise = fetch('research/data/starsgem-pricing-intelligence.json')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _starsgemPricingIntel = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('StarGem pricing intelligence unavailable.', err);
+      return null;
+    });
+  return _starsgemPricingIntelPromise;
+}
+
+async function loadStarsgemMlModel() {
+  if (_starsgemMlModel) return _starsgemMlModel;
+  if (_starsgemMlModelPromise) return _starsgemMlModelPromise;
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model.json?v=20260523-compact-extra-trees')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _starsgemMlModel = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('StarGem ML model unavailable.', err);
+      return null;
+    });
+  return _starsgemMlModelPromise;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════════════════════════
@@ -824,6 +948,9 @@ const state = {
   postTreatment: false,
   hasCutGrade: true,
   ratio: null,
+  reportMeasurements: '',
+  reportTablePct: null,
+  reportDepthPct: null,
   ratioAssessment: null,
   reportShapeRaw: '',
   shapeMappedFromReport: null,
@@ -887,6 +1014,9 @@ function setCaratValue(value, options = {}) {
   if (ct == null) return false;
   state.carat = ct;
   state.ratio = null;
+  state.reportMeasurements = '';
+  state.reportTablePct = null;
+  state.reportDepthPct = null;
   state.ratioAssessment = null;
   syncCaratControls(options);
   if (options.deferRender) scheduleRender({ interactive: !!options.interactive });
@@ -1587,6 +1717,240 @@ function getAlibabaCeiling(ct = state.carat) {
 // ══════════════════════════════════════════════════════════════════════════════
 function fmt(n){ return '$'+Math.round(n).toLocaleString(); }
 function fmtR(a,b){ return fmt(a)+'–'+fmt(b); }
+function fmtPct(n){ return Number.isFinite(n) ? n.toFixed(2)+'%' : '—'; }
+
+function starsgemNorm(value) {
+  const text = String(value ?? '-').trim().toUpperCase().replace(/\s+/g, ' ');
+  return text && text !== 'N/A' && text !== 'NONE' && text !== 'NULL' ? text : '-';
+}
+
+function starsgemCaratBucket(ct) {
+  const c = Number(ct);
+  if (c >= 0.30 && c <= 0.49) return '0.30-0.49';
+  if (c >= 0.50 && c <= 0.69) return '0.50-0.69';
+  if (c >= 0.70 && c <= 0.89) return '0.70-0.89';
+  if (c >= 0.90 && c <= 0.99) return '0.90-0.99';
+  if (c >= 1.00 && c <= 1.49) return '1.00-1.49';
+  if (c >= 1.50 && c <= 1.99) return '1.50-1.99';
+  if (c >= 2.00 && c <= 2.99) return '2.00-2.99';
+  if (c >= 3.00 && c <= 3.99) return '3.00-3.99';
+  if (c >= 4.00 && c <= 4.99) return '4.00-4.99';
+  if (c >= 5.00 && c <= 9.99) return '5.00-9.99';
+  if (c >= 10.00) return '10.00+';
+  return '<0.30';
+}
+
+function starsgemShapeForLookup(shapeKey) {
+  const map = {
+    round:'ROUND',
+    oval:'OVAL',
+    moval:'OVAL',
+    pear:'PEAR',
+    marquise:'MARQUISE',
+    heart:'HEART',
+    cushion:'CUSHION',
+    cushion_brilliant:'CUSHION',
+    elongated_cushion:'CUSHION',
+    square_cushion:'CUSHION',
+    radiant:'RADIANT',
+    sq_radiant:'RADIANT',
+    emerald:'EMERALD',
+    asscher:'ASSCHER',
+    princess:'PRINCESS',
+  };
+  return map[shapeKey] || starsgemNorm(shapeKey).replace(/_/g, ' ');
+}
+
+function starsgemTypeNameForState() {
+  if (state.hpht) return 'HPHT';
+  if (state.cvd) return 'CVD';
+  return '-';
+}
+
+function starsgemCutForState() {
+  if (!state.hasCutGrade) return '-';
+  if (state.cut === 'ideal') return 'ID';
+  if (state.cut === 'vg') return 'VG';
+  if (state.cut === 'good') return 'GD';
+  return starsgemNorm(state.cut);
+}
+
+function starsgemLookupRowFromState(ct = state.carat) {
+  const dims = parseMeasurementTriplet(state.reportMeasurements);
+  return {
+    Carat: ct,
+    carat_bucket: starsgemCaratBucket(ct),
+    Shape: starsgemShapeForLookup(state.shape),
+    Color: isWhite() ? starsgemNorm(state.whiteGrade) : starsgemNorm(colorLabel()),
+    Clarity: starsgemNorm(state.clarity),
+    TypeName: starsgemTypeNameForState(),
+    Report: 'IGI',
+    Cut: starsgemCutForState(),
+    Polish: 'EX',
+    Symmetry: 'EX',
+    Fluorescence: '-',
+    Table_Scale: state.reportTablePct,
+    Depth_Scale: state.reportDepthPct,
+    Length: dims.length,
+    Width: dims.width,
+    Height: dims.height,
+    LengthWidthRatio: state.ratio || dims.ratio,
+  };
+}
+
+function parseMeasurementTriplet(measurements) {
+  const nums = String(measurements || '').match(/\d+(?:\.\d+)?/g)?.map(Number) || [];
+  const length = Number.isFinite(nums[0]) ? nums[0] : null;
+  const width = Number.isFinite(nums[1]) ? nums[1] : null;
+  const height = Number.isFinite(nums[2]) ? nums[2] : null;
+  const ratio = length && width && Math.min(length, width) > 0 ? Math.max(length, width) / Math.min(length, width) : null;
+  return { length, width, height, ratio };
+}
+
+function predictStarsgemLookup(row) {
+  const intel = _starsgemPricingIntel;
+  const carat = Number(row?.Carat);
+  if (!intel || !Number.isFinite(carat) || carat <= 0) return null;
+  const normalized = { ...row };
+  ['carat_bucket','Shape','Color','Clarity','TypeName','Report','Cut','Polish','Symmetry'].forEach(field => {
+    normalized[field] = starsgemNorm(normalized[field]);
+  });
+  const tables = intel.lookup?.tables || [];
+  for (const table of tables) {
+    const key = table.fields.map(field => normalized[field] ?? '-').join('||');
+    const hit = table.groups?.[key];
+    if (hit) {
+      const internalPrice = Math.round(carat * hit.rate);
+      return { price: internalPrice / 170, internalPrice, rate: hit.rate, level: table.level, fields: table.fields, count: hit.count };
+    }
+  }
+  const rate = intel.lookup?.globalMedianInternalRatePerCt;
+  if (!Number.isFinite(rate)) return null;
+  const internalPrice = Math.round(carat * rate);
+  return { price: internalPrice / 170, internalPrice, rate, level:'GLOBAL', fields:[], count:0 };
+}
+
+function starsgemModelVector(row, model) {
+  const features = model?.features;
+  if (!features) return [];
+  const vector = [];
+  for (const field of features.categorical || []) {
+    const value = starsgemNorm(row[field]);
+    const cats = features.categories?.[field] || [];
+    for (const cat of cats) vector.push(value === cat ? 1 : 0);
+  }
+  for (const field of features.numeric || []) {
+    const rawValue = row[field];
+    const raw = rawValue === null || rawValue === undefined || rawValue === '' ? NaN : Number(rawValue);
+    const fallback = Number(features.numericMedians?.[field]);
+    vector.push(Number.isFinite(raw) ? raw : Number.isFinite(fallback) ? fallback : 0);
+  }
+  return vector;
+}
+
+function predictStarsgemMl(row) {
+  const model = _starsgemMlModel;
+  if (!model || !Array.isArray(model.trees) || !model.trees.length) return null;
+  const vector = starsgemModelVector(row, model);
+  let logSum = 0;
+  for (const tree of model.trees) {
+    let node = 0;
+    while (tree.childrenLeft[node] !== -1) {
+      const feature = tree.feature[node];
+      const threshold = tree.threshold[node];
+      const value = vector[feature] ?? 0;
+      node = value <= threshold ? tree.childrenLeft[node] : tree.childrenRight[node];
+    }
+    logSum += tree.value[node];
+  }
+  const logPrice = logSum / model.trees.length;
+  const price = Math.max(0.01, Math.exp(logPrice));
+  return { price, modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
+}
+
+function updateStarsgemPricingIntel() {
+  const intel = _starsgemPricingIntel;
+  const mlModel = _starsgemMlModel;
+  const mlPriceEl = document.getElementById('starsgem-ml-price');
+  const mlNoteEl = document.getElementById('starsgem-ml-note');
+  const mlModelEl = document.getElementById('starsgem-ml-model');
+  const mlMapeEl = document.getElementById('starsgem-ml-mape');
+  const mlFeaturesEl = document.getElementById('starsgem-ml-features');
+  const mlTreesEl = document.getElementById('starsgem-ml-trees');
+  const priceEl = document.getElementById('starsgem-lookup-price');
+  const noteEl = document.getElementById('starsgem-lookup-note');
+  const levelEl = document.getElementById('starsgem-lookup-level');
+  const rateEl = document.getElementById('starsgem-lookup-rate');
+  const bucketEl = document.getElementById('starsgem-lookup-bucket');
+  const factorEl = document.getElementById('starsgem-factor');
+  const modelList = document.getElementById('starsgem-model-list');
+  const modelNote = document.getElementById('starsgem-model-note');
+  const splitEl = document.getElementById('starsgem-model-split');
+  if (!priceEl || !noteEl || !levelEl || !rateEl || !bucketEl || !modelList) return;
+
+  if (!intel) {
+    if (mlPriceEl) mlPriceEl.textContent = 'ML model unavailable';
+    priceEl.textContent = 'StarGem formula unavailable';
+    noteEl.textContent = 'Run research/scripts/reconstruct-starsgem-pricing.py to regenerate the supplier lookup artifact.';
+    levelEl.textContent = '—';
+    rateEl.textContent = '—';
+    bucketEl.textContent = starsgemCaratBucket(state.carat);
+    return;
+  }
+
+  const factor = intel.granularity?.smallestStrongFactor || 170;
+  if (factorEl) factorEl.textContent = `/${factor}`;
+  if (splitEl) splitEl.textContent = intel.evaluation?.split?.replace(' random seed 42', '') || '80/20';
+
+  const row = starsgemLookupRowFromState(state.carat);
+  const mlPred = predictStarsgemMl(row);
+  if (mlPred && mlPriceEl) {
+    mlPriceEl.textContent = `${fmt(mlPred.price)} ML price guess`;
+    if (mlModelEl) mlModelEl.textContent = mlPred.modelName || 'ML';
+    if (mlMapeEl) mlMapeEl.textContent = fmtPct(mlPred.metrics?.mape);
+    if (mlFeaturesEl) mlFeaturesEl.textContent = `${(mlModel?.features?.categorical || []).length} cat · ${(mlModel?.features?.numeric || []).length} num`;
+    if (mlTreesEl) mlTreesEl.textContent = String(mlPred.treeCount || mlModel?.trees?.length || '—');
+    if (mlNoteEl) {
+      const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth when available' : 'using selected specs; dimensions are imputed until an IGI report is loaded';
+      mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> predicted by ${escapeHTML(mlPred.modelName || 'the best model')} (${dims}).`;
+    }
+  } else if (mlPriceEl) {
+    mlPriceEl.textContent = 'Loading ML model…';
+    if (mlNoteEl) mlNoteEl.textContent = 'The compact Extra Trees browser model is loading from the StarGem benchmark artifact.';
+    if (mlMapeEl) mlMapeEl.textContent = '—';
+    if (mlFeaturesEl) mlFeaturesEl.textContent = '—';
+    if (mlTreesEl) mlTreesEl.textContent = '—';
+  }
+
+  const pred = predictStarsgemLookup(row);
+  bucketEl.textContent = row.carat_bucket;
+  if (pred) {
+    priceEl.textContent = `${fmt(pred.price)} StarGem sheet formula`;
+    const fields = pred.fields?.length ? pred.fields.join(' + ') : 'global median';
+    const isFallback = pred.level === 'GLOBAL' || !pred.fields?.includes('Shape');
+    noteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> uses ${escapeHTML(fields)}. ${isFallback ? 'Future IGI-only shape labels will fall back until the supplier sheet has matching rows.' : 'Price = round(carat × internal rate) / 170.'}`;
+    levelEl.textContent = pred.level + (pred.count ? ` · n=${pred.count}` : '');
+    rateEl.textContent = Math.round(pred.rate).toLocaleString() + ' int/ct';
+  } else {
+    priceEl.textContent = 'No StarGem lookup hit';
+    noteEl.textContent = 'This combo needs a new supplier row or a residual model fallback.';
+    levelEl.textContent = '—';
+    rateEl.textContent = '—';
+  }
+
+  const models = intel.evaluation?.models || [];
+  modelList.innerHTML = models.map((model, idx) => {
+    const metric = model.metrics ? `MAPE ${fmtPct(model.metrics.mape)}` : model.status === 'dependency_missing' ? 'not run' : model.status;
+    const cls = idx === 0 && model.metrics ? ' best' : '';
+    return `<div class="model-row"><span class="model-name">${escapeHTML(model.name)}</span><span class="model-score${cls}">${escapeHTML(metric)}</span></div>`;
+  }).join('');
+  if (modelNote) {
+    const m = intel.evaluation?.lookupOnly;
+    const gran = intel.granularity?.requested?.['170']?.integerShare;
+    const granText = gran === 1 ? '100% integer at ×170' : `×170 integer share ${(gran * 100).toFixed(2)}%`;
+    modelNote.innerHTML = `Lookup-only: <strong>${fmtPct(m?.mape)} MAPE</strong>, ${fmt(m?.mae || 0)} MAE on ${m?.count?.toLocaleString() || '—'} holdout rows; ${granText}.`;
+  }
+}
 
 const shapeNames = {
   round:'Round Brilliant',oval:'Oval Brilliant',moval:'Moval (Marquise–Oval Hybrid)',
@@ -1679,6 +2043,7 @@ function update(options = {}) {
   updateRatioBar();
   if (!interactive) updateMarketBar(m);
   updateAlibabaFloorBar();
+  updateStarsgemPricingIntel();
   drawChart({ includeComps: !interactive });
 }
 
@@ -3948,6 +4313,9 @@ function applyIGIReport(options = {}) {
   if (shapeMapped) state.shape = shapeMapped;
 
   state.ratio = r.ratio || calculateRatio(r.measurements);
+  state.reportMeasurements = r.measurements || '';
+  state.reportTablePct = r.tablePercent || null;
+  state.reportDepthPct = r.depthPercent || null;
   state.ratioAssessment = state.ratio ? assessRatio(state.ratio, state.shape) : null;
 
   // Map cut — many IGI lab reports omit Cut Grade (polish/sym only)
@@ -4027,6 +4395,8 @@ document.getElementById('igi-apply-btn').addEventListener('click', applyIGIRepor
 
 syncWhiteSection();
 loadAlibabaCompsIndex(); // async: triggers update() again once comps are ready
+loadStarsgemPricingIntel(); // async: exposes StarGem lookup/formula diagnostics
+loadStarsgemMlModel(); // async: loads compact browser ML price predictor
 update();
 
 </script>
