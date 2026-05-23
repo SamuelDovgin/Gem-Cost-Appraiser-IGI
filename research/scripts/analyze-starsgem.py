@@ -39,6 +39,8 @@ from shape_buckets import (
     classify_shape_by_lw, STARSGEM_SHAPE_MAP, STARSGEM_CUT_MAP,
     SHAPE_LW_BUCKETS
 )
+from igi_enrichment import apply_enrichment_to_records, load_enrichment
+from igi_shape_cache import apply_igi_shape_cache, apply_specialty_cut_shape_override, load_cache
 
 # ──────────────────────────────────────────────────────────────────────────────
 # PATHS
@@ -203,7 +205,7 @@ def normalise_row(raw: dict) -> dict | None:
     # Normalize IGI variants (IGI / IGI(SH) both → IGI)
     lab_norm = 'IGI' if 'IGI' in report.upper() else report
 
-    return {
+    row = {
         'rowNo':           int(raw.get('__excelRow')) if raw.get('__excelRow') else None,
         'rawShapeCode':    raw_shape,
         'rawCutCode':      raw_cut,
@@ -240,6 +242,8 @@ def normalise_row(raw: dict) -> dict | None:
         'pricePerStone':   price,
         'pricePerCarat':   price_per_carat,
     }
+    apply_specialty_cut_shape_override(row, SHAPE_LABELS)
+    return row
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -368,6 +372,30 @@ def main():
     records = [r for r in records if r is not None]
     print(f"  Normalised (>= 1ct, priced, valid clarity): {len(records):,}")
 
+    igi_store = load_enrichment()
+    igi_stats = apply_enrichment_to_records(records, igi_store)
+    if igi_store:
+        print(
+            "  IGI enrichment: "
+            f"{igi_stats['storeEntries']:,} reports, "
+            f"{igi_stats['pdfsOk']:,} PDFs, "
+            f"{igi_stats['rowsEnriched']:,} rows enriched, "
+            f"{igi_stats['shapeReclassified']} shape reclassified"
+        )
+    else:
+        igi_cache = load_cache()
+        pt_n = apply_igi_shape_cache(records, igi_cache)
+        if igi_cache:
+            ok_n = sum(1 for v in igi_cache.values() if v.get('status') == 'ok')
+            print(f"  IGI cache: {len(igi_cache):,} slugs, {ok_n} PDFs, {pt_n} → portuguese")
+        igi_stats = {
+            'storeEntries': len(igi_cache),
+            'pdfsOk': sum(1 for v in igi_cache.values() if v.get('status') == 'ok'),
+            'portugueseOnCert': pt_n,
+            'rowsEnriched': 0,
+            'shapeReclassified': pt_n,
+        }
+
     summary = build_summary(records)
 
     # Compact aggregated comp export
@@ -389,6 +417,14 @@ def main():
         'cutCodeMap':     STARSGEM_CUT_MAP,
         'shapeLabels':    SHAPE_LABELS,
         'summary':        summary,
+        'igiEnrichment': {
+            'storeFile': 'igi-report-enrichment.json',
+            'storeEntries': igi_stats['storeEntries'],
+            'pdfsOk': igi_stats['pdfsOk'],
+            'portugueseOnCert': igi_stats['portugueseOnCert'],
+            'rowsEnriched': igi_stats['rowsEnriched'],
+            'shapeReclassified': igi_stats['shapeReclassified'],
+        },
         'records':        records,
     }
 

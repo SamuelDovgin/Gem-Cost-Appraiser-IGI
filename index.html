@@ -400,6 +400,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         </optgroup>
         <optgroup label="Other">
           <option value="brown_f">Fancy Brown / Champagne</option>
+          <option value="gray_f">Fancy Gray / Grey</option>
           <option value="black">Black Diamond</option>
         </optgroup>
       </select>
@@ -826,6 +827,10 @@ const state = {
   ratioAssessment: null,
   reportShapeRaw: '',
   shapeMappedFromReport: null,
+  colorReportRaw: '',
+  fancyColorCategory: null,
+  fancyColorModifierMult: 1,
+  fancyColorModifierTerms: [],
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1030,6 +1035,7 @@ const fancyColorBase = {
   purple_fi: { ws1:  900, scale:1.08, rMult:4.5, label:'Fancy Intense Purple/Violet' },
   // — BROWN / CHAMPAGNE (near-commodity; flat pricing) —
   brown_f:   { ws1:   60, scale:0.95, rMult:2.0, label:'Fancy Brown / Champagne' },
+  gray_f:    { ws1:   70, scale:0.95, rMult:2.0, label:'Fancy Gray / Grey' },
   // — BLACK (opaque; no clarity grade; price driven by size and polish only) —
   black:     { ws1:   45, scale:1.00, rMult:1.8, label:'Black Diamond' },
   // — RED (rarest of all; per-ct increases steeply with size; most "red" listings are
@@ -1326,7 +1332,7 @@ function compute(ct, options = {}) {
     const fc = fancyColorBase[state.colorFamily];
     // Fancy color scales differently — per-carat premium grows with size (harder to grow large vivid)
     const scaledWs = fc.ws1 * Math.pow(ct, fc.scale - 1.0);
-    wsPerCt = scaledWs * clC * shC;
+    wsPerCt = scaledWs * clC * shC * (state.fancyColorModifierMult || 1);
     retailMult = [fc.rMult * 0.85, fc.rMult * 1.15];
   }
 
@@ -1600,7 +1606,9 @@ const capCut = c => c==='unset'?'Pol/Sym only (no cut grade)':c==='ideal'?'3EX/I
 
 function colorLabel() {
   if (isWhite()) return state.whiteGrade+' color';
-  return fancyColorBase[state.colorFamily]?.label || state.colorFamily;
+  const baseLabel = fancyColorBase[state.colorFamily]?.label || state.colorFamily;
+  if (state.colorReportRaw && state.fancyColorCategory) return `${state.colorReportRaw} (priced as ${baseLabel})`;
+  return baseLabel;
 }
 
 function colorSelectValue() {
@@ -1608,6 +1616,10 @@ function colorSelectValue() {
 }
 
 function applyColorSelectValue(value) {
+  state.colorReportRaw = '';
+  state.fancyColorCategory = null;
+  state.fancyColorModifierMult = 1;
+  state.fancyColorModifierTerms = [];
   if (value.startsWith('white:')) {
     state.colorFamily = 'white';
     state.whiteGrade = value.split(':')[1] || 'G';
@@ -2581,7 +2593,8 @@ async function lookupIGI() {
     const report = parseIGIReport(pdfText, certNum, pdfHit.url);
 
     if (!report.found) {
-      setIGIStatus('warn', '⚠ The IGI PDF opened, but the calculator could not read the 4Cs cleanly. Open it here: <a href="' + escapeAttr(pdfHit.url) + '" target="_blank" rel="noopener" style="color:var(--orange)">IGI PDF ↗</a>');
+      const missing = report.missingFields?.length ? ' Missing: ' + report.missingFields.join(', ') + '.' : '';
+      setIGIStatus('warn', '⚠ The IGI PDF opened, but the calculator could not read the 4Cs cleanly.' + escapeHTML(missing) + ' Open it here: <a href="' + escapeAttr(pdfHit.url) + '" target="_blank" rel="noopener" style="color:var(--orange)">IGI PDF ↗</a>');
       btn.disabled = false;
       return;
     }
@@ -2678,11 +2691,18 @@ function buildIGIPdfCandidates(clean) {
 
   if (/^(ID|FRD|FDR)\d{6,}$/.test(clean)) add(clean);
   if (/^LG\d{6,}$/.test(clean)) add(digits);
-  if (/^\d{6,}$/.test(clean)) add(clean);
-  add(digits);
-  add('ID' + digits);
-  add('FRD' + digits);
-  add('FDR' + digits);
+  if (/^\d{6,}$/.test(clean)) {
+    add('FDR' + digits);
+    add('FRD' + digits);
+    add('ID' + digits);
+    add(clean);
+    add('LG' + digits);
+  } else {
+    add(digits);
+    add('ID' + digits);
+    add('FRD' + digits);
+    add('FDR' + digits);
+  }
   if (/^[A-Z]+\d{6,}$/.test(clean)) add(clean);
   return candidates;
 }
@@ -2736,11 +2756,12 @@ async function extractPdfText(buffer) {
       });
   }
 
-  return {
+  const result = {
     lines,
     raw: lines.join('\n'),
     norm: lines.join(' ').replace(/\s+/g, ' ').trim()
   };
+  return result;
 }
 
 function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
@@ -2749,21 +2770,33 @@ function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
   const reportLines = getReportDataLines(lines);
   const reportNorm = reportLines.join(' ').replace(/\s+/g, ' ').trim();
   const reportNumber = extractReportNumber(norm) || fallbackCert;
-  const shape = normalizeShapeText(readAfterLabel(reportLines, /Shape(?:\s+and\s+Cutting\s+Style|\s*&\s*Cut|\/cut)/i, /Measurements|GRADING RESULTS/i, 5));
-  const measurements = normalizeMeasurements(readAfterLabel(reportLines, /Measurements/i, /GRADING RESULTS|Carat Weight|Color Grade/i, 3), reportNorm);
+  const shape = normalizeShapeText(
+    readAfterLabel(reportLines, /Shape(?:\s+and\s+Cutting\s+Style|\s*&\s*Cut|\/cut)/i, /Measurements|GRADING RESULTS/i, 5) ||
+    readBetweenLabels(reportNorm, /Shape(?:\s+and\s+Cutting\s+Style|\s*&\s*Cut|\/cut)/i, /Measurements/i)
+  );
+  const measurements = normalizeMeasurements(
+    readAfterLabel(reportLines, /Measurements/i, /GRADING RESULTS|Carat Weight|Color Grade/i, 3) ||
+    readBetweenLabels(reportNorm, /Measurements/i, /GRADING RESULTS|Carat Weight|Color Grade/i),
+    reportNorm
+  );
   const gradingLines = getSectionLines(reportLines, /GRADING RESULTS/i, /ADDITIONAL GRADING INFORMATION|COMMENTS|^PROPORTIONS$/i);
   const gradingDataLines = gradingLines.length ? gradingLines : reportLines;
   const gradingNorm = gradingDataLines.join(' ').replace(/\s+/g, ' ').trim();
   const caratWeight = extractCaratWeight(gradingDataLines, gradingNorm, measurements, shape);
-  const colorRaw = readAfterLabel(gradingDataLines, /Color Grade/i, /Clarity Grade|Cut Grade|ADDITIONAL/i, 4);
-  const clarityRaw = readAfterLabel(gradingDataLines, /Clarity Grade/i, /Cut Grade|ADDITIONAL|Polish|Symmetry/i, 3);
-  const cutRaw = readAfterLabel(gradingDataLines, /Cut Grade/i, /ADDITIONAL|Polish|Symmetry|Fluorescence|Inscription/i, 3);
+  const colorRaw = readAfterLabel(gradingDataLines, /Color Grade/i, /Clarity Grade|Cut Grade|ADDITIONAL/i, 4) ||
+    readBetweenLabels(gradingNorm, /Color Grade/i, /Clarity Grade/i);
+  const clarityRaw = readAfterLabel(gradingDataLines, /Clarity Grade/i, /Cut Grade|ADDITIONAL|Polish|Symmetry/i, 3) ||
+    readBetweenLabels(gradingNorm, /Clarity Grade/i, /Cut Grade|ADDITIONAL|Polish|Symmetry/i);
+  const cutRaw = readAfterLabel(gradingDataLines, /Cut Grade/i, /ADDITIONAL|Polish|Symmetry|Fluorescence|Inscription/i, 3) ||
+    readBetweenLabels(gradingNorm, /Cut Grade/i, /ADDITIONAL|Polish|Symmetry|Fluorescence|Inscription/i);
   const polishRaw = readAfterLabel(reportLines, /^Polish\b/i, /Symmetry|Fluorescence|Inscription|Comments/i, 2);
   const symmetryRaw = readAfterLabel(reportLines, /^Symmetry\b/i, /Fluorescence|Inscription|Comments/i, 2);
   const fluorescenceRaw = readAfterLabel(reportLines, /^Fluorescence\b/i, /Inscription|Comments|KEY TO SYMBOLS/i, 2);
   const comments = cleanReportValue(readAfterLabel(lines, /Comments:?/i, /KEY TO SYMBOLS|GRADING SCALES|©|www\.igi\.org/i, 10));
 
-  const color = normalizeReportColor(colorRaw, gradingNorm);
+  const color = normalizeReportColor(colorRaw, gradingNorm) ||
+    normalizeReportColor(reportNorm, '') ||
+    normalizeReportColor(norm, '');
   const clarity = normalizeClarity(clarityRaw);
   const cut = normalizeGrade(cutRaw);
   const polish = normalizeGrade(polishRaw);
@@ -2781,10 +2814,13 @@ function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
   const isLabGrown = /LABORATORY GROWN/i.test(norm);
   const shapeHint = [shape, comments, norm].filter(Boolean).join(' | ');
   const shapeMapped = mapReportShapeToState(shape, shapeHint);
+  const colorCategory = color && !whiteGradeMult[normalizeWhiteGrade(color)] ? parseFancyColorCategory(color) : null;
+  const colorCategoryLabel = colorCategory?.colorKey ? fancyColorBase[colorCategory.colorKey]?.label : '';
   const notes = [
     !isLabGrown ? 'Report does not appear to say Laboratory Grown Diamond.' : '',
     /Sample Image Used/i.test(norm) ? 'Sample image used on report.' : '',
     treatment.includes('May include') ? 'May include post-growth treatment.' : '',
+    colorCategoryLabel ? `IGI fancy color “${color}” categorized as ${colorCategoryLabel}${colorCategory.modifierTerms?.length ? ` with ${colorCategory.modifierTerms.join(', ')} modifier pricing.` : '.'}` : '',
     shape && !shapeMapped
       ? `Cut on cert (“${shape}”) is not in the shape list — pick the closest match below; one-off cuts usually trade below round/oval.`
       : '',
@@ -2796,12 +2832,21 @@ function parseIGIReport(pdfText, fallbackCert, pdfUrl) {
   ].filter(Boolean).join(' ');
 
   const ratio = calculateRatio(measurements);
+  const missingFields = [
+    !caratWeight ? 'carat' : '',
+    !shape ? 'shape' : '',
+    !color ? 'color' : '',
+    !clarity ? 'clarity' : '',
+  ].filter(Boolean);
   const report = {
-    found: !!(caratWeight && shape && color && clarity),
+    found: missingFields.length === 0,
+    missingFields,
     certNumber: reportNumber,
     caratWeight,
     shape,
     color,
+    colorCategory,
+    colorCategoryLabel,
     clarity,
     cut,
     polish,
@@ -2849,6 +2894,16 @@ function readAfterLabel(lines, labelRe, stopRe, maxLines) {
     if (value) return value;
   }
   return '';
+}
+
+function readBetweenLabels(normText, labelRe, stopRe) {
+  const source = cleanReportValue(normText || '');
+  const label = source.match(labelRe);
+  if (!label) return '';
+  const start = label.index + label[0].length;
+  const rest = source.slice(start).replace(/^[:\s|]+/, '');
+  const stop = rest.match(stopRe);
+  return cleanReportValue(stop ? rest.slice(0, stop.index) : rest);
 }
 
 function getReportDataLines(lines) {
@@ -2953,22 +3008,66 @@ function extractReportNumber(norm) {
   return any ? any[1].toUpperCase() : '';
 }
 
-function normalizeReportColor(raw, norm) {
-  const source = ((raw || '') + ' ' + (norm.match(/Color Grade\s+(.{0,90})\s+Clarity Grade/i)?.[1] || '')).toUpperCase();
-  const fancyMatch = source.match(/\bFANCY(?:\s+[A-Z]+){1,6}/);
-  if (fancyMatch) {
-    const colorWords = ['YELLOW','PINK','BLUE','GREEN','ORANGE','PURPLE','VIOLET','BROWN','GRAY','GREY','BLACK','RED'];
-    const words = fancyMatch[0].split(/\s+/);
-    let end = -1;
-    for (let i = 1; i < words.length; i++) {
-      if (colorWords.includes(words[i])) {
-        end = i;
-        if (colorWords.includes(words[i + 1])) end = i + 1;
+const FANCY_COLOR_HUES = ['yellow','pink','blue','green','orange','purple','violet','brown','gray','grey','black','red'];
+const FANCY_COLOR_MODIFIERS = ['brownish','grayish','greyish','orangy','orangeish','purplish','violetish','yellowish','pinkish','bluish','greenish','reddish'];
+const FANCY_MODIFIER_MULTS = {
+  brownish:0.82,
+  grayish:0.87,
+  greyish:0.87,
+  orangy:0.92,
+  orangeish:0.92,
+  purplish:0.94,
+  violetish:0.94,
+  yellowish:0.90,
+  pinkish:0.94,
+  bluish:0.94,
+  greenish:0.90,
+  reddish:0.90,
+};
+
+function extractFancyColorLabel(source) {
+  const words = (source || '').toUpperCase().match(/[A-Z]+/g) || [];
+  const allowed = new Set([
+    'FANCY','LIGHT','INTENSE','VIVID','DEEP','DARK',
+    'BROWNISH','GRAYISH','GREYISH','ORANGY','ORANGEISH','PURPLISH','VIOLETISH',
+    'YELLOWISH','PINKISH','BLUISH','GREENISH','REDDISH',
+    'YELLOW','PINK','BLUE','GREEN','ORANGE','PURPLE','VIOLET','BROWN','GRAY','GREY','BLACK','RED'
+  ]);
+  const starts = words
+    .map((word, index) => ({ word, index }))
+    .filter(({ word, index }) => {
+      if (word === 'FANCY') return true;
+      if (!allowed.has(word) || FANCY_COLOR_HUES.includes(word.toLowerCase())) return false;
+      return words.slice(index + 1, index + 8).some(next => FANCY_COLOR_HUES.includes(next.toLowerCase()));
+    })
+    .map(item => item.index);
+
+  for (const start of starts) {
+    const out = [];
+    if (words[start] !== 'FANCY') out.push('FANCY');
+    let sawHue = false;
+    for (let i = start; i < words.length && i < start + 12 && out.length < 8; i++) {
+      const word = words[i];
+      if (!allowed.has(word)) {
+        if (!sawHue) continue;
         break;
       }
+      out.push(word);
+      if (FANCY_COLOR_HUES.includes(word.toLowerCase())) {
+        sawHue = true;
+        const next = (words[i + 1] || '').toLowerCase();
+        if (!FANCY_COLOR_HUES.includes(next)) break;
+      }
     }
-    if (end > -1) return titleCaseReport(words.slice(0, end + 1).join(' ')).replace('Grey', 'Gray');
+    if (sawHue) return titleCaseReport(out.join(' ')).replace('Grey', 'Gray');
   }
+  return '';
+}
+
+function normalizeReportColor(raw, norm) {
+  const source = ((raw || '') + ' ' + (norm.match(/Color Grade\s+(.{0,120})\s+Clarity Grade/i)?.[1] || '')).toUpperCase();
+  const fancy = extractFancyColorLabel(source);
+  if (fancy) return fancy;
 
   const white = source.match(/\b(D|E|F|G|H|I|J|K|L|M|N-P|O-P|Q-R|S-Z|N|O|P|Q|R|S|T|U|V|W|X|Y|Z)\b/);
   if (!white) return '';
@@ -3646,26 +3745,57 @@ function escapeRegExp(value) {
 }
 
 function mapFancyColorToState(color) {
-  const c = (color || '').toLowerCase();
-  const intensity = c.includes('vivid') ? 'fv' : c.includes('intense') ? 'fi' : c.includes('light') ? 'fl' : 'f';
+  return parseFancyColorCategory(color).colorKey;
+}
+
+function parseFancyColorCategory(color) {
+  const c = (color || '').toLowerCase().replace(/grey/g, 'gray');
+  const intensity = c.includes('vivid') ? 'fv'
+    : (c.includes('intense') || c.includes('deep') || c.includes('dark')) ? 'fi'
+    : c.includes('light') ? 'fl'
+    : 'f';
   let dominant = null;
   let lastIndex = -1;
-  ['yellow','pink','blue','green','orange','purple','violet','brown','black','red'].forEach(name => {
-    const idx = c.lastIndexOf(name);
-    if (idx > lastIndex) {
-      dominant = name;
-      lastIndex = idx;
-    }
+
+  FANCY_COLOR_HUES.forEach(name => {
+    const normalized = name === 'grey' ? 'gray' : name;
+    const matches = [...c.matchAll(new RegExp(`\\b${normalized}\\b`, 'g'))];
+    matches.forEach(match => {
+      if (match.index > lastIndex) {
+        dominant = normalized;
+        lastIndex = match.index;
+      }
+    });
   });
 
-  if (['yellow','pink','blue'].includes(dominant)) return dominant + '_' + intensity;
-  if (dominant === 'green') return intensity === 'fi' || intensity === 'fv' ? 'green_fi' : 'green_f';
-  if (dominant === 'orange') return intensity === 'fi' || intensity === 'fv' ? 'orange_fi' : 'orange_f';
-  if (dominant === 'purple' || dominant === 'violet') return intensity === 'fi' || intensity === 'fv' ? 'purple_fi' : 'purple_f';
-  if (dominant === 'brown') return 'brown_f';
-  if (dominant === 'black') return 'black';
-  if (dominant === 'red') return 'red_f';
-  return null;
+  let colorKey = null;
+  if (['yellow','pink','blue','green','orange'].includes(dominant)) colorKey = dominant + '_' + intensity;
+  else if (dominant === 'purple' || dominant === 'violet') colorKey = intensity === 'fl' ? 'purple_fl' : intensity === 'f' ? 'purple_f' : 'purple_fi';
+  else if (dominant === 'brown') colorKey = 'brown_f';
+  else if (dominant === 'gray') colorKey = 'gray_f';
+  else if (dominant === 'black') colorKey = 'black';
+  else if (dominant === 'red') colorKey = intensity === 'fv' ? 'red_fv' : (c.includes('purplish') || c.includes('brownish')) ? 'red_purp' : 'red_f';
+
+  if (colorKey && !fancyColorBase[colorKey]) {
+    colorKey = colorKey.replace(/_fv$/, '_fi');
+    if (!fancyColorBase[colorKey]) colorKey = null;
+  }
+
+  const modifierTerms = FANCY_COLOR_MODIFIERS
+    .map(term => term.replace('grey', 'gray'))
+    .filter((term, index, arr) => arr.indexOf(term) === index && c.includes(term));
+  const modifierMult = modifierTerms.reduce((mult, term) => {
+    if ((colorKey === 'brown_f' && term === 'brownish') || (colorKey === 'gray_f' && term === 'grayish')) return mult;
+    return mult * (FANCY_MODIFIER_MULTS[term] || 1);
+  }, 1);
+
+  return {
+    colorKey,
+    dominant,
+    intensity,
+    modifierTerms,
+    modifierMult,
+  };
 }
 
 function escapeHTML(value) {
@@ -3693,6 +3823,8 @@ function renderIGICard(r) {
     ['Carat', r.caratWeight?.toFixed(2) + ' ct'],
     ['Shape', r.shape],
     ['Color', r.color],
+    r.colorCategoryLabel ? ['Color bucket', r.colorCategoryLabel] : null,
+    r.colorCategory?.modifierTerms?.length ? ['Color modifiers', r.colorCategory.modifierTerms.join(', ') + ` ×${(r.colorCategory.modifierMult || 1).toFixed(2)}`] : null,
     ['Clarity', r.clarity],
     ['Cut', r.cut],
     ['Polish', r.polish],
@@ -3786,12 +3918,22 @@ function applyIGIReport(options = {}) {
   // Map color
   const col = (r.color || '').trim();
   const normalizedWhite = normalizeWhiteGrade(col);
+  state.colorReportRaw = '';
+  state.fancyColorCategory = null;
+  state.fancyColorModifierMult = 1;
+  state.fancyColorModifierTerms = [];
   if (whiteGradeMult[normalizedWhite]) {
     state.colorFamily = 'white';
     state.whiteGrade = normalizedWhite;
   } else {
-    const mapped = mapFancyColorToState(col);
-    if (mapped && fancyColorBase[mapped]) state.colorFamily = mapped;
+    const parsedColor = parseFancyColorCategory(col);
+    if (parsedColor.colorKey && fancyColorBase[parsedColor.colorKey]) {
+      state.colorFamily = parsedColor.colorKey;
+      state.colorReportRaw = col;
+      state.fancyColorCategory = parsedColor;
+      state.fancyColorModifierMult = parsedColor.modifierMult || 1;
+      state.fancyColorModifierTerms = parsedColor.modifierTerms || [];
+    }
   }
 
   // Map clarity

@@ -39,6 +39,8 @@ except ImportError:
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from shape_buckets import classify_shape_by_lw, MESSI_SHAPE_MAP
+from igi_enrichment import apply_enrichment_to_records, load_enrichment
+from igi_shape_cache import apply_igi_shape_cache, load_cache
 
 # ──────────────────────────────────────────────────────────────────────────────
 # PATHS
@@ -300,6 +302,30 @@ def main():
     records = [r for r in records if r is not None]
     print(f"  Normalised (>= 1ct):   {len(records):,}")
 
+    igi_store = load_enrichment()
+    igi_stats = apply_enrichment_to_records(records, igi_store)
+    if igi_store:
+        print(
+            "  IGI enrichment: "
+            f"{igi_stats['storeEntries']:,} reports, "
+            f"{igi_stats['pdfsOk']:,} PDFs, "
+            f"{igi_stats['rowsEnriched']:,} rows enriched, "
+            f"{igi_stats['shapeReclassified']} shape reclassified"
+        )
+    else:
+        igi_cache = load_cache()
+        pt_n = apply_igi_shape_cache(records, igi_cache)
+        if igi_cache:
+            ok_n = sum(1 for v in igi_cache.values() if v.get('status') == 'ok')
+            print(f"  IGI cache: {len(igi_cache):,} slugs, {ok_n} PDFs, {pt_n} → portuguese")
+        igi_stats = {
+            'storeEntries': len(igi_cache),
+            'pdfsOk': sum(1 for v in igi_cache.values() if v.get('status') == 'ok'),
+            'portugueseOnCert': pt_n,
+            'rowsEnriched': 0,
+            'shapeReclassified': pt_n,
+        }
+
     summary = build_summary(records)
     movals = moval_detail(records)
 
@@ -372,6 +398,14 @@ def main():
         'shapeLabels':           SHAPE_LABELS,
         'summary':               summary,
         'movals':                movals,
+        'igiEnrichment': {
+            'storeFile': 'igi-report-enrichment.json',
+            'storeEntries': igi_stats['storeEntries'],
+            'pdfsOk': igi_stats['pdfsOk'],
+            'portugueseOnCert': igi_stats['portugueseOnCert'],
+            'rowsEnriched': igi_stats['rowsEnriched'],
+            'shapeReclassified': igi_stats['shapeReclassified'],
+        },
         'records':               records,
     }
 

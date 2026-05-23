@@ -192,7 +192,7 @@ function applySupplierCap(scored) {
 
 /**
  * buildOtherFactoryExactList — same-spec exact rows from suppliers other than the
- * floor/nearest supplier. Shown separately; never blended into the estimate.
+ * floor supplier. Shown separately; never blended into the estimate.
  */
 function buildOtherFactoryExactList(exactAdjustedOrdered, floorSupplierKey, queryCarat) {
   return exactAdjustedOrdered
@@ -221,7 +221,7 @@ function buildOtherFactoryExactList(exactAdjustedOrdered, floorSupplierKey, quer
 
 /**
  * selectCheapestExactEnsemble — raw price-sorted exact comps for blend support.
- * Exact display/primary ranking is done by nearest carat after query adjustment.
+ * Exact display/primary ranking is done by cheapest adjusted query price.
  */
 function selectCheapestExactEnsemble(exactScored, maxN = MAX_ENSEMBLE) {
   return [...exactScored]
@@ -1495,9 +1495,9 @@ function resolveAlibabaComp(query) {
       })).sort((a, b) => {
         const aEst = Math.exp(a.logEstimate);
         const bEst = Math.exp(b.logEstimate);
-        return Math.abs((a.row?.carat ?? 0) - nq.carat) - Math.abs((b.row?.carat ?? 0) - nq.carat)
-          || aEst - bEst
+        return aEst - bEst
           || (a.row?.priceUsd ?? 0) - (b.row?.priceUsd ?? 0)
+          || Math.abs((a.row?.carat ?? 0) - nq.carat) - Math.abs((b.row?.carat ?? 0) - nq.carat)
           || a.score - b.score;
       })
     : [];
@@ -1936,6 +1936,25 @@ function runTests() {
         if (!messiListed) return 'FAIL: Messi should appear in otherFactoryExact, not alternatives';
         const altMessi = (result.alternatives || []).some(a => supplierKey(a.row) === 'messi');
         if (altMessi) return 'FAIL: Messi should not be in alternatives (floor supplier only)';
+        return null;
+      },
+    },
+    {
+      desc: 'T30 — 2.31ct D VS1 emerald primary is cheapest adjusted exact (StarGem)',
+      q: { carat: 2.31, shape: 'emerald', colorFamily: 'white', whiteGrade: 'D', clarity: 'VS1' },
+      expectMatch: ['exact'],
+      checkFn: (result) => {
+        const p = result.primary?.row;
+        if (!p) return 'FAIL: no primary';
+        if (p.shape !== 'emerald') return `FAIL: primary shape ${p.shape}`;
+        if (p.colorNormalized !== 'D') return `FAIL: primary color ${p.colorNormalized}`;
+        if (p.clarity !== 'VS1') return `FAIL: primary clarity ${p.clarity}`;
+        if (supplierKey(p) !== 'starsgem') return `FAIL: primary should be cheapest StarGem, got ${supplierKey(p)}`;
+        if (result.primary.estimatedPrice < 230 || result.primary.estimatedPrice > 250) {
+          return `FAIL: expected StarGem adjusted floor around $236-243, got ${result.primary.estimatedPrice}`;
+        }
+        const messiListed = (result.otherFactoryExact || []).some(e => e.supplierKey === 'messi');
+        if (!messiListed) return 'FAIL: Messi should appear in otherFactoryExact, not alternatives';
         return null;
       },
     },

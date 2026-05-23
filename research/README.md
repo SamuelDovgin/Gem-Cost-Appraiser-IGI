@@ -21,5 +21,8 @@ This folder keeps supporting research and capture tooling out of the published a
 - `data/0-3ct-0-5ct-1ct-1-5ct-2ct-3ct-4ct-cvd-diamond-starsgem-r-sku-prices.json` - large Starsgem/Messi multi-shape capture; **resolves white radiant D VS/VVS 1-5ct ladder** (`1601715356045`). No marquise selector on that listing.
 - `data/1ct-2ct-3ct-lab-loose-diamond-white-d-e-vvs-vs-igi-certi-sku-prices.json` - white marquise session; **primary D marquise VS/VVS ladder** (`1601406519145`) plus Starsgem corroboration.
 - `*-pricing.md`, `*-comps.md`, and `*-reference.md` - pricing model research notes.
+- `igi-shape-verification-progress.md` - resume log for slow IGI PDF shape checks on Starsgem/Messi round stock (FDR slug prefix, rate-limit safe).
+- `igi-enrichment-progress.md` - full IGI PDF enrichment (all shapes): dimensions, ratio, 4Cs, mapped cut (`igi-enrich-all.py`).
+- `data/igi-report-enrichment.json` - machine store for per-report IGI fields (resume-safe).
 - `archive/` - older app snapshots used during pricing migration.
 - `assets/` - screenshots and other research support files.

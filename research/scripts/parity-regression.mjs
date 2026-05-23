@@ -242,12 +242,13 @@ async function runTierC() {
     console.log(`   matchType=${r.matchType} estimate=$${r.estimate} primary=${r.primary ? supplierKey(r.primary.row) + ' @ $' + r.primary.listingPrice : 'none'}`);
     console.log(`   otherFactoryExact=${r.otherFactoryExact?.map(e => e.supplierKey).join(', ') || 'none'}`);
     assert(r.matchType === 'exact', label + ' matchType=exact', `got ${r.matchType}`);
-    // Primary must be StarGem (cheapest)
+    // Primary must be StarGem (cheapest adjusted exact floor).
     if (r.primary?.row) {
       assert(supplierKey(r.primary.row) === 'starsgem', label + ' primary is starsgem', `got ${supplierKey(r.primary.row)}`);
       assert(r.primary.listingPrice === 100, label + ' listingPrice=100', `got ${r.primary.listingPrice}`);
     }
-    assert(r.estimate === 100, label + ' estimate equals floor listing $100', `got $${r.estimate}`);
+    assertBetween(r.estimate, 101, 103, label + ' estimate equals adjusted floor near $102');
+    assert(r.primary?.modifiers?.parts?.some(p => p.startsWith('carat')), label + ' primary exposes carat modifier');
     // Messi must be in otherFactoryExact, not alternatives
     const otherSuppliers = (r.otherFactoryExact || []).map(e => e.supplierKey);
     assert(otherSuppliers.some(s => s === 'messi'), label + ' messi in otherFactoryExact', `got [${otherSuppliers}]`);

@@ -1,5 +1,5 @@
 {
-  "_comment": "Micro-index Tier C — exact-floor display guard fixture. StarGem has cheapest exact row ($100); Messi has identical-spec rows at much higher prices. Engine must: (1) pick StarGem as floor primary, (2) estimate=100, (3) put Messi rows in otherFactoryExact not alternatives. Query: 2ct pear white E VS1.",
+  "_comment": "Micro-index Tier C — exact-floor display guard fixture. StarGem has cheapest adjusted exact row ($100 listing, about $102 adjusted from 1.98ct to 2ct); Messi has identical-spec rows at much higher prices. Engine must: (1) pick StarGem as floor primary, (2) estimate from the adjusted floor, (3) put Messi rows in otherFactoryExact not alternatives. Query: 2ct pear white E VS1.",
   "comps": [
     {
       "productId": "ef-starsgem-001",
