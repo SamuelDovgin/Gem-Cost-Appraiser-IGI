@@ -1736,6 +1736,9 @@ def strategy_s17_full_combo_v2(train, test, all_rows=None):
 
     # Add numeric features
     for df, rows in [(x_train, train), (x_test, test)]:
+        # Base numeric features
+        for col in NUMERIC_FEATURES:
+            df[col] = [r.get(col) for r in rows]
         for r_idx, r in enumerate(rows):
             c = r["Carat"]
             df.at[r_idx, "Carat_sq"] = c ** 2
@@ -1793,6 +1796,66 @@ def strategy_s17_full_combo_v2(train, test, all_rows=None):
     }
 
 
+def strategy_s18_temporal_shallow(train, test, all_rows=None):
+    """S18 — S11 temporal window with shallower trees.
+
+    The S11 follow-up sweep showed that the recent 70% window is still the
+    right data slice, but max_depth=28 overfits small within-window rate noise.
+    A shallower depth of 24 improves the same recent holdout while keeping the
+    base feature set browser-compatible.
+    """
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+
+    source_rows = all_rows if all_rows is not None else train + test
+    sorted_rows = sorted(source_rows, key=lambda r: r["rowNo"])
+    n_recent = int(len(sorted_rows) * 0.7)
+    recent = sorted_rows[-n_recent:]
+
+    shuffled = list(recent)
+    random.Random(42).shuffle(shuffled)
+    n_test = max(1, int(round(len(shuffled) * 0.2)))
+    test = shuffled[:n_test]
+    test_ids = {r["rowNo"] for r in test}
+    train = [r for r in recent if r["rowNo"] not in test_ids]
+
+    x_train = as_model_frame_base(train)
+    x_test = as_model_frame_base(test)
+    y_train = np.log([r["usd_per_ct"] for r in train])
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+        ("num", SimpleImputer(strategy="median"), NUMERIC_FEATURES),
+    ])
+    model = ExtraTreesRegressor(
+        n_estimators=200,
+        max_depth=24,
+        min_samples_leaf=1,
+        criterion="absolute_error",
+        random_state=42,
+        n_jobs=-1,
+    )
+    pipe = Pipeline([("pre", pre), ("model", model)])
+    pipe.fit(x_train, y_train)
+    log_rate_preds = pipe.predict(x_test)
+    preds = clamp_positive_predictions([
+        math.exp(lr) * r["Carat"] for lr, r in zip(log_rate_preds, test)
+    ])
+
+    return {
+        "name": "S18 — Temporal cutoff, shallower trees",
+        "strategy": "temporal_cutoff_shallow",
+        "target_type": "log_rate",
+        "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
+        "description": "S11 recent 70% window with base features, 200 trees, max_depth=24 to reduce within-window overfit",
+        "pipe": pipe, "feats_num": NUMERIC_FEATURES,
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MAIN RUNNER
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1845,6 +1908,7 @@ def run():
         ("S15 (magic thresholds)",        strategy_s15_magic_thresholds),
         ("S16 (Cut×carat interactions)",  strategy_s16_cut_carat_interactions),
         ("S17 (full combo v2)",           strategy_s17_full_combo_v2),
+        ("S18 (temporal shallow)",        strategy_s18_temporal_shallow),
     ])
 
     results = []

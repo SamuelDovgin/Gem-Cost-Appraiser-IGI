@@ -1518,7 +1518,14 @@ function resolveAlibabaComp(query) {
   // For each major supplier, find the best available comp (exact or nearest)
   // adjusted to the query spec. Lets users compare pricing across suppliers
   // even when one doesn't carry the exact grade.
+  //
+  // For exact-match suppliers: use the cheapest adjusted exact comp.
+  // For nearest-match suppliers: take the top-N scored comps, adjust each to
+  // the query, and pick the one with the lowest adjusted price. "Best scored"
+  // is nearly arbitrary when carat/clarity gaps are tiny (floating-point noise),
+  // so cheapest-adjusted among close matches is the more useful comparison.
   const MAJOR_SUPPLIERS = ['messi', 'starsgem'];
+  const NEAREST_COMPARISON_POOL = 5; // top-N scored comps to consider per supplier
   const supplierComparisons = [];
   for (const sk of MAJOR_SUPPLIERS) {
     const exactForSupplier = exactAdjustedOrdered.filter(adj => supplierKey(adj.row) === sk);
@@ -1541,25 +1548,36 @@ function resolveAlibabaComp(query) {
           : null,
       });
     } else {
-      const bestScored = uniqueScored.find(c => supplierKey(c.row) === sk);
-      if (bestScored) {
-        const adj = adjustCompToQuery(nq, bestScored.row, adjContext);
-        const estPrice = Math.round(Math.exp(adj.logEstimate));
-        supplierComparisons.push({
-          supplierKey: sk,
-          label: shortLabel(bestScored.row),
-          listingPrice: bestScored.row.priceUsd,
-          estimatedPrice: estPrice,
-          url: bestScored.row.url,
-          row: bestScored.row,
-          matchType: 'nearest',
-          score: bestScored.score,
-          modifiers: {
-            combined: Math.exp(adj.logEstimate - Math.log(bestScored.row.priceUsd)),
-            estimated: estPrice,
-            parts: adj.parts,
-          },
-        });
+      // Nearest-match: cheapest adjusted price among top-N scored comps
+      const topN = uniqueScored
+        .filter(c => supplierKey(c.row) === sk)
+        .slice(0, NEAREST_COMPARISON_POOL);
+      if (topN.length) {
+        let bestEntry = null;
+        let bestEstPrice = Infinity;
+        for (const c of topN) {
+          const adj = adjustCompToQuery(nq, c.row, adjContext);
+          const estPrice = Math.round(Math.exp(adj.logEstimate));
+          if (estPrice < bestEstPrice) {
+            bestEstPrice = estPrice;
+            bestEntry = {
+              supplierKey: sk,
+              label: shortLabel(c.row),
+              listingPrice: c.row.priceUsd,
+              estimatedPrice: estPrice,
+              url: c.row.url,
+              row: c.row,
+              matchType: 'nearest',
+              score: c.score,
+              modifiers: {
+                combined: Math.exp(adj.logEstimate - Math.log(c.row.priceUsd)),
+                estimated: estPrice,
+                parts: adj.parts,
+              },
+            };
+          }
+        }
+        if (bestEntry) supplierComparisons.push(bestEntry);
       }
     }
   }

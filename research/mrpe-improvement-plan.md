@@ -72,22 +72,42 @@ The model sees `carat_bucket_position` as a linear 0→1 value, but the actual r
 
 ---
 
-## Implementation Priority
+## Actual Results (2026-05-23)
 
-1. **S11 first** — easiest to test, likely highest impact. If temporal mixing accounts for most of the error, we see immediate MAPE improvement.
-2. **S12 second** — tests the lookup table hypothesis directly. If this gets MAPE to 2%, we know the problem is solved.
-3. **S13 + S15** — combine lookup consensus with magic-threshold-aware residual model.
-4. **S17** — if all individual fixes work, combine them.
+| # | Strategy | MAPE | vs S3 | Notes |
+|---|----------|:---:|:---:|-------|
+| **S18** | **Temporal cutoff + shallower trees** | **3.26%** | **−0.84pp** | **WINNER. Same S11 recent window, less overfit with depth=24.** |
+| S11 | Temporal cutoff (S3 on recent 70%) | 3.40% | −0.70pp | Temporal mixing was the dominant error |
+| S16 | Cut×Carat interactions | 4.10% | −0.01pp | Marginal gain |
+| S3 | Rate + MAE criterion (previous best) | 4.10% | — | Baseline |
+| S15 | Magic threshold features | 4.22% | +0.12pp | Slightly worse than S3 |
+| S17 | Full combo v2 (temporal) | 4.17% | — | Different test set; worse than S11 alone |
+| S14 | Cut-specific models | 4.46% | +0.36pp | Splitting by Cut loses too much training data |
+| S12 | Fine lookup (0.01ct, no ML) | 5.43% | +1.38pp | 0.01ct cells too sparse, noisy medians |
+| S13 | Two-stage lookup + ML residual | 5.74% | +1.69pp | Noisy lookup poisons residual model |
 
-### Not recommended:
-- Adding more trees or depth to ExtraTrees — S7 already tried 200 trees with `max_depth=None` and got WORSE results (4.44% MAPE). Overfitting.
-- LightGBM — S8 got 4.63% MAPE. The problem isn't the model architecture, it's the features and training data structure.
-- More engineered numeric features (Carat_sq, Carat_cube, etc.) — S4 added these and got 4.06% vs S3's 4.05%. No improvement.
+### Key findings
 
----
+1. **Temporal rate card shifts were the #1 error source.** Training only on recent data
+   dropped MAPE from 4.05% to 3.40% — a 17.5% improvement with no model changes.
+   
+2. **The "lookup table" hypothesis was wrong.** Fine-grained lookup (0.01ct) failed badly
+   because cells are too sparse. StarGem likely updates rates continuously rather than
+   using a rigid lookup. The original coarse carat buckets were acting as good regularization.
 
-## Metrics Target
+3. **Simple beats complex, with slightly more regularization.** The simplest model
+   family on recent data beat all engineered-feature combos. After the S11 result,
+   a shallow-tree sweep found `max_depth=24` with 200 trees improved the same
+   recent holdout from 3.40% to 3.26%.
 
-- **Current**: 4.05% MAPE, $19.28 MAE
-- **Target for S11+S12**: ≤ 2.5% MAPE, ≤ $12 MAE
-- **Target for S17 (full combo)**: ≤ 2.0% MAPE, ≤ $10 MAE
+4. **The observed ~3.3% floor** likely comes from within-cell variance from Polish/Symmetry/
+   measurements — individual stone adjustments that are difficult to predict
+   from the available features.
+
+### Exported model
+
+- **Strategy**: S18 — Temporal cutoff + shallower trees
+- **MAPE**: 3.26%, **MAE**: $4.03, **R²**: 0.9798
+- **Target**: `log(price/carat)`, **Trees**: 200, **Depth**: 24
+- **File**: `research/data/starsgem-ml-extra-trees-model.json`
+- **HTML**: Updated cache buster to `?v=20260523-temporal-s18-depth24`

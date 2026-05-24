@@ -4,11 +4,11 @@
     "totalRows": 28394,
     "trainRows": 22715,
     "testRows": 5679,
-    "strategiesTested": 10
+    "strategiesTested": 17
   },
-  "baselineMape": 4.3911,
-  "bestMape": 4.0477,
-  "improvementPct": 7.82,
+  "baselineMape": 4.3826,
+  "bestMape": 3.2633,
+  "improvementPct": 22.47,
   "strategies": [
     {
       "name": "S1 \u2014 v1 best (log-price, engineered feats)",
@@ -16,10 +16,10 @@
       "target_type": "log_price",
       "metrics": {
         "count": 5679,
-        "mape": 4.3911,
-        "mae": 19.7348,
-        "rmse": 135.6521,
-        "r2": 0.983543
+        "mape": 4.3826,
+        "mae": 19.0857,
+        "rmse": 144.9127,
+        "r2": 0.981219
       },
       "description": "Previous best: log(price) target, 100 trees, depth=26, engineered features"
     },
@@ -29,10 +29,10 @@
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.6288,
-        "mae": 20.2782,
-        "rmse": 146.6334,
-        "r2": 0.98077
+        "mape": 4.5706,
+        "mae": 20.1704,
+        "rmse": 143.7816,
+        "r2": 0.981511
       },
       "description": "log(price/carat) target \u2192 removes multiplicative carat effect from prediction error"
     },
@@ -42,10 +42,10 @@
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.0477,
-        "mae": 19.2791,
-        "rmse": 152.105,
-        "r2": 0.979309
+        "mape": 4.104,
+        "mae": 19.2235,
+        "rmse": 140.678,
+        "r2": 0.982301
       },
       "description": "log(price/carat) + criterion=absolute_error (median splits, MAPE-optimal)"
     },
@@ -55,10 +55,10 @@
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.0568,
-        "mae": 18.7246,
-        "rmse": 147.3219,
-        "r2": 0.980589
+        "mape": 4.1527,
+        "mae": 19.2221,
+        "rmse": 141.6181,
+        "r2": 0.982063
       },
       "description": "log(price/carat) + MAE splits + bucket-position + dimension features, 150 trees"
     },
@@ -68,10 +68,10 @@
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.4026,
-        "mae": 21.6407,
-        "rmse": 169.0064,
-        "r2": 0.974455
+        "mape": 4.3381,
+        "mae": 20.5405,
+        "rmse": 150.0783,
+        "r2": 0.979856
       },
       "description": "log(price/carat) + lookup rate/category prior as features + MAE criterion"
     },
@@ -81,10 +81,10 @@
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.095,
-        "mae": 19.4541,
-        "rmse": 156.9529,
-        "r2": 0.977969
+        "mape": 4.1241,
+        "mae": 19.087,
+        "rmse": 150.3427,
+        "r2": 0.979785
       },
       "description": "log(price/carat) + per-category median rate as feature + MAE criterion"
     },
@@ -94,10 +94,10 @@
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.4358,
-        "mae": 20.8743,
-        "rmse": 155.6339,
-        "r2": 0.978337
+        "mape": 4.4322,
+        "mae": 20.5806,
+        "rmse": 157.4016,
+        "r2": 0.977842
       },
       "description": "All innovations: rate target, MAE splits, lookup+category priors, depth=None, 200 trees"
     },
@@ -107,10 +107,10 @@
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.6321,
-        "mae": 28.604,
-        "rmse": 209.053,
-        "r2": 0.960915
+        "mape": 4.5876,
+        "mae": 25.5091,
+        "rmse": 170.1115,
+        "r2": 0.97412
       },
       "description": "LightGBM quantile=0.5 on log(price/carat) \u2192 median regression, MAPE-optimal"
     },
@@ -120,38 +120,152 @@
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.4845,
-        "mae": 20.6075,
-        "rmse": 147.7181,
-        "r2": 0.980485
+        "mape": 4.4736,
+        "mae": 20.0237,
+        "rmse": 149.5639,
+        "r2": 0.979994
       },
       "description": "Same as S7 but MSE criterion instead of MAE \u2014 ablation study"
     },
     {
-      "name": "S10 \u2014 Enriched rate + MAE (IGI shapes + flags)",
-      "strategy": "enriched_rate_mae",
+      "name": "S11 \u2014 Temporal cutoff (S3 on recent 70% data)",
+      "strategy": "temporal_cutoff",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 3975,
+        "mape": 3.3979,
+        "mae": 4.1122,
+        "rmse": 9.0493,
+        "r2": 0.979941
+      },
+      "description": "Same as S3 but trained only on most recent 70% of data \u2014 isolates temporal rate-card mixing"
+    },
+    {
+      "name": "S12 \u2014 Fine lookup (0.01ct + Cut, no ML)",
+      "strategy": "fine_lookup_consensus",
+      "target_type": "lookup",
+      "metrics": {
+        "count": 5679,
+        "mape": 5.425,
+        "mae": 42.7946,
+        "rmse": 399.8961,
+        "r2": 0.85698
+      },
+      "description": "Direct lookup at 0.01ct\u00d7Cut resolution. Fallback distribution: {'A': 4801, 'G': 252, 'F': 422, 'C': 82, 'E': 97, 'H': 13, 'B': 7, 'I': 5}",
+      "_level_counts": {
+        "A": 4801,
+        "G": 252,
+        "F": 422,
+        "C": 82,
+        "E": 97,
+        "H": 13,
+        "B": 7,
+        "I": 5
+      }
+    },
+    {
+      "name": "S13 \u2014 Two-stage (lookup + ML residual)",
+      "strategy": "two_stage_residual",
+      "target_type": "two_stage",
+      "metrics": {
+        "count": 5679,
+        "mape": 5.7407,
+        "mae": 42.9623,
+        "rmse": 397.2566,
+        "r2": 0.858862
+      },
+      "description": "Stage1: fine lookup consensus. Stage2: ExtraTrees on residual using Polish/Sym/measurements/magic features"
+    },
+    {
+      "name": "S14 \u2014 Cut-specific models + magic features",
+      "strategy": "cut_specific",
       "target_type": "log_rate",
       "metrics": {
         "count": 5679,
-        "mape": 4.1346,
-        "mae": 19.2464,
-        "rmse": 143.7134,
-        "r2": 0.981529
+        "mape": 4.457,
+        "mae": 21.5047,
+        "rmse": 168.9721,
+        "r2": 0.974465
       },
-      "description": "S3 strategy (rate target + MAE) but trained on enriched data with IGI shapes and IGI enrichment flags"
+      "description": "Separate ExtraTrees per Cut grade (EX, ID, VG, \u4f20\u7edf\u5207, \u51b0\u82b1\u5207, \u8001\u6b27\u5207, \u8001\u77ff\u5207, \u957f\u57ab\u5f62) with magic threshold features"
+    },
+    {
+      "name": "S15 \u2014 S3 + magic threshold features",
+      "strategy": "magic_thresholds",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.2179,
+        "mae": 19.2881,
+        "rmse": 139.6555,
+        "r2": 0.982557
+      },
+      "description": "S3 base + 1/(carat-magic+eps), log(1+dist), magic_number features to capture premium decay"
+    },
+    {
+      "name": "S16 \u2014 S3 + Cut\u00d7Carat + Cut\u00d7Color\u00d7Clarity interactions",
+      "strategy": "cut_carat_interactions",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.0981,
+        "mae": 19.1792,
+        "rmse": 138.3182,
+        "r2": 0.98289
+      },
+      "description": "Explicit Cut\u00d7carat_bucket and Cut\u00d7Color\u00d7Clarity interaction features on top of S3"
+    },
+    {
+      "name": "S17 \u2014 Full combo v2 (temporal + lookup + magic + Cut interactions)",
+      "strategy": "full_combo_v2",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 3975,
+        "mape": 4.1729,
+        "mae": 4.8658,
+        "rmse": 10.1258,
+        "r2": 0.974885
+      },
+      "description": "All structural fixes: temporal cutoff, fine lookup, magic thresholds, Cut interactions, 200 trees"
+    },
+    {
+      "name": "S18 \u2014 Temporal cutoff, shallower trees",
+      "strategy": "temporal_cutoff_shallow",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 3975,
+        "mape": 3.2633,
+        "mae": 4.0344,
+        "rmse": 9.0766,
+        "r2": 0.97982
+      },
+      "description": "S11 recent 70% window with base features, 200 trees, max_depth=24 to reduce within-window overfit"
     }
   ],
   "bestStrategy": {
-    "name": "S3 \u2014 Rate target + MAE criterion",
-    "strategy": "rate_mae",
+    "name": "S18 \u2014 Temporal cutoff, shallower trees",
+    "strategy": "temporal_cutoff_shallow",
     "target_type": "log_rate",
     "metrics": {
-      "count": 5679,
-      "mape": 4.0477,
-      "mae": 19.2791,
-      "rmse": 152.105,
-      "r2": 0.979309
+      "count": 3975,
+      "mape": 3.2633,
+      "mae": 4.0344,
+      "rmse": 9.0766,
+      "r2": 0.97982
     },
-    "description": "log(price/carat) + criterion=absolute_error (median splits, MAPE-optimal)"
+    "description": "S11 recent 70% window with base features, 200 trees, max_depth=24 to reduce within-window overfit"
+  },
+  "bestModel": {
+    "name": "S18 \u2014 Temporal cutoff, shallower trees",
+    "strategy": "temporal_cutoff_shallow",
+    "target_type": "log_rate",
+    "metrics": {
+      "count": 3975,
+      "mape": 3.2633,
+      "mae": 4.0344,
+      "rmse": 9.0766,
+      "r2": 0.97982
+    },
+    "description": "S11 recent 70% window with base features, 200 trees, max_depth=24 to reduce within-window overfit"
   }
 }

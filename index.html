@@ -324,14 +324,15 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .igi-apply-btn{display:flex;margin:0 16px 14px;padding:9px 0;background:var(--green-dim);border:.5px solid rgba(76,175,122,0.3);border-radius:8px;color:var(--green);font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;text-align:center;justify-content:center;cursor:pointer;transition:all .15s;gap:6px}
 .igi-apply-btn:hover{background:rgba(76,175,122,0.18)}
 .igi-floating-actions{display:none}
-.igi-fab{width:100px;height:100px;border-radius:50%;border:.5px solid rgba(212,175,114,.28);background:rgba(20,20,20,.92);box-shadow:0 10px 30px rgba(0,0,0,.35);backdrop-filter:blur(12px);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.igi-fab{width:76px;height:76px;border-radius:50%;border:.5px solid rgba(212,175,114,.34);background:rgba(20,20,20,.92);box-shadow:0 12px 34px rgba(0,0,0,.42);backdrop-filter:blur(12px);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .igi-fab.secondary{color:var(--muted2);border-color:var(--border2)}
 .igi-fab:disabled{opacity:.45;cursor:not-allowed}
-.igi-fab svg{width:40px;height:40px;stroke:currentColor}
+.igi-fab svg{width:31px;height:31px;stroke:currentColor}
 .spin{display:inline-block;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:760px){
-  .igi-floating-actions{display:flex;gap:16px;justify-content:center;padding:40px 0 80px}
+  .igi-floating-actions{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(82px + env(safe-area-inset-bottom));z-index:80;display:flex;padding:0}
+  .igi-floating-actions .igi-fab.secondary{display:none}
   .igi-btn{padding:0 13px;font-size:10px}
 }
 @media(max-width:520px){
@@ -924,7 +925,7 @@ async function loadStarsgemPricingIntel() {
 async function loadStarsgemMlModel() {
   if (_starsgemMlModel) return _starsgemMlModel;
   if (_starsgemMlModelPromise) return _starsgemMlModelPromise;
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model.json?v=20260523-rate-mae-v2')
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model.json?v=20260523-temporal-s18-depth24')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -2275,6 +2276,51 @@ function renderBlendBreakdown(ac) {
   return `<details class="comp-alts" style="margin-top:8px"><summary style="cursor:pointer;color:var(--muted2)">Show blend math</summary>${rows}</details>`;
 }
 
+function sameSupplierComparison(a, b) {
+  if (!a || !b) return false;
+  const ar = a.row || {};
+  const br = b.row || {};
+  if (a.supplierKey && b.supplierKey && a.supplierKey !== b.supplierKey) return false;
+  const aMeta = getCompSourceMeta(ar);
+  const bMeta = getCompSourceMeta(br);
+  const sameSource = aMeta?.key && bMeta?.key && aMeta.key === bMeta.key;
+  const aRows = normalizeSourceRows(ar);
+  const bRows = normalizeSourceRows(br);
+  if (sameSource && aRows.some(row => bRows.includes(row))) return true;
+  const aReports = normalizeReportList(ar);
+  const bReports = normalizeReportList(br);
+  if (aReports.some(report => bReports.includes(report))) return true;
+  if (ar.url && br.url && ar.url === br.url && ar.carat === br.carat && ar.shape === br.shape && ar.clarity === br.clarity && (ar.color || ar.colorNormalized) === (br.color || br.colorNormalized)) return true;
+  return ar === br;
+}
+
+function renderSupplierComparisonBlock(ac) {
+  const entries = (ac.supplierComparisons || []).filter(entry => !sameSupplierComparison(entry, ac.primary));
+  if (!entries.length) return '';
+
+  let html = `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">`;
+  html += `<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase">Other supplier checks</div>`;
+  for (const entry of entries) {
+    const tag = entry.matchType === 'exact'
+      ? `<span class="comp-tag exact" style="font-size:10px;padding:1px 5px">exact</span>`
+      : `<span class="comp-tag nearest" style="font-size:10px;padding:1px 5px">nearest match</span>`;
+    const supplierLabel = escapeHTML(entry.label || entry.supplierKey);
+    const hasAdj = entry.listingPrice !== entry.estimatedPrice;
+    const priceHtml = hasAdj
+      ? `<span class="comp-price">${fmt(entry.listingPrice)}</span><span class="comp-arr">→</span><span class="comp-adj">~${fmt(entry.estimatedPrice)}</span>`
+      : `<span class="comp-adj">${fmt(entry.estimatedPrice)}</span>`;
+    const rowSpec = entry.row ? `${entry.row.carat}ct ${entry.row.shape} ${entry.row.clarity}${entry.row.color ? ' ' + entry.row.color : entry.row.colorNormalized ? ' ' + entry.row.colorNormalized : ''}` : '';
+    const modHtml = entry.modifiers && entry.modifiers.parts && entry.modifiers.parts.length
+      ? `<div class="comp-mod">${entry.modifiers.parts.map(escapeHTML).join(' · ')}</div>`
+      : '';
+    const linksHtml = renderCompLinks(entry);
+    html += `<div class="comp-row">${priceHtml} ${tag}${linksHtml}<span class="comp-supplier">${escapeHTML(rowSpec)} · ${supplierLabel}</span></div>${modHtml}`;
+  }
+  html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Alternate supplier rows adjusted to the selected stone; use them as a cross-check on the floor, not as extra averaging.</div>`;
+  html += `</div>`;
+  return html;
+}
+
 function updateMarketBar(m){
   const bar = document.getElementById('market-bar');
   const txt = document.getElementById('market-text');
@@ -2305,29 +2351,7 @@ function updateMarketBar(m){
   if (ac.matchType === 'exact') {
     html = `<div class="comp-block"><strong>Alibaba factory floor:</strong> ${fmtCompTag('exact')}<br>`;
     html += renderCompEntry(ac.primary, false);
-    // Show other suppliers side by side
-    const sc = ac.supplierComparisons || [];
-    if (sc.length > 1) {
-      html += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">`;
-      html += `<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase">Compare all suppliers</div>`;
-      for (const entry of sc) {
-        const tag = entry.matchType === 'exact'
-          ? `<span class="comp-tag exact" style="font-size:10px;padding:1px 5px">exact</span>`
-          : `<span class="comp-tag nearest" style="font-size:10px;padding:1px 5px">nearest match</span>`;
-        const supplierLabel = escapeHTML(entry.label || entry.supplierKey);
-        const hasAdj = entry.listingPrice !== entry.estimatedPrice;
-        const priceHtml = hasAdj
-          ? `<span class="comp-price">${fmt(entry.listingPrice)}</span><span class="comp-arr">→</span><span class="comp-adj">~${fmt(entry.estimatedPrice)}</span>`
-          : `<span class="comp-adj">${fmt(entry.estimatedPrice)}</span>`;
-        const rowSpec = entry.row ? `${entry.row.carat}ct ${entry.row.shape} ${entry.row.clarity}${entry.row.color ? ' ' + entry.row.color : entry.row.colorNormalized ? ' ' + entry.row.colorNormalized : ''}` : '';
-        const modHtml = entry.modifiers && entry.modifiers.parts && entry.modifiers.parts.length
-          ? `<div class="comp-mod">${entry.modifiers.parts.map(escapeHTML).join(' · ')}</div>`
-          : '';
-        const linksHtml = renderCompLinks(entry);
-        html += `<div class="comp-row">${priceHtml} ${tag}${linksHtml}<span class="comp-supplier">${escapeHTML(rowSpec)} · ${supplierLabel}</span></div>${modHtml}`;
-      }
-      html += `</div>`;
-    }
+    html += renderSupplierComparisonBlock(ac);
     const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
     html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Lowest matched factory listing, adjusted to your selected carat/spec when needed.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
   } else if (ac.matchType === 'nearest') {
@@ -2340,29 +2364,7 @@ function updateMarketBar(m){
       html += `</div>`;
     }
     html += renderBlendBreakdown(ac);
-    // Show per-supplier comparisons
-    const scNear = ac.supplierComparisons || [];
-    if (scNear.length > 1) {
-      html += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">`;
-      html += `<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase">Compare all suppliers</div>`;
-      for (const entry of scNear) {
-        const tag = entry.matchType === 'exact'
-          ? `<span class="comp-tag exact" style="font-size:10px;padding:1px 5px">exact</span>`
-          : `<span class="comp-tag nearest" style="font-size:10px;padding:1px 5px">nearest match</span>`;
-        const supplierLabel = escapeHTML(entry.label || entry.supplierKey);
-        const hasAdj = entry.listingPrice !== entry.estimatedPrice;
-        const priceHtml = hasAdj
-          ? `<span class="comp-price">${fmt(entry.listingPrice)}</span><span class="comp-arr">→</span><span class="comp-adj">~${fmt(entry.estimatedPrice)}</span>`
-          : `<span class="comp-adj">${fmt(entry.estimatedPrice)}</span>`;
-        const rowSpec = entry.row ? `${entry.row.carat}ct ${entry.row.shape} ${entry.row.clarity}${entry.row.color ? ' ' + entry.row.color : entry.row.colorNormalized ? ' ' + entry.row.colorNormalized : ''}` : '';
-        const modHtml = entry.modifiers && entry.modifiers.parts && entry.modifiers.parts.length
-          ? `<div class="comp-mod">${entry.modifiers.parts.map(escapeHTML).join(' · ')}</div>`
-          : '';
-        const linksHtml = renderCompLinks(entry);
-        html += `<div class="comp-row">${priceHtml} ${tag}${linksHtml}<span class="comp-supplier">${escapeHTML(rowSpec)} · ${supplierLabel}</span></div>${modHtml}`;
-      }
-      html += `</div>`;
-    }
+    html += renderSupplierComparisonBlock(ac);
     const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
     const warnNote = ac.warnings?.length ? ` ${ac.warnings.join(' ')}` : '';
     html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimate is a weighted blend of ${nComps} adjusted comp${nComps > 1 ? 's' : ''}; closer/lower-uncertainty comps receive more weight.${rangeNote}${warnNote}</div></div>`;
