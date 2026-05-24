@@ -15,6 +15,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from igi_report_parser import (  # noqa: E402
     PARSER_VERSION,
     enrichment_completeness,
+    map_report_shape_to_state,
     parse_igi_pdf_text,
 )
 from igi_shape_cache import (  # noqa: E402
@@ -37,7 +38,10 @@ IGI_SHAPE_AUTHORITY = True
 def load_enrichment() -> dict:
     if ENRICHMENT_PATH.exists():
         with ENRICHMENT_PATH.open(encoding="utf-8") as f:
-            return json.load(f)
+            store = json.load(f)
+        for entry in store.values():
+            normalize_enrichment_entry(entry)
+        return store
     # Migrate legacy shape-only cache
     store: dict = {}
     if LEGACY_CACHE_PATH.exists():
@@ -65,6 +69,18 @@ def load_enrichment() -> dict:
             else:
                 store[digits] = entry
     return store
+
+
+def normalize_enrichment_entry(entry: dict | None) -> None:
+    """Refresh derived parser fields without refetching the PDF."""
+    if not entry or entry.get("status") != "ok":
+        return
+    if not entry.get("shapeMapped") and entry.get("shapeRaw"):
+        entry["shapeMapped"] = map_report_shape_to_state(entry["shapeRaw"], "")
+    comp = enrichment_completeness(entry)
+    entry["enrichmentComplete"] = comp["complete"]
+    entry["missingFields"] = comp["missingRequired"] + comp["missingImportant"]
+    entry["unsupportedShapeRaw"] = bool(entry.get("shapeRaw") and not entry.get("shapeMapped"))
 
 
 def save_enrichment(store: dict) -> None:
@@ -168,7 +184,7 @@ def needs_enrichment(entry: dict | None) -> bool:
         return True
     if entry.get("parserVersion", 0) < PARSER_VERSION:
         return True
-    if not entry.get("enrichmentComplete"):
+    if not enrichment_completeness(entry)["complete"]:
         return True
     return False
 

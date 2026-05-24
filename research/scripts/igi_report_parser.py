@@ -17,7 +17,7 @@ HARD_STOP = re.compile(
 )
 
 # Fields required for a "complete" enrichment row
-REQUIRED_FIELDS = ("carat", "shapeMapped", "color", "clarity", "measurements")
+REQUIRED_FIELDS = ("carat", "shapeRaw", "color", "clarity", "measurements")
 IMPORTANT_FIELDS = (
     "polish",
     "symmetry",
@@ -136,7 +136,7 @@ def map_report_shape_to_state(shape: str, report_hint: str = "") -> str | None:
         return "marquise"
     if "heart" in sh:
         return "heart"
-    if "trilliant" in sh or "triangle" in sh:
+    if "trilliant" in sh or "triangle" in sh or "triangular" in sh:
         return "trilliant"
     if "square cushion" in sh:
         return "square_cushion"
@@ -699,6 +699,7 @@ def parse_igi_pdf_text(lines: list[str], fallback_digits: str = "") -> dict[str,
         "reportNumber": cert or None,
         "shapeRaw": shape_raw or None,
         "shapeMapped": shape_mapped,
+        "unsupportedShapeRaw": bool(shape_raw and not shape_mapped),
         "isPortuguese": shape_mapped == "portuguese",
         "isRoundBrilliant": shape_mapped == "round",
         "measurements": measurements,

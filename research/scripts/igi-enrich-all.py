@@ -44,6 +44,11 @@ from igi_enrichment import (  # noqa: E402
 from igi_report_parser import enrichment_completeness  # noqa: E402
 
 
+def log(*args, **kwargs) -> None:
+    kwargs.setdefault("flush", True)
+    print(*args, **kwargs)
+
+
 def write_progress_doc(store: dict) -> None:
     by_supplier = all_report_digits_from_indexes()
     all_ids = by_supplier["starsgem"] | by_supplier["messi"]
@@ -178,6 +183,49 @@ def build_queue(
     )
 
 
+def scope_stats(
+    store: dict,
+    supplier: str,
+    status: str,
+    *,
+    include_complete_not_found: bool = False,
+) -> dict[str, int]:
+    by = all_report_digits_from_indexes()
+    if supplier == "starsgem":
+        pool = by["starsgem"]
+    elif supplier == "messi":
+        pool = by["messi"]
+    else:
+        pool = by["starsgem"] | by["messi"]
+
+    ok = not_found = rate_limited = 0
+    for d in pool:
+        entry = store.get(d)
+        st = entry.get("status") if entry else None
+        if st == "ok":
+            ok += 1
+        elif st == "not_found":
+            not_found += 1
+        elif st == "rate_limited":
+            rate_limited += 1
+
+    left = len(
+        build_queue(
+            store,
+            supplier,
+            status,
+            include_complete_not_found=include_complete_not_found,
+        )
+    )
+    return {
+        "total": len(pool),
+        "ok": ok,
+        "not_found": not_found,
+        "rate_limited": rate_limited,
+        "left": left,
+    }
+
+
 def fetch_one(
     digits: str,
     prev: dict,
@@ -243,11 +291,11 @@ def main() -> None:
         if args.limit > 0:
             queue = queue[: args.limit]
         if not queue:
-            print("Queue empty for this status/supplier.")
+            log("Queue empty for this status/supplier.")
             break
 
         batch_num += 1
-        print(
+        log(
             f"Batch {batch_num}: {len(queue)} reports "
             f"(workers={args.workers}, stagger={args.delay}s)…"
         )
@@ -280,29 +328,32 @@ def main() -> None:
 
                 if entry.get("status") == "ok":
                     rl_streak = 0
-                    sm = entry.get("shapeMapped")
-                    if sm == "portuguese" or (
-                        entry.get("shapeRaw")
-                        and "modified" in entry.get("shapeRaw", "").lower()
-                    ):
-                        print(
-                            f"  {digits} {entry.get('shapeRaw')} → {sm} "
-                            f"({entry.get('pdfSlug')})"
-                        )
+                    sm = entry.get("shapeMapped") or "?"
+                    shape_raw = entry.get("shapeRaw") or "?"
+                    log(
+                        f"  ok {digits} {shape_raw} → {sm} "
+                        f"({entry.get('pdfSlug')})"
+                    )
                 elif entry.get("status") == "rate_limited":
                     rl_streak += 1
+                    log(f"  rate_limited {digits}")
 
         save_enrichment(store)
-        ok = sum(1 for v in store.values() if v.get("status") == "ok")
-        complete = sum(
-            1
-            for v in store.values()
-            if v.get("status") == "ok" and v.get("enrichmentComplete")
+        batch_ok = sum(1 for _, e in results if e.get("status") == "ok")
+        stats = scope_stats(
+            store,
+            args.supplier,
+            args.status,
+            include_complete_not_found=args.full_retry,
         )
-        print(f"  saved — store ok={ok}, complete={complete}")
+        log(
+            f"Batch {batch_num} complete — +{batch_ok} ok this batch; "
+            f"{stats['ok']} done, {stats['left']} left "
+            f"({stats['total']} total in scope)"
+        )
 
         if rl_streak >= 5:
-            print("Stopping: 5× rate_limited in batch.")
+            log("Stopping: 5× rate_limited in batch.")
             break
 
         if not args.no_apply and batch_num % max(1, args.apply_every) == 0:
@@ -312,7 +363,7 @@ def main() -> None:
         write_progress_doc(store)
         if not args.run_all:
             break
-        print("--- next batch ---")
+        log("--- next batch ---")
 
     if not args.no_apply:
         apply_enrichment_to_index(STARSGEM_INDEX, store)

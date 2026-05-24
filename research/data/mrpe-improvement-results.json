@@ -1,0 +1,108 @@
+{
+  "generatedDate": "2026-05-23",
+  "testSummary": {
+    "totalRows": 28394,
+    "trainRows": 22715,
+    "testRows": 5679,
+    "strategiesTested": 7
+  },
+  "strategies": [
+    {
+      "name": "Extra Trees (baseline)",
+      "strategy": "baseline",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.5281,
+        "mae": 20.61,
+        "rmse": 137.9666,
+        "r2": 0.982976
+      },
+      "description": "Original hyperparameters: 60 trees, depth=24, min_samples_leaf=2"
+    },
+    {
+      "name": "Extra Trees (aggressive tuning)",
+      "strategy": "hyperparameter_tuning",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.4449,
+        "mae": 18.5128,
+        "rmse": 136.6003,
+        "r2": 0.983312
+      },
+      "description": "Tuned: 120 trees, depth=28, min_samples_leaf=1, min_samples_split=2"
+    },
+    {
+      "name": "LightGBM (tuned)",
+      "strategy": "hyperparameter_tuning",
+      "metrics": {
+        "count": 5679,
+        "mape": 5.5116,
+        "mae": 25.3657,
+        "rmse": 152.3265,
+        "r2": 0.979248
+      },
+      "description": "Tuned: 600 estimators, lr=0.03, num_leaves=64, depth=8, subsample=0.85"
+    },
+    {
+      "name": "CatBoost (tuned)",
+      "strategy": "hyperparameter_tuning",
+      "metrics": {
+        "count": 5679,
+        "mape": 6.2639,
+        "mae": 30.0324,
+        "rmse": 261.5868,
+        "r2": 0.938802
+      },
+      "description": "Tuned: 600 iterations, depth=7, lr=0.06, subsample=0.85"
+    },
+    {
+      "name": "Extra Trees (engineered features)",
+      "strategy": "feature_engineering",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.3826,
+        "mae": 19.0857,
+        "rmse": 144.9127,
+        "r2": 0.981219
+      },
+      "description": "Added: Carat\u00b2/\u00b3, Log(Carat), dimension volume/surface, table/depth ratio"
+    },
+    {
+      "name": "Ensemble (ET + LGB + RF weighted)",
+      "strategy": "ensemble",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.6808,
+        "mae": 20.6306,
+        "rmse": 133.2586,
+        "r2": 0.984118
+      },
+      "description": "Weighted blend: ET(0.5) + LightGBM(0.35) + RF(0.15) for diversity"
+    },
+    {
+      "name": "Extra Trees (outlier-cleaned)",
+      "strategy": "data_preprocessing",
+      "metrics": {
+        "count": 5679,
+        "mape": 8.4493,
+        "mae": 135.5046,
+        "rmse": 1008.2577,
+        "r2": 0.090828
+      },
+      "description": "Removed 2016 training outliers (IQR method) before fitting"
+    }
+  ],
+  "baseline": 4.5281,
+  "bestImprovement": {
+    "name": "Extra Trees (engineered features)",
+    "strategy": "feature_engineering",
+    "metrics": {
+      "count": 5679,
+      "mape": 4.3826,
+      "mae": 19.0857,
+      "rmse": 144.9127,
+      "r2": 0.981219
+    },
+    "description": "Added: Carat\u00b2/\u00b3, Log(Carat), dimension volume/surface, table/depth ratio"
+  }
+}

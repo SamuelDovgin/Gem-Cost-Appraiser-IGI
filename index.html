@@ -144,7 +144,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .bdg-accent{color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25)}
 .bdg-red{color:var(--red);background:var(--red-dim);border:.5px solid rgba(224,96,96,.25)}
 
-.price-grid{display:grid;grid-template-columns:1fr 1fr 1fr}
+.price-grid{display:grid;grid-template-columns:1fr 1fr}
 .pcell{padding:20px 22px}
 .pcell:not(:last-child){border-right:.5px solid var(--border)}
 .pcl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}
@@ -156,7 +156,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .pa.fair{color:var(--green)}
 .pa.retail{color:var(--muted2)}
 .ppc{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.5}
-.pricing-intel{border-top:.5px solid var(--border);display:grid;grid-template-columns:1fr 1fr .9fr;background:rgba(255,255,255,0.012)}
+.pricing-intel{border-top:.5px solid var(--border);display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,0.012)}
 .pricing-intel-panel{padding:15px 22px 16px;min-width:0}
 .pricing-intel-panel:not(:last-child){border-right:.5px solid var(--border)}
 .intel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
@@ -169,11 +169,6 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .lookup-mini div{min-width:0}
 .lookup-k{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
 .lookup-v{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.model-list{display:flex;flex-direction:column;gap:6px}
-.model-row{display:grid;grid-template-columns:minmax(0,1.2fr) auto;gap:10px;align-items:baseline;font-size:11px;color:var(--muted2);line-height:1.35}
-.model-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
-.model-score{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted2);text-align:right;white-space:nowrap}
-.model-score.best{color:var(--accent)}
 @media(max-width:760px){
   .pricing-intel{grid-template-columns:1fr}
   .pricing-intel-panel:not(:last-child){border-right:0;border-bottom:.5px solid var(--border)}
@@ -304,10 +299,11 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .igi-section{margin-bottom:22px}
 .igi-box{background:var(--surface2);border:.5px solid var(--border);border-radius:12px;overflow:hidden}
 .igi-input-row{display:flex;gap:0;align-items:stretch}
-.igi-paste-btn{width:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;border-right:.5px solid var(--border);color:var(--muted2);cursor:pointer;transition:all .15s}
-.igi-paste-btn:hover{background:rgba(212,175,114,0.1);color:var(--accent)}
-.igi-paste-btn:focus-visible{outline:1px solid var(--accent);outline-offset:-3px}
-.igi-paste-btn svg{width:17px;height:17px;stroke:currentColor}
+.igi-action-btn{width:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent;border:none;border-right:.5px solid var(--border);color:var(--muted2);cursor:pointer;transition:all .15s}
+.igi-action-btn:hover{background:rgba(212,175,114,0.1);color:var(--accent)}
+.igi-action-btn:focus-visible{outline:1px solid var(--accent);outline-offset:-3px}
+.igi-action-btn:disabled{opacity:.4;cursor:not-allowed}
+.igi-action-btn svg{width:17px;height:17px;stroke:currentColor}
 .igi-number-input{flex:1;border:none;background:transparent;color:var(--text);padding:13px 16px;font-family:'DM Mono',monospace;font-size:14px;outline:none;min-width:0}
 .igi-number-input::placeholder{color:var(--muted)}
 .igi-btn{flex-shrink:0;background:var(--accent-dim);border:none;border-left:.5px solid var(--border);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.08em;padding:0 18px;cursor:pointer;transition:all .15s;white-space:nowrap}
@@ -327,8 +323,23 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .irc-value.highlight{color:var(--accent)}
 .igi-apply-btn{display:flex;margin:0 16px 14px;padding:9px 0;background:var(--green-dim);border:.5px solid rgba(76,175,122,0.3);border-radius:8px;color:var(--green);font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;text-align:center;justify-content:center;cursor:pointer;transition:all .15s;gap:6px}
 .igi-apply-btn:hover{background:rgba(76,175,122,0.18)}
+.igi-floating-actions{display:none}
+.igi-fab{width:50px;height:50px;border-radius:50%;border:.5px solid rgba(212,175,114,.28);background:rgba(20,20,20,.92);box-shadow:0 10px 30px rgba(0,0,0,.35);backdrop-filter:blur(12px);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.igi-fab.secondary{color:var(--muted2);border-color:var(--border2)}
+.igi-fab:disabled{opacity:.45;cursor:not-allowed}
+.igi-fab svg{width:20px;height:20px;stroke:currentColor}
 .spin{display:inline-block;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:760px){
+  .wrapper{padding-bottom:132px}
+  .igi-floating-actions{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:40;display:flex;gap:10px}
+  .igi-btn{padding:0 13px;font-size:10px}
+}
+@media(max-width:520px){
+  .igi-input-row{flex-wrap:wrap}
+  .igi-number-input{flex:1 1 calc(100% - 88px)}
+  .igi-btn{flex-basis:100%;min-height:44px;border-left:0;border-top:.5px solid var(--border)}
+}
 
 </style>
 </head>
@@ -510,13 +521,23 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   <div class="section-label">IGI report lookup <span style="font-size:9px;color:var(--muted);margin-left:4px;letter-spacing:0">(optional — auto-fills all fields)</span></div>
   <div class="igi-box">
     <div class="igi-input-row">
-      <button class="igi-paste-btn" id="igi-paste-btn" type="button" aria-label="Paste IGI report number" title="Paste and replace report number">
+      <button class="igi-action-btn" id="igi-paste-btn" type="button" aria-label="Paste IGI report number" title="Paste and replace report number">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="8" y="2" width="8" height="4" rx="1"></rect>
           <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
           <path d="M9 14h6"></path>
           <path d="M9 18h6"></path>
           <path d="M9 10h1"></path>
+        </svg>
+      </button>
+      <button class="igi-action-btn" id="igi-random-btn" type="button" aria-label="Roll dice for random IGI specs" title="Roll cut, clarity, and carat dice — then load a nearby known IGI report">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+          <circle cx="8" cy="8" r="1"></circle>
+          <circle cx="16" cy="8" r="1"></circle>
+          <circle cx="12" cy="12" r="1"></circle>
+          <circle cx="8" cy="16" r="1"></circle>
+          <circle cx="16" cy="16" r="1"></circle>
         </svg>
       </button>
       <input class="igi-number-input" id="igi-number" type="text" inputmode="text" placeholder="Enter IGI report number e.g. LG630467873 or 630467873" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false">
@@ -609,14 +630,9 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
       <div class="ppc" id="price-ws-sub">wholesale estimate</div>
     </div>
     <div class="pcell">
-      <div class="pcl fair">Fair direct / auction price</div>
-      <div class="pa fair" id="price-fair">—</div>
-      <div class="ppc" id="price-fair-sub">TikTok / direct / auction</div>
-    </div>
-    <div class="pcell">
-      <div class="pcl retail">Traditional retail</div>
+      <div class="pcl retail">Retail range</div>
       <div class="pa retail" id="price-retail">—</div>
-      <div class="ppc" id="price-retail-sub">mall / big-box ask</div>
+      <div class="ppc" id="price-retail-sub">ask ceiling</div>
     </div>
   </div>
 
@@ -627,21 +643,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         <div class="intel-pill" id="starsgem-ml-model">Extra Trees</div>
       </div>
       <div class="intel-formula" id="starsgem-ml-price">Loading ML model…</div>
-      <div class="intel-sub" id="starsgem-ml-note">Uses the best held-out StarGem model when the browser model has loaded.</div>
-      <div class="lookup-mini">
-        <div>
-          <div class="lookup-k">Model MAPE</div>
-          <div class="lookup-v" id="starsgem-ml-mape">—</div>
-        </div>
-        <div>
-          <div class="lookup-k">Features</div>
-          <div class="lookup-v" id="starsgem-ml-features">—</div>
-        </div>
-        <div>
-          <div class="lookup-k">Trees</div>
-          <div class="lookup-v" id="starsgem-ml-trees">—</div>
-        </div>
-      </div>
+      <div class="intel-sub" id="starsgem-ml-note">Uses the best StarGem browser model when it has loaded.</div>
     </div>
     <div class="pricing-intel-panel">
       <div class="intel-head">
@@ -664,16 +666,6 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <div class="lookup-v" id="starsgem-lookup-bucket">—</div>
         </div>
       </div>
-    </div>
-    <div class="pricing-intel-panel">
-      <div class="intel-head">
-        <div class="intel-title">Lookup vs ML benchmark</div>
-        <div class="intel-pill" id="starsgem-model-split">80/20</div>
-      </div>
-      <div class="model-list" id="starsgem-model-list">
-        <div class="model-row"><span class="model-name">Loading model comparison</span><span class="model-score">—</span></div>
-      </div>
-      <div class="intel-sub" id="starsgem-model-note" style="margin-top:8px">The lookup model runs first; ML should only be used for residuals or missing combinations.</div>
     </div>
   </div>
 
@@ -808,6 +800,28 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 
 </div><!-- /wrapper -->
 
+<div class="igi-floating-actions" aria-label="Quick IGI lookup actions">
+  <button class="igi-fab secondary" id="igi-random-fab" type="button" aria-label="Roll dice for random IGI specs" title="Roll cut, clarity, and carat dice — then load a nearby known IGI report">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+      <circle cx="8" cy="8" r="1"></circle>
+      <circle cx="16" cy="8" r="1"></circle>
+      <circle cx="12" cy="12" r="1"></circle>
+      <circle cx="8" cy="16" r="1"></circle>
+      <circle cx="16" cy="16" r="1"></circle>
+    </svg>
+  </button>
+  <button class="igi-fab" id="igi-paste-fab" type="button" aria-label="Paste IGI report number" title="Paste and look up IGI report">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="8" y="2" width="8" height="4" rx="1"></rect>
+      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+      <path d="M9 14h6"></path>
+      <path d="M9 18h6"></path>
+      <path d="M9 10h1"></path>
+    </svg>
+  </button>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script type="module">
   // Shared comp engine — eliminates research/production implementation drift.
@@ -911,7 +925,7 @@ async function loadStarsgemPricingIntel() {
 async function loadStarsgemMlModel() {
   if (_starsgemMlModel) return _starsgemMlModel;
   if (_starsgemMlModelPromise) return _starsgemMlModelPromise;
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model.json?v=20260523-compact-extra-trees')
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model.json?v=20260523-rate-mae-v2')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1863,8 +1877,11 @@ function predictStarsgemMl(row) {
     }
     logSum += tree.value[node];
   }
-  const logPrice = logSum / model.trees.length;
-  const price = Math.max(0.01, Math.exp(logPrice));
+  const logVal = logSum / model.trees.length;
+  const carat = Number(row.Carat ?? row.carat);
+  const price = model.targetType === 'log_rate'
+    ? Math.max(0.01, Math.exp(logVal) * carat)
+    : Math.max(0.01, Math.exp(logVal));
   return { price, modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
 }
 
@@ -1874,19 +1891,13 @@ function updateStarsgemPricingIntel() {
   const mlPriceEl = document.getElementById('starsgem-ml-price');
   const mlNoteEl = document.getElementById('starsgem-ml-note');
   const mlModelEl = document.getElementById('starsgem-ml-model');
-  const mlMapeEl = document.getElementById('starsgem-ml-mape');
-  const mlFeaturesEl = document.getElementById('starsgem-ml-features');
-  const mlTreesEl = document.getElementById('starsgem-ml-trees');
   const priceEl = document.getElementById('starsgem-lookup-price');
   const noteEl = document.getElementById('starsgem-lookup-note');
   const levelEl = document.getElementById('starsgem-lookup-level');
   const rateEl = document.getElementById('starsgem-lookup-rate');
   const bucketEl = document.getElementById('starsgem-lookup-bucket');
   const factorEl = document.getElementById('starsgem-factor');
-  const modelList = document.getElementById('starsgem-model-list');
-  const modelNote = document.getElementById('starsgem-model-note');
-  const splitEl = document.getElementById('starsgem-model-split');
-  if (!priceEl || !noteEl || !levelEl || !rateEl || !bucketEl || !modelList) return;
+  if (!priceEl || !noteEl || !levelEl || !rateEl || !bucketEl) return;
 
   if (!intel) {
     if (mlPriceEl) mlPriceEl.textContent = 'ML model unavailable';
@@ -1900,16 +1911,12 @@ function updateStarsgemPricingIntel() {
 
   const factor = intel.granularity?.smallestStrongFactor || 170;
   if (factorEl) factorEl.textContent = `/${factor}`;
-  if (splitEl) splitEl.textContent = intel.evaluation?.split?.replace(' random seed 42', '') || '80/20';
 
   const row = starsgemLookupRowFromState(state.carat);
   const mlPred = predictStarsgemMl(row);
   if (mlPred && mlPriceEl) {
     mlPriceEl.textContent = `${fmt(mlPred.price)} ML price guess`;
     if (mlModelEl) mlModelEl.textContent = mlPred.modelName || 'ML';
-    if (mlMapeEl) mlMapeEl.textContent = fmtPct(mlPred.metrics?.mape);
-    if (mlFeaturesEl) mlFeaturesEl.textContent = `${(mlModel?.features?.categorical || []).length} cat · ${(mlModel?.features?.numeric || []).length} num`;
-    if (mlTreesEl) mlTreesEl.textContent = String(mlPred.treeCount || mlModel?.trees?.length || '—');
     if (mlNoteEl) {
       const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth when available' : 'using selected specs; dimensions are imputed until an IGI report is loaded';
       mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> predicted by ${escapeHTML(mlPred.modelName || 'the best model')} (${dims}).`;
@@ -1917,9 +1924,6 @@ function updateStarsgemPricingIntel() {
   } else if (mlPriceEl) {
     mlPriceEl.textContent = 'Loading ML model…';
     if (mlNoteEl) mlNoteEl.textContent = 'The compact Extra Trees browser model is loading from the StarGem benchmark artifact.';
-    if (mlMapeEl) mlMapeEl.textContent = '—';
-    if (mlFeaturesEl) mlFeaturesEl.textContent = '—';
-    if (mlTreesEl) mlTreesEl.textContent = '—';
   }
 
   const pred = predictStarsgemLookup(row);
@@ -1938,18 +1942,6 @@ function updateStarsgemPricingIntel() {
     rateEl.textContent = '—';
   }
 
-  const models = intel.evaluation?.models || [];
-  modelList.innerHTML = models.map((model, idx) => {
-    const metric = model.metrics ? `MAPE ${fmtPct(model.metrics.mape)}` : model.status === 'dependency_missing' ? 'not run' : model.status;
-    const cls = idx === 0 && model.metrics ? ' best' : '';
-    return `<div class="model-row"><span class="model-name">${escapeHTML(model.name)}</span><span class="model-score${cls}">${escapeHTML(metric)}</span></div>`;
-  }).join('');
-  if (modelNote) {
-    const m = intel.evaluation?.lookupOnly;
-    const gran = intel.granularity?.requested?.['170']?.integerShare;
-    const granText = gran === 1 ? '100% integer at ×170' : `×170 integer share ${(gran * 100).toFixed(2)}%`;
-    modelNote.innerHTML = `Lookup-only: <strong>${fmtPct(m?.mape)} MAPE</strong>, ${fmt(m?.mae || 0)} MAE on ${m?.count?.toLocaleString() || '—'} holdout rows; ${granText}.`;
-  }
 }
 
 const shapeNames = {
@@ -2034,10 +2026,14 @@ function update(options = {}) {
     document.getElementById('price-ws').textContent = wsDisplay;
     document.getElementById('price-ws-sub').textContent = wsSub;
   }
-  document.getElementById('price-fair').textContent   = fmtR(m.fairLo, m.fairHi);
-  document.getElementById('price-fair-sub').textContent = fmt(m.fairLo/ct)+'–'+fmt(m.fairHi/ct).replace('$','')+'/ct';
-  document.getElementById('price-retail').textContent  = fmtR(m.retailLo, m.retailHi);
-  document.getElementById('price-retail-sub').textContent = fmt(m.retailLo/ct)+'–'+fmt(m.retailHi/ct).replace('$','')+'/ct';
+
+  // Wire retail pricing
+  { const retailDisplay = fmtR(m.retailLo, m.retailHi);
+    const retailPerCt = Math.round(m.retailMid / ct * 10) / 10;
+    const retailSub = fmt(retailPerCt) + '/ct avg.';
+    document.getElementById('price-retail').textContent = retailDisplay;
+    document.getElementById('price-retail-sub').textContent = retailSub;
+  }
 
   updateBadges();
   updateRatioBar();
@@ -2308,22 +2304,10 @@ function updateMarketBar(m){
   }
 
   if (ac.matchType === 'exact') {
-    html = `<div class="comp-block"><strong>Alibaba nearest exact listing:</strong> ${fmtCompTag('exact')}<br>`;
+    html = `<div class="comp-block"><strong>Alibaba factory floor:</strong> ${fmtCompTag('exact')}<br>`;
     html += renderCompEntry(ac.primary, false);
-    if (ac.alternatives && ac.alternatives.length) {
-      html += `<div class="comp-alts">`;
-      html += `<div style="font-size:11px;color:var(--muted2);margin:6px 0 4px">Same supplier, nearby carat bins:</div>`;
-      html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
-      html += `</div>`;
-    }
-    if (ac.otherFactoryExact && ac.otherFactoryExact.length) {
-      html += `<div class="comp-alts" style="margin-top:10px">`;
-      html += `<div style="font-size:11px;color:var(--muted2);margin:0 0 6px"><strong>Same spec at other factories</strong> — actual sheet/listing prices, not blended into primary:</div>`;
-      html += ac.otherFactoryExact.map(entry => renderCompEntry(entry, true)).join('');
-      html += `</div>`;
-    }
     const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Primary exact comp = nearest carat bin, adjusted to your carat; same-supplier rows below show nearby bins.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
+    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Lowest matched factory listing, adjusted to your selected carat/spec when needed.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
   } else if (ac.matchType === 'nearest') {
     const nComps = ac.supportComps?.length || 1;
     html = `<div class="comp-block"><strong>Closest Alibaba comps — weighted blend <span style="color:var(--accent);font-size:1.08em;letter-spacing:.01em">${fmt(ac.estimate)}</span></strong> ${fmtCompTag('nearest')}<br>`;
@@ -2921,6 +2905,28 @@ let lastIGIData = null;
 let igiAutoLookupTimer = null;
 const IGI_VERIFY_URL = 'https://www.igi.org/verify-Your-REPORT/?R=';
 const IGI_PDF_BASE = 'https://pdf.igi.org/';
+const IGI_DICE_FALLBACK_STONES = [
+  { d:'733528162', p:'FDR733528162', c:1, cl:'VVS2', f:'w', sh:'round', co:'D', cu:'Ideal', gm:'HPHT' },
+  { d:'789618621', p:'FDR789618621', c:1.7, cl:'VS2', f:'w', sh:'round', co:'D', cu:'Ideal', gm:'CVD' },
+  { d:'794669524', p:'FDR794669524', c:1, cl:'VVS2', f:'w', sh:'round', co:'D', cu:'Ideal', gm:'HPHT' },
+  { d:'766667431', p:'FDR766667431', c:2.01, cl:'VVS2', f:'w', sh:'round', co:'E', cu:'Ideal', gm:'CVD' },
+  { d:'778642628', p:'FDR778642628', c:1.09, cl:'VS1', f:'w', sh:'round', co:'D', cu:'Ideal', gm:'HPHT' },
+  { d:'772604091', p:'FDR772604091', c:2.01, cl:'VS1', f:'w', sh:'round', co:'D', cu:'Ideal', gm:'CVD' },
+  { d:'750564443', p:'FDR750564443', c:1, cl:'VS1', f:'w', sh:'round', co:'D' },
+  { d:'694518963', p:'FDR694518963', c:1, cl:'VS1', f:'w', sh:'round', co:'E' },
+];
+const IGI_DICE_CLARITY = ['VVS1', 'VVS2', 'VS1', 'VS2'];
+const IGI_DICE_CUT = ['ideal', 'vg', 'good'];
+const IGI_DICE_CARAT_MIN = 1;
+const IGI_DICE_CARAT_MAX = 6;
+const IGI_DICE_COLOR_CHANCE = 0.1;
+const IGI_DICE_NEAR_MATCH_SLACK = 1.5;
+const IGI_DICE_PICK_POOL = 80;
+const IGI_DICE_PDF_ATTEMPTS = 24;
+const IGI_DICE_CLARITY_RANK = { IF:0, VVS1:1, VVS2:2, VS1:3, VS2:4, SI1:5, SI2:6 };
+let _igiDiceVerified = null;
+let _igiDiceVerifiedPromise = null;
+let _igiPdfSlugHint = null;
 
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -2933,7 +2939,7 @@ async function lookupIGI() {
   const digits = (rawInput.match(/\d{6,}/) || [''])[0];
   if (!digits || digits.length < 6) {
     setIGIStatus('error', 'Please enter a valid IGI report number (6+ digits).');
-    return;
+    return false;
   }
 
   const btn = document.getElementById('igi-lookup-btn');
@@ -2947,11 +2953,13 @@ async function lookupIGI() {
       throw new Error('PDF reader library did not load. Check internet access and reload the page.');
     }
 
-    const pdfHit = await fetchIGIPdf(rawInput);
+    const pdfHint = _igiPdfSlugHint;
+    _igiPdfSlugHint = null;
+    const pdfHit = await fetchIGIPdf(rawInput, pdfHint);
     if (!pdfHit) {
       setIGIStatus('warn', '⚠ No public IGI PDF was found for ' + escapeHTML(certNum) + '. Open the official IGI verifier here: <a href="' + igiVerifyLink(certNum) + '" target="_blank" rel="noopener" style="color:var(--orange)">verify at igi.org ↗</a>');
       btn.disabled = false;
-      return;
+      return false;
     }
 
     const pdfText = await extractPdfText(pdfHit.buffer);
@@ -2961,7 +2969,7 @@ async function lookupIGI() {
       const missing = report.missingFields?.length ? ' Missing: ' + report.missingFields.join(', ') + '.' : '';
       setIGIStatus('warn', '⚠ The IGI PDF opened, but the calculator could not read the 4Cs cleanly.' + escapeHTML(missing) + ' Open it here: <a href="' + escapeAttr(pdfHit.url) + '" target="_blank" rel="noopener" style="color:var(--orange)">IGI PDF ↗</a>');
       btn.disabled = false;
-      return;
+      return false;
     }
 
     lastIGIData = report;
@@ -2969,11 +2977,14 @@ async function lookupIGI() {
     applyIGIReport({ scroll:false });
     setIGIStatus('success', '✓ Report found and applied — ' + escapeHTML(report.caratWeight.toFixed(2) + 'ct ' + report.shape + ' ' + report.color + ' ' + report.clarity) + (report.growthMethod !== 'Unknown' ? ' · ' + escapeHTML(report.growthMethod) : '') + (report.treatment ? ' · ' + escapeHTML(report.treatment) : '') + '.');
     document.getElementById('igi-apply-row').style.display = 'none';
+    btn.disabled = false;
+    return true;
 
   } catch(err) {
     setIGIStatus('error', '✗ Could not read report: ' + escapeHTML(err.message) + '. Try manually at <a href="' + igiVerifyLink(certNum) + '" target="_blank" rel="noopener" style="color:var(--red)">igi.org ↗</a>');
   }
   btn.disabled = false;
+  return false;
 }
 
 function normalizeIGIInput(value) {
@@ -3029,6 +3040,254 @@ async function pasteIGINumberFromClipboard() {
   }
 }
 
+function getIGIRandomButtons() {
+  return [
+    document.getElementById('igi-random-btn'),
+    document.getElementById('igi-random-fab'),
+  ].filter(Boolean);
+}
+
+function setIGIRandomButtonsDisabled(disabled) {
+  getIGIRandomButtons().forEach(btn => { btn.disabled = disabled; });
+}
+
+function randomIntInclusive(min, max) {
+  const span = max - min + 1;
+  if (span <= 1) return min;
+  if (window.crypto && crypto.getRandomValues) {
+    const arr = new Uint32Array(1);
+    crypto.getRandomValues(arr);
+    return min + (arr[0] % span);
+  }
+  return min + Math.floor(Math.random() * span);
+}
+
+function rollIGIDiceTarget() {
+  const wantsColor = Math.random() < IGI_DICE_COLOR_CHANCE;
+  const carat = Math.round((IGI_DICE_CARAT_MIN + Math.random() * (IGI_DICE_CARAT_MAX - IGI_DICE_CARAT_MIN)) * 100) / 100;
+  const clarity = IGI_DICE_CLARITY[randomIntInclusive(0, IGI_DICE_CLARITY.length - 1)];
+  const cut = IGI_DICE_CUT[randomIntInclusive(0, IGI_DICE_CUT.length - 1)];
+  return { wantsColor, carat, clarity, cut };
+}
+
+function formatIGIDiceRoll(target) {
+  const colorLabel = target.wantsColor ? 'fancy color' : 'white';
+  const cutLabel = capCut(target.cut);
+  return '🎲 ' + target.carat.toFixed(2) + 'ct · ' + target.clarity + ' · ' + cutLabel + ' (' + colorLabel + ')';
+}
+
+async function loadIGIDiceVerifiedIndex() {
+  if (_igiDiceVerified) return _igiDiceVerified;
+  if (!_igiDiceVerifiedPromise) {
+    _igiDiceVerifiedPromise = fetch('research/data/igi-dice-verified.json')
+      .then(res => (res.ok ? res.json() : { stones: [] }))
+      .catch(() => ({ stones: [] }));
+  }
+  _igiDiceVerified = await _igiDiceVerifiedPromise;
+  return _igiDiceVerified;
+}
+
+function expandIGIVerifiedStone(stone) {
+  if (!stone) return null;
+  const report = String(stone.d || stone.report || '');
+  if (!report) return null;
+  return {
+    report,
+    pdfSlug: stone.p || stone.pdfSlug || null,
+    carat: Number(stone.c ?? stone.carat),
+    clarity: String(stone.cl || stone.clarity || '').toUpperCase(),
+    colorFamily: (stone.f === 'c' || stone.colorFamily === 'fancy') ? 'fancy' : 'white',
+    color: stone.co || stone.color || null,
+    shape: stone.sh || stone.shape || null,
+    cut: stone.cu || stone.cut || null,
+    growthMethod: stone.gm || stone.growthMethod || null,
+  };
+}
+
+function buildIGIDicePool(wantsColor, stones) {
+  const pool = [];
+  const seen = new Set();
+  (stones || []).forEach(stone => {
+    const pick = expandIGIVerifiedStone(stone);
+    if (!pick || !pick.pdfSlug) return;
+    const isFancy = pick.colorFamily === 'fancy';
+    const isWhite = pick.colorFamily === 'white';
+    if (wantsColor ? !isFancy : !isWhite) return;
+    if (!Number.isFinite(pick.carat) || !pick.clarity) return;
+    if (seen.has(pick.report)) return;
+    seen.add(pick.report);
+    pool.push(pick);
+  });
+  return pool;
+}
+
+function scoreIGIDiceCandidate(candidate, target) {
+  const caratDist = Math.abs(candidate.carat - target.carat);
+  const cRank = IGI_DICE_CLARITY_RANK[candidate.clarity] ?? 99;
+  const tRank = IGI_DICE_CLARITY_RANK[target.clarity] ?? 99;
+  const clarityDist = Math.abs(cRank - tRank);
+  return caratDist * 3 + clarityDist * 0.75;
+}
+
+function pickIGIDiceCandidates(pool, target, limit) {
+  if (!pool.length) return [];
+  const scored = pool.map(c => ({ c, score: scoreIGIDiceCandidate(c, target) }));
+  scored.sort((a, b) => a.score - b.score);
+  const best = scored[0].score;
+  const near = scored.filter(s => s.score <= best + IGI_DICE_NEAR_MATCH_SLACK).slice(0, limit);
+  for (let i = near.length - 1; i > 0; i--) {
+    const j = randomIntInclusive(0, i);
+    const tmp = near[i];
+    near[i] = near[j];
+    near[j] = tmp;
+  }
+  return near.map(s => s.c);
+}
+
+function buildIGIDiceLookupQueue(pool, target) {
+  const seen = new Set();
+  const queue = [];
+  const add = candidate => {
+    if (!candidate?.report || seen.has(candidate.report)) return;
+    seen.add(candidate.report);
+    queue.push(candidate);
+  };
+
+  pickIGIDiceCandidates(pool, target, IGI_DICE_PICK_POOL).forEach(add);
+  pool
+    .map(c => ({ c, score: scoreIGIDiceCandidate(c, target) }))
+    .sort((a, b) => a.score - b.score)
+    .forEach(({ c }) => add(c));
+  IGI_DICE_FALLBACK_STONES.forEach(stone => add(expandIGIVerifiedStone(stone)));
+  return queue;
+}
+
+function mapVerifiedCutToState(cutText) {
+  const cut = String(cutText || '').toLowerCase();
+  if (!cut) return null;
+  if (cut.includes('excellent') || cut.includes('ideal')) return 'ideal';
+  if (cut.includes('very good')) return 'vg';
+  if (cut.includes('good')) return 'good';
+  return null;
+}
+
+function applyIGIVerifiedStone(pick, rollLabel) {
+  if (!pick) return false;
+
+  const ct = normalizeCaratValue(pick.carat);
+  if (ct != null) state.carat = ct;
+
+  const col = String(pick.color || '').trim();
+  const normalizedWhite = normalizeWhiteGrade(col);
+  state.colorReportRaw = '';
+  state.fancyColorCategory = null;
+  state.fancyColorModifierMult = 1;
+  state.fancyColorModifierTerms = [];
+  if (normalizedWhite && whiteGradeMult[normalizedWhite]) {
+    state.colorFamily = 'white';
+    state.whiteGrade = normalizedWhite;
+  } else if (col) {
+    const parsedColor = parseFancyColorCategory(col);
+    if (parsedColor.colorKey && fancyColorBase[parsedColor.colorKey]) {
+      state.colorFamily = parsedColor.colorKey;
+      state.colorReportRaw = col;
+      state.fancyColorCategory = parsedColor;
+      state.fancyColorModifierMult = parsedColor.modifierMult || 1;
+      state.fancyColorModifierTerms = parsedColor.modifierTerms || [];
+    } else if (pick.colorFamily === 'fancy') {
+      state.colorFamily = 'pink_fv';
+      state.colorReportRaw = col;
+    }
+  } else if (pick.colorFamily === 'white') {
+    state.colorFamily = 'white';
+    state.whiteGrade = state.whiteGrade || 'E';
+  }
+
+  const cl = String(pick.clarity || '').toUpperCase();
+  const validClarities = ['IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2'];
+  if (validClarities.includes(cl)) {
+    state.clarity = cl;
+    setActivePill('clarity', cl);
+  }
+
+  if (pick.shape) {
+    state.shape = pick.shape;
+    const shapeSelect = document.getElementById('shape-select');
+    if (shapeSelect) shapeSelect.value = pick.shape;
+  }
+
+  const cutMapped = mapVerifiedCutToState(pick.cut);
+  if (cutMapped) {
+    state.cut = cutMapped;
+    state.hasCutGrade = true;
+    setActivePill('cut', cutMapped);
+  }
+
+  const growth = String(pick.growthMethod || '').toUpperCase();
+  if (growth) {
+    state.cvd = growth.includes('CVD');
+    state.hpht = growth.includes('HPHT');
+    document.getElementById('tog-hpht').classList.toggle('on', state.hpht);
+  }
+
+  setIGINumberFromText(pick.report);
+  syncCaratControls();
+  update();
+
+  const specLine = (ct != null ? ct.toFixed(2) + 'ct ' : '') + (pick.shape || 'stone') + ' ' + (col || (pick.colorFamily === 'white' ? state.whiteGrade : state.colorFamily)) + ' ' + cl;
+  setIGIStatus(
+    'success',
+    '✓ ' + escapeHTML(rollLabel) + ' → applied verified specs for IGI ' + escapeHTML(displayIGINumber(pick.report)) + ' (' + escapeHTML(specLine.trim()) + '). ' +
+    (pick.pdfSlug ? '<a href="' + escapeAttr(IGI_PDF_BASE + encodeURIComponent(pick.pdfSlug) + '.pdf') + '" target="_blank" rel="noopener" style="color:var(--green)">Open IGI PDF ↗</a>' : '')
+  );
+  return true;
+}
+
+async function lookupRandomIGIReport() {
+  setIGIRandomButtonsDisabled(true);
+  try {
+    setIGIStatus('loading', '<span class="spin">⟳</span> &nbsp;Rolling cut, clarity, and carat dice...');
+    const verified = await loadIGIDiceVerifiedIndex();
+
+    const target = rollIGIDiceTarget();
+    let pool = buildIGIDicePool(target.wantsColor, verified.stones);
+    let colorFallback = false;
+    if (!pool.length && target.wantsColor) {
+      colorFallback = true;
+      target.wantsColor = false;
+      pool = buildIGIDicePool(false, verified.stones);
+    }
+    if (!pool.length) {
+      pool = IGI_DICE_FALLBACK_STONES.map(expandIGIVerifiedStone).filter(Boolean);
+    }
+
+    const queue = buildIGIDiceLookupQueue(pool, target);
+    const best = queue[0] || expandIGIVerifiedStone(IGI_DICE_FALLBACK_STONES[0]);
+    if (!best) {
+      setIGIStatus('warn', 'Verified IGI dice index is not available. Reload the page or run build-browser-data.py.');
+      return;
+    }
+
+    const rollLabel = formatIGIDiceRoll(target) + (colorFallback ? ' · no fancy pool match, using white' : '');
+    setIGIStatus('loading', '<span class="spin">⟳</span> &nbsp;' + rollLabel + ' — picking nearest verified IGI...');
+
+    const attempts = Math.min(queue.length, IGI_DICE_PDF_ATTEMPTS);
+    for (let i = 0; i < attempts; i++) {
+      const pick = queue[i];
+      setIGINumberFromText(pick.report);
+      _igiPdfSlugHint = pick.pdfSlug || null;
+      const hint = ' (~' + pick.carat.toFixed(2) + 'ct ' + pick.clarity + ')';
+      setIGIStatus('loading', '<span class="spin">⟳</span> &nbsp;' + rollLabel + ' → IGI ' + escapeHTML(displayIGINumber(pick.report)) + escapeHTML(hint) + ' (' + (i + 1) + '/' + attempts + ')...');
+      const found = await lookupIGI();
+      if (found) return;
+    }
+
+    applyIGIVerifiedStone(best, rollLabel);
+  } finally {
+    setIGIRandomButtonsDisabled(false);
+  }
+}
+
 function displayIGINumber(clean) {
   const digits = (clean.match(/\d{6,}/) || [''])[0];
   if (!digits) return clean;
@@ -3072,8 +3331,11 @@ function buildIGIPdfCandidates(clean) {
   return candidates;
 }
 
-async function fetchIGIPdf(clean) {
-  const candidates = buildIGIPdfCandidates(clean);
+async function fetchIGIPdf(clean, preferredSlug) {
+  const base = buildIGIPdfCandidates(clean);
+  const candidates = preferredSlug
+    ? [preferredSlug, ...base.filter(slug => slug !== preferredSlug)]
+    : base;
   for (const slug of candidates) {
     const url = IGI_PDF_BASE + encodeURIComponent(slug) + '.pdf';
     const response = await fetch(url, { mode:'cors' });
@@ -4364,8 +4626,17 @@ function setActivePill(group, val) {
 
 // Wire up IGI events
 document.getElementById('igi-lookup-btn').addEventListener('click', lookupIGI);
-document.getElementById('igi-paste-btn').addEventListener('mousedown', e => e.preventDefault());
-document.getElementById('igi-paste-btn').addEventListener('click', pasteIGINumberFromClipboard);
+['igi-paste-btn','igi-paste-fab'].forEach(id => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.addEventListener('mousedown', e => e.preventDefault());
+  btn.addEventListener('click', pasteIGINumberFromClipboard);
+});
+['igi-random-btn','igi-random-fab'].forEach(id => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.addEventListener('click', lookupRandomIGIReport);
+});
 const igiNumberInput = document.getElementById('igi-number');
 const igiInputRow = document.querySelector('.igi-input-row');
 igiInputRow.addEventListener('click', e => {

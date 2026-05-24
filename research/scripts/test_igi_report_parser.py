@@ -177,6 +177,58 @@ def test_sq_radiant_and_oval_modified() -> None:
     assert_close(oval["depthPct"], 61.1, "oval depth")
 
 
+def test_unsupported_flower_is_complete_without_mapping() -> None:
+    entry = parse_igi_pdf_text(
+        [
+            "IGI Report Number LG737530791",
+            "Description",
+            "LABORATORY GROWN DIAMOND",
+            "Shape and Cutting Style",
+            "FLOWER MODIFIED BRILLIANT",
+            "Measurements",
+            "8.08 - 8.06 - 5.48 MM",
+            "GRADING RESULTS",
+            "Carat Weight",
+            "3.05 CARATS",
+            "Color Grade",
+            "E",
+            "Clarity Grade",
+            "VVS2",
+            "ADDITIONAL GRADING INFORMATION",
+            "Polish",
+            "EXCELLENT",
+            "Symmetry",
+            "EXCELLENT",
+            "Fluorescence",
+            "NONE",
+        ]
+    )
+    assert_eq(entry["shapeRaw"], "Flower Modified Brilliant", "flower raw shape")
+    assert_eq(entry["shapeMapped"], None, "flower remains unmapped")
+    assert_eq(entry["unsupportedShapeRaw"], True, "flower unsupported flag")
+    assert_eq(entry["enrichmentComplete"], True, "flower complete")
+    assert_eq("shapeMapped" in entry["missingFields"], False, "flower missing fields")
+
+
+def test_triangular_brilliant_maps_to_trilliant() -> None:
+    entry = parse_igi_pdf_text(
+        [
+            "IGI Report Number LG123456789",
+            "Shape and Cutting Style",
+            "TRIANGULAR BRILLIANT",
+            "Measurements",
+            "7.00 - 6.98 - 4.20 MM",
+            "Carat Weight",
+            "1.50 CARATS",
+            "Color Grade",
+            "D",
+            "Clarity Grade",
+            "VS1",
+        ]
+    )
+    assert_eq(entry["shapeMapped"], "trilliant", "triangular brilliant mapping")
+
+
 def test_full_retry_queue_includes_completed_not_found() -> None:
     spec = importlib.util.spec_from_file_location("igi_enrich_all", SCRIPT_DIR / "igi-enrich-all.py")
     if spec is None or spec.loader is None:
@@ -184,14 +236,35 @@ def test_full_retry_queue_includes_completed_not_found() -> None:
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     mod.all_report_digits_from_indexes = lambda: {
-        "starsgem": {"1", "2", "3", "4"},
+        "starsgem": {"1", "2", "3", "4", "5"},
         "messi": set(),
     }
     store = {
         "1": {"status": "not_found", "lookupComplete": True},
         "2": {"status": "not_found", "lookupComplete": False},
         "3": {"status": "ok", "partial": True},
-        "4": {"status": "ok", "parserVersion": 999, "enrichmentComplete": True},
+        "4": {
+            "status": "ok",
+            "parserVersion": 999,
+            "enrichmentComplete": True,
+            "shapeRaw": "Round Brilliant",
+            "shapeMapped": "round",
+            "carat": 1.0,
+            "color": "D",
+            "clarity": "VS1",
+            "measurements": "6.50 - 6.48 - 4.00 MM",
+        },
+        "5": {
+            "status": "ok",
+            "parserVersion": 999,
+            "enrichmentComplete": False,
+            "shapeRaw": "Flower Modified Brilliant",
+            "shapeMapped": None,
+            "carat": 3.05,
+            "color": "E",
+            "clarity": "VVS2",
+            "measurements": "8.08 - 8.06 - 5.48 MM",
+        },
     }
     assert_eq(mod.build_queue(store, "starsgem", "pending"), ["3", "2"], "normal queue")
     assert_eq(
@@ -209,6 +282,8 @@ def test_full_retry_queue_includes_completed_not_found() -> None:
 def main() -> None:
     test_portuguese_full_layout()
     test_sq_radiant_and_oval_modified()
+    test_unsupported_flower_is_complete_without_mapping()
+    test_triangular_brilliant_maps_to_trilliant()
     test_full_retry_queue_includes_completed_not_found()
     print("IGI parser/enrichment tests passed")
 

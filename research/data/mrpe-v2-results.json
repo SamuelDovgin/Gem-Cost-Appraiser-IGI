@@ -1,0 +1,157 @@
+{
+  "generatedDate": "2026-05-23",
+  "testSummary": {
+    "totalRows": 28394,
+    "trainRows": 22715,
+    "testRows": 5679,
+    "strategiesTested": 10
+  },
+  "baselineMape": 4.3911,
+  "bestMape": 4.0477,
+  "improvementPct": 7.82,
+  "strategies": [
+    {
+      "name": "S1 \u2014 v1 best (log-price, engineered feats)",
+      "strategy": "baseline_v1",
+      "target_type": "log_price",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.3911,
+        "mae": 19.7348,
+        "rmse": 135.6521,
+        "r2": 0.983543
+      },
+      "description": "Previous best: log(price) target, 100 trees, depth=26, engineered features"
+    },
+    {
+      "name": "S2 \u2014 Rate-per-carat target (log(price/carat))",
+      "strategy": "rate_target",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.6288,
+        "mae": 20.2782,
+        "rmse": 146.6334,
+        "r2": 0.98077
+      },
+      "description": "log(price/carat) target \u2192 removes multiplicative carat effect from prediction error"
+    },
+    {
+      "name": "S3 \u2014 Rate target + MAE criterion",
+      "strategy": "rate_mae",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.0477,
+        "mae": 19.2791,
+        "rmse": 152.105,
+        "r2": 0.979309
+      },
+      "description": "log(price/carat) + criterion=absolute_error (median splits, MAPE-optimal)"
+    },
+    {
+      "name": "S4 \u2014 Rate + MAE + engineered features",
+      "strategy": "rate_mae_engineered",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.0568,
+        "mae": 18.7246,
+        "rmse": 147.3219,
+        "r2": 0.980589
+      },
+      "description": "log(price/carat) + MAE splits + bucket-position + dimension features, 150 trees"
+    },
+    {
+      "name": "S5 \u2014 Rate + lookup as feature + category prior",
+      "strategy": "rate_lookup_feature",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.4026,
+        "mae": 21.6407,
+        "rmse": 169.0064,
+        "r2": 0.974455
+      },
+      "description": "log(price/carat) + lookup rate/category prior as features + MAE criterion"
+    },
+    {
+      "name": "S6 \u2014 Rate + category prior feature",
+      "strategy": "rate_category_prior",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.095,
+        "mae": 19.4541,
+        "rmse": 156.9529,
+        "r2": 0.977969
+      },
+      "description": "log(price/carat) + per-category median rate as feature + MAE criterion"
+    },
+    {
+      "name": "S7 \u2014 Full combo (rate + MAE + all features + 200 trees)",
+      "strategy": "full_combo",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.4358,
+        "mae": 20.8743,
+        "rmse": 155.6339,
+        "r2": 0.978337
+      },
+      "description": "All innovations: rate target, MAE splits, lookup+category priors, depth=None, 200 trees"
+    },
+    {
+      "name": "S8 \u2014 LightGBM quantile(0.5) rate target",
+      "strategy": "lgb_quantile_rate",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.6321,
+        "mae": 28.604,
+        "rmse": 209.053,
+        "r2": 0.960915
+      },
+      "description": "LightGBM quantile=0.5 on log(price/carat) \u2192 median regression, MAPE-optimal"
+    },
+    {
+      "name": "S9 \u2014 Rate + MSE + all features (ablation of MAE vs MSE)",
+      "strategy": "rate_mse_full",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.4845,
+        "mae": 20.6075,
+        "rmse": 147.7181,
+        "r2": 0.980485
+      },
+      "description": "Same as S7 but MSE criterion instead of MAE \u2014 ablation study"
+    },
+    {
+      "name": "S10 \u2014 Enriched rate + MAE (IGI shapes + flags)",
+      "strategy": "enriched_rate_mae",
+      "target_type": "log_rate",
+      "metrics": {
+        "count": 5679,
+        "mape": 4.1346,
+        "mae": 19.2464,
+        "rmse": 143.7134,
+        "r2": 0.981529
+      },
+      "description": "S3 strategy (rate target + MAE) but trained on enriched data with IGI shapes and IGI enrichment flags"
+    }
+  ],
+  "bestStrategy": {
+    "name": "S3 \u2014 Rate target + MAE criterion",
+    "strategy": "rate_mae",
+    "target_type": "log_rate",
+    "metrics": {
+      "count": 5679,
+      "mape": 4.0477,
+      "mae": 19.2791,
+      "rmse": 152.105,
+      "r2": 0.979309
+    },
+    "description": "log(price/carat) + criterion=absolute_error (median splits, MAPE-optimal)"
+  }
+}
