@@ -676,28 +676,6 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         </div>
       </div>
     </div>
-    <div class="pricing-intel-panel pricing-intel-compare">
-      <div class="intel-head">
-        <div class="intel-title">ML inaccuracy vs sheet formula</div>
-        <div class="intel-pill" id="starsgem-compare-pill">—</div>
-      </div>
-      <div class="intel-formula" id="starsgem-compare-headline">—</div>
-      <div class="intel-compare-row">
-        <div class="intel-compare-cell">
-          <div class="intel-compare-k">ML / hybrid</div>
-          <div class="intel-compare-v" id="starsgem-compare-ml">—</div>
-        </div>
-        <div class="intel-compare-cell">
-          <div class="intel-compare-k">Sheet formula (truth)</div>
-          <div class="intel-compare-v" id="starsgem-compare-sheet">—</div>
-        </div>
-        <div class="intel-compare-cell">
-          <div class="intel-compare-k">Inaccuracy (APE)</div>
-          <div class="intel-compare-v" id="starsgem-compare-inaccuracy">—</div>
-        </div>
-      </div>
-      <div class="intel-sub" id="starsgem-compare-note">|ML − sheet| ÷ sheet, as a percent. Sheet lookup is the reference; holdout MAPE from the loaded model is shown when available.</div>
-    </div>
   </div>
 
   <div class="weak-bar" id="weak-bar">
@@ -2023,10 +2001,6 @@ function predictStarsgemAnchor(row, model) {
 function predictStarsgemMl(row) {
   const model = _starsgemMlModel;
   if (!model || !Array.isArray(model.trees) || !model.trees.length) return null;
-  const anchorPred = predictStarsgemAnchor(row, model);
-  if (anchorPred) {
-    return { ...anchorPred, modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
-  }
   const vector = starsgemModelVector(row, model);
   let logSum = 0;
   for (const tree of model.trees) {
@@ -2044,7 +2018,7 @@ function predictStarsgemMl(row) {
   const price = model.targetType === 'log_rate'
     ? Math.max(0.01, Math.exp(logVal) * carat)
     : Math.max(0.01, Math.exp(logVal));
-  return { price, method: 'ml_fallback', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
+  return { price, method: 'ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
 }
 
 function starsgemCompareSummary(mlPred, lookupPred) {
@@ -2069,12 +2043,7 @@ function updateStarsgemPricingIntel() {
   const rateEl = document.getElementById('starsgem-lookup-rate');
   const bucketEl = document.getElementById('starsgem-lookup-bucket');
   const factorEl = document.getElementById('starsgem-factor');
-  const compareHeadlineEl = document.getElementById('starsgem-compare-headline');
-  const comparePillEl = document.getElementById('starsgem-compare-pill');
-  const compareMlEl = document.getElementById('starsgem-compare-ml');
-  const compareSheetEl = document.getElementById('starsgem-compare-sheet');
-  const compareInaccuracyEl = document.getElementById('starsgem-compare-inaccuracy');
-  const compareNoteEl = document.getElementById('starsgem-compare-note');
+
   if (!priceEl || !noteEl || !levelEl || !rateEl || !bucketEl) return;
 
   if (!intel) {
@@ -2099,21 +2068,12 @@ function updateStarsgemPricingIntel() {
   const row = starsgemLookupRowFromState(state.carat);
   const mlPred = predictStarsgemMl(row);
   if (mlPred && mlPriceEl) {
-    const methodLabel = {
-      exact_anchor: 'sheet exact',
-      near_anchor: 'sheet near-match',
-      interpolated_anchor: 'sheet interpolation',
-      ml_fallback: 'ML gap estimate',
-    }[mlPred.method] || 'price estimate';
+    const methodLabel = 'ML model';
     mlPriceEl.textContent = `${fmt(mlPred.price)} ${methodLabel}`;
     if (mlModelEl) mlModelEl.textContent = mlPred.modelName || 'ML';
     if (mlNoteEl) {
       const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth when available' : 'using selected specs; dimensions are imputed until an IGI report is loaded';
-      let routeNote = `ML is only used when the selected carat is not exact/near in the StarGem sheet`;
-      if (mlPred.method === 'exact_anchor') routeNote = `Exact StarGem sheet carat anchor at ${mlPred.anchorCarat.toFixed(2)}ct`;
-      if (mlPred.method === 'near_anchor') routeNote = `Nearest StarGem sheet carat anchor at ${mlPred.anchorCarat.toFixed(2)}ct`;
-      if (mlPred.method === 'interpolated_anchor') routeNote = `Interpolated between ${mlPred.lowerCarat.toFixed(2)}ct and ${mlPred.upperCarat.toFixed(2)}ct sheet anchors`;
-      mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ${escapeHTML(routeNote)} (${dims}).`;
+      mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> Extra Trees model prediction (${dims}).`;
     }
   } else if (mlPriceEl) {
     mlPriceEl.textContent = 'Loading ML model…';
@@ -2136,65 +2096,7 @@ function updateStarsgemPricingIntel() {
     rateEl.textContent = '—';
   }
 
-  const compare = starsgemCompareSummary(mlPred, pred);
-  const holdoutMape = Number(mlPred?.metrics?.mape ?? mlModel?.metrics?.mape);
-  if (compare && compareHeadlineEl && compareMlEl && compareSheetEl && compareInaccuracyEl) {
-    const ape = compare.inaccuracyPct;
-    const tight = ape !== null && ape <= 0.5;
-    const good = ape !== null && ape <= (Number.isFinite(holdoutMape) ? holdoutMape * 1.25 : 5);
-    compareMlEl.textContent = fmt(compare.ml);
-    compareSheetEl.textContent = fmt(compare.sheet);
-    compareInaccuracyEl.textContent = ape !== null ? `${ape.toFixed(2)}%` : '—';
-    compareInaccuracyEl.className = 'intel-compare-v ' + (
-      tight ? 'delta-flat' : good ? 'delta-up' : 'delta-down'
-    );
-    if (comparePillEl) {
-      comparePillEl.textContent = tight ? '0% error' : good ? 'within MAPE' : 'above MAPE';
-    }
-    if (ape !== null) {
-      compareHeadlineEl.textContent = tight
-        ? 'Matches sheet formula'
-        : `${ape.toFixed(2)}% inaccurate vs sheet`;
-    }
-    if (compareNoteEl) {
-      const mlRoute = mlPred?.method === 'ml_fallback' ? 'Extra Trees gap fill' : 'sheet anchor / interpolation';
-      const sheetRoute = pred?.level === 'GLOBAL' ? 'global median fallback' : `${pred?.level || 'lookup'} table`;
-      const bias = compare.biasPct;
-      let biasNote = '';
-      if (bias !== null && Math.abs(bias) > 0.05) {
-        const biasDir = bias > 0 ? 'high' : 'low';
-        biasNote = ` ML is <strong>${Math.abs(bias).toFixed(2)}% ${biasDir}</strong> (${fmt(Math.abs(compare.delta))}).`;
-      }
-      let note = `APE = |ML − sheet| ÷ sheet at ${state.carat.toFixed(2)}ct. Routes: <strong>${escapeHTML(mlRoute)}</strong> vs <strong>${escapeHTML(sheetRoute)}</strong>.${biasNote}`;
-      if (Number.isFinite(holdoutMape)) {
-        note += ` Model holdout MAPE on StarGem test rows: <strong>${holdoutMape.toFixed(2)}%</strong>.`;
-      }
-      if (mlPred?.method === 'ml_fallback') {
-        note += ' Largest inaccuracies usually appear on off-anchor carats where ML fills the gap.';
-      } else if (tight) {
-        note += ' Hybrid route matched the sheet ladder — inaccuracy is rounding only.';
-      }
-      compareNoteEl.innerHTML = note;
-    }
-  } else if (compareHeadlineEl) {
-    compareHeadlineEl.textContent = mlPred && !pred
-      ? 'Sheet lookup missing for this combo'
-      : !mlPred && pred
-        ? 'ML model still loading'
-        : 'Waiting for both routes';
-    if (comparePillEl) comparePillEl.textContent = '—';
-    if (compareMlEl) compareMlEl.textContent = mlPred ? fmt(mlPred.price) : '—';
-    if (compareSheetEl) compareSheetEl.textContent = pred ? fmt(pred.price) : '—';
-    if (compareInaccuracyEl) {
-      compareInaccuracyEl.textContent = '—';
-      compareInaccuracyEl.className = 'intel-compare-v';
-    }
-    if (compareNoteEl) {
-      compareNoteEl.textContent = !mlPred
-        ? 'The compact Extra Trees model is still loading.'
-        : 'No sheet formula hit — comparison needs a lookup row for this spec.';
-    }
-  }
+
 
 }
 
