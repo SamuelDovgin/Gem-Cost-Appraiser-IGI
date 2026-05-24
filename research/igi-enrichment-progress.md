@@ -1,6 +1,6 @@
 # IGI full enrichment progress
 
-_Updated: **2026-05-24 02:02 UTC** — `python3 research/scripts/igi-enrich-all.py`_
+_Updated: **2026-05-24 04:01 UTC** — `python3 research/scripts/igi-enrich-all.py`_
 
 Machine store: `research/data/igi-report-enrichment.json`
 
@@ -12,9 +12,9 @@ report date, Type IIa, growth method, treatment, comments.
 
 | Scope | Reports | not_started | ok | complete | not_found | rate_limited |
 |-------|---------|-------------|-----|----------|-----------|--------------|
-| Starsgem | 22541 | 2396 | 16460 | 16421 | 3685 | 0 |
-| Messi | 18090 | 3462 | 13411 | 13387 | 1217 | 0 |
-| **Total** | 34457 | 5149 | 25607 | 25562 | 3701 | 0 |
+| Starsgem | 22541 | 711 | 18135 | 18096 | 3685 | 10 |
+| Messi | 18090 | 539 | 16334 | 16310 | 1217 | 0 |
+| **Total** | 34457 | 1149 | 29597 | 29552 | 3701 | 10 |
 
 **Portuguese on cert:** 2
 - `780651720` — Round Modified Brilliant
@@ -23,19 +23,19 @@ report date, Type IIa, growth method, treatment, comments.
 ## Top IGI shapeMapped (ok PDFs)
 
 ### All
-- `round`: 9311
-- `oval`: 4797
-- `pear`: 2372
-- `emerald`: 2173
-- `princess`: 1595
-- `radiant`: 1198
-- `marquise`: 1131
-- `heart`: 999
-- `square_cushion`: 792
-- `asscher`: 688
-- `cushion`: 134
-- `cushion_brilliant`: 27
-- `sq_radiant`: 11
+- `round`: 10734
+- `oval`: 5297
+- `pear`: 3227
+- `emerald`: 2451
+- `princess`: 1745
+- `marquise`: 1407
+- `radiant`: 1327
+- `heart`: 1135
+- `square_cushion`: 863
+- `asscher`: 762
+- `cushion`: 171
+- `cushion_brilliant`: 44
+- `sq_radiant`: 12
 - `trilliant`: 3
 - `portuguese`: 2
 

@@ -1513,6 +1513,57 @@ function resolveAlibabaComp(query) {
     const names = [...new Set(otherFactoryExact.map(e => e.supplierKey))].join(', ');
     warnings.push(`Same-spec listings also at ${names} — shown below, not averaged into floor price.`);
   }
+
+  // ── Per-supplier comparison ─────────────────────────────────────────────────
+  // For each major supplier, find the best available comp (exact or nearest)
+  // adjusted to the query spec. Lets users compare pricing across suppliers
+  // even when one doesn't carry the exact grade.
+  const MAJOR_SUPPLIERS = ['messi', 'starsgem'];
+  const supplierComparisons = [];
+  for (const sk of MAJOR_SUPPLIERS) {
+    const exactForSupplier = exactAdjustedOrdered.filter(adj => supplierKey(adj.row) === sk);
+    if (exactForSupplier.length) {
+      const best = exactForSupplier[0];
+      const usesCaratScale = caratGapNeedsExactAdjustment(nq.carat, best.row?.carat);
+      const estPrice = usesCaratScale
+        ? Math.round(Math.exp(best.logEstimate))
+        : best.row.priceUsd;
+      supplierComparisons.push({
+        supplierKey: sk,
+        label: shortLabel(best.row),
+        listingPrice: best.row.priceUsd,
+        estimatedPrice: estPrice,
+        url: best.row.url,
+        row: best.row,
+        matchType: 'exact',
+        modifiers: (usesCaratScale || (best.parts && best.parts.length))
+          ? { combined: Math.exp(best.logEstimate - Math.log(best.row.priceUsd)), estimated: estPrice, parts: best.parts }
+          : null,
+      });
+    } else {
+      const bestScored = uniqueScored.find(c => supplierKey(c.row) === sk);
+      if (bestScored) {
+        const adj = adjustCompToQuery(nq, bestScored.row, adjContext);
+        const estPrice = Math.round(Math.exp(adj.logEstimate));
+        supplierComparisons.push({
+          supplierKey: sk,
+          label: shortLabel(bestScored.row),
+          listingPrice: bestScored.row.priceUsd,
+          estimatedPrice: estPrice,
+          url: bestScored.row.url,
+          row: bestScored.row,
+          matchType: 'nearest',
+          score: bestScored.score,
+          modifiers: {
+            combined: Math.exp(adj.logEstimate - Math.log(bestScored.row.priceUsd)),
+            estimated: estPrice,
+            parts: adj.parts,
+          },
+        });
+      }
+    }
+  }
+  supplierComparisons.sort((a, b) => a.estimatedPrice - b.estimatedPrice);
   const exactUsesCaratScale = matchType === 'exact'
     && caratGapNeedsExactAdjustment(nq.carat, primaryAdj.row?.carat);
   const primaryEstPrice = matchType === 'exact'
@@ -1576,6 +1627,7 @@ function resolveAlibabaComp(query) {
     primary,
     alternatives,
     otherFactoryExact,
+    supplierComparisons,
     supportComps: acceptedOrdered.map(adj => ({
       row: adj.row,
       score: adj.score,

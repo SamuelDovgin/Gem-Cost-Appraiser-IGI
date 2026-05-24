@@ -157,6 +157,97 @@ def carat_bucket_position(carat):
     return 0.5
 
 
+# Magic carat thresholds where price jumps discontinuously
+MAGIC_THRESHOLDS = [0.30, 0.50, 0.70, 0.90, 1.00, 1.50, 2.00, 3.00, 4.00, 5.00, 10.00]
+
+
+def carat_0_01_bucket(carat):
+    """Bucket carat to nearest 0.01 for fine lookup granularity."""
+    return round(carat * 100) / 100
+
+
+def magic_threshold_features(carat):
+    """Features that capture proximity to magic carat thresholds.
+
+    The rate-per-carat premium decays rapidly as you move away from a magic
+    number. A 2.00ct stone commands $203/ct while 2.05ct gets $145/ct —
+    a $58/ct drop over 0.05ct. These features let the model learn that curve.
+    """
+    if not carat or carat <= 0:
+        return {"dist_to_magic": 0.0, "inv_dist_to_magic": 0.0,
+                "log1p_dist_to_magic": 0.0, "is_near_magic": 0.0}
+
+    # Find nearest magic threshold at or below this carat
+    magic_below = max([t for t in MAGIC_THRESHOLDS if t <= carat], default=0.0)
+    # Also find nearest magic above
+    magic_above = min([t for t in MAGIC_THRESHOLDS if t > carat], default=999.0)
+
+    dist_to_lower = carat - magic_below
+    dist_to_upper = magic_above - carat if magic_above != 999.0 else 99.0
+
+    # The premium is strongest near the lower magic number
+    eps = 0.001
+    return {
+        "dist_to_magic": dist_to_lower,
+        "inv_dist_to_magic": 1.0 / (dist_to_lower + eps),
+        "log1p_dist_to_magic": math.log(1.0 + dist_to_lower),
+        "dist_to_magic_above": dist_to_upper,
+        "magic_number": magic_below,
+    }
+
+
+# Fine lookup levels with Cut included and 0.01ct carat granularity
+FINE_LOOKUP_LEVELS = [
+    ("A", ["carat_0_01_bucket", "Shape", "Color", "Clarity", "TypeName", "Report", "Cut", "Polish", "Symmetry"]),
+    ("B", ["carat_0_01_bucket", "Shape", "Color", "Clarity", "TypeName", "Report", "Cut"]),
+    ("C", ["carat_0_01_bucket", "Shape", "Color", "Clarity", "TypeName", "Report"]),
+    ("D", ["carat_0_01_bucket", "Shape", "Color", "Clarity", "TypeName"]),
+    ("E", ["carat_0_01_bucket", "Shape", "Color", "Clarity"]),
+    ("F", ["carat_0_01_bucket", "Color", "Clarity"]),
+    ("G", ["carat_bucket", "Shape", "Color", "Clarity", "TypeName"]),
+    ("H", ["carat_bucket", "Color", "Clarity"]),
+    ("I", ["carat_bucket"]),
+]
+
+
+def build_fine_lookup(rows):
+    """Build fine-grained lookup at 0.01ct resolution with Cut included."""
+    # Add 0.01ct bucket to each row
+    for r in rows:
+        r["carat_0_01_bucket"] = carat_0_01_bucket(r["Carat"])
+
+    tables = []
+    for level, fields in FINE_LOOKUP_LEVELS:
+        grouped = defaultdict(list)
+        for row in rows:
+            key = tuple(str(row.get(f, "-")) for f in fields)
+            grouped[key].append(row)
+        groups = {}
+        for key, recs in grouped.items():
+            rates = [r["internal_rate_per_ct"] for r in recs]
+            usd_rates = [r["usd_per_ct"] for r in recs]
+            groups["||".join(key)] = {
+                "rate": round(median(rates), 6),
+                "usdPerCt": round(median(usd_rates), 4),
+                "count": len(recs),
+            }
+        tables.append({"level": level, "fields": fields, "groups": groups})
+
+    all_rates = [r["internal_rate_per_ct"] for r in rows]
+    global_rate = round(median(all_rates), 6)
+    return tables, global_rate
+
+
+def fine_lookup_predict_rate(row, tables, global_rate):
+    """Return (predicted_rate_per_ct, level, count) from fine lookup."""
+    for table in tables:
+        key = "||".join(str(row.get(f, "-")) for f in table["fields"])
+        hit = table["groups"].get(key)
+        if hit:
+            return hit["usdPerCt"], table["level"], hit["count"]
+    return global_rate / 170, "GLOBAL", 0
+
+
 def load_rows():
     wb = xlrd.open_workbook(XLS_FILE)
     ws = wb.sheet_by_name("Table")
@@ -329,6 +420,23 @@ def metrics(actual, predicted):
 
 def split_train_test(rows, seed=42):
     shuffled = list(rows)
+    random.Random(seed).shuffle(shuffled)
+    n_test = max(1, int(round(len(shuffled) * 0.2)))
+    return shuffled[n_test:], shuffled[:n_test]
+
+
+def split_train_test_temporal(rows, train_frac=0.7, seed=42):
+    """Sort by rowNo (chronological proxy), train on recent data only.
+
+    Hypothesis: StarGem updates their rate card periodically. Training on
+    mixed-time data forces the model to average across different rate regimes.
+    By training only on recent data, we eliminate this artificial noise.
+    """
+    sorted_rows = sorted(rows, key=lambda r: r["rowNo"])
+    n_recent = int(len(sorted_rows) * train_frac)
+    recent = sorted_rows[-n_recent:]  # most recent train_frac of data
+    # Shuffle to avoid any residual ordering bias
+    shuffled = list(recent)
     random.Random(seed).shuffle(shuffled)
     n_test = max(1, int(round(len(shuffled) * 0.2)))
     return shuffled[n_test:], shuffled[:n_test]
@@ -1103,6 +1211,588 @@ def strategy_s10_enriched_rate_mae(train, test):
 
 
 
+def strategy_s11_temporal_cutoff(train, test, all_rows=None):
+    """S11 — S3 strategy but trained ONLY on recent data (temporal split).
+
+    Uses the same model architecture as S3 (best at 4.05%), but applied to
+    a temporally-sorted train/test split where training uses only the most
+    recent 70% of data. If temporal rate-card shifts are the main error
+    source, this should significantly outperform S3.
+    """
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+
+    # Use temporal split if all_rows provided
+    if all_rows is not None:
+        train, test = split_train_test_temporal(all_rows)
+    else:
+        train, test = split_train_test_temporal(train + test)
+
+    x_train = as_model_frame_base(train)
+    x_test = as_model_frame_base(test)
+    y_train = np.log([r["usd_per_ct"] for r in train])
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+        ("num", SimpleImputer(strategy="median"), NUMERIC_FEATURES),
+    ])
+    model = ExtraTreesRegressor(
+        n_estimators=120,
+        max_depth=28,
+        min_samples_leaf=1,
+        criterion="absolute_error",
+        random_state=42,
+        n_jobs=-1,
+    )
+    pipe = Pipeline([("pre", pre), ("model", model)])
+    pipe.fit(x_train, y_train)
+    log_rate_preds = pipe.predict(x_test)
+    preds = clamp_positive_predictions([
+        math.exp(lr) * r["Carat"] for lr, r in zip(log_rate_preds, test)
+    ])
+
+    return {
+        "name": "S11 — Temporal cutoff (S3 on recent 70% data)",
+        "strategy": "temporal_cutoff",
+        "target_type": "log_rate",
+        "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
+        "description": "Same as S3 but trained only on most recent 70% of data — isolates temporal rate-card mixing",
+        "pipe": pipe, "feats_num": NUMERIC_FEATURES,
+    }
+
+
+def strategy_s12_fine_lookup_consensus(train, test):
+    """S12 — Fine lookup consensus at 0.01ct resolution with Cut included. No ML.
+
+    Tests the hypothesis that StarGem uses a deterministic lookup table.
+    If true, this direct lookup reconstruction should approach the theoretical
+    minimum MAPE — limited only by within-cell variance from Polish/Symmetry/
+    measurements and temporal effects.
+    """
+    tables, global_rate = build_fine_lookup(train)
+
+    # Add 0.01ct bucket to test rows
+    for r in test:
+        r["carat_0_01_bucket"] = carat_0_01_bucket(r["Carat"])
+
+    preds = []
+    levels = []
+    for r in test:
+        rate, level, count = fine_lookup_predict_rate(r, tables, global_rate)
+        preds.append(rate * r["Carat"])
+        levels.append(level)
+
+    level_counts = {}
+    for l in levels:
+        level_counts[l] = level_counts.get(l, 0) + 1
+
+    return {
+        "name": "S12 — Fine lookup (0.01ct + Cut, no ML)",
+        "strategy": "fine_lookup_consensus",
+        "target_type": "lookup",
+        "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
+        "description": f"Direct lookup at 0.01ct×Cut resolution. Fallback distribution: {level_counts}",
+        "_level_counts": level_counts,
+    }
+
+
+def strategy_s13_two_stage_residual(train, test):
+    """S13 — Two-stage: fine lookup consensus + ML on residual.
+
+    Stage 1: Fine lookup (S12) captures the step-function pricing structure.
+    Stage 2: ExtraTrees on residual (actual - lookup) using Polish, Symmetry,
+             table%, depth%, L/W ratio, fluorescence — the continuous features
+             that the lookup table doesn't capture.
+    """
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+    import pandas as pd
+
+    tables, global_rate = build_fine_lookup(train)
+
+    # Stage 1: Lookup predictions
+    for r in train:
+        r["carat_0_01_bucket"] = carat_0_01_bucket(r["Carat"])
+    for r in test:
+        r["carat_0_01_bucket"] = carat_0_01_bucket(r["Carat"])
+
+    train_lookup_preds = []
+    test_lookup_preds = []
+    for r in train:
+        rate, _, _ = fine_lookup_predict_rate(r, tables, global_rate)
+        train_lookup_preds.append(rate * r["Carat"])
+    for r in test:
+        rate, _, _ = fine_lookup_predict_rate(r, tables, global_rate)
+        test_lookup_preds.append(rate * r["Carat"])
+
+    # Compute residuals (in log-rate space)
+    train_residuals = np.log([r["usd_per_ct"] for r in train])
+    train_lookup_log_rates = np.log([lp / r["Carat"] for lp, r in zip(train_lookup_preds, train)])
+
+    # Stage 2: ML model on residuals using secondary features
+    residual_features = [
+        "Polish", "Symmetry", "Fluorescence", "Table_Scale", "Depth_Scale",
+        "Length", "Width", "Height", "LengthWidthRatio",
+    ]
+    residual_numeric = [
+        "Table_Scale", "Depth_Scale", "Length", "Width", "Height", "LengthWidthRatio",
+    ]
+    residual_cat = ["Polish", "Symmetry", "Fluorescence"]
+
+    # Build feature frames for residual model
+    x_train_res = pd.DataFrame()
+    x_test_res = pd.DataFrame()
+    for col in residual_cat:
+        x_train_res[col] = [norm_cat(r.get(col)) for r in train]
+        x_test_res[col] = [norm_cat(r.get(col)) for r in test]
+    for col in residual_numeric:
+        x_train_res[col] = [r.get(col) for r in train]
+        x_test_res[col] = [r.get(col) for r in test]
+
+    # Add magic threshold features and carat bucket position
+    for col in ["Carat_sq", "Carat_cube", "Log_Carat", "Carat_bucket_pos", "Dist_carat_threshold"]:
+        if col == "Carat_sq":
+            x_train_res[col] = [r["Carat"] ** 2 for r in train]
+            x_test_res[col] = [r["Carat"] ** 2 for r in test]
+        elif col == "Carat_cube":
+            x_train_res[col] = [r["Carat"] ** 3 for r in train]
+            x_test_res[col] = [r["Carat"] ** 3 for r in test]
+        elif col == "Log_Carat":
+            x_train_res[col] = [math.log(r["Carat"]) for r in train]
+            x_test_res[col] = [math.log(r["Carat"]) for r in test]
+        elif col == "Carat_bucket_pos":
+            x_train_res[col] = [carat_bucket_position(r["Carat"]) for r in train]
+            x_test_res[col] = [carat_bucket_position(r["Carat"]) for r in test]
+        elif col == "Dist_carat_threshold":
+            x_train_res[col] = [abs(r["Carat"] - round(r["Carat"] * 2) / 2) for r in train]
+            x_test_res[col] = [abs(r["Carat"] - round(r["Carat"] * 2) / 2) for r in test]
+        residual_numeric = residual_numeric + [col]
+
+    # Add magic threshold features
+    for r in train:
+        mt = magic_threshold_features(r["Carat"])
+        for k, v in mt.items():
+            r["_mt_" + k] = v
+    for r in test:
+        mt = magic_threshold_features(r["Carat"])
+        for k, v in mt.items():
+            r["_mt_" + k] = v
+
+    mt_keys = ["dist_to_magic", "inv_dist_to_magic", "log1p_dist_to_magic",
+               "dist_to_magic_above", "magic_number"]
+    for k in mt_keys:
+        x_train_res["mt_" + k] = [r.get("_mt_" + k, 0) for r in train]
+        x_test_res["mt_" + k] = [r.get("_mt_" + k, 0) for r in test]
+        residual_numeric.append("mt_" + k)
+
+    y_train_res = train_residuals - train_lookup_log_rates
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), residual_cat),
+        ("num", SimpleImputer(strategy="median"), residual_numeric),
+    ])
+    model = ExtraTreesRegressor(
+        n_estimators=80,
+        max_depth=20,
+        min_samples_leaf=1,
+        criterion="absolute_error",
+        random_state=42,
+        n_jobs=-1,
+    )
+    pipe = Pipeline([("pre", pre), ("model", model)])
+    pipe.fit(x_train_res, y_train_res)
+
+    # Final prediction: lookup × exp(residual_correction)
+    residual_preds = pipe.predict(x_test_res)
+    preds = clamp_positive_predictions([
+        lp * math.exp(rp) for lp, rp in zip(test_lookup_preds, residual_preds)
+    ])
+
+    return {
+        "name": "S13 — Two-stage (lookup + ML residual)",
+        "strategy": "two_stage_residual",
+        "target_type": "two_stage",
+        "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
+        "description": "Stage1: fine lookup consensus. Stage2: ExtraTrees on residual using Polish/Sym/measurements/magic features",
+    }
+
+
+def strategy_s14_cut_specific(train, test):
+    """S14 — Cut-specific ExtraTrees models.
+
+    EX and ID cut diamonds have fundamentally different pricing curves.
+    A single model has to split on Cut to learn these, which wastes tree
+    capacity. Training separate models per Cut grade lets each specialize.
+    """
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+
+    cut_grades = sorted(set(r["Cut"] for r in train if r["Cut"] != "-"))
+    models = {}
+    feats_num = NUMERIC_FEATURES + [
+        "Carat_sq", "Carat_cube", "Log_Carat",
+        "Carat_bucket_pos", "Dist_carat_threshold",
+    ]
+
+    # Add magic threshold features to all rows
+    for r in train:
+        mt = magic_threshold_features(r["Carat"])
+        for k, v in mt.items():
+            r["_mt_" + k] = v
+        r["Carat_sq"] = r["Carat"] ** 2
+        r["Carat_cube"] = r["Carat"] ** 3
+        r["Log_Carat"] = math.log(r["Carat"])
+        r["Carat_bucket_pos"] = carat_bucket_position(r["Carat"])
+        r["Dist_carat_threshold"] = abs(r["Carat"] - round(r["Carat"] * 2) / 2)
+    for r in test:
+        mt = magic_threshold_features(r["Carat"])
+        for k, v in mt.items():
+            r["_mt_" + k] = v
+        r["Carat_sq"] = r["Carat"] ** 2
+        r["Carat_cube"] = r["Carat"] ** 3
+        r["Log_Carat"] = math.log(r["Carat"])
+        r["Carat_bucket_pos"] = carat_bucket_position(r["Carat"])
+        r["Dist_carat_threshold"] = abs(r["Carat"] - round(r["Carat"] * 2) / 2)
+
+    mt_keys = ["dist_to_magic", "inv_dist_to_magic", "log1p_dist_to_magic",
+               "dist_to_magic_above", "magic_number"]
+    all_feats = feats_num + ["mt_" + k for k in mt_keys]
+
+    preds = [None] * len(test)
+
+    for cut in cut_grades:
+        train_cut = [r for r in train if r["Cut"] == cut]
+        test_cut_idx = [i for i, r in enumerate(test) if r["Cut"] == cut]
+        if len(train_cut) < 50 or not test_cut_idx:
+            continue
+
+        x_train = as_model_frame_engineered(train_cut)
+        x_test = as_model_frame_engineered([test[i] for i in test_cut_idx])
+        # Add magic features
+        for k in mt_keys:
+            x_train["mt_" + k] = [r["_mt_" + k] for r in train_cut]
+            x_test["mt_" + k] = [r["_mt_" + k] for r in [test[i] for i in test_cut_idx]]
+
+        y_train = np.log([r["usd_per_ct"] for r in train_cut])
+
+        pre = ColumnTransformer([
+            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+            ("num", SimpleImputer(strategy="median"), all_feats),
+        ])
+        model = ExtraTreesRegressor(
+            n_estimators=80,
+            max_depth=24,
+            min_samples_leaf=1,
+            criterion="absolute_error",
+            random_state=42,
+            n_jobs=-1,
+        )
+        pipe = Pipeline([("pre", pre), ("model", model)])
+        pipe.fit(x_train, y_train)
+        log_rate_preds = pipe.predict(x_test)
+        for i, lr in zip(test_cut_idx, log_rate_preds):
+            preds[i] = math.exp(lr) * test[i]["Carat"]
+
+    # Fallback for any unpredicted rows using S3 approach
+    fallback_idx = [i for i, p in enumerate(preds) if p is None]
+    if fallback_idx:
+        fallback_test = [test[i] for i in fallback_idx]
+        s3_result = strategy_s3_rate_mae(train, fallback_test)
+        # S3 returns a dict, we need to compute predictions ourselves
+        import pandas as pd
+        x_fb = as_model_frame_base(fallback_test)
+        # Use a quick simple model
+        x_fb_train = as_model_frame_base(train)
+        y_fb_train = np.log([r["usd_per_ct"] for r in train])
+        pre_fb = ColumnTransformer([
+            ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+            ("num", SimpleImputer(strategy="median"), NUMERIC_FEATURES),
+        ])
+        model_fb = ExtraTreesRegressor(
+            n_estimators=60, max_depth=20, min_samples_leaf=1,
+            criterion="absolute_error", random_state=42, n_jobs=-1,
+        )
+        pipe_fb = Pipeline([("pre", pre_fb), ("model", model_fb)])
+        pipe_fb.fit(x_fb_train, y_fb_train)
+        fb_preds = clamp_positive_predictions([
+            math.exp(lr) * r["Carat"] for lr, r in zip(pipe_fb.predict(x_fb), fallback_test)
+        ])
+        for i, p in zip(fallback_idx, fb_preds):
+            preds[i] = p
+
+    return {
+        "name": "S14 — Cut-specific models + magic features",
+        "strategy": "cut_specific",
+        "target_type": "log_rate",
+        "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
+        "description": f"Separate ExtraTrees per Cut grade ({', '.join(cut_grades)}) with magic threshold features",
+    }
+
+
+def strategy_s15_magic_thresholds(train, test):
+    """S15 — S3 + magic threshold proximity features.
+
+    Adds 1/(carat - lower_magic + eps), log(1 + dist), and magic number
+    indicator features to capture the non-linear premium decay near round
+    carat thresholds (0.50, 1.00, 1.50, 2.00, 3.00, etc.).
+    """
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+    import pandas as pd
+
+    feats_num = NUMERIC_FEATURES + [
+        "dist_to_magic", "inv_dist_to_magic", "log1p_dist_to_magic",
+        "dist_to_magic_above", "magic_number",
+    ]
+
+    x_train = as_model_frame_base(train)
+    x_test = as_model_frame_base(test)
+
+    # Add magic threshold features
+    for r in train:
+        mt = magic_threshold_features(r["Carat"])
+        for k, v in mt.items():
+            r["_mt_" + k] = v
+    for r in test:
+        mt = magic_threshold_features(r["Carat"])
+        for k, v in mt.items():
+            r["_mt_" + k] = v
+
+    for k in ["dist_to_magic", "inv_dist_to_magic", "log1p_dist_to_magic",
+              "dist_to_magic_above", "magic_number"]:
+        x_train[k] = [r.get("_mt_" + k, 0) for r in train]
+        x_test[k] = [r.get("_mt_" + k, 0) for r in test]
+
+    y_train = np.log([r["usd_per_ct"] for r in train])
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+        ("num", SimpleImputer(strategy="median"), feats_num),
+    ])
+    model = ExtraTreesRegressor(
+        n_estimators=150,
+        max_depth=30,
+        min_samples_leaf=1,
+        criterion="absolute_error",
+        random_state=42,
+        n_jobs=-1,
+    )
+    pipe = Pipeline([("pre", pre), ("model", model)])
+    pipe.fit(x_train, y_train)
+    log_rate_preds = pipe.predict(x_test)
+    preds = clamp_positive_predictions([
+        math.exp(lr) * r["Carat"] for lr, r in zip(log_rate_preds, test)
+    ])
+
+    return {
+        "name": "S15 — S3 + magic threshold features",
+        "strategy": "magic_thresholds",
+        "target_type": "log_rate",
+        "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
+        "description": "S3 base + 1/(carat-magic+eps), log(1+dist), magic_number features to capture premium decay",
+        "pipe": pipe, "feats_num": feats_num,
+    }
+
+
+def strategy_s16_cut_carat_interactions(train, test):
+    """S16 — S3 + Cut×carat_bucket + Cut×Color×Clarity interaction features.
+
+    Cut is a major price differentiator ($171/ct vs $120/ct for same specs).
+    Creating explicit interaction features lets trees split on them directly
+    rather than discovering the interaction through multiple splits.
+    """
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+    import pandas as pd
+
+    # Extended categorical features with interactions
+    extended_cat = CATEGORICAL_FEATURES + ["Cut_CaratBucket", "Cut_Color_Clarity"]
+
+    x_train = as_model_frame_base(train)
+    x_test = as_model_frame_base(test)
+
+    # Add interaction features
+    for df, rows in [(x_train, train), (x_test, test)]:
+        df["Cut_CaratBucket"] = [
+            norm_cat(r["Cut"]) + "_" + r["carat_bucket"] for r in rows
+        ]
+        df["Cut_Color_Clarity"] = [
+            norm_cat(r["Cut"]) + "_" + norm_cat(r["Color"]) + "_" + norm_cat(r["Clarity"])
+            for r in rows
+        ]
+
+    y_train = np.log([r["usd_per_ct"] for r in train])
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), extended_cat),
+        ("num", SimpleImputer(strategy="median"), NUMERIC_FEATURES),
+    ])
+    model = ExtraTreesRegressor(
+        n_estimators=150,
+        max_depth=30,
+        min_samples_leaf=1,
+        criterion="absolute_error",
+        random_state=42,
+        n_jobs=-1,
+    )
+    pipe = Pipeline([("pre", pre), ("model", model)])
+    pipe.fit(x_train, y_train)
+    log_rate_preds = pipe.predict(x_test)
+    preds = clamp_positive_predictions([
+        math.exp(lr) * r["Carat"] for lr, r in zip(log_rate_preds, test)
+    ])
+
+    return {
+        "name": "S16 — S3 + Cut×Carat + Cut×Color×Clarity interactions",
+        "strategy": "cut_carat_interactions",
+        "target_type": "log_rate",
+        "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
+        "description": "Explicit Cut×carat_bucket and Cut×Color×Clarity interaction features on top of S3",
+    }
+
+
+def strategy_s17_full_combo_v2(train, test, all_rows=None):
+    """S17 — Full combo v2: temporal cutoff + fine lookup + magic features + Cut interactions.
+
+    All structural fixes combined:
+    1. Temporal split (train on recent data only)
+    2. Fine lookup rate and category prior as features
+    3. Magic threshold proximity features
+    4. Cut interaction features
+    5. ExtraTrees with MAE criterion
+    """
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+    import pandas as pd
+
+    # Temporal split
+    if all_rows is not None:
+        train, test = split_train_test_temporal(all_rows)
+    else:
+        train, test = split_train_test_temporal(train + test)
+
+    # Build fine lookup from training data
+    tables, global_rate = build_fine_lookup(train)
+    cat_tables, cat_global, cat_levels = build_category_prior(train)
+
+    # Add features to rows
+    for r in train:
+        r["carat_0_01_bucket"] = carat_0_01_bucket(r["Carat"])
+        mt = magic_threshold_features(r["Carat"])
+        for k, v in mt.items():
+            r["_mt_" + k] = v
+    for r in test:
+        r["carat_0_01_bucket"] = carat_0_01_bucket(r["Carat"])
+        mt = magic_threshold_features(r["Carat"])
+        for k, v in mt.items():
+            r["_mt_" + k] = v
+
+    # Build feature frame
+    extended_cat = CATEGORICAL_FEATURES + ["Cut_CaratBucket"]
+
+    x_train = pd.DataFrame()
+    x_test = pd.DataFrame()
+    for col in extended_cat:
+        if col == "Cut_CaratBucket":
+            x_train[col] = [norm_cat(r["Cut"]) + "_" + r["carat_bucket"] for r in train]
+            x_test[col] = [norm_cat(r["Cut"]) + "_" + r["carat_bucket"] for r in test]
+        else:
+            x_train[col] = [norm_cat(r.get(col)) for r in train]
+            x_test[col] = [norm_cat(r.get(col)) for r in test]
+
+    # Numeric features
+    feats_num = list(NUMERIC_FEATURES) + [
+        "Carat_sq", "Carat_cube", "Log_Carat",
+        "Carat_bucket_pos", "Dist_carat_threshold",
+        "dist_to_magic", "inv_dist_to_magic", "log1p_dist_to_magic",
+        "dist_to_magic_above", "magic_number",
+        "Lookup_RatePerCt", "Lookup_IsGlobal",
+        "Category_RatePerCt",
+    ]
+
+    # Add numeric features
+    for df, rows in [(x_train, train), (x_test, test)]:
+        for r_idx, r in enumerate(rows):
+            c = r["Carat"]
+            df.at[r_idx, "Carat_sq"] = c ** 2
+            df.at[r_idx, "Carat_cube"] = c ** 3
+            df.at[r_idx, "Log_Carat"] = math.log(c) if c > 0 else 0
+            df.at[r_idx, "Carat_bucket_pos"] = carat_bucket_position(c)
+            df.at[r_idx, "Dist_carat_threshold"] = abs(c - round(c * 2) / 2)
+            df.at[r_idx, "dist_to_magic"] = r.get("_mt_dist_to_magic", 0)
+            df.at[r_idx, "inv_dist_to_magic"] = r.get("_mt_inv_dist_to_magic", 0)
+            df.at[r_idx, "log1p_dist_to_magic"] = r.get("_mt_log1p_dist_to_magic", 0)
+            df.at[r_idx, "dist_to_magic_above"] = r.get("_mt_dist_to_magic_above", 0)
+            df.at[r_idx, "magic_number"] = r.get("_mt_magic_number", 0)
+            lookup_rate, lookup_level, _ = fine_lookup_predict_rate(r, tables, global_rate)
+            df.at[r_idx, "Lookup_RatePerCt"] = lookup_rate
+            df.at[r_idx, "Lookup_IsGlobal"] = 1.0 if lookup_level == "GLOBAL" else 0.0
+            cat_rate = category_prior_rate(r, cat_tables, cat_global, cat_levels)
+            df.at[r_idx, "Category_RatePerCt"] = cat_rate
+
+    # Ensure numeric columns
+    for col in feats_num:
+        x_train[col] = [float(v) if v is not None else 0.0 for v in x_train[col]]
+        x_test[col] = [float(v) if v is not None else 0.0 for v in x_test[col]]
+
+    y_train = np.log([r["usd_per_ct"] for r in train])
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), extended_cat),
+        ("num", SimpleImputer(strategy="median"), feats_num),
+    ])
+    model = ExtraTreesRegressor(
+        n_estimators=200,
+        max_depth=None,
+        min_samples_leaf=1,
+        criterion="absolute_error",
+        max_features="sqrt",
+        random_state=42,
+        n_jobs=-1,
+    )
+    pipe = Pipeline([("pre", pre), ("model", model)])
+    pipe.fit(x_train, y_train)
+    log_rate_preds = pipe.predict(x_test)
+    preds = clamp_positive_predictions([
+        math.exp(lr) * r["Carat"] for lr, r in zip(log_rate_preds, test)
+    ])
+
+    return {
+        "name": "S17 — Full combo v2 (temporal + lookup + magic + Cut interactions)",
+        "strategy": "full_combo_v2",
+        "target_type": "log_rate",
+        "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
+        "description": "All structural fixes: temporal cutoff, fine lookup, magic thresholds, Cut interactions, 200 trees",
+        "pipe": pipe, "feats_num": feats_num,
+        "_lookup_tables": tables, "_lookup_global": global_rate,
+        "_cat_tables": cat_tables, "_cat_global": cat_global, "_cat_levels": cat_levels,
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MAIN RUNNER
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1141,10 +1831,21 @@ def run():
         ("S8 (LGB quantile)",             strategy_s8_lgb_quantile),
         ("S9 (rate + MSE ablation)",      strategy_s9_rate_mse_large),
     ]
-    
+
     # Add S10 only if enriched data is being tested
     if use_enriched:
         strategies_fns.append(("S10 (enriched rate + MAE)", strategy_s10_enriched_rate_mae))
+
+    # New v2 strategies
+    strategies_fns.extend([
+        ("S11 (temporal cutoff)",         strategy_s11_temporal_cutoff),
+        ("S12 (fine lookup consensus)",   strategy_s12_fine_lookup_consensus),
+        ("S13 (two-stage residual)",      strategy_s13_two_stage_residual),
+        ("S14 (Cut-specific models)",     strategy_s14_cut_specific),
+        ("S15 (magic thresholds)",        strategy_s15_magic_thresholds),
+        ("S16 (Cut×carat interactions)",  strategy_s16_cut_carat_interactions),
+        ("S17 (full combo v2)",           strategy_s17_full_combo_v2),
+    ])
 
     results = []
     best_result = None
@@ -1153,7 +1854,10 @@ def run():
     for label, fn in strategies_fns:
         print(f"  {label}...", end=" ", flush=True)
         try:
-            result = fn(train, test)
+            try:
+                result = fn(train, test, all_rows=rows)
+            except TypeError:
+                result = fn(train, test)
             if result is None:
                 print("⊘ skipped (dependency missing)")
                 continue
