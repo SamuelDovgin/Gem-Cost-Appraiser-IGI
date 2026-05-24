@@ -307,6 +307,8 @@ def normalise_row(raw):
         "subVariantLabel": sub_label,
         "isElongatedCushion": shape == "elongated_cushion",
         "isOvalElongated": sub_variant == "oval_elongated",
+        "isLongOval": sub_variant in ("oval_long", "oval_moval_like"),
+        "isMovalLikeOval": sub_variant == "oval_moval_like",
         "isMoval": shape == "moval",
         "carat": carat,
         "color": color["normalized"],

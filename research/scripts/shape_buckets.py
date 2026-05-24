@@ -27,8 +27,11 @@ SHAPE_LW_BUCKETS = {
     # sub_variant_key is metadata-only (for analysis/display)
     'oval': [
         # (lo_threshold, hi_threshold, canonical_shape, sub_variant_key, label, idealLo, idealHi, lo, hi)
-        (1.75, None,  'moval',  'moval',          'Moval (very elongated oval)',   1.65, 1.90, 1.55, 2.10),
-        (1.55, 1.74,  'oval',   'oval_elongated',  'Elongated Oval',               1.60, 1.72, 1.55, 1.75),
+        # Ratio alone is not enough to promote an oval to true moval. Keep the
+        # canonical comp shape as oval and preserve the long/moval-like signal.
+        (1.75, None,  'oval',   'oval_moval_like', 'Very Long Oval / Moval-Like Oval', 1.75, 1.95, 1.70, 2.10),
+        (1.65, 1.74,  'oval',   'oval_long',       'Long Oval',                       1.65, 1.72, 1.60, 1.78),
+        (1.55, 1.64,  'oval',   'oval_elongated',  'Elongated Oval',                  1.58, 1.64, 1.55, 1.70),
         (1.30, 1.54,  'oval',   'oval',            'Standard Oval',                1.35, 1.50, 1.30, 1.55),
         (0.00, 1.29,  'oval',   'oval',            'Wide / Round Oval',            1.30, 1.45, 1.20, 1.55),
     ],
@@ -181,7 +184,9 @@ RATIO_GUIDE_JS = """
 const ratioGuides = {
   round:            { lo:0.98, hi:1.02,  idealLo:0.99,  idealHi:1.01,  label:'round outline' },
   oval:             { lo:1.30, hi:1.55,  idealLo:1.35,  idealHi:1.50,  label:'standard oval' },
-  oval_elongated:   { lo:1.55, hi:1.75,  idealLo:1.60,  idealHi:1.72,  label:'elongated oval' },
+  oval_elongated:   { lo:1.55, hi:1.70,  idealLo:1.58,  idealHi:1.64,  label:'elongated oval' },
+  oval_long:        { lo:1.60, hi:1.78,  idealLo:1.65,  idealHi:1.72,  label:'long oval' },
+  oval_moval_like:  { lo:1.70, hi:2.10,  idealLo:1.75,  idealHi:1.95,  label:'moval-like oval (ratio only)' },
   moval:            { lo:1.55, hi:2.10,  idealLo:1.65,  idealHi:1.90,  label:'moval (elongated oval)' },
   pear:             { lo:1.45, hi:1.75,  idealLo:1.55,  idealHi:1.65,  label:'pear' },
   marquise:         { lo:1.80, hi:2.20,  idealLo:1.90,  idealHi:2.10,  label:'marquise' },
@@ -207,7 +212,7 @@ const ratioGuides = {
 STARSGEM_SHAPE_MAP = {
     'ROUND':    'round',
     'round':    'round',
-    'OVAL':     'oval',    # may upgrade to moval / elongated by L/W
+    'OVAL':     'oval',    # may get long/moval-like sub-variant by L/W
     'PEAR':     'pear',
     'PRINCESS': 'princess',
     'princess': 'princess',
@@ -265,7 +270,7 @@ MESSI_SHAPE_MAP = {
 if __name__ == '__main__':
     # Quick self-test
     tests = [
-        ('oval', 2.00, '', 'moval'),
+        ('oval', 2.00, '', 'oval'),
         ('oval', 1.65, '', 'oval'),            # elongated oval → still canonical 'oval'
         ('oval', 1.42, '', 'oval'),
         ('cushion', 1.40, '', 'elongated_cushion'),

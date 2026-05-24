@@ -116,6 +116,10 @@ def map_report_shape_to_state(shape: str, report_hint: str = "") -> str | None:
             return "portuguese"
     if "moval" in sh or "movel" in sh:
         return "moval"
+    if "flower" in sh:
+        return "flower"
+    if "freeform" in sh or "free form" in sh:
+        return "freeform"
     if "dutch" in sh and ("hex" in sh or "marquise" in sh):
         return "hexagonal_dutch"
     if "hexagonal" in sh and "dutch" in sh:
@@ -191,6 +195,7 @@ def _clean(s: str) -> str:
         .replace("|", " ")
         .replace("---", " ")
         .replace("Sample Image Used", "")
+        .strip(": ")
         .strip()
     )
 
@@ -233,6 +238,15 @@ def _read_after_label(
             nxt = lines[j].strip()
             if not nxt:
                 continue
+            if re.fullmatch(r"[:|]+", nxt):
+                continue
+            next_label = " ".join(
+                x.strip() for x in lines[j : min(len(lines), j + 2)] if x.strip()
+            )
+            if re.match(r"^(?:Min\.\s*)?Clarity$", nxt, re.I) and re.search(
+                stop_re, next_label, re.I
+            ):
+                break
             if re.search(stop_re, nxt, re.I) or HARD_STOP.match(nxt):
                 break
             parts.append(nxt)
@@ -288,6 +302,15 @@ def normalize_shape_text(value: str) -> str:
     return s.title() if s else ""
 
 
+def is_minimum_grade_report(norm: str) -> bool:
+    """IGI compact ID reports list min grades and omit full proportions."""
+    return bool(
+        re.search(r"\bDIAMOND REPORT\b", norm, re.I)
+        and re.search(r"\bMin\.\s*Color Grade\b", norm, re.I)
+        and re.search(r"\bMin\.\s*Clarity\s*Grade\b", norm, re.I)
+    )
+
+
 def parse_measurements(value: str, norm: str) -> tuple[float | None, float | None, float | None, str | None]:
     source = f"{_clean(value)} {norm}"
     m = re.search(
@@ -323,11 +346,16 @@ def extract_report_number(norm: str, fallback: str = "") -> str:
 
 
 def normalize_clarity(raw: str) -> str | None:
+    value = (raw or "").upper()
+    if "INTERNALLY FLAWLESS" in value:
+        return "IF"
+    if re.search(r"\bFLAWLESS\b", value):
+        return "FL"
     src = re.sub(r"\s+", "", (raw or "").upper())
     m = re.search(r"\b(IF|VVS1|VVS2|VS1|VS2|SI1|SI2|I1|I2|I3)\b", src)
     if m:
         return m.group(1)
-    m = re.search(r"\b(VVS|VS|SI)\s*([12])?\b", (raw or "").upper())
+    m = re.search(r"\b(VVS|VS|SI)\s*([12])?\b", value)
     if m:
         return m.group(1) + (m.group(2) or "1")
     return None
@@ -436,6 +464,9 @@ def normalize_color(raw: str, norm: str) -> str | None:
     m = re.search(r"\bColor Grade\s+([D-Z])\b", src)
     if m:
         return m.group(1)
+    m = re.fullmatch(r"\s*([D-Z]){2}\s*", raw or "")
+    if m:
+        return (raw or "").strip()[0].upper()
     m = re.search(r"\b([D-Z])\b", raw or "")
     return m.group(1) if m else None
 
@@ -564,6 +595,21 @@ def enrichment_completeness(entry: dict) -> dict[str, Any]:
     """Return {complete, missingRequired, missingImportant}."""
     if entry.get("status") != "ok":
         return {"complete": False, "missingRequired": ["status"], "missingImportant": []}
+    if entry.get("reportVariant") == "minimum_grade":
+        required = (
+            "carat",
+            "shapeRaw",
+            "color",
+            "clarity",
+            "inscription",
+            "reportDate",
+        )
+        miss_r = [f for f in required if not entry.get(f)]
+        return {
+            "complete": len(miss_r) == 0,
+            "missingRequired": miss_r,
+            "missingImportant": [],
+        }
     miss_r = [f for f in REQUIRED_FIELDS if not entry.get(f)]
     miss_i = [f for f in IMPORTANT_FIELDS if not entry.get(f)]
     return {
@@ -576,12 +622,13 @@ def enrichment_completeness(entry: dict) -> dict[str, Any]:
 def parse_igi_pdf_text(lines: list[str], fallback_digits: str = "") -> dict[str, Any]:
     report_lines = get_report_data_lines(lines)
     norm = _norm_lines(report_lines)
+    report_variant = "minimum_grade" if is_minimum_grade_report(norm) else "full_grading"
 
     shape_raw = normalize_shape_text(
         _read_after_label(
             report_lines,
             r"Shape(?:\s+and\s+Cutting\s+Style|\s*&\s*Cut|/cut)",
-            r"Measurements|GRADING RESULTS",
+            r"Measurements|GRADING RESULTS|Carat Weight",
             6,
         )
     )
@@ -606,11 +653,25 @@ def parse_igi_pdf_text(lines: list[str], fallback_digits: str = "") -> dict[str,
     lw = lw_ratio_from_sizes(s1, s2)
 
     carat = extract_carat(report_lines, norm)
-    color_raw = _read_after_label(report_lines, r"Color Grade", r"Clarity Grade|Cut Grade", 4) or _read_between_labels(
-        norm, r"Color Grade", r"Clarity Grade"
+    color_raw = _read_after_label(
+        report_lines,
+        r"(?:Min\.\s*)?Color Grade",
+        r"(?:Min\.\s*)?Clarity\s*Grade|Cut Grade",
+        4,
+    ) or _read_between_labels(
+        norm,
+        r"(?:Min\.\s*)?Color Grade",
+        r"(?:Min\.\s*)?Clarity\s*Grade",
     )
-    clarity_raw = _read_after_label(report_lines, r"Clarity Grade", r"Cut Grade|ADDITIONAL|Polish", 3) or _read_between_labels(
-        norm, r"Clarity Grade", r"Cut Grade|ADDITIONAL|Polish"
+    clarity_raw = _read_after_label(
+        report_lines,
+        r"(?:Min\.\s*)?Clarity\s*Grade",
+        r"Cut Grade|ADDITIONAL|Polish|Inscription",
+        4,
+    ) or _read_between_labels(
+        norm,
+        r"(?:Min\.\s*)?Clarity\s*Grade",
+        r"Cut Grade|ADDITIONAL|Polish|Inscription",
     )
     cut_raw = _read_after_label(report_lines, r"Cut Grade", r"ADDITIONAL|Polish|Symmetry", 3) or _read_between_labels(
         norm, r"Cut Grade", r"ADDITIONAL|Polish|Symmetry"
@@ -696,6 +757,7 @@ def parse_igi_pdf_text(lines: list[str], fallback_digits: str = "") -> dict[str,
     entry: dict[str, Any] = {
         "status": "ok",
         "parserVersion": PARSER_VERSION,
+        "reportVariant": report_variant,
         "reportNumber": cert or None,
         "shapeRaw": shape_raw or None,
         "shapeMapped": shape_mapped,

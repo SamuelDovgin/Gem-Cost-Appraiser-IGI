@@ -177,7 +177,7 @@ def test_sq_radiant_and_oval_modified() -> None:
     assert_close(oval["depthPct"], 61.1, "oval depth")
 
 
-def test_unsupported_flower_is_complete_without_mapping() -> None:
+def test_flower_maps_to_specialty_shape() -> None:
     entry = parse_igi_pdf_text(
         [
             "IGI Report Number LG737530791",
@@ -204,8 +204,8 @@ def test_unsupported_flower_is_complete_without_mapping() -> None:
         ]
     )
     assert_eq(entry["shapeRaw"], "Flower Modified Brilliant", "flower raw shape")
-    assert_eq(entry["shapeMapped"], None, "flower remains unmapped")
-    assert_eq(entry["unsupportedShapeRaw"], True, "flower unsupported flag")
+    assert_eq(entry["shapeMapped"], "flower", "flower shape mapping")
+    assert_eq(entry["unsupportedShapeRaw"], False, "flower supported flag")
     assert_eq(entry["enrichmentComplete"], True, "flower complete")
     assert_eq("shapeMapped" in entry["missingFields"], False, "flower missing fields")
 
@@ -227,6 +227,75 @@ def test_triangular_brilliant_maps_to_trilliant() -> None:
         ]
     )
     assert_eq(entry["shapeMapped"], "trilliant", "triangular brilliant mapping")
+
+
+def test_internally_flawless_clarity_normalizes_to_if() -> None:
+    entry = parse_igi_pdf_text(
+        [
+            "IGI Report Number LG625455233",
+            "Shape and Cutting Style",
+            "SQUARE EMERALD CUT",
+            "Measurements",
+            "6.41 - 6.25 - 4.22 MM",
+            "Carat Weight",
+            "1.61 CARAT",
+            "Color Grade",
+            "D",
+            "Clarity Grade",
+            "INTERNALLY FLAWLESS",
+            "ADDITIONAL GRADING INFORMATION",
+            "Polish",
+            "EXCELLENT",
+            "Symmetry",
+            "EXCELLENT",
+            "Fluorescence",
+            "NONE",
+        ]
+    )
+    assert_eq(entry["clarity"], "IF", "internally flawless clarity")
+    assert_eq(entry["enrichmentComplete"], True, "internally flawless complete")
+
+
+def test_minimum_grade_report_is_terminal_complete() -> None:
+    entry = parse_igi_pdf_text(
+        [
+            "E-COPY",
+            "LABORATORY GROWN",
+            "DIAMOND REPORT",
+            "December 26, 2025",
+            "IGI Report No.",
+            ":",
+            "758563800",
+            "Identification",
+            ":",
+            "LABORATORY GROWN DIAMOND",
+            "Shape and Cutting Style",
+            ":",
+            "ROUND BRILLIANT",
+            "Carat Weight",
+            ":",
+            "1.05 CARATS",
+            "Min. Color Grade",
+            ":",
+            "DE",
+            "Min. Clarity",
+            "Grade",
+            ":",
+            "VVS",
+            "Inscription(s)",
+            ":",
+            "758563800",
+        ],
+        fallback_digits="758563800",
+    )
+    assert_eq(entry["reportVariant"], "minimum_grade", "minimum-grade variant")
+    assert_eq(entry["shapeRaw"], "Round Brilliant", "minimum-grade shape")
+    assert_eq(entry["shapeMapped"], "round", "minimum-grade shape mapping")
+    assert_eq(entry["color"], "D", "minimum-grade min color")
+    assert_eq(entry["clarity"], "VVS1", "minimum-grade min clarity")
+    assert_eq(entry["measurements"], None, "minimum-grade measurements unavailable")
+    assert_eq(entry["enrichmentComplete"], True, "minimum-grade complete")
+    assert_eq(entry["missingFields"], [], "minimum-grade missing fields")
 
 
 def test_full_retry_queue_includes_completed_not_found() -> None:
@@ -259,7 +328,7 @@ def test_full_retry_queue_includes_completed_not_found() -> None:
             "parserVersion": 999,
             "enrichmentComplete": False,
             "shapeRaw": "Flower Modified Brilliant",
-            "shapeMapped": None,
+            "shapeMapped": "flower",
             "carat": 3.05,
             "color": "E",
             "clarity": "VVS2",
@@ -282,8 +351,10 @@ def test_full_retry_queue_includes_completed_not_found() -> None:
 def main() -> None:
     test_portuguese_full_layout()
     test_sq_radiant_and_oval_modified()
-    test_unsupported_flower_is_complete_without_mapping()
+    test_flower_maps_to_specialty_shape()
     test_triangular_brilliant_maps_to_trilliant()
+    test_internally_flawless_clarity_normalizes_to_if()
+    test_minimum_grade_report_is_terminal_complete()
     test_full_retry_queue_includes_completed_not_found()
     print("IGI parser/enrichment tests passed")
 

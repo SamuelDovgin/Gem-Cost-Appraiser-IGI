@@ -61,8 +61,10 @@ STARSGEM_FACTORY_URL = 'https://starsgem.en.alibaba.com/factory.html?spm=a27aq.2
 SHAPE_LABELS = {
     'round':             'Round Brilliant (ROUND)',
     'oval':              'Oval (OVAL) — standard L/W',
-    'oval_elongated':    'Elongated Oval (OVAL, L/W 1.55–1.74)',
-    'moval':             'Moval (OVAL, L/W ≥ 1.75)',
+    'oval_elongated':    'Elongated Oval (OVAL, L/W 1.55–1.64)',
+    'oval_long':         'Long Oval (OVAL, L/W 1.65–1.74)',
+    'oval_moval_like':   'Very Long / Moval-Like Oval (OVAL, L/W ≥ 1.75; ratio-only)',
+    'moval':             'Moval (explicit source/cert label)',
     'pear':              'Pear Shape (PEAR)',
     'emerald':           'Emerald Cut (EMERALD)',
     'radiant':           'Radiant (RADIANT)',
@@ -75,6 +77,8 @@ SHAPE_LABELS = {
     'elongated_cushion': 'Elongated / Rectangular Cushion (CUSHION, L/W ≥ 1.25 or 长垫形)',
     'asscher':           'Asscher (Asscher)',
     'ashoka':            'Ashoka (ASHOKA)',
+    'flower':            'Flower Modified Brilliant (IGI)',
+    'freeform':          'Freeform (IGI)',
 }
 
 # Unpriced specialty shapes that exist in the Cut column
@@ -214,6 +218,8 @@ def normalise_row(raw: dict) -> dict | None:
         'subVariant':      sub_variant,
         'subVariantLabel': sub_variant_label,
         'isMoval':         canonical_shape == 'moval',
+        'isLongOval':      sub_variant in ('oval_long', 'oval_moval_like'),
+        'isMovalLikeOval': sub_variant == 'oval_moval_like',
         'isElongatedCushion': canonical_shape == 'elongated_cushion',
         'isSqRadiant':     canonical_shape == 'sq_radiant',
         'cutStyle':        cut_canonical,
@@ -254,7 +260,7 @@ def normalise_row(raw: dict) -> dict | None:
 
 from statistics import median as _median
 
-COMP_SKIP_SHAPES = {'unknown', 'lavender', 'ashoka', 'freeform_lip',
+COMP_SKIP_SHAPES = {'unknown', 'lavender', 'ashoka', 'flower', 'freeform', 'freeform_lip',
                     'old_mine', 'old_european', 'step_cut'}
 COMP_WHITE_GRADES = {'D', 'E', 'F', 'G', 'H'}
 
@@ -352,6 +358,8 @@ def build_summary(records: list[dict]) -> dict:
         'growthMethods':    dict(Counter(r['growthMethod'] for r in records)),
         'cutStyles':        dict(Counter(r['cutStyle'] for r in records if r['cutStyle'])),
         'movalCount':       sum(1 for r in records if r['isMoval']),
+        'longOvalCount':    sum(1 for r in records if r.get('isLongOval')),
+        'movalLikeOvalCount': sum(1 for r in records if r.get('isMovalLikeOval')),
         'elongatedCushionCount': sum(1 for r in records if r['isElongatedCushion']),
         'sqRadiantCount':   sum(1 for r in records if r['isSqRadiant']),
         'iceFlowerCount':   sum(1 for r in records if r['isIceFlower']),
@@ -454,6 +462,8 @@ def main():
     print(f"  Priced stones:           {summary['pricedStones']:,}")
     print(f"  Unique shapes:           {summary['uniqueShapes']}")
     print(f"  Moval count:             {summary['movalCount']}")
+    print(f"  Long oval count:         {summary['longOvalCount']}")
+    print(f"  Moval-like oval count:   {summary['movalLikeOvalCount']}")
     print(f"  Elongated cushion count: {summary['elongatedCushionCount']}")
     print(f"  Square radiant count:    {summary['sqRadiantCount']}")
     print(f"  Ice flower cut count:    {summary['iceFlowerCount']}")

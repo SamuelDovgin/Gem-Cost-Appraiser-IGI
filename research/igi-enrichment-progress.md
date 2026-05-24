@@ -1,6 +1,6 @@
 # IGI full enrichment progress
 
-_Updated: **2026-05-24 04:48 UTC** — `python3 research/scripts/igi-enrich-all.py`_
+_Updated: **2026-05-24 16:32 UTC** — `python3 research/scripts/igi-enrich-all.py`_
 
 Machine store: `research/data/igi-report-enrichment.json`
 
@@ -12,9 +12,9 @@ report date, Type IIa, growth method, treatment, comments.
 
 | Scope | Reports | not_started | ok | complete | not_found | rate_limited |
 |-------|---------|-------------|-----|----------|-----------|--------------|
-| Starsgem | 22541 | 0 | 19227 | 19186 | 3304 | 10 |
-| Messi | 18090 | 0 | 16923 | 16907 | 1159 | 8 |
-| **Total** | 34457 | 0 | 31127 | 31080 | 3320 | 10 |
+| Starsgem | 22541 | 0 | 22531 | 22531 | 10 | 0 |
+| Messi | 18090 | 0 | 18065 | 18065 | 25 | 0 |
+| **Total** | 34457 | 0 | 34431 | 34431 | 26 | 0 |
 
 **Portuguese on cert:** 2
 - `780651720` — Round Modified Brilliant
@@ -23,9 +23,9 @@ report date, Type IIa, growth method, treatment, comments.
 ## Top IGI shapeMapped (ok PDFs)
 
 ### All
-- `round`: 11376
-- `oval`: 5495
-- `pear`: 3424
+- `round`: 14672
+- `oval`: 5498
+- `pear`: 3429
 - `emerald`: 2571
 - `princess`: 1798
 - `marquise`: 1513

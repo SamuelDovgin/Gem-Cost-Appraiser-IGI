@@ -79,7 +79,7 @@ const SHAPE_MULT_WHITE = {
   half_moon: 0.80, shield: 0.78, hexagonal: 0.79, hexagonal_dutch: 0.82,
   emerald: 0.83, asscher: 0.84,
   baguette: 0.76, tapered_baguette: 0.74, carre: 0.80,
-  rose: 0.72, briolette: 0.70, portuguese: 0.85, flanders: 0.83,
+  rose: 0.72, briolette: 0.70, flower: 0.78, freeform: 0.70, portuguese: 0.85, flanders: 0.83,
 };
 
 // --- Shape multipliers (fancy color), vs cushion = 1.00 ---
@@ -91,7 +91,7 @@ const SHAPE_MULT_COLOR = {
   half_moon: 0.82, shield: 0.80, hexagonal: 0.81, hexagonal_dutch: 0.85,
   emerald: 0.96, asscher: 1.02,
   baguette: 0.78, tapered_baguette: 0.76, carre: 0.86,
-  rose: 0.75, briolette: 0.72, portuguese: 0.88, flanders: 0.85,
+  rose: 0.75, briolette: 0.72, flower: 0.82, freeform: 0.72, portuguese: 0.88, flanders: 0.85,
 };
 
 // --- Fancy color base pricing (ws1 = $/ct at 1ct; scale = carat exponent) ---
@@ -232,7 +232,7 @@ function selectCheapestExactEnsemble(exactScored, maxN = MAX_ENSEMBLE) {
 // Specialty shapes that skip the best_available fallback (no cross-shape comp makes sense)
 const SPECIALTY_SHAPE_KEYS = new Set([
   'moval', 'trilliant', 'half_moon', 'shield', 'hexagonal', 'hexagonal_dutch',
-  'old_european', 'old_mine', 'rose', 'briolette', 'portuguese', 'flanders',
+  'old_european', 'old_mine', 'rose', 'briolette', 'flower', 'freeform', 'portuguese', 'flanders',
   'baguette', 'tapered_baguette', 'carre',
 ]);
 
@@ -680,7 +680,7 @@ const SHAPE_FAMILY_MAP = {
   princess: 'PRINCESS',
   // Specialty shapes → SPECIALTY (no cross-shape adjustment)
   portuguese: 'SPECIALTY', hexagonal: 'SPECIALTY', hexagonal_dutch: 'SPECIALTY',
-  half_moon: 'SPECIALTY', shield: 'SPECIALTY', rose: 'SPECIALTY',
+  half_moon: 'SPECIALTY', shield: 'SPECIALTY', rose: 'SPECIALTY', flower: 'SPECIALTY', freeform: 'SPECIALTY',
   briolette: 'SPECIALTY', flanders: 'SPECIALTY',
 };
 

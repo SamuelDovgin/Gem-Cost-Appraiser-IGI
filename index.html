@@ -498,6 +498,8 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <option value="old_mine">Old Mine Brilliant</option>
           <option value="rose">Rose Cut</option>
           <option value="briolette">Briolette</option>
+          <option value="flower">Flower Modified Brilliant</option>
+          <option value="freeform">Freeform</option>
           <option value="portuguese">Portuguese / Round Modified Brilliant</option>
           <option value="flanders">Flanders Cut (Belgian / Dutch square)</option>
         </optgroup>
@@ -925,7 +927,7 @@ async function loadStarsgemPricingIntel() {
 async function loadStarsgemMlModel() {
   if (_starsgemMlModel) return _starsgemMlModel;
   if (_starsgemMlModelPromise) return _starsgemMlModelPromise;
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model.json?v=20260523-temporal-s18-depth24')
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model.json?v=20260524-balanced-hybrid')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1240,14 +1242,14 @@ const shapeMult = {
   cushion:0.90, cushion_brilliant:0.91, elongated_cushion:0.89, square_cushion:0.90, radiant:0.87, sq_radiant:0.88,
   princess:0.86, half_moon:0.80, shield:0.78, hexagonal:0.79, hexagonal_dutch:0.82,
   emerald:0.83, asscher:0.84, baguette:0.76, tapered_baguette:0.74, carre:0.80,
-  rose:0.72, briolette:0.70, portuguese:0.85, flanders:0.83,
+  rose:0.72, briolette:0.70, flower:0.78, freeform:0.70, portuguese:0.85, flanders:0.83,
 };
 // Unique / specialty cuts in the shape dropdown (see research/diamond-cut-shape-reference.md).
 // Mults vs round: Leon Diamond / Rapaport — fancy shapes often 20–40% below round at retail;
 // moval ~6% below (between marquise −13% and oval premium); Dutch hex ~18%; Portuguese ~15%.
 const SPECIALTY_SHAPE_KEYS = new Set([
   'moval','trilliant','half_moon','shield','hexagonal','hexagonal_dutch','old_european','old_mine',
-  'rose','briolette','portuguese','flanders','baguette','tapered_baguette','carre',
+  'rose','briolette','flower','freeform','portuguese','flanders','baguette','tapered_baguette','carre',
 ]);
 // 2025–26 demand & appeal — Statista/CaratX retail share, lab-grown Alibaba liquidity, specialty-cut research.
 // demand = consumer popularity band; resale = how easy the cut is to move secondhand (lab IGI market).
@@ -1279,6 +1281,8 @@ const SHAPE_MARKET_APPEAL = {
   carre: { demand:'★★☆☆☆', resale:'thin', appeal:'Square step (carré) — crisp geometry, art-deco adjacent.', trend:'Niche step; rare in lab-grown factory selectors.', summary:'Specialty step — thin resale.' },
   rose: { demand:'★★☆☆☆', resale:'thin', appeal:'Flat dome, soft glow; boho / antique revival (major 2025 comeback in vintage jewelry).', trend:'Trendy in design press but still niche for lab resale; shallow face-up looks big.', summary:'Exotic for lab IGI — fashionable, not liquid like round/oval.', extra:'Best in low-light aesthetics; weak standardized resale vs brilliant cuts.' },
   briolette: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Full faceted drop — pendant / earring sculpture, no table.', trend:'No engagement market; almost never a center-stone resale comp.', summary:'Exotic — not a ring liquidation cut.' },
+  flower: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Flower-outline modified brilliant; novelty silhouette with boutique appeal.', trend:'Rare in supplier feeds and usually IGI-certified as Flower Modified Brilliant.', summary:'Exotic outline — keep separate from cushion/round so it does not pollute mainstream comps.' },
+  freeform: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Non-standard freeform outline; design-led rather than commodity bridal.', trend:'Single-stone / custom-jewelry market only.', summary:'Exotic — price manually against design intent and face-up size.' },
   portuguese: { demand:'★★☆☆☆', resale:'thin', appeal:'Round modified brilliant / Portuguese-style extra-facet cut; collector sparkle.', trend:'Specialty resurgence (social / vintage aesthetic); often faces up smaller per carat.', summary:'Exotic brilliant — boutique demand, ~15% below round when priced fairly.', extra:'Verify the facet diagram/table/depth because IGI may only print “Round Modified Brilliant”. Leon Diamond: most fancy shapes 20–40% under round at retail.' },
   flanders: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Octagonal square brilliant (Belgian / Flanders Ideal).', trend:'Discontinued / scarce distribution; niche even when found.', summary:'Exotic — often ~13% smaller face-up than radiant; tiny resale pool.', extra:'PriceScope: limited cutters and supply vs mainstream squares.' },
 };
@@ -1287,6 +1291,8 @@ const SHAPE_RESEARCH_NOTES = {
   hexagonal_dutch: SHAPE_MARKET_APPEAL.hexagonal_dutch.extra,
   portuguese: SHAPE_MARKET_APPEAL.portuguese.extra,
   flanders: SHAPE_MARKET_APPEAL.flanders.extra,
+  flower: 'IGI Flower Modified Brilliant — treat as a separate novelty outline, not cushion or round.',
+  freeform: 'Freeform outline — no standardized commodity comp pool.',
   hexagonal: 'Architectural six-sided outline — bespoke supply only.',
   rose: SHAPE_MARKET_APPEAL.rose.extra,
 };
@@ -1315,14 +1321,17 @@ const shapeMultColor = {
   cushion:1.00, cushion_brilliant:1.00, elongated_cushion:1.00, square_cushion:1.00, radiant:1.02, sq_radiant:1.00,
   princess:0.90, half_moon:0.82, shield:0.80, hexagonal:0.81, hexagonal_dutch:0.85,
   emerald:0.96, asscher:1.02, baguette:0.78, tapered_baguette:0.76, carre:0.86,
-  rose:0.75, briolette:0.72, portuguese:0.88, flanders:0.85,
+  rose:0.75, briolette:0.72, flower:0.82, freeform:0.72, portuguese:0.88, flanders:0.85,
 };
 const cutMult = { ideal:1.00, vg:0.94, good:0.87, unset:0.88 };
 
 const ratioGuides = {
   round:             { lo:0.98, hi:1.02,  idealLo:0.99, idealHi:1.01, label:'round outline' },
   oval:              { lo:1.30, hi:1.55,  idealLo:1.35, idealHi:1.50, label:'standard oval' },
-  moval:             { lo:1.55, hi:2.10,  idealLo:1.65, idealHi:1.90, label:'moval (elongated oval)' },
+  oval_elongated:    { lo:1.55, hi:1.70,  idealLo:1.58, idealHi:1.64, label:'elongated oval' },
+  oval_long:         { lo:1.60, hi:1.78,  idealLo:1.65, idealHi:1.72, label:'long oval' },
+  oval_moval_like:   { lo:1.70, hi:2.10,  idealLo:1.75, idealHi:1.95, label:'moval-like oval (ratio only)' },
+  moval:             { lo:1.55, hi:2.10,  idealLo:1.65, idealHi:1.90, label:'moval (explicit)' },
   pear:              { lo:1.45, hi:1.75,  idealLo:1.55, idealHi:1.65, label:'pear' },
   marquise:          { lo:1.80, hi:2.20,  idealLo:1.90, idealHi:2.10, label:'marquise' },
   hexagonal_dutch:   { lo:1.75, hi:2.25,  idealLo:1.85, idealHi:2.10, label:'Dutch marquise' },
@@ -1854,7 +1863,7 @@ function starsgemModelVector(row, model) {
     for (const cat of cats) vector.push(value === cat ? 1 : 0);
   }
   for (const field of features.numeric || []) {
-    const rawValue = row[field];
+    const rawValue = starsgemNumericFeatureValue(row, field, model);
     const raw = rawValue === null || rawValue === undefined || rawValue === '' ? NaN : Number(rawValue);
     const fallback = Number(features.numericMedians?.[field]);
     vector.push(Number.isFinite(raw) ? raw : Number.isFinite(fallback) ? fallback : 0);
@@ -1862,9 +1871,132 @@ function starsgemModelVector(row, model) {
   return vector;
 }
 
+function starsgemNumericFeatureValue(row, field, model) {
+  const carat = Number(row?.Carat ?? row?.carat);
+  if (field === 'Carat_sq') return Number.isFinite(carat) ? carat * carat : row?.[field];
+  if (field === 'Carat_cube') return Number.isFinite(carat) ? carat * carat * carat : row?.[field];
+  if (field === 'Log_Carat') return Number.isFinite(carat) && carat > 0 ? Math.log(carat) : row?.[field];
+  if (field === 'Carat_bucket_pos') return starsgemCaratBucketPosition(carat);
+  if (field === 'Dist_carat_threshold') return Number.isFinite(carat) ? Math.abs(carat - Math.round(carat * 2) / 2) : row?.[field];
+  if (field === 'Lookup_RatePerCt') return starsgemModelLookupRate(row, model).rate;
+  if (field === 'Lookup_IsGlobal') return starsgemModelLookupRate(row, model).level === 'GLOBAL' ? 1 : 0;
+  if (field === 'Log_Lookup_RatePerCt') {
+    const rate = starsgemModelLookupRate(row, model).rate;
+    return Number.isFinite(rate) && rate > 0 ? Math.log(rate) : row?.[field];
+  }
+  if (field === 'Category_RatePerCt') return starsgemModelCategoryRate(row, model);
+  if (field === 'Log_Category_RatePerCt') {
+    const rate = starsgemModelCategoryRate(row, model);
+    return Number.isFinite(rate) && rate > 0 ? Math.log(rate) : row?.[field];
+  }
+  return row?.[field];
+}
+
+function starsgemModelLookupRate(row, model) {
+  const featureLookups = model?.featureLookups || {};
+  const tables = featureLookups.lookupTables || [];
+  const normalized = { ...row };
+  ['carat_bucket','Shape','Color','Clarity','TypeName','Report','Cut','Polish','Symmetry'].forEach(field => {
+    normalized[field] = starsgemNorm(normalized[field]);
+  });
+  for (const table of tables) {
+    const key = (table.fields || []).map(field => normalized[field] ?? '-').join('||');
+    const hit = table.groups?.[key];
+    if (hit && Number.isFinite(Number(hit.usdPerCt))) {
+      return { rate: Number(hit.usdPerCt), level: table.level, count: hit.count || 0 };
+    }
+  }
+  const internalGlobal = Number(featureLookups.lookupGlobalRate);
+  return {
+    rate: Number.isFinite(internalGlobal) ? internalGlobal / 170 : null,
+    level: 'GLOBAL',
+    count: 0,
+  };
+}
+
+function starsgemModelCategoryRate(row, model) {
+  const featureLookups = model?.featureLookups || {};
+  const tables = featureLookups.categoryTables || {};
+  const levels = featureLookups.categoryLevels || [];
+  for (const level of levels) {
+    const name = level[0];
+    const fields = level[1] || [];
+    const key = fields.map(field => starsgemNorm(row[field])).join('||');
+    const val = tables[name]?.[key];
+    if (Number.isFinite(Number(val))) return Number(val);
+  }
+  const global = Number(featureLookups.categoryGlobalRate);
+  return Number.isFinite(global) ? global : null;
+}
+
+function starsgemCaratBucketPosition(carat) {
+  if (!Number.isFinite(carat)) return 0.5;
+  const bounds = [
+    [0.30, 0.49], [0.50, 0.69], [0.70, 0.89], [0.90, 0.99],
+    [1.00, 1.49], [1.50, 1.99], [2.00, 2.99], [3.00, 3.99],
+    [4.00, 4.99], [5.00, 9.99],
+  ];
+  for (const [lo, hi] of bounds) {
+    if (carat >= lo && carat <= hi) return (carat - lo) / (hi - lo);
+  }
+  return 0.5;
+}
+
+function predictStarsgemAnchor(row, model) {
+  const router = model?.hybridRouter;
+  const anchors = router?.anchors;
+  const fields = router?.specFields || [];
+  const carat = Number(row?.Carat ?? row?.carat);
+  if (!anchors || !fields.length || !Number.isFinite(carat) || carat <= 0) return null;
+  const key = fields.map(field => starsgemNorm(row[field])).join('||');
+  const points = anchors[key];
+  if (!Array.isArray(points) || !points.length) return null;
+
+  const exactTol = Number(router.exactCaratTolerance ?? 0.005);
+  const nearTol = Number(router.nearCaratTolerance ?? 0.03);
+  const maxGap = Number(router.interpolationMaxGap ?? 0.75);
+
+  let nearest = null;
+  let lower = null;
+  let upper = null;
+  for (const point of points) {
+    const pCarat = Number(point[0]);
+    const pRate = Number(point[1]);
+    const pCount = Number(point[2] ?? 0);
+    if (!Number.isFinite(pCarat) || !Number.isFinite(pRate) || pRate <= 0) continue;
+    const candidate = { carat: pCarat, rate: pRate, count: pCount, gap: Math.abs(carat - pCarat) };
+    if (!nearest || candidate.gap < nearest.gap) nearest = candidate;
+    if (pCarat <= carat && (!lower || pCarat > lower.carat)) lower = candidate;
+    if (pCarat >= carat && (!upper || pCarat < upper.carat)) upper = candidate;
+  }
+
+  if (nearest && nearest.gap <= exactTol) {
+    return { price: nearest.rate * carat, method: 'exact_anchor', anchorCount: nearest.count, anchorCarat: nearest.carat };
+  }
+  if (nearest && nearest.gap <= nearTol) {
+    return { price: nearest.rate * carat, method: 'near_anchor', anchorCount: nearest.count, anchorCarat: nearest.carat };
+  }
+  if (lower && upper && lower.carat !== upper.carat && (upper.carat - lower.carat) <= maxGap) {
+    const t = (carat - lower.carat) / (upper.carat - lower.carat);
+    const logRate = Math.log(lower.rate) + t * (Math.log(upper.rate) - Math.log(lower.rate));
+    return {
+      price: Math.exp(logRate) * carat,
+      method: 'interpolated_anchor',
+      lowerCarat: lower.carat,
+      upperCarat: upper.carat,
+      anchorCount: lower.count + upper.count,
+    };
+  }
+  return null;
+}
+
 function predictStarsgemMl(row) {
   const model = _starsgemMlModel;
   if (!model || !Array.isArray(model.trees) || !model.trees.length) return null;
+  const anchorPred = predictStarsgemAnchor(row, model);
+  if (anchorPred) {
+    return { ...anchorPred, modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
+  }
   const vector = starsgemModelVector(row, model);
   let logSum = 0;
   for (const tree of model.trees) {
@@ -1882,7 +2014,7 @@ function predictStarsgemMl(row) {
   const price = model.targetType === 'log_rate'
     ? Math.max(0.01, Math.exp(logVal) * carat)
     : Math.max(0.01, Math.exp(logVal));
-  return { price, modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
+  return { price, method: 'ml_fallback', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
 }
 
 function updateStarsgemPricingIntel() {
@@ -1915,11 +2047,21 @@ function updateStarsgemPricingIntel() {
   const row = starsgemLookupRowFromState(state.carat);
   const mlPred = predictStarsgemMl(row);
   if (mlPred && mlPriceEl) {
-    mlPriceEl.textContent = `${fmt(mlPred.price)} ML price guess`;
+    const methodLabel = {
+      exact_anchor: 'sheet exact',
+      near_anchor: 'sheet near-match',
+      interpolated_anchor: 'sheet interpolation',
+      ml_fallback: 'ML gap estimate',
+    }[mlPred.method] || 'price estimate';
+    mlPriceEl.textContent = `${fmt(mlPred.price)} ${methodLabel}`;
     if (mlModelEl) mlModelEl.textContent = mlPred.modelName || 'ML';
     if (mlNoteEl) {
       const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth when available' : 'using selected specs; dimensions are imputed until an IGI report is loaded';
-      mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> predicted by ${escapeHTML(mlPred.modelName || 'the best model')} (${dims}).`;
+      let routeNote = `ML is only used when the selected carat is not exact/near in the StarGem sheet`;
+      if (mlPred.method === 'exact_anchor') routeNote = `Exact StarGem sheet carat anchor at ${mlPred.anchorCarat.toFixed(2)}ct`;
+      if (mlPred.method === 'near_anchor') routeNote = `Nearest StarGem sheet carat anchor at ${mlPred.anchorCarat.toFixed(2)}ct`;
+      if (mlPred.method === 'interpolated_anchor') routeNote = `Interpolated between ${mlPred.lowerCarat.toFixed(2)}ct and ${mlPred.upperCarat.toFixed(2)}ct sheet anchors`;
+      mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ${escapeHTML(routeNote)} (${dims}).`;
     }
   } else if (mlPriceEl) {
     mlPriceEl.textContent = 'Loading ML model…';
@@ -1956,7 +2098,8 @@ const shapeNames = {
   hexagonal:'Hexagonal Modified Brilliant',hexagonal_dutch:'Hexagonal Dutch / Dutch Marquise',
   emerald:'Emerald Cut',asscher:'Square Emerald Cut',
   baguette:'Baguette Cut',tapered_baguette:'Tapered Baguette Cut',carre:'Carre Cut',
-  rose:'Rose Cut',briolette:'Briolette',portuguese:'Portuguese / Round Modified Brilliant',flanders:'Flanders Cut',
+  rose:'Rose Cut',briolette:'Briolette',flower:'Flower Modified Brilliant',freeform:'Freeform',
+  portuguese:'Portuguese / Round Modified Brilliant',flanders:'Flanders Cut',
 };
 const capCut = c => c==='unset'?'Pol/Sym only (no cut grade)':c==='ideal'?'3EX/Ideal':c==='vg'?'Very Good':'Good';
 
@@ -3840,13 +3983,13 @@ const SHAPE_ICON_COLORS = {
   radiant:'#e06060', sq_radiant:'#e06060', princess:'#4caf7a', emerald:'#5b9bd5',
   asscher:'#5b9bd5', baguette:'#4caf7a', tapered_baguette:'#4caf7a', carre:'#5b9bd5',
   trilliant:'#9b70d4', half_moon:'#5b9bd5', shield:'#9b70d4', hexagonal:'#5b9bd5', hexagonal_dutch:'#5b9bd5', moval:'#a08060',
-  old_european:'#d4af72', old_mine:'#d4af72', rose:'#e070a0', briolette:'#9b70d4',
+  old_european:'#d4af72', old_mine:'#d4af72', rose:'#e070a0', briolette:'#9b70d4', flower:'#e070a0', freeform:'#d4af72',
   portuguese:'#d4af72', flanders:'#d4af72',
 };
 
 const ICON_CANONICAL_LW = {
   baguette:2.75, tapered_baguette:3.1, trilliant:1.05, half_moon:2.0, shield:1.1,
-  hexagonal:1.0, hexagonal_dutch:1.95, rose:1.0, briolette:0.62, portuguese:1.0, flanders:1.0,
+  hexagonal:1.0, hexagonal_dutch:1.95, rose:1.0, briolette:0.62, flower:1.0, freeform:1.0, portuguese:1.0, flanders:1.0,
 };
 
 function iconEffectiveLW(shapeKey, certRatio) {
@@ -4008,7 +4151,7 @@ const SHAPE_ICON_DRAWN = new Set([
   'round','oval','pear','marquise','moval','heart','cushion','cushion_brilliant','square_cushion',
   'princess','emerald','radiant','asscher','sq_radiant','carre','baguette','tapered_baguette',
   'trilliant','half_moon','shield','hexagonal','hexagonal_dutch','old_european','old_mine',
-  'rose','briolette','portuguese','flanders',
+  'rose','briolette','flower','freeform','portuguese','flanders',
 ]);
 const SHAPE_ICON_ALIASES = { elongated_cushion: 'cushion' };
 
@@ -4172,6 +4315,17 @@ function buildShapeIconInner(shapeKey, certRatio) {
     }
     segs.push([cx, +(topY + 1).toFixed(2), cx, +(botY - 1).toFixed(2)]);
     return `<path d="${d}" fill="none" stroke="${c}" stroke-width="1.2"/>` + iconLines(c, f, segs);
+  }
+  if (shapeKey === 'flower') {
+    const flw = iconBox(1);
+    const cx = flw.cx, cy = flw.cy;
+    const pts = [];
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2 - Math.PI / 2;
+      const r = (i % 2 === 0 ? 0.92 : 0.58);
+      pts.push([+(cx + Math.cos(a) * flw.hw * r).toFixed(2), +(cy + Math.sin(a) * flw.hh * r).toFixed(2)]);
+    }
+    return iconBrilliantElongated(flw, c, f, pts, 0.34);
   }
   if (shapeKey === 'flanders') {
     const fl = iconBox(1);
@@ -4545,6 +4699,8 @@ function mapReportShapeToState(shape, reportHint = '') {
     if (ctx.includes('portuguese') || /\bround\s+modified\b/.test(ctx)) return 'portuguese';
   }
   if (/\bmoval\b/.test(sh) || /\bmovel\b/.test(sh)) return 'moval';
+  if (sh.includes('flower')) return 'flower';
+  if (sh.includes('freeform') || sh.includes('free form')) return 'freeform';
   if (sh.includes('dutch') && (sh.includes('hex') || sh.includes('marquise'))) return 'hexagonal_dutch';
   if (sh.includes('hexagonal') && sh.includes('dutch')) return 'hexagonal_dutch';
   if (sh.includes('dutch marquise') || sh.includes('dutch-marquise')) return 'hexagonal_dutch';

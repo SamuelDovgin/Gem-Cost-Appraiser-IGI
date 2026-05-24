@@ -121,6 +121,8 @@ var GemAppraiseV3Engine = (() => {
     carre: 0.8,
     rose: 0.72,
     briolette: 0.7,
+    flower: 0.78,
+    freeform: 0.7,
     portuguese: 0.85,
     flanders: 0.83
   };
@@ -151,6 +153,8 @@ var GemAppraiseV3Engine = (() => {
     carre: 0.86,
     rose: 0.75,
     briolette: 0.72,
+    flower: 0.82,
+    freeform: 0.72,
     portuguese: 0.88,
     flanders: 0.85
   };
@@ -279,6 +283,8 @@ var GemAppraiseV3Engine = (() => {
     "old_mine",
     "rose",
     "briolette",
+    "flower",
+    "freeform",
     "portuguese",
     "flanders",
     "baguette",
@@ -575,6 +581,8 @@ var GemAppraiseV3Engine = (() => {
     half_moon: "SPECIALTY",
     shield: "SPECIALTY",
     rose: "SPECIALTY",
+    flower: "SPECIALTY",
+    freeform: "SPECIALTY",
     briolette: "SPECIALTY",
     flanders: "SPECIALTY"
   };
@@ -1107,6 +1115,57 @@ var GemAppraiseV3Engine = (() => {
       const names = [...new Set(otherFactoryExact.map((e) => e.supplierKey))].join(", ");
       warnings.push(`Same-spec listings also at ${names} \u2014 shown below, not averaged into floor price.`);
     }
+    const MAJOR_SUPPLIERS = ["messi", "starsgem"];
+    const NEAREST_COMPARISON_POOL = 5;
+    const supplierComparisons = [];
+    for (const sk of MAJOR_SUPPLIERS) {
+      const exactForSupplier = exactAdjustedOrdered.filter((adj) => supplierKey(adj.row) === sk);
+      if (exactForSupplier.length) {
+        const best = exactForSupplier[0];
+        const usesCaratScale = caratGapNeedsExactAdjustment(nq.carat, best.row?.carat);
+        const estPrice = usesCaratScale ? Math.round(Math.exp(best.logEstimate)) : best.row.priceUsd;
+        supplierComparisons.push({
+          supplierKey: sk,
+          label: shortLabel(best.row),
+          listingPrice: best.row.priceUsd,
+          estimatedPrice: estPrice,
+          url: best.row.url,
+          row: best.row,
+          matchType: "exact",
+          modifiers: usesCaratScale || best.parts && best.parts.length ? { combined: Math.exp(best.logEstimate - Math.log(best.row.priceUsd)), estimated: estPrice, parts: best.parts } : null
+        });
+      } else {
+        const topN = uniqueScored.filter((c) => supplierKey(c.row) === sk).slice(0, NEAREST_COMPARISON_POOL);
+        if (topN.length) {
+          let bestEntry = null;
+          let bestEstPrice = Infinity;
+          for (const c of topN) {
+            const adj = adjustCompToQuery(nq, c.row, adjContext);
+            const estPrice = Math.round(Math.exp(adj.logEstimate));
+            if (estPrice < bestEstPrice) {
+              bestEstPrice = estPrice;
+              bestEntry = {
+                supplierKey: sk,
+                label: shortLabel(c.row),
+                listingPrice: c.row.priceUsd,
+                estimatedPrice: estPrice,
+                url: c.row.url,
+                row: c.row,
+                matchType: "nearest",
+                score: c.score,
+                modifiers: {
+                  combined: Math.exp(adj.logEstimate - Math.log(c.row.priceUsd)),
+                  estimated: estPrice,
+                  parts: adj.parts
+                }
+              };
+            }
+          }
+          if (bestEntry) supplierComparisons.push(bestEntry);
+        }
+      }
+    }
+    supplierComparisons.sort((a, b) => a.estimatedPrice - b.estimatedPrice);
     const exactUsesCaratScale = matchType === "exact" && caratGapNeedsExactAdjustment(nq.carat, primaryAdj.row?.carat);
     const primaryEstPrice = matchType === "exact" ? exactUsesCaratScale ? Math.round(Math.exp(primaryAdj.logEstimate)) : primaryAdj.row.priceUsd : blend.estimate;
     const pointEstimate = matchType === "exact" ? primaryEstPrice : blend.estimate;
@@ -1151,6 +1210,7 @@ var GemAppraiseV3Engine = (() => {
       primary,
       alternatives,
       otherFactoryExact,
+      supplierComparisons,
       supportComps: acceptedOrdered.map((adj) => ({
         row: adj.row,
         score: adj.score,

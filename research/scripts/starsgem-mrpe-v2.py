@@ -95,6 +95,18 @@ CARAT_BUCKET_BOUNDS = [
     (5.00, 9.99, "5.00-9.99"),
 ]
 
+# Validation should represent the catalog surface, not the raw row population.
+# The stock sheet is heavily concentrated in round / ~1ct rows; holding out one
+# representative per spec bucket prevents that dominant segment from selecting a
+# model that quietly regresses sparse/high-carat stones.
+VALIDATION_BUCKET_FIELDS = ["Shape", "carat_bucket", "Color", "Clarity", "Cut"]
+
+# Production routing: exact/near source-sheet matches are evidence, not ML.
+HYBRID_ANCHOR_FIELDS = ["Shape", "Color", "Clarity", "TypeName", "Report", "Cut"]
+HYBRID_EXACT_CARAT_TOLERANCE = 0.005
+HYBRID_NEAR_CARAT_TOLERANCE = 0.03
+HYBRID_INTERPOLATION_MAX_GAP = 0.75
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # DATA UTILITIES
@@ -418,11 +430,38 @@ def metrics(actual, predicted):
     }
 
 
-def split_train_test(rows, seed=42):
+def split_train_test_random(rows, seed=42):
     shuffled = list(rows)
     random.Random(seed).shuffle(shuffled)
     n_test = max(1, int(round(len(shuffled) * 0.2)))
     return shuffled[n_test:], shuffled[:n_test]
+
+
+def split_train_test_balanced(rows, bucket_fields=VALIDATION_BUCKET_FIELDS, seed=42):
+    """Hold out one row per populated spec bucket; singleton buckets stay train-only."""
+    rng = random.Random(seed)
+    groups = defaultdict(list)
+    for row in rows:
+        key = tuple(row.get(field, "-") for field in bucket_fields)
+        groups[key].append(row)
+
+    train = []
+    test = []
+    for key in sorted(groups):
+        recs = list(groups[key])
+        if len(recs) < 2:
+            train.extend(recs)
+            continue
+        chosen_idx = rng.randrange(len(recs))
+        test.append(recs[chosen_idx])
+        train.extend(r for idx, r in enumerate(recs) if idx != chosen_idx)
+    rng.shuffle(train)
+    rng.shuffle(test)
+    return train, test
+
+
+def split_train_test(rows, seed=42):
+    return split_train_test_balanced(rows, seed=seed)
 
 
 def split_train_test_temporal(rows, train_frac=0.7, seed=42):
@@ -435,11 +474,17 @@ def split_train_test_temporal(rows, train_frac=0.7, seed=42):
     sorted_rows = sorted(rows, key=lambda r: r["rowNo"])
     n_recent = int(len(sorted_rows) * train_frac)
     recent = sorted_rows[-n_recent:]  # most recent train_frac of data
-    # Shuffle to avoid any residual ordering bias
-    shuffled = list(recent)
-    random.Random(seed).shuffle(shuffled)
-    n_test = max(1, int(round(len(shuffled) * 0.2)))
-    return shuffled[n_test:], shuffled[:n_test]
+    return split_train_test_balanced(recent, seed=seed)
+
+
+def recent_training_subset(train, all_rows=None, train_frac=0.7):
+    """Keep the shared test set fixed while restricting training to recent rows."""
+    source_rows = all_rows if all_rows is not None else train
+    sorted_rows = sorted(source_rows, key=lambda r: r["rowNo"])
+    n_recent = int(len(sorted_rows) * train_frac)
+    recent_ids = {r["rowNo"] for r in sorted_rows[-n_recent:]}
+    recent_train = [r for r in train if r["rowNo"] in recent_ids]
+    return recent_train or train
 
 
 def clamp_positive_predictions(values):
@@ -489,6 +534,37 @@ def lookup_predict_rate(row, tables, global_rate):
         if hit:
             return hit["usdPerCt"], table["level"], hit["count"]
     return global_rate / 170, "GLOBAL", 0
+
+
+def build_hybrid_anchor_table(rows):
+    """Exact/near source-sheet anchors for browser routing before ML fallback."""
+    grouped = defaultdict(lambda: defaultdict(list))
+    for row in rows:
+        carat = row.get("Carat")
+        rate = row.get("usd_per_ct")
+        if not carat or not rate:
+            continue
+        key = "||".join(str(row.get(field, "-")) for field in HYBRID_ANCHOR_FIELDS)
+        grouped[key][carat_0_01_bucket(carat)].append(rate)
+
+    anchors = {}
+    for key, carat_rates in grouped.items():
+        points = []
+        for carat, rates in sorted(carat_rates.items()):
+            points.append([
+                round(float(carat), 2),
+                round(float(median(rates)), 6),
+                len(rates),
+            ])
+        if points:
+            anchors[key] = points
+    return {
+        "specFields": HYBRID_ANCHOR_FIELDS,
+        "exactCaratTolerance": HYBRID_EXACT_CARAT_TOLERANCE,
+        "nearCaratTolerance": HYBRID_NEAR_CARAT_TOLERANCE,
+        "interpolationMaxGap": HYBRID_INTERPOLATION_MAX_GAP,
+        "anchors": anchors,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -651,7 +727,9 @@ def round_list(values, digits=8):
     return [round(float(v), digits) for v in values]
 
 
-def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_type):
+def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_type,
+                 lookup_tables=None, lookup_global=None,
+                 cat_tables=None, cat_global=None, cat_levels=None):
     """Serialize the fitted ExtraTrees pipeline to JSON.
 
     target_type: 'log_price' or 'log_rate' (log_rate means target = log(price/carat))
@@ -694,6 +772,19 @@ def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_
             "numericMedians": numeric_medians,
         },
         "metrics": model_metrics,
+        "validation": {
+            "split": "one_holdout_per_bucket",
+            "bucketFields": VALIDATION_BUCKET_FIELDS,
+            "selectionMetric": "bucket-balanced MAPE",
+        },
+        "featureLookups": {
+            "lookupTables": lookup_tables or [],
+            "lookupGlobalRate": lookup_global,
+            "categoryTables": cat_tables or {},
+            "categoryGlobalRate": cat_global,
+            "categoryLevels": cat_levels or [],
+        },
+        "hybridRouter": build_hybrid_anchor_table(load_rows_enriched() if "--enriched" in sys.argv else load_rows()),
         "treeCount": len(trees),
         "trees": trees,
     }
@@ -1226,11 +1317,7 @@ def strategy_s11_temporal_cutoff(train, test, all_rows=None):
     from sklearn.preprocessing import OneHotEncoder
     from sklearn.ensemble import ExtraTreesRegressor
 
-    # Use temporal split if all_rows provided
-    if all_rows is not None:
-        train, test = split_train_test_temporal(all_rows)
-    else:
-        train, test = split_train_test_temporal(train + test)
+    train = recent_training_subset(train, all_rows)
 
     x_train = as_model_frame_base(train)
     x_test = as_model_frame_base(test)
@@ -1260,7 +1347,7 @@ def strategy_s11_temporal_cutoff(train, test, all_rows=None):
         "strategy": "temporal_cutoff",
         "target_type": "log_rate",
         "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
-        "description": "Same as S3 but trained only on most recent 70% of data — isolates temporal rate-card mixing",
+        "description": "Same as S3 but trained only on most recent 70% of data and evaluated on the shared balanced holdout",
         "pipe": pipe, "feats_num": NUMERIC_FEATURES,
     }
 
@@ -1689,11 +1776,7 @@ def strategy_s17_full_combo_v2(train, test, all_rows=None):
     from sklearn.ensemble import ExtraTreesRegressor
     import pandas as pd
 
-    # Temporal split
-    if all_rows is not None:
-        train, test = split_train_test_temporal(all_rows)
-    else:
-        train, test = split_train_test_temporal(train + test)
+    train = recent_training_subset(train, all_rows)
 
     # Build fine lookup from training data
     tables, global_rate = build_fine_lookup(train)
@@ -1789,7 +1872,7 @@ def strategy_s17_full_combo_v2(train, test, all_rows=None):
         "strategy": "full_combo_v2",
         "target_type": "log_rate",
         "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
-        "description": "All structural fixes: temporal cutoff, fine lookup, magic thresholds, Cut interactions, 200 trees",
+        "description": "All structural fixes: recent-only training, shared balanced holdout, fine lookup, magic thresholds, Cut interactions",
         "pipe": pipe, "feats_num": feats_num,
         "_lookup_tables": tables, "_lookup_global": global_rate,
         "_cat_tables": cat_tables, "_cat_global": cat_global, "_cat_levels": cat_levels,
@@ -1811,17 +1894,7 @@ def strategy_s18_temporal_shallow(train, test, all_rows=None):
     from sklearn.preprocessing import OneHotEncoder
     from sklearn.ensemble import ExtraTreesRegressor
 
-    source_rows = all_rows if all_rows is not None else train + test
-    sorted_rows = sorted(source_rows, key=lambda r: r["rowNo"])
-    n_recent = int(len(sorted_rows) * 0.7)
-    recent = sorted_rows[-n_recent:]
-
-    shuffled = list(recent)
-    random.Random(42).shuffle(shuffled)
-    n_test = max(1, int(round(len(shuffled) * 0.2)))
-    test = shuffled[:n_test]
-    test_ids = {r["rowNo"] for r in test}
-    train = [r for r in recent if r["rowNo"] not in test_ids]
+    train = recent_training_subset(train, all_rows)
 
     x_train = as_model_frame_base(train)
     x_test = as_model_frame_base(test)
@@ -1851,7 +1924,7 @@ def strategy_s18_temporal_shallow(train, test, all_rows=None):
         "strategy": "temporal_cutoff_shallow",
         "target_type": "log_rate",
         "metrics": metrics([r["SaleDollorPrice"] for r in test], preds),
-        "description": "S11 recent 70% window with base features, 200 trees, max_depth=24 to reduce within-window overfit",
+        "description": "S11 recent 70% training window with shared balanced holdout, base features, 200 trees, max_depth=24",
         "pipe": pipe, "feats_num": NUMERIC_FEATURES,
     }
 
@@ -1964,6 +2037,11 @@ def run():
             model_name=best_result["name"],
             model_metrics=best_result["metrics"],
             target_type=best_result["target_type"],
+            lookup_tables=best_result.get("_lookup_tables"),
+            lookup_global=best_result.get("_lookup_global"),
+            cat_tables=best_result.get("_cat_tables"),
+            cat_global=best_result.get("_cat_global"),
+            cat_levels=best_result.get("_cat_levels"),
         )
     else:
         print("\n⚠  No exportable best result found.")
@@ -1976,6 +2054,8 @@ def run():
         "testSummary": {
             "totalRows": len(rows), "trainRows": len(train), "testRows": len(test),
             "strategiesTested": len(results),
+            "split": "one_holdout_per_bucket",
+            "bucketFields": VALIDATION_BUCKET_FIELDS,
         },
         "baselineMape": baseline_mape,
         "bestMape": best_mape,

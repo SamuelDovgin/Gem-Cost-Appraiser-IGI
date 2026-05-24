@@ -171,7 +171,7 @@ def main():
         default_url = sec_urls[0].split("?")[0] if len(sec_urls) == 1 else None
 
         is_fancy = bool(re.search(
-            r"Fancy|Pink|Yellow|Blue|Green|Red|Vivid|Intense|Brownish", title, re.I
+            r"\b(Fancy|Pink|Yellow|Blue|Green|Red|Vivid|Intense|Brownish)\b", title, re.I
         ))
         color_family = "fancy" if is_fancy else "white"
         section_fancy_color = infer_fancy_color_from_title(title) if is_fancy else None

@@ -277,6 +277,8 @@ def apply_enrichment_to_record(record: dict, entry: dict) -> bool:
         "old_mine",
         "rose",
         "briolette",
+        "flower",
+        "freeform",
         "flanders",
         "hexagonal",
         "hexagonal_dutch",
@@ -306,6 +308,8 @@ def apply_enrichment_to_record(record: dict, entry: dict) -> bool:
             else bucket.get("subVariantLabel")
         )
         record["isMoval"] = new_shape == "moval"
+        record["isLongOval"] = bucket.get("subVariant") in ("oval_long", "oval_moval_like")
+        record["isMovalLikeOval"] = bucket.get("subVariant") == "oval_moval_like"
         record["isElongatedCushion"] = new_shape == "elongated_cushion"
         record["isSqRadiant"] = new_shape == "sq_radiant"
 

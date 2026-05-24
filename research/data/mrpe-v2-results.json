@@ -1,25 +1,33 @@
 {
-  "generatedDate": "2026-05-23",
+  "generatedDate": "2026-05-24",
   "testSummary": {
     "totalRows": 28394,
-    "trainRows": 22715,
-    "testRows": 5679,
-    "strategiesTested": 17
+    "trainRows": 27602,
+    "testRows": 792,
+    "strategiesTested": 17,
+    "split": "one_holdout_per_bucket",
+    "bucketFields": [
+      "Shape",
+      "carat_bucket",
+      "Color",
+      "Clarity",
+      "Cut"
+    ]
   },
-  "baselineMape": 4.3826,
-  "bestMape": 3.2633,
-  "improvementPct": 22.47,
+  "baselineMape": 5.0051,
+  "bestMape": 4.8878,
+  "improvementPct": 2.34,
   "strategies": [
     {
       "name": "S1 \u2014 v1 best (log-price, engineered feats)",
       "strategy": "baseline_v1",
       "target_type": "log_price",
       "metrics": {
-        "count": 5679,
-        "mape": 4.3826,
-        "mae": 19.0857,
-        "rmse": 144.9127,
-        "r2": 0.981219
+        "count": 792,
+        "mape": 5.0051,
+        "mae": 61.4035,
+        "rmse": 380.1572,
+        "r2": 0.958092
       },
       "description": "Previous best: log(price) target, 100 trees, depth=26, engineered features"
     },
@@ -28,11 +36,11 @@
       "strategy": "rate_target",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.5706,
-        "mae": 20.1704,
-        "rmse": 143.7816,
-        "r2": 0.981511
+        "count": 792,
+        "mape": 5.2132,
+        "mae": 63.2604,
+        "rmse": 395.069,
+        "r2": 0.95474
       },
       "description": "log(price/carat) target \u2192 removes multiplicative carat effect from prediction error"
     },
@@ -41,11 +49,11 @@
       "strategy": "rate_mae",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.104,
-        "mae": 19.2235,
-        "rmse": 140.678,
-        "r2": 0.982301
+        "count": 792,
+        "mape": 5.1912,
+        "mae": 66.3664,
+        "rmse": 394.2817,
+        "r2": 0.95492
       },
       "description": "log(price/carat) + criterion=absolute_error (median splits, MAPE-optimal)"
     },
@@ -54,11 +62,11 @@
       "strategy": "rate_mae_engineered",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.1527,
-        "mae": 19.2221,
-        "rmse": 141.6181,
-        "r2": 0.982063
+        "count": 792,
+        "mape": 5.2373,
+        "mae": 65.2781,
+        "rmse": 392.5236,
+        "r2": 0.955321
       },
       "description": "log(price/carat) + MAE splits + bucket-position + dimension features, 150 trees"
     },
@@ -67,11 +75,11 @@
       "strategy": "rate_lookup_feature",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.3381,
-        "mae": 20.5405,
-        "rmse": 150.0783,
-        "r2": 0.979856
+        "count": 792,
+        "mape": 5.1781,
+        "mae": 65.9675,
+        "rmse": 377.5658,
+        "r2": 0.958661
       },
       "description": "log(price/carat) + lookup rate/category prior as features + MAE criterion"
     },
@@ -80,11 +88,11 @@
       "strategy": "rate_category_prior",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.1241,
-        "mae": 19.087,
-        "rmse": 150.3427,
-        "r2": 0.979785
+        "count": 792,
+        "mape": 5.2668,
+        "mae": 67.805,
+        "rmse": 426.484,
+        "r2": 0.947256
       },
       "description": "log(price/carat) + per-category median rate as feature + MAE criterion"
     },
@@ -93,11 +101,11 @@
       "strategy": "full_combo",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.4322,
-        "mae": 20.5806,
-        "rmse": 157.4016,
-        "r2": 0.977842
+        "count": 792,
+        "mape": 4.8878,
+        "mae": 61.4855,
+        "rmse": 392.7546,
+        "r2": 0.955269
       },
       "description": "All innovations: rate target, MAE splits, lookup+category priors, depth=None, 200 trees"
     },
@@ -106,11 +114,11 @@
       "strategy": "lgb_quantile_rate",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.5876,
-        "mae": 25.5091,
-        "rmse": 170.1115,
-        "r2": 0.97412
+        "count": 792,
+        "mape": 7.9045,
+        "mae": 102.0146,
+        "rmse": 430.2818,
+        "r2": 0.946312
       },
       "description": "LightGBM quantile=0.5 on log(price/carat) \u2192 median regression, MAPE-optimal"
     },
@@ -119,11 +127,11 @@
       "strategy": "rate_mse_full",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.4736,
-        "mae": 20.0237,
-        "rmse": 149.5639,
-        "r2": 0.979994
+        "count": 792,
+        "mape": 4.9487,
+        "mae": 61.8414,
+        "rmse": 382.2584,
+        "r2": 0.957627
       },
       "description": "Same as S7 but MSE criterion instead of MAE \u2014 ablation study"
     },
@@ -132,35 +140,34 @@
       "strategy": "temporal_cutoff",
       "target_type": "log_rate",
       "metrics": {
-        "count": 3975,
-        "mape": 3.3979,
-        "mae": 4.1122,
-        "rmse": 9.0493,
-        "r2": 0.979941
+        "count": 792,
+        "mape": 17.9319,
+        "mae": 358.8277,
+        "rmse": 1415.8665,
+        "r2": 0.418681
       },
-      "description": "Same as S3 but trained only on most recent 70% of data \u2014 isolates temporal rate-card mixing"
+      "description": "Same as S3 but trained only on most recent 70% of data and evaluated on the shared balanced holdout"
     },
     {
       "name": "S12 \u2014 Fine lookup (0.01ct + Cut, no ML)",
       "strategy": "fine_lookup_consensus",
       "target_type": "lookup",
       "metrics": {
-        "count": 5679,
-        "mape": 5.425,
-        "mae": 42.7946,
-        "rmse": 399.8961,
-        "r2": 0.85698
+        "count": 792,
+        "mape": 10.6078,
+        "mae": 158.9795,
+        "rmse": 786.4553,
+        "r2": 0.820643
       },
-      "description": "Direct lookup at 0.01ct\u00d7Cut resolution. Fallback distribution: {'A': 4801, 'G': 252, 'F': 422, 'C': 82, 'E': 97, 'H': 13, 'B': 7, 'I': 5}",
+      "description": "Direct lookup at 0.01ct\u00d7Cut resolution. Fallback distribution: {'F': 187, 'G': 136, 'A': 400, 'C': 39, 'H': 3, 'E': 24, 'B': 3}",
       "_level_counts": {
-        "A": 4801,
-        "G": 252,
-        "F": 422,
-        "C": 82,
-        "E": 97,
-        "H": 13,
-        "B": 7,
-        "I": 5
+        "F": 187,
+        "G": 136,
+        "A": 400,
+        "C": 39,
+        "H": 3,
+        "E": 24,
+        "B": 3
       }
     },
     {
@@ -168,11 +175,11 @@
       "strategy": "two_stage_residual",
       "target_type": "two_stage",
       "metrics": {
-        "count": 5679,
-        "mape": 5.7407,
-        "mae": 42.9623,
-        "rmse": 397.2566,
-        "r2": 0.858862
+        "count": 792,
+        "mape": 10.9095,
+        "mae": 160.7803,
+        "rmse": 789.0595,
+        "r2": 0.819453
       },
       "description": "Stage1: fine lookup consensus. Stage2: ExtraTrees on residual using Polish/Sym/measurements/magic features"
     },
@@ -181,11 +188,11 @@
       "strategy": "cut_specific",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.457,
-        "mae": 21.5047,
-        "rmse": 168.9721,
-        "r2": 0.974465
+        "count": 792,
+        "mape": 5.7698,
+        "mae": 74.5042,
+        "rmse": 408.0768,
+        "r2": 0.95171
       },
       "description": "Separate ExtraTrees per Cut grade (EX, ID, VG, \u4f20\u7edf\u5207, \u51b0\u82b1\u5207, \u8001\u6b27\u5207, \u8001\u77ff\u5207, \u957f\u57ab\u5f62) with magic threshold features"
     },
@@ -194,11 +201,11 @@
       "strategy": "magic_thresholds",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.2179,
-        "mae": 19.2881,
-        "rmse": 139.6555,
-        "r2": 0.982557
+        "count": 792,
+        "mape": 5.0674,
+        "mae": 62.6633,
+        "rmse": 388.8183,
+        "r2": 0.956161
       },
       "description": "S3 base + 1/(carat-magic+eps), log(1+dist), magic_number features to capture premium decay"
     },
@@ -207,11 +214,11 @@
       "strategy": "cut_carat_interactions",
       "target_type": "log_rate",
       "metrics": {
-        "count": 5679,
-        "mape": 4.0981,
-        "mae": 19.1792,
-        "rmse": 138.3182,
-        "r2": 0.98289
+        "count": 792,
+        "mape": 5.2885,
+        "mae": 68.3132,
+        "rmse": 400.0418,
+        "r2": 0.953593
       },
       "description": "Explicit Cut\u00d7carat_bucket and Cut\u00d7Color\u00d7Clarity interaction features on top of S3"
     },
@@ -220,52 +227,39 @@
       "strategy": "full_combo_v2",
       "target_type": "log_rate",
       "metrics": {
-        "count": 3975,
-        "mape": 4.1729,
-        "mae": 4.8658,
-        "rmse": 10.1258,
-        "r2": 0.974885
+        "count": 792,
+        "mape": 19.1765,
+        "mae": 382.4664,
+        "rmse": 1485.3422,
+        "r2": 0.360231
       },
-      "description": "All structural fixes: temporal cutoff, fine lookup, magic thresholds, Cut interactions, 200 trees"
+      "description": "All structural fixes: recent-only training, shared balanced holdout, fine lookup, magic thresholds, Cut interactions"
     },
     {
       "name": "S18 \u2014 Temporal cutoff, shallower trees",
       "strategy": "temporal_cutoff_shallow",
       "target_type": "log_rate",
       "metrics": {
-        "count": 3975,
-        "mape": 3.2633,
-        "mae": 4.0344,
-        "rmse": 9.0766,
-        "r2": 0.97982
+        "count": 792,
+        "mape": 17.874,
+        "mae": 356.5782,
+        "rmse": 1407.2188,
+        "r2": 0.42576
       },
-      "description": "S11 recent 70% window with base features, 200 trees, max_depth=24 to reduce within-window overfit"
+      "description": "S11 recent 70% training window with shared balanced holdout, base features, 200 trees, max_depth=24"
     }
   ],
   "bestStrategy": {
-    "name": "S18 \u2014 Temporal cutoff, shallower trees",
-    "strategy": "temporal_cutoff_shallow",
+    "name": "S7 \u2014 Full combo (rate + MAE + all features + 200 trees)",
+    "strategy": "full_combo",
     "target_type": "log_rate",
     "metrics": {
-      "count": 3975,
-      "mape": 3.2633,
-      "mae": 4.0344,
-      "rmse": 9.0766,
-      "r2": 0.97982
+      "count": 792,
+      "mape": 4.8878,
+      "mae": 61.4855,
+      "rmse": 392.7546,
+      "r2": 0.955269
     },
-    "description": "S11 recent 70% window with base features, 200 trees, max_depth=24 to reduce within-window overfit"
-  },
-  "bestModel": {
-    "name": "S18 \u2014 Temporal cutoff, shallower trees",
-    "strategy": "temporal_cutoff_shallow",
-    "target_type": "log_rate",
-    "metrics": {
-      "count": 3975,
-      "mape": 3.2633,
-      "mae": 4.0344,
-      "rmse": 9.0766,
-      "r2": 0.97982
-    },
-    "description": "S11 recent 70% window with base features, 200 trees, max_depth=24 to reduce within-window overfit"
+    "description": "All innovations: rate target, MAE splits, lookup+category priors, depth=None, 200 trees"
   }
 }

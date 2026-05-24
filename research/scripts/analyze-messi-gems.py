@@ -67,7 +67,9 @@ SHAPE_CODE_MAP = MESSI_SHAPE_MAP  # alias for backwards compat
 SHAPE_LABELS = {
     'round':         'Round Brilliant (RD)',
     'oval':          'Oval (OV)',
-    'moval':         'Moval — elongated oval (OV, L/W ≥ 1.75)',
+    'oval_long':     'Long Oval (OV, L/W 1.65–1.74)',
+    'oval_moval_like': 'Very Long / Moval-Like Oval (OV, L/W ≥ 1.75; ratio-only)',
+    'moval':         'Moval — explicit source/cert label',
     'pear':          'Pear Shape (PS)',
     'emerald':       'Emerald Cut (EM)',
     'radiant':       'Radiant (RA)',
@@ -83,6 +85,8 @@ SHAPE_LABELS = {
     'old_mine':      'Old Mine Cut (老矿切)',
     'step_cut':      'Step Cut (阶梯切)',
     'trilliant':     'Trilliant / Fat Triangle (肥三角)',
+    'flower':        'Flower Modified Brilliant (IGI)',
+    'freeform':      'Freeform (IGI)',
     'freeform_lip':  'Free-Form Lip Shape (自由形式 唇形)',
     'old_european':  'Old European Cut (老欧切)',
 }
@@ -211,6 +215,8 @@ def normalise_row(raw: dict) -> dict | None:
         'subVariant':      sub_variant,
         'subVariantLabel': sub_variant_label,
         'isMoval':         canonical_shape == 'moval',
+        'isLongOval':      sub_variant in ('oval_long', 'oval_moval_like'),
+        'isMovalLikeOval': sub_variant == 'oval_moval_like',
         'isElongatedCushion': canonical_shape == 'elongated_cushion',
         'carat':           carat,
         'color':           col,
@@ -276,6 +282,8 @@ def build_summary(records: list[dict]) -> dict:
         'growthMethods':     dict(Counter(r['growthMethod'] for r in records)),
         'colorFamilies':     dict(Counter(r['colorFamily'] for r in records)),
         'movalCount':        sum(1 for r in records if r['isMoval']),
+        'longOvalCount':     sum(1 for r in records if r.get('isLongOval')),
+        'movalLikeOvalCount': sum(1 for r in records if r.get('isMovalLikeOval')),
         'shapeStats':        shape_stats,
     }
 
@@ -339,6 +347,7 @@ def main():
         return round(round(c / 0.05) * 0.05, 2)
 
     SKIP_SHAPES = {'ice_oval', 'ice_pear', 'lavender', 'ashoka',
+                   'flower', 'freeform',
                    'old_mine', 'step_cut', 'trilliant', 'freeform_lip',
                    'old_european', 'unknown'}
     WHITE_GRADES = {'D', 'E', 'F', 'G', 'H'}
@@ -434,6 +443,8 @@ def main():
     print(f"  Priced stones:  {summary['pricedStones']:,}")
     print(f"  Unique shapes:  {summary['uniqueShapes']}")
     print(f"  Moval count:    {summary['movalCount']}")
+    print(f"  Long ovals:     {summary['longOvalCount']}")
+    print(f"  Moval-like ovals: {summary['movalLikeOvalCount']}")
     print(f"  Price range:    ${summary['priceRange']['min']:.2f} – ${summary['priceRange']['max']:.2f}")
 
     print("\n── COLOR BREAKDOWN ──────────────────────────────────────────────────")
