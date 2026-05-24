@@ -156,9 +156,18 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .pa.fair{color:var(--green)}
 .pa.retail{color:var(--muted2)}
 .ppc{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.5}
-.pricing-intel{border-top:.5px solid var(--border);display:grid;grid-template-columns:1fr 1fr;background:rgba(255,255,255,0.012)}
+.pricing-intel{border-top:.5px solid var(--border);display:flex;flex-direction:column;background:rgba(255,255,255,0.012)}
 .pricing-intel-panel{padding:15px 22px 16px;min-width:0}
-.pricing-intel-panel:not(:last-child){border-right:.5px solid var(--border)}
+.pricing-intel-panel:not(:last-child){border-bottom:.5px solid var(--border)}
+.pricing-intel-compare{background:rgba(212,175,114,0.04)}
+.intel-compare-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:2px}
+.intel-compare-cell{min-width:0}
+.intel-compare-k{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+.intel-compare-v{font-family:'DM Mono',monospace;font-size:12px;color:var(--text);line-height:1.35}
+.intel-compare-v.delta-up{color:var(--green)}
+.intel-compare-v.delta-down{color:var(--orange)}
+.intel-compare-v.delta-flat{color:var(--muted2)}
+@media(max-width:560px){.intel-compare-row{grid-template-columns:1fr}}
 .intel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .intel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
 .intel-pill{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25);border-radius:4px;padding:2px 6px;white-space:nowrap}
@@ -170,8 +179,6 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .lookup-k{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
 .lookup-v{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:760px){
-  .pricing-intel{grid-template-columns:1fr}
-  .pricing-intel-panel:not(:last-child){border-right:0;border-bottom:.5px solid var(--border)}
   .lookup-mini{grid-template-columns:1fr 1fr}
 }
 
@@ -669,29 +676,28 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-head">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div class="chart-title" id="chart-title">Price curve 0.5–10ct · selected specs</div>
-        <div class="chart-tabs">
-          <button class="chart-tab active" data-tab="carat">Carat</button>
-          <button class="chart-tab" data-tab="clarity">Clarity</button>
-          <button class="chart-tab" data-tab="color">Color</button>
-          <button class="chart-tab" data-tab="shape">Shape</button>
+    <div class="pricing-intel-panel pricing-intel-compare">
+      <div class="intel-head">
+        <div class="intel-title">ML inaccuracy vs sheet formula</div>
+        <div class="intel-pill" id="starsgem-compare-pill">—</div>
+      </div>
+      <div class="intel-formula" id="starsgem-compare-headline">—</div>
+      <div class="intel-compare-row">
+        <div class="intel-compare-cell">
+          <div class="intel-compare-k">ML / hybrid</div>
+          <div class="intel-compare-v" id="starsgem-compare-ml">—</div>
+        </div>
+        <div class="intel-compare-cell">
+          <div class="intel-compare-k">Sheet formula (truth)</div>
+          <div class="intel-compare-v" id="starsgem-compare-sheet">—</div>
+        </div>
+        <div class="intel-compare-cell">
+          <div class="intel-compare-k">Inaccuracy (APE)</div>
+          <div class="intel-compare-v" id="starsgem-compare-inaccuracy">—</div>
         </div>
       </div>
-      <div class="legend">
-        <span><i class="sw" style="background:#d8d5d0"></i>Wholesale</span>
-        <span><i class="sw" style="background:#4caf7a"></i>Fair direct</span>
-        <span><i class="sw" style="background:#4a4540"></i>Retail</span>
-        <span><i class="sw-dot" style="background:#d4af72"></i>Alibaba</span>
-        <span><i class="sw-ring"></i>Your stone</span>
-      </div>
+      <div class="intel-sub" id="starsgem-compare-note">|ML − sheet| ÷ sheet, as a percent. Sheet lookup is the reference; holdout MAPE from the loaded model is shown when available.</div>
     </div>
-    <canvas id="price-chart" height="240"></canvas>
-    <div id="chart-tooltip" class="chart-tooltip"></div>
   </div>
 
   <div class="weak-bar" id="weak-bar">
@@ -715,6 +721,29 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   <div class="market-bar" id="floor-bar" style="background:rgba(224,144,64,0.04)">
     <div class="market-dot" id="floor-dot" style="background:var(--orange)"></div>
     <div class="market-text" id="floor-text"></div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-head">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="chart-title" id="chart-title">Price curve 0.5–10ct · selected specs</div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" data-tab="carat">Carat</button>
+          <button class="chart-tab" data-tab="clarity">Clarity</button>
+          <button class="chart-tab" data-tab="color">Color</button>
+          <button class="chart-tab" data-tab="shape">Shape</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background:#d8d5d0"></i>Wholesale</span>
+        <span><i class="sw" style="background:#4caf7a"></i>Fair direct</span>
+        <span><i class="sw" style="background:#4a4540"></i>Retail</span>
+        <span><i class="sw-dot" style="background:#d4af72"></i>Alibaba</span>
+        <span><i class="sw-ring"></i>Your stone</span>
+      </div>
+    </div>
+    <canvas id="price-chart" height="240"></canvas>
+    <div id="chart-tooltip" class="chart-tooltip"></div>
   </div>
 </div>
 
@@ -2018,6 +2047,16 @@ function predictStarsgemMl(row) {
   return { price, method: 'ml_fallback', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
 }
 
+function starsgemCompareSummary(mlPred, lookupPred) {
+  if (!mlPred || !lookupPred || !Number.isFinite(mlPred.price) || !Number.isFinite(lookupPred.price)) return null;
+  const ml = mlPred.price;
+  const sheet = lookupPred.price;
+  const delta = ml - sheet;
+  const biasPct = sheet > 0 ? (delta / sheet) * 100 : null;
+  const inaccuracyPct = sheet > 0 ? (Math.abs(delta) / sheet) * 100 : null;
+  return { ml, sheet, delta, biasPct, inaccuracyPct };
+}
+
 function updateStarsgemPricingIntel() {
   const intel = _starsgemPricingIntel;
   const mlModel = _starsgemMlModel;
@@ -2030,6 +2069,12 @@ function updateStarsgemPricingIntel() {
   const rateEl = document.getElementById('starsgem-lookup-rate');
   const bucketEl = document.getElementById('starsgem-lookup-bucket');
   const factorEl = document.getElementById('starsgem-factor');
+  const compareHeadlineEl = document.getElementById('starsgem-compare-headline');
+  const comparePillEl = document.getElementById('starsgem-compare-pill');
+  const compareMlEl = document.getElementById('starsgem-compare-ml');
+  const compareSheetEl = document.getElementById('starsgem-compare-sheet');
+  const compareInaccuracyEl = document.getElementById('starsgem-compare-inaccuracy');
+  const compareNoteEl = document.getElementById('starsgem-compare-note');
   if (!priceEl || !noteEl || !levelEl || !rateEl || !bucketEl) return;
 
   if (!intel) {
@@ -2039,6 +2084,12 @@ function updateStarsgemPricingIntel() {
     levelEl.textContent = '—';
     rateEl.textContent = '—';
     bucketEl.textContent = starsgemCaratBucket(state.carat);
+    if (compareHeadlineEl) compareHeadlineEl.textContent = 'Comparison unavailable';
+    if (comparePillEl) comparePillEl.textContent = '—';
+    if (compareMlEl) compareMlEl.textContent = '—';
+    if (compareSheetEl) compareSheetEl.textContent = '—';
+    if (compareInaccuracyEl) compareInaccuracyEl.textContent = '—';
+    if (compareNoteEl) compareNoteEl.textContent = 'Load the StarGem lookup artifact and ML model to compare inaccuracy.';
     return;
   }
 
@@ -2083,6 +2134,66 @@ function updateStarsgemPricingIntel() {
     noteEl.textContent = 'This combo needs a new supplier row or a residual model fallback.';
     levelEl.textContent = '—';
     rateEl.textContent = '—';
+  }
+
+  const compare = starsgemCompareSummary(mlPred, pred);
+  const holdoutMape = Number(mlPred?.metrics?.mape ?? mlModel?.metrics?.mape);
+  if (compare && compareHeadlineEl && compareMlEl && compareSheetEl && compareInaccuracyEl) {
+    const ape = compare.inaccuracyPct;
+    const tight = ape !== null && ape <= 0.5;
+    const good = ape !== null && ape <= (Number.isFinite(holdoutMape) ? holdoutMape * 1.25 : 5);
+    compareMlEl.textContent = fmt(compare.ml);
+    compareSheetEl.textContent = fmt(compare.sheet);
+    compareInaccuracyEl.textContent = ape !== null ? `${ape.toFixed(2)}%` : '—';
+    compareInaccuracyEl.className = 'intel-compare-v ' + (
+      tight ? 'delta-flat' : good ? 'delta-up' : 'delta-down'
+    );
+    if (comparePillEl) {
+      comparePillEl.textContent = tight ? '0% error' : good ? 'within MAPE' : 'above MAPE';
+    }
+    if (ape !== null) {
+      compareHeadlineEl.textContent = tight
+        ? 'Matches sheet formula'
+        : `${ape.toFixed(2)}% inaccurate vs sheet`;
+    }
+    if (compareNoteEl) {
+      const mlRoute = mlPred?.method === 'ml_fallback' ? 'Extra Trees gap fill' : 'sheet anchor / interpolation';
+      const sheetRoute = pred?.level === 'GLOBAL' ? 'global median fallback' : `${pred?.level || 'lookup'} table`;
+      const bias = compare.biasPct;
+      let biasNote = '';
+      if (bias !== null && Math.abs(bias) > 0.05) {
+        const biasDir = bias > 0 ? 'high' : 'low';
+        biasNote = ` ML is <strong>${Math.abs(bias).toFixed(2)}% ${biasDir}</strong> (${fmt(Math.abs(compare.delta))}).`;
+      }
+      let note = `APE = |ML − sheet| ÷ sheet at ${state.carat.toFixed(2)}ct. Routes: <strong>${escapeHTML(mlRoute)}</strong> vs <strong>${escapeHTML(sheetRoute)}</strong>.${biasNote}`;
+      if (Number.isFinite(holdoutMape)) {
+        note += ` Model holdout MAPE on StarGem test rows: <strong>${holdoutMape.toFixed(2)}%</strong>.`;
+      }
+      if (mlPred?.method === 'ml_fallback') {
+        note += ' Largest inaccuracies usually appear on off-anchor carats where ML fills the gap.';
+      } else if (tight) {
+        note += ' Hybrid route matched the sheet ladder — inaccuracy is rounding only.';
+      }
+      compareNoteEl.innerHTML = note;
+    }
+  } else if (compareHeadlineEl) {
+    compareHeadlineEl.textContent = mlPred && !pred
+      ? 'Sheet lookup missing for this combo'
+      : !mlPred && pred
+        ? 'ML model still loading'
+        : 'Waiting for both routes';
+    if (comparePillEl) comparePillEl.textContent = '—';
+    if (compareMlEl) compareMlEl.textContent = mlPred ? fmt(mlPred.price) : '—';
+    if (compareSheetEl) compareSheetEl.textContent = pred ? fmt(pred.price) : '—';
+    if (compareInaccuracyEl) {
+      compareInaccuracyEl.textContent = '—';
+      compareInaccuracyEl.className = 'intel-compare-v';
+    }
+    if (compareNoteEl) {
+      compareNoteEl.textContent = !mlPred
+        ? 'The compact Extra Trees model is still loading.'
+        : 'No sheet formula hit — comparison needs a lookup row for this spec.';
+    }
   }
 
 }
