@@ -12,9 +12,9 @@ report date, Type IIa, growth method, treatment, comments.
 
 | Scope | Reports | not_started | ok | complete | not_found | rate_limited |
 |-------|---------|-------------|-----|----------|-----------|--------------|
-| Starsgem | 22541 | 711 | 18135 | 18096 | 3685 | 10 |
-| Messi | 18090 | 539 | 16334 | 16310 | 1217 | 0 |
-| **Total** | 34457 | 1149 | 29597 | 29552 | 3701 | 10 |
+| Starsgem | 22541 | 690 | 18166 | 18127 | 3685 | 0 |
+| Messi | 18090 | 511 | 16362 | 16338 | 1217 | 0 |
+| **Total** | 34457 | 1104 | 29652 | 29607 | 3701 | 0 |
 
 **Portuguese on cert:** 2
 - `780651720` — Round Modified Brilliant
@@ -23,17 +23,17 @@ report date, Type IIa, growth method, treatment, comments.
 ## Top IGI shapeMapped (ok PDFs)
 
 ### All
-- `round`: 10734
-- `oval`: 5297
-- `pear`: 3227
-- `emerald`: 2451
-- `princess`: 1745
-- `marquise`: 1407
-- `radiant`: 1327
+- `round`: 10749
+- `oval`: 5302
+- `pear`: 3239
+- `emerald`: 2462
+- `princess`: 1747
+- `marquise`: 1413
+- `radiant`: 1328
 - `heart`: 1135
 - `square_cushion`: 863
 - `asscher`: 762
-- `cushion`: 171
+- `cushion`: 172
 - `cushion_brilliant`: 44
 - `sq_radiant`: 12
 - `trilliant`: 3
