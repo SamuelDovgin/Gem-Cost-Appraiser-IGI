@@ -4,3 +4,7 @@ dist/
 .env
 .env.*
 diamond-calculator-v3 (1).html
+
+# Full 200-tree ML export (~244 MB); browser uses *-N-trees.json (10-tree is default in index.html)
+research/data/starsgem-ml-extra-trees-model.json
+research/data/starsgem-ml-extra-trees-model.json.gz

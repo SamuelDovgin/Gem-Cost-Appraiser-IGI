@@ -927,7 +927,8 @@ async function loadStarsgemPricingIntel() {
 async function loadStarsgemMlModel() {
   if (_starsgemMlModel) return _starsgemMlModel;
   if (_starsgemMlModelPromise) return _starsgemMlModelPromise;
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model.json?v=20260524-balanced-hybrid')
+  // Use optimized 10-tree model (14.8 MB) instead of full 200-tree model (244 MB)
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-10-trees.json?v=20260524-optimized')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
