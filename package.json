@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "test:engine": "node research/scripts/test-comp-engine-v3.mjs",
+    "test:igi-browser-parser": "node research/scripts/test-igi-browser-parser.mjs",
     "test:parity": "node research/scripts/parity-regression.mjs",
     "test:parity:full": "node research/scripts/parity-regression.mjs --tier=full",
-    "test": "npm run test:engine && npm run test:parity",
+    "test": "npm run test:igi-browser-parser && npm run test:engine && npm run test:parity",
     "serve": "python3 -m http.server 8765"
   },
   "engines": {

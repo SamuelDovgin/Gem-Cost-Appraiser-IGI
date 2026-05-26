@@ -3954,7 +3954,10 @@ function normalizeWhiteGrade(grade) {
 }
 
 function normalizeClarity(raw) {
-  const match = (raw || '').toUpperCase().match(/\b(IF|VVS\s*1|VVS\s*2|VS\s*1|VS\s*2|SI\s*1|SI\s*2|I\s*1|I\s*2|I\s*3)\b/);
+  const value = (raw || '').toUpperCase();
+  if (/\bINTERNALLY\s+FLAWLESS\b/.test(value)) return 'IF';
+  if (/\bFLAWLESS\b/.test(value)) return 'IF';
+  const match = value.match(/\b(IF|VVS\s*1|VVS\s*2|VS\s*1|VS\s*2|SI\s*1|SI\s*2|I\s*1|I\s*2|I\s*3)\b/);
   return match ? match[1].replace(/\s+/g, '') : '';
 }
 
