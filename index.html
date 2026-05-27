@@ -945,8 +945,8 @@ async function loadStarsgemPricingIntel() {
 async function loadStarsgemMlModel() {
   if (_starsgemMlModel) return _starsgemMlModel;
   if (_starsgemMlModelPromise) return _starsgemMlModelPromise;
-  // Use optimized 10-tree model (14.8 MB) instead of full 200-tree model (244 MB)
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-10-trees.json?v=20260524-optimized')
+  // S19 selected-spec model keeps the raw ML card calibrated before IGI dimensions load.
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s19-selected-spec.json?v=20260527-s19-selected-spec')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1685,8 +1685,8 @@ function getAlibabaOffCatalogAdjust(ct = state.carat) {
     : 1;
   const combined = colorMult * clarityMult;
   const parts = [];
-  if (colorBelow) parts.push(`color ×${colorMult.toFixed(2)} (${state.whiteGrade} vs ${WHITE_ALIBABA_FLOOR.color})`);
-  if (clarityBelow) parts.push(`clarity ×${clarityMult.toFixed(2)} (${state.clarity} vs ${WHITE_ALIBABA_FLOOR.clarity})`);
+  if (colorBelow) parts.push(`color ×${colorMult.toFixed(2)} (selected ${state.whiteGrade} vs floor ${WHITE_ALIBABA_FLOOR.color})`);
+  if (clarityBelow) parts.push(`clarity ×${clarityMult.toFixed(2)} (selected ${state.clarity} vs floor ${WHITE_ALIBABA_FLOOR.clarity})`);
 
   return { colorBelow, clarityBelow, colorMult, clarityMult, combined, parts, label: parts.join(' · ') };
 }
@@ -1899,6 +1899,8 @@ function starsgemNumericFeatureValue(row, field, model) {
   if (field === 'Dist_carat_threshold') return Number.isFinite(carat) ? Math.abs(carat - Math.round(carat * 2) / 2) : row?.[field];
   if (field === 'Lookup_RatePerCt') return starsgemModelLookupRate(row, model).rate;
   if (field === 'Lookup_IsGlobal') return starsgemModelLookupRate(row, model).level === 'GLOBAL' ? 1 : 0;
+  if (field === 'Lookup_Count') return starsgemModelLookupRate(row, model).count || 0;
+  if (field === 'Log_Lookup_Count') return Math.log1p(starsgemModelLookupRate(row, model).count || 0);
   if (field === 'Log_Lookup_RatePerCt') {
     const rate = starsgemModelLookupRate(row, model).rate;
     return Number.isFinite(rate) && rate > 0 ? Math.log(rate) : row?.[field];
@@ -1907,6 +1909,25 @@ function starsgemNumericFeatureValue(row, field, model) {
   if (field === 'Log_Category_RatePerCt') {
     const rate = starsgemModelCategoryRate(row, model);
     return Number.isFinite(rate) && rate > 0 ? Math.log(rate) : row?.[field];
+  }
+  if (field === 'Has_Dimensions') {
+    const l = Number(row?.Length);
+    const w = Number(row?.Width);
+    const h = Number(row?.Height);
+    return Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0 ? 1 : 0;
+  }
+  if (field === 'Has_TableDepth') {
+    const table = Number(row?.Table_Scale);
+    const depth = Number(row?.Depth_Scale);
+    return Number.isFinite(table) && Number.isFinite(depth) && table > 0 && depth > 0 ? 1 : 0;
+  }
+  if (field === 'Has_GrowthMethod') return starsgemNorm(row?.TypeName) === '-' ? 0 : 1;
+  if (field === 'Has_Report_Cut') return starsgemNorm(row?.Cut) === '-' ? 0 : 1;
+  if (field === 'Is_SelectedSpec_Mode') {
+    const l = Number(row?.Length);
+    const w = Number(row?.Width);
+    const h = Number(row?.Height);
+    return Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0 ? 0 : 1;
   }
   return row?.[field];
 }
@@ -2026,7 +2047,10 @@ function predictStarsgemMl(row) {
   }
   const logVal = logSum / model.trees.length;
   const carat = Number(row.Carat ?? row.carat);
-  const price = model.targetType === 'log_rate'
+  const lookupRate = model.targetType === 'log_lookup_residual' ? starsgemModelLookupRate(row, model).rate : null;
+  const price = model.targetType === 'log_lookup_residual'
+    ? Math.max(0.01, Math.exp(logVal) * (Number.isFinite(lookupRate) && lookupRate > 0 ? lookupRate : 1) * carat)
+    : model.targetType === 'log_rate'
     ? Math.max(0.01, Math.exp(logVal) * carat)
     : Math.max(0.01, Math.exp(logVal));
   return { price, method: 'ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };

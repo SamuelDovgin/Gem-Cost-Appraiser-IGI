@@ -834,7 +834,7 @@ var GemAppraiseV3Engine = (() => {
       deltaClarity = Math.log(clarU / Math.max(clarC, 0.01));
     }
     if (Math.abs(deltaClarity) > LOG_PART_MIN)
-      parts.push(`clarity \xD7${Math.exp(deltaClarity).toFixed(3)} (${query.clarity} vs ${row.clarity})`);
+      parts.push(`clarity \xD7${Math.exp(deltaClarity).toFixed(3)} (selected ${query.clarity} vs comp ${row.clarity})`);
     const clarOrdinalGap = Math.abs((CLARITY_RANK_NUM[query.clarity] ?? 2) - (CLARITY_RANK_NUM[row.clarity] ?? 2));
     const clarPerStep = query.colorFamily === "white" ? AXIS_SIGMA.clarityWhitePerStep : AXIS_SIGMA.clarityFancyPerStep;
     sigmaClarity = clarOrdinalGap * clarPerStep;

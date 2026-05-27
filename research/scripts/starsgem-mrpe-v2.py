@@ -76,6 +76,13 @@ NUMERIC_FEATURES = [
     "Carat", "Table_Scale", "Depth_Scale", "Length", "Width", "Height",
     "LengthWidthRatio",
 ]
+SELECTED_SPEC_FLAGS = [
+    "Has_Dimensions",
+    "Has_TableDepth",
+    "Has_GrowthMethod",
+    "Has_Report_Cut",
+    "Is_SelectedSpec_Mode",
+]
 # New numeric features from IGI enrichment (optional, for enriched models)
 NUMERIC_FEATURES_IGI_ENRICHMENT = [
     "IGI_Enriched", "IGI_IsPortuguese", "IGI_IsTypeIIa",
@@ -719,6 +726,110 @@ def as_model_frame_full(rows, lookup_tables, lookup_global_rate,
     return pd.DataFrame(data)
 
 
+def selected_spec_view(row, mask_cut=False):
+    """Inference-like view used before the IGI report has filled dimensions."""
+    out = dict(row)
+    out["TypeName"] = "-"
+    if mask_cut:
+        out["Cut"] = "-"
+    for field in ("Table_Scale", "Depth_Scale", "Length", "Width", "Height", "LengthWidthRatio"):
+        out[field] = None
+    out["Has_Dimensions"] = 0.0
+    out["Has_TableDepth"] = 0.0
+    out["Has_GrowthMethod"] = 0.0
+    out["Has_Report_Cut"] = 0.0 if mask_cut else (1.0 if norm_cat(out.get("Cut")) != "-" else 0.0)
+    out["Is_SelectedSpec_Mode"] = 1.0
+    return out
+
+
+def cert_loaded_view(row):
+    """Report-loaded view with explicit missingness flags."""
+    out = dict(row)
+    out["Has_Dimensions"] = 1.0 if all(out.get(f) for f in ("Length", "Width", "Height", "LengthWidthRatio")) else 0.0
+    out["Has_TableDepth"] = 1.0 if out.get("Table_Scale") and out.get("Depth_Scale") else 0.0
+    out["Has_GrowthMethod"] = 1.0 if norm_cat(out.get("TypeName")) != "-" else 0.0
+    out["Has_Report_Cut"] = 1.0 if norm_cat(out.get("Cut")) != "-" else 0.0
+    out["Is_SelectedSpec_Mode"] = 0.0
+    return out
+
+
+def s19_augmented_training_rows(rows):
+    augmented = []
+    for row in rows:
+        augmented.append(cert_loaded_view(row))
+        augmented.append(selected_spec_view(row, mask_cut=False))
+        # A small cut-missing augmentation teaches "-" as unknown, not a premium segment.
+        if row["rowNo"] % 4 == 0:
+            augmented.append(selected_spec_view(row, mask_cut=True))
+    return augmented
+
+
+def as_model_frame_s19(rows, lookup_tables, lookup_global_rate,
+                       cat_tables, cat_global_prior, cat_levels):
+    """Residual-rate feature frame for selected-spec-aware ML."""
+    import pandas as pd
+    data = []
+    for row in rows:
+        item = {}
+        for col in CATEGORICAL_FEATURES:
+            item[col] = norm_cat(row.get(col))
+        for col in NUMERIC_FEATURES:
+            item[col] = row.get(col)
+        for col in SELECTED_SPEC_FLAGS:
+            item[col] = float(row.get(col, 0.0) or 0.0)
+
+        c = item.get("Carat")
+        if c and c > 0:
+            item["Carat_sq"] = c * c
+            item["Carat_cube"] = c * c * c
+            item["Log_Carat"] = math.log(c)
+            item["Carat_bucket_pos"] = carat_bucket_position(c)
+            item["Dist_carat_threshold"] = abs(c - round(c * 2) / 2)
+
+        l, w, h = item.get("Length"), item.get("Width"), item.get("Height")
+        if l and w and h:
+            item["Dim_Volume"] = l * w * h
+            item["Dim_Surface"] = 2 * (l * w + w * h + l * h)
+        if l and w and min(l, w) > 0:
+            item["LW_Ratio_refined"] = max(l, w) / min(l, w)
+        t, d = item.get("Table_Scale"), item.get("Depth_Scale")
+        if t and d and d > 0:
+            item["Table_Depth_Ratio"] = t / d
+
+        for optional_numeric in ("Dim_Volume", "Dim_Surface", "LW_Ratio_refined", "Table_Depth_Ratio"):
+            item.setdefault(optional_numeric, None)
+
+        lookup_rate, lookup_level, lookup_count = lookup_predict_rate(
+            row, lookup_tables, lookup_global_rate
+        )
+        item["Lookup_RatePerCt"] = lookup_rate
+        item["Lookup_IsGlobal"] = 1.0 if lookup_level == "GLOBAL" else 0.0
+        item["Lookup_Count"] = float(lookup_count or 0)
+        item["Log_Lookup_Count"] = math.log1p(float(lookup_count or 0))
+        if lookup_rate and lookup_rate > 0:
+            item["Log_Lookup_RatePerCt"] = math.log(lookup_rate)
+
+        cat_rate = category_prior_rate(row, cat_tables, cat_global_prior, cat_levels)
+        item["Category_RatePerCt"] = cat_rate
+        if cat_rate and cat_rate > 0:
+            item["Log_Category_RatePerCt"] = math.log(cat_rate)
+
+        data.append(item)
+    return pd.DataFrame(data)
+
+
+def s19_predict_prices(pipe, rows, lookup_tables, lookup_global_rate,
+                       cat_tables, cat_global_prior, cat_levels):
+    residual_preds = pipe.predict(as_model_frame_s19(
+        rows, lookup_tables, lookup_global_rate, cat_tables, cat_global_prior, cat_levels
+    ))
+    prices = []
+    for residual, row in zip(residual_preds, rows):
+        lookup_rate, _, _ = lookup_predict_rate(row, lookup_tables, lookup_global_rate)
+        prices.append(max(0.01, lookup_rate * math.exp(residual) * row["Carat"]))
+    return prices
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MODEL EXPORT
 # ═══════════════════════════════════════════════════════════════════════════
@@ -732,7 +843,10 @@ def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_
                  cat_tables=None, cat_global=None, cat_levels=None):
     """Serialize the fitted ExtraTrees pipeline to JSON.
 
-    target_type: 'log_price' or 'log_rate' (log_rate means target = log(price/carat))
+    target_type:
+      - 'log_price': target = log(price)
+      - 'log_rate': target = log(price/carat)
+      - 'log_lookup_residual': target = log((price/carat) / lookup_rate)
     """
     pre = pipe.named_steps["pre"]
     model = pipe.named_steps["model"]
@@ -762,8 +876,16 @@ def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_
     out = {
         "generatedDate": str(date.today()),
         "modelName": model_name,
-        "target": "log(SaleDollorPrice/Carat)" if target_type == "log_rate" else "log(SaleDollorPrice)",
-        "prediction": "exp(mean(tree_log_predictions)) * Carat" if target_type == "log_rate" else "exp(mean(tree_log_predictions))",
+        "target": (
+            "log((SaleDollorPrice/Carat)/Lookup_RatePerCt)" if target_type == "log_lookup_residual"
+            else "log(SaleDollorPrice/Carat)" if target_type == "log_rate"
+            else "log(SaleDollorPrice)"
+        ),
+        "prediction": (
+            "Lookup_RatePerCt * exp(mean(tree_log_predictions)) * Carat" if target_type == "log_lookup_residual"
+            else "exp(mean(tree_log_predictions)) * Carat" if target_type == "log_rate"
+            else "exp(mean(tree_log_predictions))"
+        ),
         "targetType": target_type,
         "features": {
             "categorical": CATEGORICAL_FEATURES,
@@ -1929,6 +2051,106 @@ def strategy_s18_temporal_shallow(train, test, all_rows=None):
     }
 
 
+def strategy_s19_lookup_residual_selected_spec(train, test, all_rows=None):
+    """S19 — Coarse lookup residual model with selected-spec augmentation.
+
+    The browser often predicts before IGI dimensions/growth method are loaded.
+    This strategy trains that inference mode directly: duplicated training rows
+    include a selected-spec view with dimensions and TypeName masked. The model
+    predicts only the residual multiplier around the coarse StarGem lookup rate,
+    which keeps dense commodity cells locally calibrated while preserving an ML
+    estimate.
+    """
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+
+    tables, global_rate = build_lookup(train)
+    cat_tables, cat_global, cat_levels = build_category_prior(train)
+
+    augmented_train = s19_augmented_training_rows(train)
+    cert_test = [cert_loaded_view(row) for row in test]
+    selected_test = [selected_spec_view(row, mask_cut=False) for row in test]
+
+    feats_num = NUMERIC_FEATURES + SELECTED_SPEC_FLAGS + [
+        "Carat_sq", "Carat_cube", "Log_Carat",
+        "Carat_bucket_pos", "Dist_carat_threshold",
+        "Dim_Volume", "Dim_Surface", "LW_Ratio_refined", "Table_Depth_Ratio",
+        "Lookup_RatePerCt", "Lookup_IsGlobal", "Lookup_Count", "Log_Lookup_Count",
+        "Log_Lookup_RatePerCt", "Category_RatePerCt", "Log_Category_RatePerCt",
+    ]
+
+    x_train = as_model_frame_s19(augmented_train, tables, global_rate, cat_tables, cat_global, cat_levels)
+    y_train = []
+    for row in augmented_train:
+        lookup_rate, _, _ = lookup_predict_rate(row, tables, global_rate)
+        y_train.append(math.log(max(row["usd_per_ct"], 0.01) / max(lookup_rate, 0.01)))
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+        ("num", SimpleImputer(strategy="median"), feats_num),
+    ])
+    model = ExtraTreesRegressor(
+        n_estimators=96,
+        max_depth=20,
+        min_samples_leaf=2,
+        criterion="absolute_error",
+        max_features="sqrt",
+        random_state=42,
+        n_jobs=-1,
+    )
+    pipe = Pipeline([("pre", pre), ("model", model)])
+    pipe.fit(x_train, np.array(y_train))
+
+    selected_preds = s19_predict_prices(pipe, selected_test, tables, global_rate, cat_tables, cat_global, cat_levels)
+    cert_preds = s19_predict_prices(pipe, cert_test, tables, global_rate, cat_tables, cat_global, cat_levels)
+
+    pinned = selected_spec_view({
+        "Carat": 3.0,
+        "carat_bucket": carat_bucket(3.0),
+        "Shape": "ROUND",
+        "Color": "E",
+        "Clarity": "VS1",
+        "Cut": "ID",
+        "Polish": "EX",
+        "Symmetry": "EX",
+        "Fluorescence": "-",
+        "Report": "IGI",
+        "TypeName": "-",
+        "SaleDollorPrice": 0,
+        "usd_per_ct": 0,
+    })
+    pinned_price = s19_predict_prices(pipe, [pinned], tables, global_rate, cat_tables, cat_global, cat_levels)[0]
+    pinned_lookup_rate, pinned_lookup_level, pinned_lookup_count = lookup_predict_rate(pinned, tables, global_rate)
+
+    selected_metrics = metrics([r["SaleDollorPrice"] for r in test], selected_preds)
+    cert_metrics = metrics([r["SaleDollorPrice"] for r in test], cert_preds)
+
+    return {
+        "name": "S19 — Lookup residual + selected-spec augmentation",
+        "strategy": "lookup_residual_selected_spec",
+        "target_type": "log_lookup_residual",
+        "metrics": selected_metrics,
+        "certLoadedMetrics": cert_metrics,
+        "description": "Coarse StarGem lookup residual target with selected-spec missingness augmentation, 96 trees, depth=20",
+        "pinnedCases": {
+            "3ct_round_e_vs1_id_selected_spec": {
+                "price": round(pinned_price, 4),
+                "rate": round(pinned_price / 3.0, 4),
+                "lookupRate": round(pinned_lookup_rate, 4),
+                "lookupLevel": pinned_lookup_level,
+                "lookupCount": pinned_lookup_count,
+            }
+        },
+        "pipe": pipe, "feats_num": feats_num,
+        "_lookup_tables": tables, "_lookup_global": global_rate,
+        "_cat_tables": cat_tables, "_cat_global": cat_global, "_cat_levels": cat_levels,
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MAIN RUNNER
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1941,6 +2163,7 @@ def run():
 
     # Check for --enriched flag
     use_enriched = "--enriched" in sys.argv
+    only_s19 = "--only-s19" in sys.argv
     
     if use_enriched:
         rows = load_rows_enriched()
@@ -1956,33 +2179,39 @@ def run():
     print(f"Price range: ${min(r['SaleDollorPrice'] for r in rows):.2f}–${max(r['SaleDollorPrice'] for r in rows):.2f}")
     print()
 
-    strategies_fns = [
-        ("S1 (v1 best baseline)",         strategy_s1_baseline),
-        ("S2 (rate target)",              strategy_s2_rate_target),
-        ("S3 (rate + MAE criterion)",     strategy_s3_rate_mae),
-        ("S4 (rate + MAE + engineered)",  strategy_s4_rate_mae_engineered),
-        ("S5 (rate + lookup feature)",    strategy_s5_rate_lookup_feature),
-        ("S6 (rate + category prior)",    strategy_s6_rate_category_prior),
-        ("S7 (full combo)",               strategy_s7_full_combo),
-        ("S8 (LGB quantile)",             strategy_s8_lgb_quantile),
-        ("S9 (rate + MSE ablation)",      strategy_s9_rate_mse_large),
-    ]
+    if only_s19:
+        strategies_fns = [
+            ("S19 (lookup residual selected-spec)", strategy_s19_lookup_residual_selected_spec),
+        ]
+    else:
+        strategies_fns = [
+            ("S1 (v1 best baseline)",         strategy_s1_baseline),
+            ("S2 (rate target)",              strategy_s2_rate_target),
+            ("S3 (rate + MAE criterion)",     strategy_s3_rate_mae),
+            ("S4 (rate + MAE + engineered)",  strategy_s4_rate_mae_engineered),
+            ("S5 (rate + lookup feature)",    strategy_s5_rate_lookup_feature),
+            ("S6 (rate + category prior)",    strategy_s6_rate_category_prior),
+            ("S7 (full combo)",               strategy_s7_full_combo),
+            ("S8 (LGB quantile)",             strategy_s8_lgb_quantile),
+            ("S9 (rate + MSE ablation)",      strategy_s9_rate_mse_large),
+        ]
 
-    # Add S10 only if enriched data is being tested
-    if use_enriched:
-        strategies_fns.append(("S10 (enriched rate + MAE)", strategy_s10_enriched_rate_mae))
+        # Add S10 only if enriched data is being tested
+        if use_enriched:
+            strategies_fns.append(("S10 (enriched rate + MAE)", strategy_s10_enriched_rate_mae))
 
-    # New v2 strategies
-    strategies_fns.extend([
-        ("S11 (temporal cutoff)",         strategy_s11_temporal_cutoff),
-        ("S12 (fine lookup consensus)",   strategy_s12_fine_lookup_consensus),
-        ("S13 (two-stage residual)",      strategy_s13_two_stage_residual),
-        ("S14 (Cut-specific models)",     strategy_s14_cut_specific),
-        ("S15 (magic thresholds)",        strategy_s15_magic_thresholds),
-        ("S16 (Cut×carat interactions)",  strategy_s16_cut_carat_interactions),
-        ("S17 (full combo v2)",           strategy_s17_full_combo_v2),
-        ("S18 (temporal shallow)",        strategy_s18_temporal_shallow),
-    ])
+        # New v2 strategies
+        strategies_fns.extend([
+            ("S11 (temporal cutoff)",         strategy_s11_temporal_cutoff),
+            ("S12 (fine lookup consensus)",   strategy_s12_fine_lookup_consensus),
+            ("S13 (two-stage residual)",      strategy_s13_two_stage_residual),
+            ("S14 (Cut-specific models)",     strategy_s14_cut_specific),
+            ("S15 (magic thresholds)",        strategy_s15_magic_thresholds),
+            ("S16 (Cut×carat interactions)",  strategy_s16_cut_carat_interactions),
+            ("S17 (full combo v2)",           strategy_s17_full_combo_v2),
+            ("S18 (temporal shallow)",        strategy_s18_temporal_shallow),
+            ("S19 (lookup residual selected-spec)", strategy_s19_lookup_residual_selected_spec),
+        ])
 
     results = []
     best_result = None

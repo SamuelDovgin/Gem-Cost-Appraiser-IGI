@@ -544,7 +544,7 @@ function applyWhiteModifiers(query, compRow) {
   if (Math.abs(colorMult - 1) > 0.02)
     parts.push(`color ×${colorMult.toFixed(2)} (${query.whiteGrade} vs ${cn})`);
   if (Math.abs(clarityMult - 1) > 0.02)
-    parts.push(`clarity ×${clarityMult.toFixed(2)} (${query.clarity} vs ${compRow.clarity})`);
+    parts.push(`clarity ×${clarityMult.toFixed(2)} (selected ${query.clarity} vs comp ${compRow.clarity})`);
   if (Math.abs(shapeMult - 1) > 0.02)
     parts.push(`shape ×${shapeMult.toFixed(2)} (${query.shape} vs ${compRow.shape})`);
   if (Math.abs(caratMult - 1) > 0.05)
