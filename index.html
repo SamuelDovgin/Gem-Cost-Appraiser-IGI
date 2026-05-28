@@ -42,6 +42,22 @@ h1 em{font-style:italic;color:var(--accent)}
 .section{margin-bottom:22px}
 .section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:10px}
 .section-label::after{content:'';flex:1;height:.5px;background:var(--border)}
+.section-label.igi-section-label{flex-wrap:nowrap;gap:12px}
+.section-label.igi-section-label > span:first-child{min-width:0;flex:1}
+.section-label.igi-section-label::after{display:none}
+.igi-dice-toggle{margin-left:auto;flex-shrink:0;cursor:pointer;user-select:none}
+.igi-dice-toggle-input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.igi-dice-toggle-ui{display:grid;grid-template-columns:1fr 1fr;position:relative;width:min(168px,42vw);height:30px;background:var(--surface);border:.5px solid var(--border2);border-radius:9px;padding:3px;box-sizing:border-box}
+.igi-dice-toggle-slider{position:absolute;top:3px;left:3px;width:calc(50% - 3px);height:calc(100% - 6px);border-radius:6px;background:var(--accent-dim);border:.5px solid rgba(212,175,114,.45);box-shadow:0 1px 8px rgba(0,0,0,.28);transition:transform .22s cubic-bezier(.4,0,.2,1),background .18s,border-color .18s;z-index:0;pointer-events:none}
+.igi-dice-toggle-label{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);transition:color .18s;font-weight:500;line-height:1}
+.igi-dice-toggle-input:not(:checked) + .igi-dice-toggle-ui .igi-dice-toggle-label[data-side="white"]{color:var(--accent)}
+.igi-dice-toggle-input:checked + .igi-dice-toggle-ui .igi-dice-toggle-slider{transform:translateX(calc(100% + 3px));background:var(--pink-dim);border-color:rgba(220,100,150,.5)}
+.igi-dice-toggle-input:checked + .igi-dice-toggle-ui .igi-dice-toggle-label[data-side="colored"]{color:var(--pink)}
+@media(max-width:520px){
+  .section-label.igi-section-label{flex-wrap:wrap}
+  .igi-dice-toggle{margin-left:0;width:100%}
+  .igi-dice-toggle-ui{width:100%;max-width:220px}
+}
 .sub-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:8px 0 6px;opacity:.7}
 
 /* ── PILLS ── */
@@ -83,9 +99,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .slider-value{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--accent);min-width:74px;text-align:right}
 .slider-ticks{position:relative;height:12px;margin-top:7px}
-.slider-ticks span{position:absolute;top:0;transform:translateX(-50%);font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);white-space:nowrap}
-.slider-ticks span:first-child{transform:none}
-.slider-ticks span:last-child{transform:translateX(-100%)}
+.slider-ticks span{position:absolute;top:0;left:calc(9px + var(--tick-pct) * (100% - 18px));transform:translateX(-50%);font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);white-space:nowrap}
 .carat-override{display:flex;align-items:baseline;justify-content:flex-end;gap:6px;min-width:118px;border:.5px solid var(--border);background:var(--surface);border-radius:10px;padding:8px 10px 8px 12px;transition:border-color .15s}
 .carat-override:focus-within{border-color:var(--accent)}
 .carat-input{width:72px;border:0;background:transparent;color:var(--accent);font-family:'DM Mono',monospace;font-size:20px;font-weight:500;text-align:right;outline:none;padding:0}
@@ -375,7 +389,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
     <div class="slider-wrap">
       <input type="range" id="carat" min="0.5" max="10" step="0.01" value="3">
       <div class="slider-ticks">
-        <span style="left:0%">0.5</span><span style="left:5.263%">1</span><span style="left:15.789%">2</span><span style="left:26.316%">3</span><span style="left:36.842%">4</span><span style="left:47.368%">5</span><span style="left:57.895%">6</span><span style="left:68.421%">7</span><span style="left:78.947%">8</span><span style="left:89.474%">9</span><span style="left:100%">10</span>
+        <span style="--tick-pct:0">0.5</span><span style="--tick-pct:.05263">1</span><span style="--tick-pct:.15789">2</span><span style="--tick-pct:.26316">3</span><span style="--tick-pct:.36842">4</span><span style="--tick-pct:.47368">5</span><span style="--tick-pct:.57895">6</span><span style="--tick-pct:.68421">7</span><span style="--tick-pct:.78947">8</span><span style="--tick-pct:.89474">9</span><span style="--tick-pct:1">10</span>
       </div>
     </div>
     <label class="carat-override" aria-label="Manual carat override">
@@ -535,7 +549,17 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 
 <!-- IGI LOOKUP -->
 <div class="section igi-section">
-  <div class="section-label">IGI report lookup <span style="font-size:9px;color:var(--muted);margin-left:4px;letter-spacing:0">(optional — auto-fills all fields)</span></div>
+  <div class="section-label igi-section-label">
+    <span>IGI report lookup <span style="font-size:9px;color:var(--muted);margin-left:4px;letter-spacing:0">(optional — auto-fills all fields)</span></span>
+    <label class="igi-dice-toggle" id="igi-dice-mode-wrap" title="Dice roll: white or colored">
+      <input type="checkbox" class="igi-dice-toggle-input" id="igi-dice-colored" aria-label="Dice roll colored gems">
+      <span class="igi-dice-toggle-ui">
+        <span class="igi-dice-toggle-slider" aria-hidden="true"></span>
+        <span class="igi-dice-toggle-label" data-side="white">White</span>
+        <span class="igi-dice-toggle-label" data-side="colored">Colored</span>
+      </span>
+    </label>
+  </div>
   <div class="igi-box">
     <div class="igi-input-row">
       <button class="igi-action-btn" id="igi-paste-btn" type="button" aria-label="Paste IGI report number" title="Paste and replace report number">
@@ -547,7 +571,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <path d="M9 10h1"></path>
         </svg>
       </button>
-      <button class="igi-action-btn" id="igi-random-btn" type="button" aria-label="Roll dice for random IGI specs" title="Roll cut, clarity, and carat dice — then load a nearby known IGI report">
+      <button class="igi-action-btn" id="igi-random-btn" type="button" aria-label="Roll dice for random IGI specs" title="Roll dice for white or colored (use White/Colored toggle) — then load a nearby verified IGI report">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="3" y="3" width="18" height="18" rx="3"></rect>
           <circle cx="8" cy="8" r="1"></circle>
@@ -823,7 +847,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 </div><!-- /wrapper -->
 
 <div class="igi-floating-actions" aria-label="Quick IGI lookup actions">
-  <button class="igi-fab secondary" id="igi-random-fab" type="button" aria-label="Roll dice for random IGI specs" title="Roll cut, clarity, and carat dice — then load a nearby known IGI report">
+  <button class="igi-fab secondary" id="igi-random-fab" type="button" aria-label="Roll dice for random IGI specs" title="Roll dice for white or colored (use White/Colored toggle) — then load a nearby verified IGI report">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="3"></rect>
       <circle cx="8" cy="8" r="1"></circle>
@@ -2760,11 +2784,36 @@ function renderBlendBreakdown(ac) {
   return `<details class="comp-alts" style="margin-top:8px"><summary style="cursor:pointer;color:var(--muted2)">Show blend math</summary>${rows}</details>`;
 }
 
+function compSupplierKey(entry) {
+  if (!entry) return null;
+  if (entry.supplierKey) return entry.supplierKey;
+  const row = entry.row;
+  if (!row) return null;
+  const sourceKey = row.sourceKey || '';
+  if (sourceKey === 'starsgem' || sourceKey === 'starsgem-color') return 'starsgem';
+  if (sourceKey === 'messi-gems' || sourceKey === 'messi-color') return 'messi';
+  const supplier = String(row.supplier || '').toLowerCase();
+  if (supplier.includes('starsgem') || supplier.includes('stargem')) return 'starsgem';
+  if (supplier.includes('messi') || supplier.includes('wuzhou')) return 'messi';
+  const section = row.section || '';
+  const lastEm = section.lastIndexOf(' — ');
+  const raw = lastEm >= 0 ? section.slice(lastEm + 3).trim() : section.split(',')[0].trim();
+  const norm = raw.replace(/\s*\([^)]+\)\s*$/, '').trim().toLowerCase();
+  if (norm.includes('messi') || norm.includes('wuzhou')) return 'messi';
+  if (norm.includes('starsgem') || norm.includes('stargem')) return 'starsgem';
+  return null;
+}
+
 function sameSupplierComparison(a, b) {
   if (!a || !b) return false;
+  const aSk = compSupplierKey(a);
+  const bSk = compSupplierKey(b);
+  // Cross-factory rows are never duplicates — shared IGI reports are common on
+  // aggregated supplier-sheet comps and should still show as separate checks.
+  if (aSk && bSk && aSk !== bSk) return false;
+
   const ar = a.row || {};
   const br = b.row || {};
-  if (a.supplierKey && b.supplierKey && a.supplierKey !== b.supplierKey) return false;
   const aMeta = getCompSourceMeta(ar);
   const bMeta = getCompSourceMeta(br);
   const sameSource = aMeta?.key && bMeta?.key && aMeta.key === bMeta.key;
@@ -2773,13 +2822,24 @@ function sameSupplierComparison(a, b) {
   if (sameSource && aRows.some(row => bRows.includes(row))) return true;
   const aReports = normalizeReportList(ar);
   const bReports = normalizeReportList(br);
-  if (aReports.some(report => bReports.includes(report))) return true;
+  if (aSk && bSk && aSk === bSk && aReports.some(report => bReports.includes(report))) return true;
   if (ar.url && br.url && ar.url === br.url && ar.carat === br.carat && ar.shape === br.shape && ar.clarity === br.clarity && (ar.color || ar.colorNormalized) === (br.color || br.colorNormalized)) return true;
   return ar === br;
 }
 
+function visibleSupplierComparisonEntries(ac) {
+  const comparisons = ac?.supplierComparisons || [];
+  let entries = comparisons.filter(entry => !sameSupplierComparison(entry, ac.primary));
+  if (!isWhite()) return entries;
+  if (entries.some(entry => compSupplierKey(entry) === 'starsgem')) return entries;
+  if (compSupplierKey(ac.primary) === 'starsgem') return entries;
+  const starsgem = comparisons.find(entry => compSupplierKey(entry) === 'starsgem');
+  if (starsgem) entries = [...entries, starsgem];
+  return entries;
+}
+
 function renderSupplierComparisonBlock(ac) {
-  const entries = (ac.supplierComparisons || []).filter(entry => !sameSupplierComparison(entry, ac.primary));
+  const entries = visibleSupplierComparisonEntries(ac);
   if (!entries.length) return '';
 
   let html = `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">`;
@@ -2788,7 +2848,10 @@ function renderSupplierComparisonBlock(ac) {
     const tag = entry.matchType === 'exact'
       ? `<span class="comp-tag exact" style="font-size:10px;padding:1px 5px">exact</span>`
       : `<span class="comp-tag nearest" style="font-size:10px;padding:1px 5px">nearest match</span>`;
-    const supplierLabel = escapeHTML(entry.label || entry.supplierKey);
+    const supplierLabel = escapeHTML(
+      entry.label
+      || (entry.supplierKey === 'starsgem' ? 'StarGem sheet' : entry.supplierKey === 'messi' ? 'Messi sheet' : entry.supplierKey)
+    );
     const hasAdj = entry.listingPrice !== entry.estimatedPrice;
     const priceHtml = hasAdj
       ? `<span class="comp-price">${fmt(entry.listingPrice)}</span><span class="comp-arr">→</span><span class="comp-adj">~${fmt(entry.estimatedPrice)}</span>`
@@ -2869,6 +2932,8 @@ function updateMarketBar(m){
       html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
       html += `</div>`;
     }
+    html += renderBlendBreakdown(ac);
+    html += renderSupplierComparisonBlock(ac);
     const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
     const warnNote = ac.warnings?.length ? ` ${ac.warnings.join(' ')}` : '';
     html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">${blendNote}${rangeNote}${warnNote}</div></div>`;
@@ -3446,18 +3511,50 @@ const IGI_DICE_FALLBACK_STONES = [
   { d:'750564443', p:'FDR750564443', c:1, cl:'VS1', f:'w', sh:'round', co:'D' },
   { d:'694518963', p:'FDR694518963', c:1, cl:'VS1', f:'w', sh:'round', co:'E' },
 ];
+const IGI_DICE_FALLBACK_COLORED_STONES = [
+  { d:'753504602', p:'FDR753504602', c:5.02, cl:'VVS2', f:'c', sh:'square_cushion', co:'Fancy Vivid Yellow', gm:'CVD' },
+  { d:'752596868', p:'FDR752596868', c:1.36, cl:'VVS2', f:'c', sh:'square_cushion', co:'Fancy Vivid Pink', gm:'CVD' },
+  { d:'719574121', p:'FDR719574121', c:4.15, cl:'VVS2', f:'c', sh:'square_cushion', co:'Fancy Intense Yellow', gm:'CVD' },
+  { d:'766672524', p:'FDR766672524', c:5.54, cl:'VVS2', f:'c', sh:'trilliant', co:'Fancy Intense Blue', gm:'CVD' },
+  { d:'749509987', p:'FDR749509987', c:1.27, cl:'VVS2', f:'c', sh:'square_cushion', co:'Fancy Intense Pink', gm:'CVD' },
+  { d:'768645238', p:'FDR768645238', c:2.32, cl:'VS2', f:'c', sh:'square_cushion', co:'Fancy Red', gm:'CVD' },
+  { d:'692541502', p:'FDR692541502', c:1.07, cl:'VS2', f:'c', sh:'square_cushion', co:'Fancy Blue', gm:'HPHT' },
+  { d:'723514379', p:'FDR723514379', c:1.69, cl:'VVS2', f:'c', sh:'asscher', co:'Fancy Intense Green', gm:'CVD' },
+];
 const IGI_DICE_CLARITY = ['VVS1', 'VVS2', 'VS1', 'VS2'];
 const IGI_DICE_CUT = ['ideal', 'vg', 'good'];
 const IGI_DICE_CARAT_MIN = 1;
 const IGI_DICE_CARAT_MAX = 6;
-const IGI_DICE_COLOR_CHANCE = 0.1;
 const IGI_DICE_NEAR_MATCH_SLACK = 1.5;
 const IGI_DICE_PICK_POOL = 80;
 const IGI_DICE_PDF_ATTEMPTS = 24;
 const IGI_DICE_CLARITY_RANK = { IF:0, VVS1:1, VVS2:2, VS1:3, VS2:4, SI1:5, SI2:6 };
+const IGI_DICE_INDEX_CACHE_KEY = 2;
 let _igiDiceVerified = null;
 let _igiDiceVerifiedPromise = null;
+let _igiDiceVerifiedCacheKey = null;
 let _igiPdfSlugHint = null;
+
+function isIGIDiceColoredMode() {
+  return Boolean(document.getElementById('igi-dice-colored')?.checked);
+}
+
+function countIGIDiceFancyStones(stones) {
+  return (stones || []).filter(stone => stone?.f === 'c' || stone?.colorFamily === 'fancy').length;
+}
+
+function isIGIDicePickFancy(pick) {
+  return pick?.colorFamily === 'fancy';
+}
+
+function isIGIParsedReportFancy(report) {
+  const color = String(report?.color || '').trim();
+  if (!color) return false;
+  if (/fancy/i.test(color)) return true;
+  const white = normalizeWhiteGrade(color);
+  if (white && whiteGradeMult[white]) return false;
+  return Boolean(parseFancyColorCategory(color).colorKey);
+}
 
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -3594,27 +3691,33 @@ function randomIntInclusive(min, max) {
 }
 
 function rollIGIDiceTarget() {
-  const wantsColor = Math.random() < IGI_DICE_COLOR_CHANCE;
+  const wantsColor = isIGIDiceColoredMode();
   const carat = Math.round((IGI_DICE_CARAT_MIN + Math.random() * (IGI_DICE_CARAT_MAX - IGI_DICE_CARAT_MIN)) * 100) / 100;
   const clarity = IGI_DICE_CLARITY[randomIntInclusive(0, IGI_DICE_CLARITY.length - 1)];
-  const cut = IGI_DICE_CUT[randomIntInclusive(0, IGI_DICE_CUT.length - 1)];
+  const cut = wantsColor ? null : IGI_DICE_CUT[randomIntInclusive(0, IGI_DICE_CUT.length - 1)];
   return { wantsColor, carat, clarity, cut };
 }
 
 function formatIGIDiceRoll(target) {
   const colorLabel = target.wantsColor ? 'fancy color' : 'white';
+  if (target.wantsColor) {
+    return '🎲 ' + target.carat.toFixed(2) + 'ct · ' + target.clarity + ' (' + colorLabel + ')';
+  }
   const cutLabel = capCut(target.cut);
   return '🎲 ' + target.carat.toFixed(2) + 'ct · ' + target.clarity + ' · ' + cutLabel + ' (' + colorLabel + ')';
 }
 
 async function loadIGIDiceVerifiedIndex() {
-  if (_igiDiceVerified) return _igiDiceVerified;
+  if (_igiDiceVerified && _igiDiceVerifiedCacheKey === IGI_DICE_INDEX_CACHE_KEY) return _igiDiceVerified;
+  _igiDiceVerified = null;
+  _igiDiceVerifiedPromise = null;
   if (!_igiDiceVerifiedPromise) {
-    _igiDiceVerifiedPromise = fetch('research/data/igi-dice-verified.json')
+    _igiDiceVerifiedPromise = fetch('research/data/igi-dice-verified.json', { cache: 'no-store' })
       .then(res => (res.ok ? res.json() : { stones: [] }))
       .catch(() => ({ stones: [] }));
   }
   _igiDiceVerified = await _igiDiceVerifiedPromise;
+  _igiDiceVerifiedCacheKey = IGI_DICE_INDEX_CACHE_KEY;
   return _igiDiceVerified;
 }
 
@@ -3675,11 +3778,12 @@ function pickIGIDiceCandidates(pool, target, limit) {
   return near.map(s => s.c);
 }
 
-function buildIGIDiceLookupQueue(pool, target) {
+function buildIGIDiceLookupQueue(pool, target, coloredMode) {
   const seen = new Set();
   const queue = [];
   const add = candidate => {
     if (!candidate?.report || seen.has(candidate.report)) return;
+    if (coloredMode && !isIGIDicePickFancy(candidate)) return;
     seen.add(candidate.report);
     queue.push(candidate);
   };
@@ -3689,8 +3793,15 @@ function buildIGIDiceLookupQueue(pool, target) {
     .map(c => ({ c, score: scoreIGIDiceCandidate(c, target) }))
     .sort((a, b) => a.score - b.score)
     .forEach(({ c }) => add(c));
-  IGI_DICE_FALLBACK_STONES.forEach(stone => add(expandIGIVerifiedStone(stone)));
+  const fallbacks = coloredMode ? IGI_DICE_FALLBACK_COLORED_STONES : IGI_DICE_FALLBACK_STONES;
+  fallbacks.forEach(stone => add(expandIGIVerifiedStone(stone)));
   return queue;
+}
+
+function pickRandomIGIDiceFancyFallback() {
+  const pool = IGI_DICE_FALLBACK_COLORED_STONES.map(expandIGIVerifiedStone).filter(isIGIDicePickFancy);
+  if (!pool.length) return null;
+  return pool[randomIntInclusive(0, pool.length - 1)];
 }
 
 function mapVerifiedCutToState(cutText) {
@@ -3777,39 +3888,53 @@ function applyIGIVerifiedStone(pick, rollLabel) {
 async function lookupRandomIGIReport() {
   setIGIRandomButtonsDisabled(true);
   try {
-    setIGIStatus('loading', '<span class="spin">⟳</span> &nbsp;Rolling cut, clarity, and carat dice...');
+    const coloredMode = isIGIDiceColoredMode();
+    setIGIStatus('loading', '<span class="spin">⟳</span> &nbsp;Rolling ' + (coloredMode ? 'colored' : 'white') + ' gem dice...');
     const verified = await loadIGIDiceVerifiedIndex();
+    const fancyInIndex = countIGIDiceFancyStones(verified.stones);
 
     const target = rollIGIDiceTarget();
-    let pool = buildIGIDicePool(target.wantsColor, verified.stones);
-    let colorFallback = false;
-    if (!pool.length && target.wantsColor) {
-      colorFallback = true;
-      target.wantsColor = false;
-      pool = buildIGIDicePool(false, verified.stones);
+    target.wantsColor = coloredMode;
+
+    let pool = buildIGIDicePool(coloredMode, verified.stones);
+    let indexWarn = '';
+    if (coloredMode && !fancyInIndex) {
+      indexWarn = ' · colored dice index missing — hard-refresh the page';
+    } else if (coloredMode && !pool.length) {
+      indexWarn = ' · using Messi colored fallbacks only';
     }
     if (!pool.length) {
-      pool = IGI_DICE_FALLBACK_STONES.map(expandIGIVerifiedStone).filter(Boolean);
+      const fallbacks = coloredMode ? IGI_DICE_FALLBACK_COLORED_STONES : IGI_DICE_FALLBACK_STONES;
+      pool = fallbacks.map(expandIGIVerifiedStone).filter(Boolean);
+      if (coloredMode) pool = pool.filter(isIGIDicePickFancy);
     }
 
-    const queue = buildIGIDiceLookupQueue(pool, target);
-    const best = queue[0] || expandIGIVerifiedStone(IGI_DICE_FALLBACK_STONES[0]);
+    const queue = buildIGIDiceLookupQueue(pool, target, coloredMode);
+    let best = queue.find(isIGIDicePickFancy) || queue[0] || null;
+    if (coloredMode) best = best && isIGIDicePickFancy(best) ? best : pickRandomIGIDiceFancyFallback();
+    else best = best || expandIGIVerifiedStone(IGI_DICE_FALLBACK_STONES[0]);
+
     if (!best) {
-      setIGIStatus('warn', 'Verified IGI dice index is not available. Reload the page or run build-browser-data.py.');
+      setIGIStatus('warn', coloredMode
+        ? 'No colored IGI dice pool loaded. Hard-refresh (Cmd+Shift+R) so research/data/igi-dice-verified.json updates, or run research/scripts/build-browser-data.py.'
+        : 'Verified IGI dice index is not available. Reload the page or run build-browser-data.py.');
       return;
     }
 
-    const rollLabel = formatIGIDiceRoll(target) + (colorFallback ? ' · no fancy pool match, using white' : '');
+    const rollLabel = formatIGIDiceRoll(target) + indexWarn;
     setIGIStatus('loading', '<span class="spin">⟳</span> &nbsp;' + rollLabel + ' — picking nearest verified IGI...');
 
     const attempts = Math.min(queue.length, IGI_DICE_PDF_ATTEMPTS);
     for (let i = 0; i < attempts; i++) {
       const pick = queue[i];
+      if (coloredMode && !isIGIDicePickFancy(pick)) continue;
       setIGINumberFromText(pick.report);
       _igiPdfSlugHint = pick.pdfSlug || null;
-      const hint = ' (~' + pick.carat.toFixed(2) + 'ct ' + pick.clarity + ')';
+      const colorHint = pick.color ? ' · ' + pick.color : '';
+      const hint = ' (~' + pick.carat.toFixed(2) + 'ct ' + pick.clarity + colorHint + ')';
       setIGIStatus('loading', '<span class="spin">⟳</span> &nbsp;' + rollLabel + ' → IGI ' + escapeHTML(displayIGINumber(pick.report)) + escapeHTML(hint) + ' (' + (i + 1) + '/' + attempts + ')...');
       const found = await lookupIGI();
+      if (found && coloredMode && !isIGIParsedReportFancy(lastIGIData)) continue;
       if (found) return;
     }
 

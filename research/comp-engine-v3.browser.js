@@ -239,6 +239,27 @@ var GemAppraiseV3Engine = (() => {
     return norm || "_unknown";
   }
   var MAX_PER_SUPPLIER = 2;
+  var MESSI_TO_STARGEM_SOURCE_FACTOR = 1.25;
+  function sourceAdjustmentFactor(row) {
+    if (!row) return 1;
+    const supplier = String(row.supplier || "").toLowerCase();
+    if (row.sourceKey === "messi-color" || row.sourceKey === "messi-gems" || row.sourceType === "supplier-color-sheet" || supplier.includes("messi")) {
+      return MESSI_TO_STARGEM_SOURCE_FACTOR;
+    }
+    return 1;
+  }
+  function effectiveCompPriceUsd(row) {
+    const raw = Number(row?.priceUsd);
+    if (!Number.isFinite(raw) || raw <= 0) return raw;
+    return raw / sourceAdjustmentFactor(row);
+  }
+  function sourceAdjustmentParts(row) {
+    const factor = sourceAdjustmentFactor(row);
+    if (!Number.isFinite(factor) || factor <= 1.0001) return [];
+    const isColor = row?.sourceKey === "messi-color" || row?.sourceType === "supplier-color-sheet" || row?.colorFamily === "fancy";
+    const scope = isColor ? "Messi color" : "Messi";
+    return [`source adjust \xF7${factor.toFixed(2)} (${scope} \u2192 StarGem-like factory)`];
+  }
   function applySupplierCap(scored) {
     const counts = {};
     const result = [];
@@ -249,6 +270,25 @@ var GemAppraiseV3Engine = (() => {
       if (n <= MAX_PER_SUPPLIER) result.push(c);
     }
     return result;
+  }
+  function buildNearestSupplierComparisonEntry(nq, scoredItem, sk, adjContext) {
+    const adj = adjustCompToQuery(nq, scoredItem.row, adjContext);
+    const estPrice = Math.round(Math.exp(adj.logEstimate));
+    return {
+      supplierKey: sk,
+      label: shortLabel(scoredItem.row),
+      listingPrice: scoredItem.row.priceUsd,
+      estimatedPrice: estPrice,
+      url: scoredItem.row.url,
+      row: scoredItem.row,
+      matchType: "nearest",
+      score: scoredItem.score,
+      modifiers: {
+        combined: Math.exp(adj.logEstimate - Math.log(scoredItem.row.priceUsd)),
+        estimated: estPrice,
+        parts: adj.parts
+      }
+    };
   }
   function buildOtherFactoryExactList(exactAdjustedOrdered, floorSupplierKey, queryCarat) {
     return exactAdjustedOrdered.filter((adj) => supplierKey(adj.row) !== floorSupplierKey).map((adj) => {
@@ -270,7 +310,7 @@ var GemAppraiseV3Engine = (() => {
     });
   }
   function selectCheapestExactEnsemble(exactScored, maxN = MAX_ENSEMBLE) {
-    return [...exactScored].sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.score - b.score).slice(0, maxN);
+    return [...exactScored].sort((a, b) => effectiveCompPriceUsd(a.row) - effectiveCompPriceUsd(b.row) || a.score - b.score).slice(0, maxN);
   }
   var SPECIALTY_SHAPE_KEYS = /* @__PURE__ */ new Set([
     "moval",
@@ -748,8 +788,9 @@ var GemAppraiseV3Engine = (() => {
   function adjustCompToQuery(query, row, context = {}) {
     const compCt = row.carat || 1;
     const queryCt = query.carat;
-    const logDpcComp = Math.log(row.priceUsd / compCt);
-    const parts = [];
+    const effectivePrice = effectiveCompPriceUsd(row);
+    const logDpcComp = Math.log(effectivePrice / compCt);
+    const parts = sourceAdjustmentParts(row);
     let logDpcAdj = logDpcComp;
     let sigmaCarat, sigmaColor, sigmaClarity, sigmaShape;
     const logCaratRatio = Math.log(queryCt / compCt);
@@ -961,7 +1002,8 @@ var GemAppraiseV3Engine = (() => {
   var SUPPLEMENTAL_COMP_FILES = [
     "messi-comps.json",
     "starsgem-comps.json",
-    "messi-color-comps.json"
+    "messi-color-comps.json",
+    "starsgem-color-comps.json"
   ];
   function mergeSupplementalComps(index, supplementalIndexes) {
     const merged = {
@@ -1116,14 +1158,14 @@ var GemAppraiseV3Engine = (() => {
       warnings.push(`Same-spec listings also at ${names} \u2014 shown below, not averaged into floor price.`);
     }
     const MAJOR_SUPPLIERS = ["messi", "starsgem"];
-    const NEAREST_COMPARISON_POOL = 5;
     const supplierComparisons = [];
     for (const sk of MAJOR_SUPPLIERS) {
       const exactForSupplier = exactAdjustedOrdered.filter((adj) => supplierKey(adj.row) === sk);
       if (exactForSupplier.length) {
         const best = exactForSupplier[0];
         const usesCaratScale = caratGapNeedsExactAdjustment(nq.carat, best.row?.carat);
-        const estPrice = usesCaratScale ? Math.round(Math.exp(best.logEstimate)) : best.row.priceUsd;
+        const hasSourceAdjustment = best.parts && best.parts.length;
+        const estPrice = usesCaratScale ? Math.round(Math.exp(best.logEstimate)) : hasSourceAdjustment ? Math.round(Math.exp(best.logEstimate)) : best.row.priceUsd;
         supplierComparisons.push({
           supplierKey: sk,
           label: shortLabel(best.row),
@@ -1132,44 +1174,27 @@ var GemAppraiseV3Engine = (() => {
           url: best.row.url,
           row: best.row,
           matchType: "exact",
-          modifiers: usesCaratScale || best.parts && best.parts.length ? { combined: Math.exp(best.logEstimate - Math.log(best.row.priceUsd)), estimated: estPrice, parts: best.parts } : null
+          modifiers: usesCaratScale || hasSourceAdjustment ? { combined: Math.exp(best.logEstimate - Math.log(best.row.priceUsd)), estimated: estPrice, parts: best.parts } : null
         });
       } else {
-        const topN = uniqueScored.filter((c) => supplierKey(c.row) === sk).slice(0, NEAREST_COMPARISON_POOL);
-        if (topN.length) {
-          let bestEntry = null;
-          let bestEstPrice = Infinity;
-          for (const c of topN) {
-            const adj = adjustCompToQuery(nq, c.row, adjContext);
-            const estPrice = Math.round(Math.exp(adj.logEstimate));
-            if (estPrice < bestEstPrice) {
-              bestEstPrice = estPrice;
-              bestEntry = {
-                supplierKey: sk,
-                label: shortLabel(c.row),
-                listingPrice: c.row.priceUsd,
-                estimatedPrice: estPrice,
-                url: c.row.url,
-                row: c.row,
-                matchType: "nearest",
-                score: c.score,
-                modifiers: {
-                  combined: Math.exp(adj.logEstimate - Math.log(c.row.priceUsd)),
-                  estimated: estPrice,
-                  parts: adj.parts
-                }
-              };
-            }
-          }
-          if (bestEntry) supplierComparisons.push(bestEntry);
+        const pool = uniqueScored.filter((c) => supplierKey(c.row) === sk);
+        if (pool.length) {
+          supplierComparisons.push(buildNearestSupplierComparisonEntry(nq, pool[0], sk, adjContext));
         }
+      }
+    }
+    if (nq.colorFamily === "white" && !supplierComparisons.some((e) => e.supplierKey === "starsgem")) {
+      const pool = uniqueScored.filter((c) => supplierKey(c.row) === "starsgem");
+      if (pool.length) {
+        supplierComparisons.push(buildNearestSupplierComparisonEntry(nq, pool[0], "starsgem", adjContext));
       }
     }
     supplierComparisons.sort((a, b) => a.estimatedPrice - b.estimatedPrice);
     const exactUsesCaratScale = matchType === "exact" && caratGapNeedsExactAdjustment(nq.carat, primaryAdj.row?.carat);
-    const primaryEstPrice = matchType === "exact" ? exactUsesCaratScale ? Math.round(Math.exp(primaryAdj.logEstimate)) : primaryAdj.row.priceUsd : blend.estimate;
+    const exactUsesSourceAdjustment = matchType === "exact" && primaryAdj.parts && primaryAdj.parts.length;
+    const primaryEstPrice = matchType === "exact" ? exactUsesCaratScale || exactUsesSourceAdjustment ? Math.round(Math.exp(primaryAdj.logEstimate)) : primaryAdj.row.priceUsd : blend.estimate;
     const pointEstimate = matchType === "exact" ? primaryEstPrice : blend.estimate;
-    const legacyModifiers = matchType === "exact" ? exactUsesCaratScale || primaryAdj.parts && primaryAdj.parts.length ? {
+    const legacyModifiers = matchType === "exact" ? exactUsesCaratScale || exactUsesSourceAdjustment ? {
       combined: Math.exp(primaryAdj.logEstimate - Math.log(primaryAdj.row.priceUsd)),
       estimated: primaryEstPrice,
       parts: primaryAdj.parts
@@ -1184,6 +1209,7 @@ var GemAppraiseV3Engine = (() => {
       estimatedPrice: primaryEstPrice,
       url: primaryAdj.row.url,
       label: shortLabel(primaryAdj.row),
+      supplierKey: primaryAdj.row ? supplierKey(primaryAdj.row) : null,
       modifiers: legacyModifiers,
       blendedFrom: matchType === "exact" ? exactAdjustedOrdered.length : blend.accepted.length
     };
@@ -1572,6 +1598,22 @@ var GemAppraiseV3Engine = (() => {
           }
           const messiListed = (result.otherFactoryExact || []).some((e) => e.supplierKey === "messi");
           if (!messiListed) return "FAIL: Messi should appear in otherFactoryExact, not alternatives";
+          return null;
+        }
+      },
+      {
+        desc: "T31 \u2014 1.46ct E VVS1 round Messi nearest is best-scored (1.55ct), not cheapest scaled 2ct",
+        q: { carat: 1.46, shape: "round", colorFamily: "white", whiteGrade: "E", clarity: "VVS1" },
+        expectMatch: ["exact"],
+        checkFn: (result) => {
+          const messi = (result.supplierComparisons || []).find((e) => e.supplierKey === "messi");
+          if (!messi) return "FAIL: Messi supplier comparison missing";
+          if (messi.matchType !== "nearest") return `FAIL: expected nearest Messi comp, got ${messi.matchType}`;
+          const ct = messi.row?.carat;
+          if (ct == null || ct > 1.6) return `FAIL: Messi nearest should be ~1.55ct, got ${ct}ct`;
+          if (messi.estimatedPrice < 195 || messi.estimatedPrice > 230) {
+            return `FAIL: expected Messi adjusted ~$200\u2013225, got $${messi.estimatedPrice}`;
+          }
           return null;
         }
       }

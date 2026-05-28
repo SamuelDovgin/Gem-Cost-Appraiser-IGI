@@ -223,6 +223,26 @@ function applySupplierCap(scored) {
  * buildOtherFactoryExactList — same-spec exact rows from suppliers other than the
  * floor supplier. Shown separately; never blended into the estimate.
  */
+function buildNearestSupplierComparisonEntry(nq, scoredItem, sk, adjContext) {
+  const adj = adjustCompToQuery(nq, scoredItem.row, adjContext);
+  const estPrice = Math.round(Math.exp(adj.logEstimate));
+  return {
+    supplierKey: sk,
+    label: shortLabel(scoredItem.row),
+    listingPrice: scoredItem.row.priceUsd,
+    estimatedPrice: estPrice,
+    url: scoredItem.row.url,
+    row: scoredItem.row,
+    matchType: 'nearest',
+    score: scoredItem.score,
+    modifiers: {
+      combined: Math.exp(adj.logEstimate - Math.log(scoredItem.row.priceUsd)),
+      estimated: estPrice,
+      parts: adj.parts,
+    },
+  };
+}
+
 function buildOtherFactoryExactList(exactAdjustedOrdered, floorSupplierKey, queryCarat) {
   return exactAdjustedOrdered
     .filter(adj => supplierKey(adj.row) !== floorSupplierKey)
@@ -1551,12 +1571,10 @@ function resolveAlibabaComp(query) {
   // even when one doesn't carry the exact grade.
   //
   // For exact-match suppliers: use the cheapest adjusted exact comp.
-  // For nearest-match suppliers: take the top-N scored comps, adjust each to
-  // the query, and pick the one with the lowest adjusted price. "Best scored"
-  // is nearly arbitrary when carat/clarity gaps are tiny (floating-point noise),
-  // so cheapest-adjusted among close matches is the more useful comparison.
+  // For nearest-match suppliers: use the best-scored comp (same as compErrorScore
+  // ranking). Picking the cheapest adjusted price among close matches skews low when
+  // a larger carat comp is scaled down (Messi ÷1.25 + carat slope).
   const MAJOR_SUPPLIERS = ['messi', 'starsgem'];
-  const NEAREST_COMPARISON_POOL = 5; // top-N scored comps to consider per supplier
   const supplierComparisons = [];
   for (const sk of MAJOR_SUPPLIERS) {
     const exactForSupplier = exactAdjustedOrdered.filter(adj => supplierKey(adj.row) === sk);
@@ -1580,37 +1598,16 @@ function resolveAlibabaComp(query) {
           : null,
       });
     } else {
-      // Nearest-match: cheapest adjusted price among top-N scored comps
-      const topN = uniqueScored
-        .filter(c => supplierKey(c.row) === sk)
-        .slice(0, NEAREST_COMPARISON_POOL);
-      if (topN.length) {
-        let bestEntry = null;
-        let bestEstPrice = Infinity;
-        for (const c of topN) {
-          const adj = adjustCompToQuery(nq, c.row, adjContext);
-          const estPrice = Math.round(Math.exp(adj.logEstimate));
-          if (estPrice < bestEstPrice) {
-            bestEstPrice = estPrice;
-            bestEntry = {
-              supplierKey: sk,
-              label: shortLabel(c.row),
-              listingPrice: c.row.priceUsd,
-              estimatedPrice: estPrice,
-              url: c.row.url,
-              row: c.row,
-              matchType: 'nearest',
-              score: c.score,
-              modifiers: {
-                combined: Math.exp(adj.logEstimate - Math.log(c.row.priceUsd)),
-                estimated: estPrice,
-                parts: adj.parts,
-              },
-            };
-          }
-        }
-        if (bestEntry) supplierComparisons.push(bestEntry);
+      const pool = uniqueScored.filter(c => supplierKey(c.row) === sk);
+      if (pool.length) {
+        supplierComparisons.push(buildNearestSupplierComparisonEntry(nq, pool[0], sk, adjContext));
       }
+    }
+  }
+  if (nq.colorFamily === 'white' && !supplierComparisons.some(e => e.supplierKey === 'starsgem')) {
+    const pool = uniqueScored.filter(c => supplierKey(c.row) === 'starsgem');
+    if (pool.length) {
+      supplierComparisons.push(buildNearestSupplierComparisonEntry(nq, pool[0], 'starsgem', adjContext));
     }
   }
   supplierComparisons.sort((a, b) => a.estimatedPrice - b.estimatedPrice);
@@ -1647,6 +1644,7 @@ function resolveAlibabaComp(query) {
     estimatedPrice: primaryEstPrice,
     url: primaryAdj.row.url,
     label: shortLabel(primaryAdj.row),
+    supplierKey: primaryAdj.row ? supplierKey(primaryAdj.row) : null,
     modifiers: legacyModifiers,
     blendedFrom: matchType === 'exact' ? exactAdjustedOrdered.length : blend.accepted.length,
   };
@@ -2060,6 +2058,22 @@ function runTests() {
         }
         const messiListed = (result.otherFactoryExact || []).some(e => e.supplierKey === 'messi');
         if (!messiListed) return 'FAIL: Messi should appear in otherFactoryExact, not alternatives';
+        return null;
+      },
+    },
+    {
+      desc: 'T31 — 1.46ct E VVS1 round Messi nearest is best-scored (1.55ct), not cheapest scaled 2ct',
+      q: { carat: 1.46, shape: 'round', colorFamily: 'white', whiteGrade: 'E', clarity: 'VVS1' },
+      expectMatch: ['exact'],
+      checkFn: (result) => {
+        const messi = (result.supplierComparisons || []).find(e => e.supplierKey === 'messi');
+        if (!messi) return 'FAIL: Messi supplier comparison missing';
+        if (messi.matchType !== 'nearest') return `FAIL: expected nearest Messi comp, got ${messi.matchType}`;
+        const ct = messi.row?.carat;
+        if (ct == null || ct > 1.6) return `FAIL: Messi nearest should be ~1.55ct, got ${ct}ct`;
+        if (messi.estimatedPrice < 195 || messi.estimatedPrice > 230) {
+          return `FAIL: expected Messi adjusted ~$200–225, got $${messi.estimatedPrice}`;
+        }
         return null;
       },
     },
