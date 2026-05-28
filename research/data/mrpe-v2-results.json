@@ -1,10 +1,10 @@
 {
-  "generatedDate": "2026-05-24",
+  "generatedDate": "2026-05-27",
   "testSummary": {
     "totalRows": 28394,
     "trainRows": 27602,
     "testRows": 792,
-    "strategiesTested": 17,
+    "strategiesTested": 1,
     "split": "one_holdout_per_bucket",
     "bucketFields": [
       "Shape",
@@ -14,252 +14,429 @@
       "Cut"
     ]
   },
-  "baselineMape": 5.0051,
-  "bestMape": 4.8878,
-  "improvementPct": 2.34,
+  "baselineMape": 4.38,
+  "bestMape": 6.0122,
+  "improvementPct": -37.26,
   "strategies": [
     {
-      "name": "S1 \u2014 v1 best (log-price, engineered feats)",
-      "strategy": "baseline_v1",
-      "target_type": "log_price",
+      "name": "S20 \u2014 Specialty cut + monotonic large-carat tail",
+      "strategy": "specialty_cut_tail_selected_spec",
+      "target_type": "log_tail_lookup_residual",
       "metrics": {
         "count": 792,
-        "mape": 5.0051,
-        "mae": 61.4035,
-        "rmse": 380.1572,
-        "r2": 0.958092
+        "mape": 6.0122,
+        "mae": 62.2378,
+        "rmse": 332.4362,
+        "r2": 0.967953
       },
-      "description": "Previous best: log(price) target, 100 trees, depth=26, engineered features"
-    },
-    {
-      "name": "S2 \u2014 Rate-per-carat target (log(price/carat))",
-      "strategy": "rate_target",
-      "target_type": "log_rate",
-      "metrics": {
+      "certLoadedMetrics": {
         "count": 792,
-        "mape": 5.2132,
-        "mae": 63.2604,
-        "rmse": 395.069,
-        "r2": 0.95474
+        "mape": 5.4058,
+        "mae": 58.427,
+        "rmse": 327.8815,
+        "r2": 0.968825
       },
-      "description": "log(price/carat) target \u2192 removes multiplicative carat effect from prediction error"
-    },
-    {
-      "name": "S3 \u2014 Rate target + MAE criterion",
-      "strategy": "rate_mae",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 5.1912,
-        "mae": 66.3664,
-        "rmse": 394.2817,
-        "r2": 0.95492
+      "segmentMetrics": {
+        "byCaratBucket": {
+          "0.30-0.49": {
+            "count": 13,
+            "mape": 4.1742,
+            "mae": 2.3247,
+            "rmse": 2.8784,
+            "r2": 0.95939
+          },
+          "0.50-0.69": {
+            "count": 46,
+            "mape": 4.6965,
+            "mae": 5.2862,
+            "rmse": 9.1287,
+            "r2": 0.939552
+          },
+          "0.70-0.89": {
+            "count": 38,
+            "mape": 4.3444,
+            "mae": 6.2472,
+            "rmse": 11.0677,
+            "r2": 0.891093
+          },
+          "0.90-0.99": {
+            "count": 1,
+            "mape": 0.4954,
+            "mae": 0.6706,
+            "rmse": 0.6706,
+            "r2": null
+          },
+          "1.00-1.49": {
+            "count": 151,
+            "mape": 3.6161,
+            "mae": 6.0983,
+            "rmse": 13.367,
+            "r2": 0.903295
+          },
+          "1.50-1.99": {
+            "count": 115,
+            "mape": 6.3824,
+            "mae": 15.3921,
+            "rmse": 30.8164,
+            "r2": 0.812194
+          },
+          "10.00+": {
+            "count": 51,
+            "mape": 7.213,
+            "mae": 540.3144,
+            "rmse": 1273.2203,
+            "r2": 0.935081
+          },
+          "2.00-2.99": {
+            "count": 113,
+            "mape": 5.6454,
+            "mae": 20.2751,
+            "rmse": 34.9607,
+            "r2": 0.914429
+          },
+          "3.00-3.99": {
+            "count": 99,
+            "mape": 6.0922,
+            "mae": 33.0675,
+            "rmse": 74.6166,
+            "r2": 0.863079
+          },
+          "4.00-4.99": {
+            "count": 56,
+            "mape": 3.5582,
+            "mae": 27.5351,
+            "rmse": 52.2188,
+            "r2": 0.898428
+          },
+          "5.00-9.99": {
+            "count": 109,
+            "mape": 11.354,
+            "mae": 104.8368,
+            "rmse": 188.2948,
+            "r2": 0.900014
+          }
+        },
+        "byCutStyle": {
+          "elongated_cushion": {
+            "count": 5,
+            "mape": 10.9791,
+            "mae": 257.0859,
+            "rmse": 390.0199,
+            "r2": 0.5665
+          },
+          "ice_flower": {
+            "count": 32,
+            "mape": 9.6644,
+            "mae": 359.0391,
+            "rmse": 971.2925,
+            "r2": 0.946841
+          },
+          "standard_grade": {
+            "count": 185,
+            "mape": 7.4641,
+            "mae": 41.462,
+            "rmse": 292.5274,
+            "r2": 0.922669
+          },
+          "traditional": {
+            "count": 33,
+            "mape": 7.4,
+            "mae": 77.589,
+            "rmse": 156.1373,
+            "r2": 0.994695
+          },
+          "unknown": {
+            "count": 537,
+            "mape": 5.1629,
+            "mae": 48.9512,
+            "rmse": 272.7266,
+            "r2": 0.976118
+          }
+        },
+        "selectedSpec10ctPlus": {
+          "count": 51,
+          "mape": 7.213,
+          "mae": 540.3144,
+          "rmse": 1273.2203,
+          "r2": 0.935081
+        },
+        "selectedSpec8ctPlus": {
+          "count": 70,
+          "mape": 6.9368,
+          "mae": 433.3364,
+          "rmse": 1096.3709,
+          "r2": 0.942476
+        }
       },
-      "description": "log(price/carat) + criterion=absolute_error (median splits, MAPE-optimal)"
-    },
-    {
-      "name": "S4 \u2014 Rate + MAE + engineered features",
-      "strategy": "rate_mae_engineered",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 5.2373,
-        "mae": 65.2781,
-        "rmse": 392.5236,
-        "r2": 0.955321
+      "description": "S19 residual model plus explicit Chinese specialty-cut features and a monotonic parametric 5ct+ tail, 160 trees, depth=20",
+      "pinnedCases": {
+        "3ct_round_e_vs1_id_selected_spec": {
+          "price": 326.7514,
+          "rate": 108.9171,
+          "tailBaseRate": 108.8138,
+          "tailBaseLevel": "E",
+          "tailBaseCount": 239,
+          "tailMultiplier": 1.0,
+          "tailLevel": "NONE",
+          "tailCount": 0,
+          "tailSlope": 0.0
+        },
+        "8ct_round_e_vs1_id_selected_spec": {
+          "price": 1730.0335,
+          "rate": 216.2542,
+          "tailBaseRate": 127.7915,
+          "tailBaseLevel": "E",
+          "tailBaseCount": 68,
+          "tailMultiplier": 1.44365,
+          "tailLevel": "SCCG",
+          "tailCount": 58,
+          "tailSlope": 0.78121679
+        },
+        "10ct_round_e_vs1_id_selected_spec": {
+          "price": 3082.9673,
+          "rate": 308.2967,
+          "tailBaseRate": 127.7915,
+          "tailBaseLevel": "E",
+          "tailBaseCount": 68,
+          "tailMultiplier": 1.71858,
+          "tailLevel": "SCCG",
+          "tailCount": 58,
+          "tailSlope": 0.78121679
+        },
+        "12ct_round_e_vs1_id_selected_spec": {
+          "price": 4078.4904,
+          "rate": 339.8742,
+          "tailBaseRate": 127.7915,
+          "tailBaseLevel": "E",
+          "tailBaseCount": 68,
+          "tailMultiplier": 1.981652,
+          "tailLevel": "SCCG",
+          "tailCount": 58,
+          "tailSlope": 0.78121679
+        }
       },
-      "description": "log(price/carat) + MAE splits + bucket-position + dimension features, 150 trees"
-    },
-    {
-      "name": "S5 \u2014 Rate + lookup as feature + category prior",
-      "strategy": "rate_lookup_feature",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 5.1781,
-        "mae": 65.9675,
-        "rmse": 377.5658,
-        "r2": 0.958661
-      },
-      "description": "log(price/carat) + lookup rate/category prior as features + MAE criterion"
-    },
-    {
-      "name": "S6 \u2014 Rate + category prior feature",
-      "strategy": "rate_category_prior",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 5.2668,
-        "mae": 67.805,
-        "rmse": 426.484,
-        "r2": 0.947256
-      },
-      "description": "log(price/carat) + per-category median rate as feature + MAE criterion"
-    },
-    {
-      "name": "S7 \u2014 Full combo (rate + MAE + all features + 200 trees)",
-      "strategy": "full_combo",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 4.8878,
-        "mae": 61.4855,
-        "rmse": 392.7546,
-        "r2": 0.955269
-      },
-      "description": "All innovations: rate target, MAE splits, lookup+category priors, depth=None, 200 trees"
-    },
-    {
-      "name": "S8 \u2014 LightGBM quantile(0.5) rate target",
-      "strategy": "lgb_quantile_rate",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 7.9045,
-        "mae": 102.0146,
-        "rmse": 430.2818,
-        "r2": 0.946312
-      },
-      "description": "LightGBM quantile=0.5 on log(price/carat) \u2192 median regression, MAPE-optimal"
-    },
-    {
-      "name": "S9 \u2014 Rate + MSE + all features (ablation of MAE vs MSE)",
-      "strategy": "rate_mse_full",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 4.9487,
-        "mae": 61.8414,
-        "rmse": 382.2584,
-        "r2": 0.957627
-      },
-      "description": "Same as S7 but MSE criterion instead of MAE \u2014 ablation study"
-    },
-    {
-      "name": "S11 \u2014 Temporal cutoff (S3 on recent 70% data)",
-      "strategy": "temporal_cutoff",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 17.9319,
-        "mae": 358.8277,
-        "rmse": 1415.8665,
-        "r2": 0.418681
-      },
-      "description": "Same as S3 but trained only on most recent 70% of data and evaluated on the shared balanced holdout"
-    },
-    {
-      "name": "S12 \u2014 Fine lookup (0.01ct + Cut, no ML)",
-      "strategy": "fine_lookup_consensus",
-      "target_type": "lookup",
-      "metrics": {
-        "count": 792,
-        "mape": 10.6078,
-        "mae": 158.9795,
-        "rmse": 786.4553,
-        "r2": 0.820643
-      },
-      "description": "Direct lookup at 0.01ct\u00d7Cut resolution. Fallback distribution: {'F': 187, 'G': 136, 'A': 400, 'C': 39, 'H': 3, 'E': 24, 'B': 3}",
-      "_level_counts": {
-        "F": 187,
-        "G": 136,
-        "A": 400,
-        "C": 39,
-        "H": 3,
-        "E": 24,
-        "B": 3
+      "largeCaratTailSummary": {
+        "globalSlope": 0.30225472,
+        "startCarat": 5.0,
+        "levelCounts": {
+          "SCCT": 71,
+          "SCCG": 69,
+          "SCC": 62,
+          "SG": 19,
+          "S": 12,
+          "G": 5
+        }
       }
-    },
-    {
-      "name": "S13 \u2014 Two-stage (lookup + ML residual)",
-      "strategy": "two_stage_residual",
-      "target_type": "two_stage",
-      "metrics": {
-        "count": 792,
-        "mape": 10.9095,
-        "mae": 160.7803,
-        "rmse": 789.0595,
-        "r2": 0.819453
-      },
-      "description": "Stage1: fine lookup consensus. Stage2: ExtraTrees on residual using Polish/Sym/measurements/magic features"
-    },
-    {
-      "name": "S14 \u2014 Cut-specific models + magic features",
-      "strategy": "cut_specific",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 5.7698,
-        "mae": 74.5042,
-        "rmse": 408.0768,
-        "r2": 0.95171
-      },
-      "description": "Separate ExtraTrees per Cut grade (EX, ID, VG, \u4f20\u7edf\u5207, \u51b0\u82b1\u5207, \u8001\u6b27\u5207, \u8001\u77ff\u5207, \u957f\u57ab\u5f62) with magic threshold features"
-    },
-    {
-      "name": "S15 \u2014 S3 + magic threshold features",
-      "strategy": "magic_thresholds",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 5.0674,
-        "mae": 62.6633,
-        "rmse": 388.8183,
-        "r2": 0.956161
-      },
-      "description": "S3 base + 1/(carat-magic+eps), log(1+dist), magic_number features to capture premium decay"
-    },
-    {
-      "name": "S16 \u2014 S3 + Cut\u00d7Carat + Cut\u00d7Color\u00d7Clarity interactions",
-      "strategy": "cut_carat_interactions",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 5.2885,
-        "mae": 68.3132,
-        "rmse": 400.0418,
-        "r2": 0.953593
-      },
-      "description": "Explicit Cut\u00d7carat_bucket and Cut\u00d7Color\u00d7Clarity interaction features on top of S3"
-    },
-    {
-      "name": "S17 \u2014 Full combo v2 (temporal + lookup + magic + Cut interactions)",
-      "strategy": "full_combo_v2",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 19.1765,
-        "mae": 382.4664,
-        "rmse": 1485.3422,
-        "r2": 0.360231
-      },
-      "description": "All structural fixes: recent-only training, shared balanced holdout, fine lookup, magic thresholds, Cut interactions"
-    },
-    {
-      "name": "S18 \u2014 Temporal cutoff, shallower trees",
-      "strategy": "temporal_cutoff_shallow",
-      "target_type": "log_rate",
-      "metrics": {
-        "count": 792,
-        "mape": 17.874,
-        "mae": 356.5782,
-        "rmse": 1407.2188,
-        "r2": 0.42576
-      },
-      "description": "S11 recent 70% training window with shared balanced holdout, base features, 200 trees, max_depth=24"
     }
   ],
   "bestStrategy": {
-    "name": "S7 \u2014 Full combo (rate + MAE + all features + 200 trees)",
-    "strategy": "full_combo",
-    "target_type": "log_rate",
+    "name": "S20 \u2014 Specialty cut + monotonic large-carat tail",
+    "strategy": "specialty_cut_tail_selected_spec",
+    "target_type": "log_tail_lookup_residual",
     "metrics": {
       "count": 792,
-      "mape": 4.8878,
-      "mae": 61.4855,
-      "rmse": 392.7546,
-      "r2": 0.955269
+      "mape": 6.0122,
+      "mae": 62.2378,
+      "rmse": 332.4362,
+      "r2": 0.967953
     },
-    "description": "All innovations: rate target, MAE splits, lookup+category priors, depth=None, 200 trees"
+    "certLoadedMetrics": {
+      "count": 792,
+      "mape": 5.4058,
+      "mae": 58.427,
+      "rmse": 327.8815,
+      "r2": 0.968825
+    },
+    "segmentMetrics": {
+      "byCaratBucket": {
+        "0.30-0.49": {
+          "count": 13,
+          "mape": 4.1742,
+          "mae": 2.3247,
+          "rmse": 2.8784,
+          "r2": 0.95939
+        },
+        "0.50-0.69": {
+          "count": 46,
+          "mape": 4.6965,
+          "mae": 5.2862,
+          "rmse": 9.1287,
+          "r2": 0.939552
+        },
+        "0.70-0.89": {
+          "count": 38,
+          "mape": 4.3444,
+          "mae": 6.2472,
+          "rmse": 11.0677,
+          "r2": 0.891093
+        },
+        "0.90-0.99": {
+          "count": 1,
+          "mape": 0.4954,
+          "mae": 0.6706,
+          "rmse": 0.6706,
+          "r2": null
+        },
+        "1.00-1.49": {
+          "count": 151,
+          "mape": 3.6161,
+          "mae": 6.0983,
+          "rmse": 13.367,
+          "r2": 0.903295
+        },
+        "1.50-1.99": {
+          "count": 115,
+          "mape": 6.3824,
+          "mae": 15.3921,
+          "rmse": 30.8164,
+          "r2": 0.812194
+        },
+        "10.00+": {
+          "count": 51,
+          "mape": 7.213,
+          "mae": 540.3144,
+          "rmse": 1273.2203,
+          "r2": 0.935081
+        },
+        "2.00-2.99": {
+          "count": 113,
+          "mape": 5.6454,
+          "mae": 20.2751,
+          "rmse": 34.9607,
+          "r2": 0.914429
+        },
+        "3.00-3.99": {
+          "count": 99,
+          "mape": 6.0922,
+          "mae": 33.0675,
+          "rmse": 74.6166,
+          "r2": 0.863079
+        },
+        "4.00-4.99": {
+          "count": 56,
+          "mape": 3.5582,
+          "mae": 27.5351,
+          "rmse": 52.2188,
+          "r2": 0.898428
+        },
+        "5.00-9.99": {
+          "count": 109,
+          "mape": 11.354,
+          "mae": 104.8368,
+          "rmse": 188.2948,
+          "r2": 0.900014
+        }
+      },
+      "byCutStyle": {
+        "elongated_cushion": {
+          "count": 5,
+          "mape": 10.9791,
+          "mae": 257.0859,
+          "rmse": 390.0199,
+          "r2": 0.5665
+        },
+        "ice_flower": {
+          "count": 32,
+          "mape": 9.6644,
+          "mae": 359.0391,
+          "rmse": 971.2925,
+          "r2": 0.946841
+        },
+        "standard_grade": {
+          "count": 185,
+          "mape": 7.4641,
+          "mae": 41.462,
+          "rmse": 292.5274,
+          "r2": 0.922669
+        },
+        "traditional": {
+          "count": 33,
+          "mape": 7.4,
+          "mae": 77.589,
+          "rmse": 156.1373,
+          "r2": 0.994695
+        },
+        "unknown": {
+          "count": 537,
+          "mape": 5.1629,
+          "mae": 48.9512,
+          "rmse": 272.7266,
+          "r2": 0.976118
+        }
+      },
+      "selectedSpec10ctPlus": {
+        "count": 51,
+        "mape": 7.213,
+        "mae": 540.3144,
+        "rmse": 1273.2203,
+        "r2": 0.935081
+      },
+      "selectedSpec8ctPlus": {
+        "count": 70,
+        "mape": 6.9368,
+        "mae": 433.3364,
+        "rmse": 1096.3709,
+        "r2": 0.942476
+      }
+    },
+    "description": "S19 residual model plus explicit Chinese specialty-cut features and a monotonic parametric 5ct+ tail, 160 trees, depth=20",
+    "pinnedCases": {
+      "3ct_round_e_vs1_id_selected_spec": {
+        "price": 326.7514,
+        "rate": 108.9171,
+        "tailBaseRate": 108.8138,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 239,
+        "tailMultiplier": 1.0,
+        "tailLevel": "NONE",
+        "tailCount": 0,
+        "tailSlope": 0.0
+      },
+      "8ct_round_e_vs1_id_selected_spec": {
+        "price": 1730.0335,
+        "rate": 216.2542,
+        "tailBaseRate": 127.7915,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.44365,
+        "tailLevel": "SCCG",
+        "tailCount": 58,
+        "tailSlope": 0.78121679
+      },
+      "10ct_round_e_vs1_id_selected_spec": {
+        "price": 3082.9673,
+        "rate": 308.2967,
+        "tailBaseRate": 127.7915,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.71858,
+        "tailLevel": "SCCG",
+        "tailCount": 58,
+        "tailSlope": 0.78121679
+      },
+      "12ct_round_e_vs1_id_selected_spec": {
+        "price": 4078.4904,
+        "rate": 339.8742,
+        "tailBaseRate": 127.7915,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.981652,
+        "tailLevel": "SCCG",
+        "tailCount": 58,
+        "tailSlope": 0.78121679
+      }
+    },
+    "largeCaratTailSummary": {
+      "globalSlope": 0.30225472,
+      "startCarat": 5.0,
+      "levelCounts": {
+        "SCCT": 71,
+        "SCCG": 69,
+        "SCC": 62,
+        "SG": 19,
+        "S": 12,
+        "G": 5
+      }
+    }
   }
 }

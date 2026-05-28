@@ -945,8 +945,8 @@ async function loadStarsgemPricingIntel() {
 async function loadStarsgemMlModel() {
   if (_starsgemMlModel) return _starsgemMlModel;
   if (_starsgemMlModelPromise) return _starsgemMlModelPromise;
-  // S19 selected-spec model keeps the raw ML card calibrated before IGI dimensions load.
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s19-selected-spec.json?v=20260527-s19-selected-spec')
+  // S20 keeps selected-spec calibration while adding specialty-cut features and a monotonic 5ct+ tail.
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s20-specialty-tail.json?v=20260527-s20-specialty-tail')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1785,6 +1785,8 @@ function starsgemCaratBucket(ct) {
 function starsgemShapeForLookup(shapeKey) {
   const map = {
     round:'ROUND',
+    old_european:'ROUND',
+    old_mine:'ROUND',
     oval:'OVAL',
     moval:'OVAL',
     pear:'PEAR',
@@ -1810,6 +1812,8 @@ function starsgemTypeNameForState() {
 }
 
 function starsgemCutForState() {
+  const specialtyCut = starsgemSpecialtyCutForState();
+  if (specialtyCut) return specialtyCut;
   if (!state.hasCutGrade) return '-';
   if (state.cut === 'ideal') return 'ID';
   if (state.cut === 'vg') return 'VG';
@@ -1817,8 +1821,34 @@ function starsgemCutForState() {
   return starsgemNorm(state.cut);
 }
 
+function starsgemSpecialtyCutForState() {
+  const map = {
+    elongated_cushion: '长垫形',
+    old_european: '老欧切',
+    old_mine: '老矿切',
+  };
+  return map[state.shape] || null;
+}
+
+function starsgemCutStyleGroup(cut) {
+  const value = String(cut ?? '-').trim();
+  const map = {
+    '传统切': 'traditional',
+    '冰花切': 'ice_flower',
+    '长垫形': 'elongated_cushion',
+    '老欧切': 'old_european',
+    '老矿切': 'old_miner',
+  };
+  if (map[value]) return map[value];
+  const norm = starsgemNorm(value);
+  if (norm === '-') return 'unknown';
+  if (['ID','EX','VG','GD'].includes(norm)) return 'standard_grade';
+  return 'unknown';
+}
+
 function starsgemLookupRowFromState(ct = state.carat) {
   const dims = parseMeasurementTriplet(state.reportMeasurements);
+  const cut = starsgemCutForState();
   return {
     Carat: ct,
     carat_bucket: starsgemCaratBucket(ct),
@@ -1827,7 +1857,8 @@ function starsgemLookupRowFromState(ct = state.carat) {
     Clarity: starsgemNorm(state.clarity),
     TypeName: starsgemTypeNameForState(),
     Report: 'IGI',
-    Cut: starsgemCutForState(),
+    Cut: cut,
+    Cut_Style_Group: starsgemCutStyleGroup(cut),
     Polish: 'EX',
     Symmetry: 'EX',
     Fluorescence: '-',
@@ -1897,6 +1928,29 @@ function starsgemNumericFeatureValue(row, field, model) {
   if (field === 'Log_Carat') return Number.isFinite(carat) && carat > 0 ? Math.log(carat) : row?.[field];
   if (field === 'Carat_bucket_pos') return starsgemCaratBucketPosition(carat);
   if (field === 'Dist_carat_threshold') return Number.isFinite(carat) ? Math.abs(carat - Math.round(carat * 2) / 2) : row?.[field];
+  if (field === 'Is_Specialty_Cut') {
+    const group = starsgemCutStyleGroup(row?.Cut);
+    return group !== 'standard_grade' && group !== 'unknown' ? 1 : 0;
+  }
+  if (field === 'Is_Traditional_Cut') return starsgemCutStyleGroup(row?.Cut) === 'traditional' ? 1 : 0;
+  if (field === 'Is_IceFlower_Cut') return starsgemCutStyleGroup(row?.Cut) === 'ice_flower' ? 1 : 0;
+  if (field === 'Is_Large_Carat') return Number.isFinite(carat) && carat >= starsgemLargeCaratTailStart(model) ? 1 : 0;
+  if (field === 'Is_10ct_Plus') return Number.isFinite(carat) && carat >= 10 ? 1 : 0;
+  if (field === 'Large_Carat_Tail_X') return starsgemLargeCaratTailX(row, model);
+  if (field === 'Large_Carat_Tail_X_sq') {
+    const x = starsgemLargeCaratTailX(row, model);
+    return x * x;
+  }
+  if (field === 'Tail_Base_Lookup_RatePerCt') return starsgemModelTailBaseLookupRate(row, model).rate;
+  if (field === 'Log_Tail_Base_Lookup_RatePerCt') {
+    const rate = starsgemModelTailBaseLookupRate(row, model).rate;
+    return Number.isFinite(rate) && rate > 0 ? Math.log(rate) : row?.[field];
+  }
+  if (field === 'Tail_Base_Lookup_Count') return starsgemModelTailBaseLookupRate(row, model).count || 0;
+  if (field === 'Large_Carat_Tail_Multiplier') return starsgemLargeCaratTailMultiplier(row, model).multiplier;
+  if (field === 'Log_Large_Carat_Tail_Multiplier') return Math.log(Math.max(starsgemLargeCaratTailMultiplier(row, model).multiplier || 1, 0.000001));
+  if (field === 'Large_Carat_Tail_Slope') return starsgemLargeCaratTailMultiplier(row, model).slope || 0;
+  if (field === 'Large_Carat_Tail_Count') return starsgemLargeCaratTailMultiplier(row, model).count || 0;
   if (field === 'Lookup_RatePerCt') return starsgemModelLookupRate(row, model).rate;
   if (field === 'Lookup_IsGlobal') return starsgemModelLookupRate(row, model).level === 'GLOBAL' ? 1 : 0;
   if (field === 'Lookup_Count') return starsgemModelLookupRate(row, model).count || 0;
@@ -1930,6 +1984,47 @@ function starsgemNumericFeatureValue(row, field, model) {
     return Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0 ? 0 : 1;
   }
   return row?.[field];
+}
+
+function starsgemLargeCaratTailStart(model) {
+  return Number(model?.largeCaratTail?.startCarat) || 5;
+}
+
+function starsgemLargeCaratTailX(row, model) {
+  const carat = Number(row?.Carat ?? row?.carat);
+  const start = starsgemLargeCaratTailStart(model);
+  return Number.isFinite(carat) && carat > start ? Math.log(carat / start) : 0;
+}
+
+function starsgemTailAnchorRow(row, model) {
+  const carat = Number(row?.Carat ?? row?.carat);
+  const start = starsgemLargeCaratTailStart(model);
+  if (!Number.isFinite(carat) || carat <= start) return row;
+  return { ...row, carat_bucket: '5.00-9.99' };
+}
+
+function starsgemModelTailBaseLookupRate(row, model) {
+  return starsgemModelLookupRate(starsgemTailAnchorRow(row, model), model);
+}
+
+function starsgemLargeCaratTailMultiplier(row, model) {
+  const tail = model?.largeCaratTail;
+  const x = starsgemLargeCaratTailX(row, model);
+  if (!tail || x <= 0) return { multiplier: 1, level: 'NONE', count: 0, slope: 0 };
+  const normalized = { ...row, Cut_Style_Group: row?.Cut_Style_Group || starsgemCutStyleGroup(row?.Cut) };
+  for (const table of tail.levels || []) {
+    const key = (table.fields || []).map(field => {
+      if (field === 'Cut_Style_Group') return normalized.Cut_Style_Group || 'unknown';
+      return starsgemNorm(normalized[field]);
+    }).join('||');
+    const hit = table.groups?.[key];
+    if (hit) {
+      const slope = Number(hit.slope) || 0;
+      return { multiplier: Math.exp(slope * x), level: table.level || 'TAIL', count: hit.count || 0, slope };
+    }
+  }
+  const slope = Number(tail.globalSlope) || 0;
+  return { multiplier: Math.exp(slope * x), level: 'GLOBAL', count: 0, slope };
 }
 
 function starsgemModelLookupRate(row, model) {
@@ -2047,13 +2142,19 @@ function predictStarsgemMl(row) {
   }
   const logVal = logSum / model.trees.length;
   const carat = Number(row.Carat ?? row.carat);
-  const lookupRate = model.targetType === 'log_lookup_residual' ? starsgemModelLookupRate(row, model).rate : null;
-  const price = model.targetType === 'log_lookup_residual'
+  const isTailResidual = model.targetType === 'log_tail_lookup_residual';
+  const lookupRate = isTailResidual
+    ? starsgemModelTailBaseLookupRate(row, model).rate
+    : model.targetType === 'log_lookup_residual' ? starsgemModelLookupRate(row, model).rate : null;
+  const tail = isTailResidual ? starsgemLargeCaratTailMultiplier(row, model) : { multiplier: 1, level: 'NONE', count: 0, slope: 0 };
+  const price = isTailResidual
+    ? Math.max(0.01, Math.exp(logVal) * (Number.isFinite(lookupRate) && lookupRate > 0 ? lookupRate : 1) * tail.multiplier * carat)
+    : model.targetType === 'log_lookup_residual'
     ? Math.max(0.01, Math.exp(logVal) * (Number.isFinite(lookupRate) && lookupRate > 0 ? lookupRate : 1) * carat)
     : model.targetType === 'log_rate'
     ? Math.max(0.01, Math.exp(logVal) * carat)
     : Math.max(0.01, Math.exp(logVal));
-  return { price, method: 'ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount };
+  return { price, method: 'ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount, tail };
 }
 
 function starsgemCompareSummary(mlPred, lookupPred) {
@@ -2088,12 +2189,6 @@ function updateStarsgemPricingIntel() {
     levelEl.textContent = '—';
     rateEl.textContent = '—';
     bucketEl.textContent = starsgemCaratBucket(state.carat);
-    if (compareHeadlineEl) compareHeadlineEl.textContent = 'Comparison unavailable';
-    if (comparePillEl) comparePillEl.textContent = '—';
-    if (compareMlEl) compareMlEl.textContent = '—';
-    if (compareSheetEl) compareSheetEl.textContent = '—';
-    if (compareInaccuracyEl) compareInaccuracyEl.textContent = '—';
-    if (compareNoteEl) compareNoteEl.textContent = 'Load the StarGem lookup artifact and ML model to compare inaccuracy.';
     return;
   }
 
@@ -2108,7 +2203,10 @@ function updateStarsgemPricingIntel() {
     if (mlModelEl) mlModelEl.textContent = mlPred.modelName || 'ML';
     if (mlNoteEl) {
       const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth when available' : 'using selected specs; dimensions are imputed until an IGI report is loaded';
-      mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> Extra Trees model prediction (${dims}).`;
+      const tailNote = mlPred.tail?.level && mlPred.tail.level !== 'NONE'
+        ? ` Large-stone tail: ${escapeHTML(mlPred.tail.level)}${mlPred.tail.count ? `, n=${mlPred.tail.count}` : ''}, ${mlPred.tail.multiplier.toFixed(2)}×.`
+        : '';
+      mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> Extra Trees model prediction (${dims}).${tailNote}`;
     }
   } else if (mlPriceEl) {
     mlPriceEl.textContent = 'Loading ML model…';

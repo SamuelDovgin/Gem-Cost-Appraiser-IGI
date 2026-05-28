@@ -29,7 +29,9 @@ DATA_DIR = SCRIPT_DIR.parent / "data"
 ENRICHMENT_PATH = DATA_DIR / "igi-report-enrichment.json"
 LEGACY_CACHE_PATH = DATA_DIR / "igi-shape-cache.json"
 STARSGEM_INDEX = DATA_DIR / "starsgem-index.json"
+STARSGEM_COLOR_INDEX = DATA_DIR / "starsgem-color-index.json"
 MESSI_INDEX = DATA_DIR / "messi-gems-index.json"
+MESSI_COLOR_INDEX = DATA_DIR / "messi-color-index.json"
 
 # Shapes we never override from sheet-only specialty flags when IGI disagrees
 IGI_SHAPE_AUTHORITY = True
@@ -190,8 +192,15 @@ def needs_enrichment(entry: dict | None) -> bool:
 
 
 def all_report_digits_from_indexes() -> dict[str, set[str]]:
-    out = {"starsgem": set(), "messi": set()}
-    for supplier, path in (("starsgem", STARSGEM_INDEX), ("messi", MESSI_INDEX)):
+    out = {"starsgem": set(), "starsgem_color": set(), "messi": set(), "messi_color": set()}
+    for supplier, path in (
+        ("starsgem", STARSGEM_INDEX),
+        ("starsgem_color", STARSGEM_COLOR_INDEX),
+        ("messi", MESSI_INDEX),
+        ("messi_color", MESSI_COLOR_INDEX),
+    ):
+        if not path.exists():
+            continue
         with path.open(encoding="utf-8") as f:
             data = json.load(f)
         for r in data.get("records", []):
@@ -361,6 +370,12 @@ def apply_enrichment_to_records(records: list[dict], store: dict | None = None) 
 
 
 def apply_enrichment_to_index(path: Path, store: dict) -> dict:
+    if not path.exists():
+        return {
+            "enriched": 0,
+            "shapeReclassified": 0,
+            "skipped": "index_not_found",
+        }
     with path.open(encoding="utf-8") as f:
         data = json.load(f)
     reclassified_shapes = 0

@@ -1,0 +1,56 @@
+{
+  "sourceAdjustment": {
+    "messiColorToStarsgemLikeFactor": 1.25,
+    "starsgemDirectFactor": 1.0
+  },
+  "rowCounts": {
+    "all": 1657,
+    "train": 1496,
+    "validation": 161,
+    "source_messi_color": 1652,
+    "source_starsgem_color": 5
+  },
+  "validation": {
+    "count": 161,
+    "mape": 0.031196115003150858,
+    "medianApe": 0.007749083688684375,
+    "bySource": {
+      "messi_color": {
+        "count": 161,
+        "mape": 0.031196115003150858,
+        "medianApe": 0.007749083688684375
+      }
+    },
+    "mae": 34.468802544178814,
+    "r2": 0.9587484146856895
+  },
+  "train": {
+    "count": 1496,
+    "mape": 0.016020901741185502,
+    "medianApe": 0.003022990147358994,
+    "bySource": {
+      "messi_color": {
+        "count": 1491,
+        "mape": 0.016074627099137147,
+        "medianApe": 0.003044890498420994
+      },
+      "starsgem_color": {
+        "count": 5,
+        "mape": 5.220945230297796e-15,
+        "medianApe": 3.7433470957117475e-15
+      }
+    }
+  },
+  "directStarGemAnchorsInSample": {
+    "count": 5,
+    "mape": 5.220945230297796e-15,
+    "medianApe": 3.7433470957117475e-15,
+    "bySource": {
+      "starsgem_color": {
+        "count": 5,
+        "mape": 5.220945230297796e-15,
+        "medianApe": 3.7433470957117475e-15
+      }
+    }
+  }
+}

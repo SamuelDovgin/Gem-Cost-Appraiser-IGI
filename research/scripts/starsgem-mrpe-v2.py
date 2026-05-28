@@ -70,7 +70,7 @@ LOOKUP_LEVELS = [
 
 CATEGORICAL_FEATURES = [
     "Shape", "Color", "Clarity", "Cut", "Polish", "Symmetry",
-    "Fluorescence", "Report", "TypeName", "carat_bucket",
+    "Fluorescence", "Report", "TypeName", "carat_bucket", "Cut_Style_Group",
 ]
 NUMERIC_FEATURES = [
     "Carat", "Table_Scale", "Depth_Scale", "Length", "Width", "Height",
@@ -83,6 +83,25 @@ SELECTED_SPEC_FLAGS = [
     "Has_Report_Cut",
     "Is_SelectedSpec_Mode",
 ]
+SPECIALTY_CUT_LABELS = {
+    "传统切": "traditional",
+    "冰花切": "ice_flower",
+    "长垫形": "elongated_cushion",
+    "老欧切": "old_european",
+    "老矿切": "old_miner",
+}
+STANDARD_CUT_LABELS = {"-", "ID", "EX", "VG", "GD"}
+LARGE_CARAT_TAIL_LEVELS = [
+    ("SCCT", ["Shape", "Color", "Clarity", "Cut_Style_Group", "TypeName"]),
+    ("SCCG", ["Shape", "Color", "Clarity", "Cut_Style_Group"]),
+    ("SCC", ["Shape", "Color", "Clarity"]),
+    ("SG", ["Shape", "Cut_Style_Group"]),
+    ("S", ["Shape"]),
+    ("G", ["Cut_Style_Group"]),
+]
+LARGE_CARAT_TAIL_START_CT = 5.0
+LARGE_CARAT_TAIL_MIN_COUNT = 5
+LARGE_CARAT_TAIL_MAX_SLOPE = 1.25
 # New numeric features from IGI enrichment (optional, for enriched models)
 NUMERIC_FEATURES_IGI_ENRICHMENT = [
     "IGI_Enriched", "IGI_IsPortuguese", "IGI_IsTypeIIa",
@@ -174,6 +193,49 @@ def carat_bucket_position(carat):
             span = hi - lo
             return (carat - lo) / span if span > 0 else 0.5
     return 0.5
+
+
+def cut_style_group(cut):
+    cut_norm = norm_cat(cut)
+    if cut_norm in SPECIALTY_CUT_LABELS:
+        return SPECIALTY_CUT_LABELS[cut_norm]
+    if cut_norm in STANDARD_CUT_LABELS:
+        return "standard_grade" if cut_norm != "-" else "unknown"
+    return "unknown"
+
+
+def add_cut_style_features(row):
+    group = cut_style_group(row.get("Cut"))
+    row["Cut_Style_Group"] = group
+    row["Is_Specialty_Cut"] = 1.0 if group not in ("standard_grade", "unknown") else 0.0
+    row["Is_Traditional_Cut"] = 1.0 if group == "traditional" else 0.0
+    row["Is_IceFlower_Cut"] = 1.0 if group == "ice_flower" else 0.0
+    return row
+
+
+def large_carat_tail_x(carat):
+    if not carat or carat <= LARGE_CARAT_TAIL_START_CT:
+        return 0.0
+    return math.log(carat / LARGE_CARAT_TAIL_START_CT)
+
+
+def large_carat_tail_features(carat):
+    x = large_carat_tail_x(carat)
+    return {
+        "Is_Large_Carat": 1.0 if carat and carat >= LARGE_CARAT_TAIL_START_CT else 0.0,
+        "Is_10ct_Plus": 1.0 if carat and carat >= 10.0 else 0.0,
+        "Large_Carat_Tail_X": x,
+        "Large_Carat_Tail_X_sq": x * x,
+    }
+
+
+def tail_anchor_lookup_row(row):
+    """Use the 5-9.99ct surface as the anchor before applying the tail curve."""
+    out = dict(row)
+    carat = out.get("Carat")
+    if carat and carat > LARGE_CARAT_TAIL_START_CT:
+        out["carat_bucket"] = "5.00-9.99"
+    return out
 
 
 # Magic carat thresholds where price jumps discontinuously
@@ -308,6 +370,7 @@ def load_rows():
             "internal_rate_per_ct": internal_price / carat,
             "carat_bucket": carat_bucket(carat),
         }
+        add_cut_style_features(row)
         raw_rows.append(row)
     return raw_rows
 
@@ -414,6 +477,7 @@ def load_rows_enriched():
             "internal_rate_per_ct": internal_price / carat,
             "carat_bucket": carat_bucket(carat),
         }
+        add_cut_style_features(row)
         raw_rows.append(row)
     return raw_rows
 
@@ -541,6 +605,83 @@ def lookup_predict_rate(row, tables, global_rate):
         if hit:
             return hit["usdPerCt"], table["level"], hit["count"]
     return global_rate / 170, "GLOBAL", 0
+
+
+def build_large_carat_tail_model(rows, lookup_tables, lookup_global_rate):
+    """Fit monotonic log-rate tail curves for large stones.
+
+    The tail is multiplicative on top of the 5-9.99ct lookup surface:
+      rate = base_lookup_rate * exp(slope * log(carat / 5))
+
+    Slopes are clipped non-negative so comparable specs never get cheaper per
+    carat only because the browser is extrapolating past the dense buckets.
+    """
+    rows_with_residuals = []
+    for row in rows:
+        carat = row.get("Carat")
+        if not carat or carat < LARGE_CARAT_TAIL_START_CT:
+            continue
+        base_rate, _, _ = lookup_predict_rate(tail_anchor_lookup_row(row), lookup_tables, lookup_global_rate)
+        x = large_carat_tail_x(carat)
+        if x <= 0 or not base_rate or base_rate <= 0:
+            continue
+        y = math.log(max(row["usd_per_ct"], 0.01) / max(base_rate, 0.01))
+        rows_with_residuals.append((row, x, y))
+
+    def fit_slope(items):
+        denom = sum(x * x for _, x, _ in items)
+        if denom <= 0:
+            return 0.0
+        slope = sum(x * y for _, x, y in items) / denom
+        return max(0.0, min(LARGE_CARAT_TAIL_MAX_SLOPE, slope))
+
+    global_slope = fit_slope(rows_with_residuals)
+    tables = []
+    for name, fields in LARGE_CARAT_TAIL_LEVELS:
+        grouped = defaultdict(list)
+        for row, x, y in rows_with_residuals:
+            key = tuple(str(row.get(f, "-")) for f in fields)
+            grouped[key].append((row, x, y))
+        groups = {}
+        for key, items in grouped.items():
+            count = len(items)
+            if count < LARGE_CARAT_TAIL_MIN_COUNT:
+                continue
+            raw_slope = fit_slope(items)
+            weight = count / (count + 20.0)
+            slope = weight * raw_slope + (1.0 - weight) * global_slope
+            groups["||".join(key)] = {
+                "slope": round(float(max(0.0, min(LARGE_CARAT_TAIL_MAX_SLOPE, slope))), 8),
+                "rawSlope": round(float(raw_slope), 8),
+                "count": count,
+            }
+        tables.append({"level": name, "fields": fields, "groups": groups})
+
+    return {
+        "startCarat": LARGE_CARAT_TAIL_START_CT,
+        "maxSlope": LARGE_CARAT_TAIL_MAX_SLOPE,
+        "minCount": LARGE_CARAT_TAIL_MIN_COUNT,
+        "globalSlope": round(float(global_slope), 8),
+        "levels": tables,
+    }
+
+
+def large_carat_tail_multiplier(row, tail_model):
+    if not tail_model:
+        return 1.0, "NONE", 0, 0.0
+    carat = row.get("Carat")
+    start_ct = float(tail_model.get("startCarat") or LARGE_CARAT_TAIL_START_CT)
+    if not carat or carat <= start_ct:
+        return 1.0, "NONE", 0, 0.0
+    x = math.log(carat / start_ct)
+    for table in tail_model.get("levels", []):
+        key = "||".join(str(row.get(f, "-")) for f in table.get("fields", []))
+        hit = table.get("groups", {}).get(key)
+        if hit:
+            slope = float(hit.get("slope") or 0.0)
+            return math.exp(slope * x), table.get("level", "TAIL"), int(hit.get("count") or 0), slope
+    slope = float(tail_model.get("globalSlope") or 0.0)
+    return math.exp(slope * x), "GLOBAL", 0, slope
 
 
 def build_hybrid_anchor_table(rows):
@@ -732,6 +873,7 @@ def selected_spec_view(row, mask_cut=False):
     out["TypeName"] = "-"
     if mask_cut:
         out["Cut"] = "-"
+    add_cut_style_features(out)
     for field in ("Table_Scale", "Depth_Scale", "Length", "Width", "Height", "LengthWidthRatio"):
         out[field] = None
     out["Has_Dimensions"] = 0.0
@@ -745,6 +887,7 @@ def selected_spec_view(row, mask_cut=False):
 def cert_loaded_view(row):
     """Report-loaded view with explicit missingness flags."""
     out = dict(row)
+    add_cut_style_features(out)
     out["Has_Dimensions"] = 1.0 if all(out.get(f) for f in ("Length", "Width", "Height", "LengthWidthRatio")) else 0.0
     out["Has_TableDepth"] = 1.0 if out.get("Table_Scale") and out.get("Depth_Scale") else 0.0
     out["Has_GrowthMethod"] = 1.0 if norm_cat(out.get("TypeName")) != "-" else 0.0
@@ -830,6 +973,48 @@ def s19_predict_prices(pipe, rows, lookup_tables, lookup_global_rate,
     return prices
 
 
+def as_model_frame_s20(rows, lookup_tables, lookup_global_rate,
+                       cat_tables, cat_global_prior, cat_levels, tail_model):
+    """S20 frame: S19 features plus explicit specialty-cut and tail features."""
+    df = as_model_frame_s19(rows, lookup_tables, lookup_global_rate, cat_tables, cat_global_prior, cat_levels)
+    for idx, row in enumerate(rows):
+        add_cut_style_features(row)
+        group = row.get("Cut_Style_Group")
+        df.at[idx, "Is_Specialty_Cut"] = float(row.get("Is_Specialty_Cut", 0.0) or 0.0)
+        df.at[idx, "Is_Traditional_Cut"] = float(row.get("Is_Traditional_Cut", 0.0) or 0.0)
+        df.at[idx, "Is_IceFlower_Cut"] = float(row.get("Is_IceFlower_Cut", 0.0) or 0.0)
+
+        carat = row.get("Carat")
+        for name, value in large_carat_tail_features(carat).items():
+            df.at[idx, name] = value
+
+        tail_base_rate, tail_base_level, tail_base_count = lookup_predict_rate(
+            tail_anchor_lookup_row(row), lookup_tables, lookup_global_rate
+        )
+        tail_mult, tail_level, tail_count, tail_slope = large_carat_tail_multiplier(row, tail_model)
+        df.at[idx, "Tail_Base_Lookup_RatePerCt"] = tail_base_rate
+        df.at[idx, "Log_Tail_Base_Lookup_RatePerCt"] = math.log(tail_base_rate) if tail_base_rate and tail_base_rate > 0 else None
+        df.at[idx, "Tail_Base_Lookup_Count"] = float(tail_base_count or 0)
+        df.at[idx, "Large_Carat_Tail_Multiplier"] = tail_mult
+        df.at[idx, "Log_Large_Carat_Tail_Multiplier"] = math.log(tail_mult) if tail_mult and tail_mult > 0 else 0.0
+        df.at[idx, "Large_Carat_Tail_Slope"] = tail_slope
+        df.at[idx, "Large_Carat_Tail_Count"] = float(tail_count or 0)
+    return df
+
+
+def s20_predict_prices(pipe, rows, lookup_tables, lookup_global_rate,
+                       cat_tables, cat_global_prior, cat_levels, tail_model):
+    residual_preds = pipe.predict(as_model_frame_s20(
+        rows, lookup_tables, lookup_global_rate, cat_tables, cat_global_prior, cat_levels, tail_model
+    ))
+    prices = []
+    for residual, row in zip(residual_preds, rows):
+        base_rate, _, _ = lookup_predict_rate(tail_anchor_lookup_row(row), lookup_tables, lookup_global_rate)
+        tail_mult, _, _, _ = large_carat_tail_multiplier(row, tail_model)
+        prices.append(max(0.01, base_rate * tail_mult * math.exp(residual) * row["Carat"]))
+    return prices
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MODEL EXPORT
 # ═══════════════════════════════════════════════════════════════════════════
@@ -840,13 +1025,15 @@ def round_list(values, digits=8):
 
 def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_type,
                  lookup_tables=None, lookup_global=None,
-                 cat_tables=None, cat_global=None, cat_levels=None):
+                 cat_tables=None, cat_global=None, cat_levels=None,
+                 large_carat_tail=None):
     """Serialize the fitted ExtraTrees pipeline to JSON.
 
     target_type:
       - 'log_price': target = log(price)
       - 'log_rate': target = log(price/carat)
       - 'log_lookup_residual': target = log((price/carat) / lookup_rate)
+      - 'log_tail_lookup_residual': target = log((price/carat) / (lookup_rate * large_carat_tail))
     """
     pre = pipe.named_steps["pre"]
     model = pipe.named_steps["model"]
@@ -877,12 +1064,14 @@ def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_
         "generatedDate": str(date.today()),
         "modelName": model_name,
         "target": (
-            "log((SaleDollorPrice/Carat)/Lookup_RatePerCt)" if target_type == "log_lookup_residual"
+            "log((SaleDollorPrice/Carat)/(Lookup_RatePerCt*Large_Carat_Tail_Multiplier))" if target_type == "log_tail_lookup_residual"
+            else "log((SaleDollorPrice/Carat)/Lookup_RatePerCt)" if target_type == "log_lookup_residual"
             else "log(SaleDollorPrice/Carat)" if target_type == "log_rate"
             else "log(SaleDollorPrice)"
         ),
         "prediction": (
-            "Lookup_RatePerCt * exp(mean(tree_log_predictions)) * Carat" if target_type == "log_lookup_residual"
+            "Lookup_RatePerCt * Large_Carat_Tail_Multiplier * exp(mean(tree_log_predictions)) * Carat" if target_type == "log_tail_lookup_residual"
+            else "Lookup_RatePerCt * exp(mean(tree_log_predictions)) * Carat" if target_type == "log_lookup_residual"
             else "exp(mean(tree_log_predictions)) * Carat" if target_type == "log_rate"
             else "exp(mean(tree_log_predictions))"
         ),
@@ -906,6 +1095,7 @@ def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_
             "categoryGlobalRate": cat_global,
             "categoryLevels": cat_levels or [],
         },
+        "largeCaratTail": large_carat_tail,
         "hybridRouter": build_hybrid_anchor_table(load_rows_enriched() if "--enriched" in sys.argv else load_rows()),
         "treeCount": len(trees),
         "trees": trees,
@@ -2151,6 +2341,146 @@ def strategy_s19_lookup_residual_selected_spec(train, test, all_rows=None):
     }
 
 
+def metrics_for_subset(rows, preds, predicate):
+    actual = []
+    predicted = []
+    for row, pred in zip(rows, preds):
+        if predicate(row):
+            actual.append(row["SaleDollorPrice"])
+            predicted.append(pred)
+    return metrics(actual, predicted)
+
+
+def strategy_s20_specialty_tail_selected_spec(train, test, all_rows=None):
+    """S20 — S19 plus specialty-cut features and monotonic large-carat tail."""
+    import numpy as np
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import OneHotEncoder
+    from sklearn.ensemble import ExtraTreesRegressor
+
+    tables, global_rate = build_lookup(train)
+    cat_tables, cat_global, cat_levels = build_category_prior(train)
+    tail_model = build_large_carat_tail_model(train, tables, global_rate)
+
+    augmented_train = s19_augmented_training_rows(train)
+    cert_test = [cert_loaded_view(row) for row in test]
+    selected_test = [selected_spec_view(row, mask_cut=False) for row in test]
+
+    feats_num = NUMERIC_FEATURES + SELECTED_SPEC_FLAGS + [
+        "Carat_sq", "Carat_cube", "Log_Carat",
+        "Carat_bucket_pos", "Dist_carat_threshold",
+        "Dim_Volume", "Dim_Surface", "LW_Ratio_refined", "Table_Depth_Ratio",
+        "Lookup_RatePerCt", "Lookup_IsGlobal", "Lookup_Count", "Log_Lookup_Count",
+        "Log_Lookup_RatePerCt", "Category_RatePerCt", "Log_Category_RatePerCt",
+        "Is_Specialty_Cut", "Is_Traditional_Cut", "Is_IceFlower_Cut",
+        "Is_Large_Carat", "Is_10ct_Plus",
+        "Large_Carat_Tail_X", "Large_Carat_Tail_X_sq",
+        "Tail_Base_Lookup_RatePerCt", "Log_Tail_Base_Lookup_RatePerCt",
+        "Tail_Base_Lookup_Count",
+        "Large_Carat_Tail_Multiplier", "Log_Large_Carat_Tail_Multiplier",
+        "Large_Carat_Tail_Slope", "Large_Carat_Tail_Count",
+    ]
+
+    x_train = as_model_frame_s20(augmented_train, tables, global_rate, cat_tables, cat_global, cat_levels, tail_model)
+    y_train = []
+    for row in augmented_train:
+        base_rate, _, _ = lookup_predict_rate(tail_anchor_lookup_row(row), tables, global_rate)
+        tail_mult, _, _, _ = large_carat_tail_multiplier(row, tail_model)
+        y_train.append(math.log(max(row["usd_per_ct"], 0.01) / max(base_rate * tail_mult, 0.01)))
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+        ("num", SimpleImputer(strategy="median"), feats_num),
+    ])
+    model = ExtraTreesRegressor(
+        n_estimators=160,
+        max_depth=20,
+        min_samples_leaf=2,
+        criterion="absolute_error",
+        max_features="sqrt",
+        random_state=42,
+        n_jobs=-1,
+    )
+    pipe = Pipeline([("pre", pre), ("model", model)])
+    pipe.fit(x_train, np.array(y_train))
+
+    selected_preds = s20_predict_prices(pipe, selected_test, tables, global_rate, cat_tables, cat_global, cat_levels, tail_model)
+    cert_preds = s20_predict_prices(pipe, cert_test, tables, global_rate, cat_tables, cat_global, cat_levels, tail_model)
+
+    pinned_cases = {}
+    for ct in (3.0, 8.0, 10.0, 12.0):
+        pinned = selected_spec_view({
+            "Carat": ct,
+            "carat_bucket": carat_bucket(ct),
+            "Shape": "ROUND",
+            "Color": "E",
+            "Clarity": "VS1",
+            "Cut": "ID",
+            "Polish": "EX",
+            "Symmetry": "EX",
+            "Fluorescence": "-",
+            "Report": "IGI",
+            "TypeName": "-",
+            "SaleDollorPrice": 0,
+            "usd_per_ct": 0,
+        })
+        price = s20_predict_prices(pipe, [pinned], tables, global_rate, cat_tables, cat_global, cat_levels, tail_model)[0]
+        base_rate, base_level, base_count = lookup_predict_rate(tail_anchor_lookup_row(pinned), tables, global_rate)
+        tail_mult, tail_level, tail_count, tail_slope = large_carat_tail_multiplier(pinned, tail_model)
+        pinned_cases[f"{ct:g}ct_round_e_vs1_id_selected_spec"] = {
+            "price": round(price, 4),
+            "rate": round(price / ct, 4),
+            "tailBaseRate": round(base_rate, 4),
+            "tailBaseLevel": base_level,
+            "tailBaseCount": base_count,
+            "tailMultiplier": round(tail_mult, 6),
+            "tailLevel": tail_level,
+            "tailCount": tail_count,
+            "tailSlope": round(tail_slope, 8),
+        }
+
+    selected_metrics = metrics([r["SaleDollorPrice"] for r in test], selected_preds)
+    cert_metrics = metrics([r["SaleDollorPrice"] for r in test], cert_preds)
+    bucket_metrics = {
+        bucket: metrics_for_subset(test, selected_preds, lambda r, b=bucket: r.get("carat_bucket") == b)
+        for bucket in sorted({r.get("carat_bucket") for r in test})
+    }
+    cut_style_metrics = {
+        group: metrics_for_subset(test, selected_preds, lambda r, g=group: cut_style_group(r.get("Cut")) == g)
+        for group in sorted({cut_style_group(r.get("Cut")) for r in test})
+    }
+
+    return {
+        "name": "S20 — Specialty cut + monotonic large-carat tail",
+        "strategy": "specialty_cut_tail_selected_spec",
+        "target_type": "log_tail_lookup_residual",
+        "metrics": selected_metrics,
+        "certLoadedMetrics": cert_metrics,
+        "segmentMetrics": {
+            "byCaratBucket": bucket_metrics,
+            "byCutStyle": cut_style_metrics,
+            "selectedSpec10ctPlus": metrics_for_subset(test, selected_preds, lambda r: r.get("Carat", 0) >= 10.0),
+            "selectedSpec8ctPlus": metrics_for_subset(test, selected_preds, lambda r: r.get("Carat", 0) >= 8.0),
+        },
+        "description": "S19 residual model plus explicit Chinese specialty-cut features and a monotonic parametric 5ct+ tail, 160 trees, depth=20",
+        "pinnedCases": pinned_cases,
+        "largeCaratTailSummary": {
+            "globalSlope": tail_model.get("globalSlope"),
+            "startCarat": tail_model.get("startCarat"),
+            "levelCounts": {
+                level["level"]: len(level.get("groups", {}))
+                for level in tail_model.get("levels", [])
+            },
+        },
+        "pipe": pipe, "feats_num": feats_num,
+        "_lookup_tables": tables, "_lookup_global": global_rate,
+        "_cat_tables": cat_tables, "_cat_global": cat_global, "_cat_levels": cat_levels,
+        "_large_carat_tail": tail_model,
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MAIN RUNNER
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2164,6 +2494,7 @@ def run():
     # Check for --enriched flag
     use_enriched = "--enriched" in sys.argv
     only_s19 = "--only-s19" in sys.argv
+    only_s20 = "--only-s20" in sys.argv
     
     if use_enriched:
         rows = load_rows_enriched()
@@ -2179,7 +2510,11 @@ def run():
     print(f"Price range: ${min(r['SaleDollorPrice'] for r in rows):.2f}–${max(r['SaleDollorPrice'] for r in rows):.2f}")
     print()
 
-    if only_s19:
+    if only_s20:
+        strategies_fns = [
+            ("S20 (specialty cut + large-carat tail)", strategy_s20_specialty_tail_selected_spec),
+        ]
+    elif only_s19:
         strategies_fns = [
             ("S19 (lookup residual selected-spec)", strategy_s19_lookup_residual_selected_spec),
         ]
@@ -2211,6 +2546,7 @@ def run():
             ("S17 (full combo v2)",           strategy_s17_full_combo_v2),
             ("S18 (temporal shallow)",        strategy_s18_temporal_shallow),
             ("S19 (lookup residual selected-spec)", strategy_s19_lookup_residual_selected_spec),
+            ("S20 (specialty cut + large-carat tail)", strategy_s20_specialty_tail_selected_spec),
         ])
 
     results = []
@@ -2271,6 +2607,7 @@ def run():
             cat_tables=best_result.get("_cat_tables"),
             cat_global=best_result.get("_cat_global"),
             cat_levels=best_result.get("_cat_levels"),
+            large_carat_tail=best_result.get("_large_carat_tail"),
         )
     else:
         print("\n⚠  No exportable best result found.")
@@ -2291,13 +2628,15 @@ def run():
         "improvementPct": round(100 * (baseline_mape - best_mape) / baseline_mape, 2),
         "strategies": [
             {k: v for k, v in r.items() if k not in ("pipe", "feats_num",
-             "_lookup_tables", "_lookup_global", "_cat_tables", "_cat_global", "_cat_levels")}
+             "_lookup_tables", "_lookup_global", "_cat_tables", "_cat_global", "_cat_levels",
+             "_large_carat_tail")}
             for r in results
         ],
         "bestStrategy": {k: v for k, v in best_result.items()
                          if k not in ("pipe", "feats_num",
                           "_lookup_tables", "_lookup_global",
-                          "_cat_tables", "_cat_global", "_cat_levels")} if best_result else None,
+                          "_cat_tables", "_cat_global", "_cat_levels",
+                          "_large_carat_tail")} if best_result else None,
     }
 
     with open(RESULTS_JSON, "w") as f:

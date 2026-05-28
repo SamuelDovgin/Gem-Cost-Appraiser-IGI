@@ -563,3 +563,41 @@ The 5.00–9.99ct bucket has a $19/ct minimum, which is almost certainly a data 
 ### P3 — Train separate models for specialty-cut and standard-cut diamonds
 
 传统切/冰花切 stones are genuinely different products with different buyers. A joint model has to interpolate between their price logics. Two separate models (or a gating layer) would reduce their mutual contamination of each other's predictions.
+
+## Implementation Result - S20
+
+Implemented S20:
+
+```text
+S20 - Specialty cut + monotonic large-carat tail
+targetType: log_tail_lookup_residual
+trees: 160
+max_depth: 20
+min_samples_leaf: 2
+```
+
+Key changes:
+
+- added `Cut_Style_Group`, `Is_Specialty_Cut`, `Is_Traditional_Cut`, and `Is_IceFlower_Cut`,
+- mapped browser specialty shapes to StarGem Chinese cut labels where applicable,
+- added a monotonic 5ct+ large-carat tail: `lookup_rate_at_5ct_surface * exp(slope * log(carat / 5))`,
+- kept the ML card visible for 8ct+ and 10ct+ stones,
+- exported `starsgem-ml-extra-trees-model-s20-specialty-tail.json`.
+
+Validation:
+
+| View | MAPE | MAE | R2 |
+|---|---:|---:|---:|
+| selected-spec | 6.0122% | $62.24 | 0.967953 |
+| cert-loaded | 5.4058% | $58.43 | 0.968825 |
+| selected-spec 8ct+ | 6.9368% | $433.34 | 0.942476 |
+| selected-spec 10ct+ | 7.2130% | $540.31 | 0.935081 |
+
+Pinned selected-spec cases:
+
+| Case | S20 price | Tail multiplier |
+|---|---:|---:|
+| 3ct ROUND E VS1 ID | $326.75 | 1.00x |
+| 8ct ROUND E VS1 ID | $1,730.03 | 1.44x |
+| 10ct ROUND E VS1 ID | $3,082.97 | 1.72x |
+| 12ct ROUND E VS1 ID | $4,078.49 | 1.98x |

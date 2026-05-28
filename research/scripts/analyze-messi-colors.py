@@ -35,6 +35,7 @@ except ImportError:
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from shape_buckets import MESSI_SHAPE_MAP, classify_shape_by_lw
+from igi_enrichment import apply_enrichment_to_records, load_enrichment
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -434,6 +435,16 @@ def main():
     records = [r for r in records if r is not None]
     print(f"  Normalised priced >=1ct: {len(records):,}")
 
+    igi_store = load_enrichment()
+    igi_stats = apply_enrichment_to_records(records, igi_store)
+    if igi_store:
+        print(
+            "  IGI enrichment: "
+            f"{igi_stats['rowsMatched']:,} report matches, "
+            f"{igi_stats['rowsEnriched']:,} rows enriched, "
+            f"{igi_stats['shapeReclassified']:,} shape reclassified"
+        )
+
     summary = build_summary(records)
     comps = build_comp_pool(records)
 
@@ -446,6 +457,10 @@ def main():
         "purpose": "Fancy-color source-of-truth comp index for Messi Gems lab-grown diamonds",
         "filterApplied": "carat >= 1.00 AND pricePerStone > 0",
         "shapeCodeMap": SHAPE_CODE_MAP,
+        "igiEnrichment": {
+            "storeFile": "igi-report-enrichment.json",
+            **igi_stats,
+        },
         "summary": summary,
         "records": records,
     }

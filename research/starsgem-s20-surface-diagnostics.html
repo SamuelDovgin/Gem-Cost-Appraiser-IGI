@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StarGem S20 ML Surface Diagnostics</title>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #697586;
+      --line: #d8dee8;
+      --surface: #ffffff;
+      --bg: #f6f7f9;
+      --accent: #176c7d;
+      --accent2: #b45309;
+      --accent3: #6d5bd0;
+      --accent4: #9f1239;
+      --accent5: #2f855a;
+      --accent6: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    header {
+      padding: 20px 24px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      letter-spacing: 0;
+      font-weight: 720;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    main {
+      padding: 18px 24px 36px;
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    select, input {
+      width: 100%;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 14px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric, .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .metric { padding: 13px 14px; }
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .metric .value {
+      margin-top: 6px;
+      font-size: 20px;
+      font-weight: 740;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .panel { padding: 14px; overflow: hidden; }
+    .wide { grid-column: 1 / -1; }
+    .panel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+      font-weight: 740;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #fbfcfd;
+      border: 1px solid #eef1f5;
+      border-radius: 6px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .key { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .swatch { width: 18px; height: 3px; border-radius: 999px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: var(--surface);
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px 9px;
+      text-align: right;
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child { text-align: left; }
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-weight: 750;
+      background: #fbfcfd;
+    }
+    .heat {
+      color: #0f172a;
+      font-weight: 650;
+    }
+    .status {
+      padding: 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+    }
+    @media (max-width: 980px) {
+      .controls, .summary, .grid { grid-template-columns: 1fr; }
+      header { position: static; }
+      main { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>StarGem S20 ML Surface Diagnostics</h1>
+    <div class="meta">
+      <span id="model-name">Loading model...</span>
+      <span id="model-metrics"></span>
+      <span id="tail-summary"></span>
+    </div>
+  </header>
+  <div class="status" id="status">Loading S20 artifact and generating prediction surfaces...</div>
+  <main hidden id="app">
+    <section class="controls">
+      <label>Color
+        <select id="color">
+          <option>D</option>
+          <option selected>E</option>
+          <option>F</option>
+        </select>
+      </label>
+      <label>Clarity
+        <select id="clarity">
+          <option>VVS1</option>
+          <option>VVS2</option>
+          <option selected>VS1</option>
+          <option>VS2</option>
+        </select>
+      </label>
+      <label>Growth
+        <select id="typeName">
+          <option value="-">Unknown selected-spec</option>
+          <option>CVD</option>
+          <option>HPHT</option>
+        </select>
+      </label>
+      <label>Cut style
+        <select id="cut">
+          <option value="ID" selected>Standard ID</option>
+          <option value="EX">Standard EX</option>
+          <option value="-">Unknown standard</option>
+          <option value="传统切">Traditional</option>
+          <option value="冰花切">Ice flower</option>
+          <option value="长垫形">Elongated cushion</option>
+          <option value="老欧切">Old European</option>
+          <option value="老矿切">Old mine</option>
+        </select>
+      </label>
+      <label>Max carat
+        <input id="maxCt" type="number" min="5" max="20" step="1" value="14">
+      </label>
+    </section>
+
+    <section class="summary">
+      <div class="metric"><div class="label">3ct round</div><div class="value" id="m3">-</div></div>
+      <div class="metric"><div class="label">8ct round</div><div class="value" id="m8">-</div></div>
+      <div class="metric"><div class="label">10ct round</div><div class="value" id="m10">-</div></div>
+      <div class="metric"><div class="label">12ct round</div><div class="value" id="m12">-</div></div>
+    </section>
+
+    <section class="grid">
+      <div class="panel wide">
+        <div class="panel-head">
+          <h2>Shape Curves, Standard Cut</h2>
+          <div class="hint">$ / ct from 0.5ct through large stones</div>
+        </div>
+        <div id="shape-chart"></div>
+        <div class="legend" id="shape-legend"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Cut Style Curves</h2>
+          <div class="hint">Heart shape, same color/clarity</div>
+        </div>
+        <div id="cut-chart"></div>
+        <div class="legend" id="cut-legend"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Large-Stone Tail</h2>
+          <div class="hint">5ct+ multiplier included</div>
+        </div>
+        <div id="tail-chart"></div>
+        <div class="legend" id="tail-legend"></div>
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-head">
+          <h2>Price Grid</h2>
+          <div class="hint">Total ML estimate by shape and carat</div>
+        </div>
+        <div id="grid-table"></div>
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-head">
+          <h2>Largest Adjacent Jumps</h2>
+          <div class="hint">Sorted by $/ct change between neighboring sampled carats</div>
+        </div>
+        <div id="jump-table"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const MODEL_URL = 'data/starsgem-ml-extra-trees-model-s20-specialty-tail.json?v=20260527-s20-specialty-tail';
+    const SHAPES = ['ROUND','OVAL','PEAR','EMERALD','CUSHION','RADIANT','PRINCESS','HEART'];
+    const TAIL_SHAPES = ['ROUND','OVAL','PEAR','EMERALD','HEART','CUSHION'];
+    const CUTS = [
+      ['ID', 'Standard ID'],
+      ['EX', 'Standard EX'],
+      ['-', 'Unknown standard'],
+      ['传统切', 'Traditional'],
+      ['冰花切', 'Ice flower'],
+      ['长垫形', 'Elongated cushion'],
+      ['老欧切', 'Old European'],
+      ['老矿切', 'Old mine'],
+    ];
+    const COLORS = ['#176c7d','#b45309','#6d5bd0','#9f1239','#2f855a','#334155','#c2410c','#2563eb'];
+    let model = null;
+
+    function norm(value) {
+      const text = String(value ?? '-').trim().toUpperCase().replace(/\s+/g, ' ');
+      return text && text !== 'N/A' && text !== 'NONE' && text !== 'NULL' ? text : '-';
+    }
+
+    function cutStyleGroup(cut) {
+      const raw = String(cut ?? '-').trim();
+      const map = {
+        '传统切': 'traditional',
+        '冰花切': 'ice_flower',
+        '长垫形': 'elongated_cushion',
+        '老欧切': 'old_european',
+        '老矿切': 'old_miner',
+      };
+      if (map[raw]) return map[raw];
+      const value = norm(raw);
+      if (value === '-') return 'unknown';
+      if (['ID','EX','VG','GD'].includes(value)) return 'standard_grade';
+      return 'unknown';
+    }
+
+    function caratBucket(ct) {
+      const c = Number(ct);
+      if (c >= 0.30 && c <= 0.49) return '0.30-0.49';
+      if (c >= 0.50 && c <= 0.69) return '0.50-0.69';
+      if (c >= 0.70 && c <= 0.89) return '0.70-0.89';
+      if (c >= 0.90 && c <= 0.99) return '0.90-0.99';
+      if (c >= 1.00 && c <= 1.49) return '1.00-1.49';
+      if (c >= 1.50 && c <= 1.99) return '1.50-1.99';
+      if (c >= 2.00 && c <= 2.99) return '2.00-2.99';
+      if (c >= 3.00 && c <= 3.99) return '3.00-3.99';
+      if (c >= 4.00 && c <= 4.99) return '4.00-4.99';
+      if (c >= 5.00 && c <= 9.99) return '5.00-9.99';
+      if (c >= 10.00) return '10.00+';
+      return '<0.30';
+    }
+
+    function caratBucketPosition(carat) {
+      const bounds = [
+        [0.30, 0.49], [0.50, 0.69], [0.70, 0.89], [0.90, 0.99],
+        [1.00, 1.49], [1.50, 1.99], [2.00, 2.99], [3.00, 3.99],
+        [4.00, 4.99], [5.00, 9.99],
+      ];
+      for (const [lo, hi] of bounds) {
+        if (carat >= lo && carat <= hi) return (carat - lo) / (hi - lo);
+      }
+      return 0.5;
+    }
+
+    function rowSpec({ carat, shape, color, clarity, cut, typeName }) {
+      const c = Number(carat);
+      const group = cutStyleGroup(cut);
+      return {
+        Carat: c,
+        carat_bucket: caratBucket(c),
+        Shape: shape,
+        Color: color,
+        Clarity: clarity,
+        TypeName: typeName,
+        Report: 'IGI',
+        Cut: cut,
+        Cut_Style_Group: group,
+        Polish: 'EX',
+        Symmetry: 'EX',
+        Fluorescence: '-',
+        Table_Scale: null,
+        Depth_Scale: null,
+        Length: null,
+        Width: null,
+        Height: null,
+        LengthWidthRatio: null,
+      };
+    }
+
+    function lookupRate(row, useTailAnchor = false) {
+      const featureLookups = model.featureLookups || {};
+      const tables = featureLookups.lookupTables || [];
+      const normalized = { ...row };
+      if (useTailAnchor && Number(row.Carat) > tailStart()) normalized.carat_bucket = '5.00-9.99';
+      ['carat_bucket','Shape','Color','Clarity','TypeName','Report','Cut','Polish','Symmetry'].forEach(field => {
+        normalized[field] = norm(normalized[field]);
+      });
+      for (const table of tables) {
+        const key = (table.fields || []).map(field => normalized[field] ?? '-').join('||');
+        const hit = table.groups?.[key];
+        if (hit && Number.isFinite(Number(hit.usdPerCt))) {
+          return { rate: Number(hit.usdPerCt), level: table.level, count: hit.count || 0 };
+        }
+      }
+      const global = Number(featureLookups.lookupGlobalRate);
+      return { rate: Number.isFinite(global) ? global / 170 : 1, level: 'GLOBAL', count: 0 };
+    }
+
+    function categoryRate(row) {
+      const featureLookups = model.featureLookups || {};
+      const tables = featureLookups.categoryTables || {};
+      for (const level of featureLookups.categoryLevels || []) {
+        const name = level[0];
+        const fields = level[1] || [];
+        const key = fields.map(field => norm(row[field])).join('||');
+        const value = tables[name]?.[key];
+        if (Number.isFinite(Number(value))) return Number(value);
+      }
+      const global = Number(featureLookups.categoryGlobalRate);
+      return Number.isFinite(global) ? global : null;
+    }
+
+    function tailStart() {
+      return Number(model.largeCaratTail?.startCarat) || 5;
+    }
+
+    function tailX(row) {
+      const carat = Number(row.Carat);
+      const start = tailStart();
+      return Number.isFinite(carat) && carat > start ? Math.log(carat / start) : 0;
+    }
+
+    function tailMultiplier(row) {
+      const tail = model.largeCaratTail;
+      const x = tailX(row);
+      if (!tail || x <= 0) return { multiplier: 1, level: 'NONE', count: 0, slope: 0 };
+      const normalized = { ...row, Cut_Style_Group: row.Cut_Style_Group || cutStyleGroup(row.Cut) };
+      for (const table of tail.levels || []) {
+        const key = (table.fields || []).map(field => {
+          if (field === 'Cut_Style_Group') return normalized.Cut_Style_Group || 'unknown';
+          return norm(normalized[field]);
+        }).join('||');
+        const hit = table.groups?.[key];
+        if (hit) {
+          const slope = Number(hit.slope) || 0;
+          return { multiplier: Math.exp(slope * x), level: table.level || 'TAIL', count: hit.count || 0, slope };
+        }
+      }
+      const slope = Number(tail.globalSlope) || 0;
+      return { multiplier: Math.exp(slope * x), level: 'GLOBAL', count: 0, slope };
+    }
+
+    function numericFeature(row, field) {
+      const carat = Number(row.Carat);
+      if (field === 'Carat_sq') return carat * carat;
+      if (field === 'Carat_cube') return carat * carat * carat;
+      if (field === 'Log_Carat') return carat > 0 ? Math.log(carat) : row[field];
+      if (field === 'Carat_bucket_pos') return caratBucketPosition(carat);
+      if (field === 'Dist_carat_threshold') return Math.abs(carat - Math.round(carat * 2) / 2);
+      if (field === 'Is_Specialty_Cut') {
+        const group = cutStyleGroup(row.Cut);
+        return group !== 'standard_grade' && group !== 'unknown' ? 1 : 0;
+      }
+      if (field === 'Is_Traditional_Cut') return cutStyleGroup(row.Cut) === 'traditional' ? 1 : 0;
+      if (field === 'Is_IceFlower_Cut') return cutStyleGroup(row.Cut) === 'ice_flower' ? 1 : 0;
+      if (field === 'Is_Large_Carat') return carat >= tailStart() ? 1 : 0;
+      if (field === 'Is_10ct_Plus') return carat >= 10 ? 1 : 0;
+      if (field === 'Large_Carat_Tail_X') return tailX(row);
+      if (field === 'Large_Carat_Tail_X_sq') return tailX(row) * tailX(row);
+      if (field === 'Tail_Base_Lookup_RatePerCt') return lookupRate(row, true).rate;
+      if (field === 'Log_Tail_Base_Lookup_RatePerCt') {
+        const rate = lookupRate(row, true).rate;
+        return rate > 0 ? Math.log(rate) : row[field];
+      }
+      if (field === 'Tail_Base_Lookup_Count') return lookupRate(row, true).count || 0;
+      if (field === 'Large_Carat_Tail_Multiplier') return tailMultiplier(row).multiplier;
+      if (field === 'Log_Large_Carat_Tail_Multiplier') return Math.log(Math.max(tailMultiplier(row).multiplier || 1, 0.000001));
+      if (field === 'Large_Carat_Tail_Slope') return tailMultiplier(row).slope || 0;
+      if (field === 'Large_Carat_Tail_Count') return tailMultiplier(row).count || 0;
+      if (field === 'Lookup_RatePerCt') return lookupRate(row).rate;
+      if (field === 'Lookup_IsGlobal') return lookupRate(row).level === 'GLOBAL' ? 1 : 0;
+      if (field === 'Lookup_Count') return lookupRate(row).count || 0;
+      if (field === 'Log_Lookup_Count') return Math.log1p(lookupRate(row).count || 0);
+      if (field === 'Log_Lookup_RatePerCt') {
+        const rate = lookupRate(row).rate;
+        return rate > 0 ? Math.log(rate) : row[field];
+      }
+      if (field === 'Category_RatePerCt') return categoryRate(row);
+      if (field === 'Log_Category_RatePerCt') {
+        const rate = categoryRate(row);
+        return rate > 0 ? Math.log(rate) : row[field];
+      }
+      if (field === 'Has_Dimensions') return 0;
+      if (field === 'Has_TableDepth') return 0;
+      if (field === 'Has_GrowthMethod') return norm(row.TypeName) === '-' ? 0 : 1;
+      if (field === 'Has_Report_Cut') return norm(row.Cut) === '-' ? 0 : 1;
+      if (field === 'Is_SelectedSpec_Mode') return 1;
+      return row[field];
+    }
+
+    function vector(row) {
+      const features = model.features || {};
+      const out = [];
+      for (const field of features.categorical || []) {
+        const value = field === 'Cut_Style_Group' ? row.Cut_Style_Group : norm(row[field]);
+        const cats = features.categories?.[field] || [];
+        for (const cat of cats) out.push(value === cat ? 1 : 0);
+      }
+      for (const field of features.numeric || []) {
+        const rawValue = numericFeature(row, field);
+        const raw = rawValue === null || rawValue === undefined || rawValue === '' ? NaN : Number(rawValue);
+        const fallback = Number(features.numericMedians?.[field]);
+        out.push(Number.isFinite(raw) ? raw : Number.isFinite(fallback) ? fallback : 0);
+      }
+      return out;
+    }
+
+    function predict(row) {
+      const v = vector(row);
+      let logSum = 0;
+      for (const tree of model.trees || []) {
+        let node = 0;
+        while (tree.childrenLeft[node] !== -1) {
+          const feature = tree.feature[node];
+          const threshold = tree.threshold[node];
+          const value = v[feature] ?? 0;
+          node = value <= threshold ? tree.childrenLeft[node] : tree.childrenRight[node];
+        }
+        logSum += tree.value[node];
+      }
+      const residual = logSum / model.trees.length;
+      const base = lookupRate(row, model.targetType === 'log_tail_lookup_residual').rate;
+      const tail = model.targetType === 'log_tail_lookup_residual' ? tailMultiplier(row) : { multiplier: 1 };
+      const price = Math.max(0.01, Math.exp(residual) * base * tail.multiplier * row.Carat);
+      return { price, rate: price / row.Carat, tail };
+    }
+
+    function caratSeries(maxCt) {
+      const pts = [];
+      for (let c = 0.5; c <= maxCt + 0.001; c += c < 5 ? 0.25 : 0.5) pts.push(Number(c.toFixed(2)));
+      return pts;
+    }
+
+    function fmt(n) {
+      return '$' + Math.round(n).toLocaleString();
+    }
+
+    function chart(elId, legendId, series, opts = {}) {
+      const width = opts.width || 1120;
+      const height = opts.height || 430;
+      const pad = { l: 58, r: 20, t: 18, b: 42 };
+      const all = series.flatMap(s => s.points);
+      const minX = Math.min(...all.map(p => p.x));
+      const maxX = Math.max(...all.map(p => p.x));
+      const maxY = Math.max(...all.map(p => p.y)) * 1.08;
+      const minY = 0;
+      const sx = x => pad.l + (x - minX) / (maxX - minX) * (width - pad.l - pad.r);
+      const sy = y => height - pad.b - (y - minY) / (maxY - minY) * (height - pad.t - pad.b);
+      const yTicks = 5;
+      let grid = '';
+      for (let i = 0; i <= yTicks; i++) {
+        const y = minY + (maxY - minY) * i / yTicks;
+        grid += `<line x1="${pad.l}" x2="${width - pad.r}" y1="${sy(y)}" y2="${sy(y)}" stroke="#e8edf3"/>`;
+        grid += `<text x="${pad.l - 8}" y="${sy(y) + 4}" text-anchor="end" font-size="11" fill="#697586">$${Math.round(y)}</text>`;
+      }
+      const xTicks = [0.5, 1, 2, 3, 4, 5, 8, 10, 12, 14, 16, 20].filter(x => x >= minX && x <= maxX);
+      for (const x of xTicks) {
+        grid += `<line x1="${sx(x)}" x2="${sx(x)}" y1="${pad.t}" y2="${height - pad.b}" stroke="#f0f3f7"/>`;
+        grid += `<text x="${sx(x)}" y="${height - 16}" text-anchor="middle" font-size="11" fill="#697586">${x}ct</text>`;
+      }
+      const paths = series.map((s, i) => {
+        const d = s.points.map((p, j) => `${j ? 'L' : 'M'}${sx(p.x).toFixed(2)},${sy(p.y).toFixed(2)}`).join(' ');
+        const color = s.color || COLORS[i % COLORS.length];
+        return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+      }).join('');
+      document.getElementById(elId).innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${opts.title || 'StarGem ML chart'}">
+          ${grid}
+          <text x="${pad.l}" y="${pad.t + 2}" font-size="11" fill="#697586">${opts.yLabel || '$/ct'}</text>
+          ${paths}
+        </svg>
+      `;
+      document.getElementById(legendId).innerHTML = series.map((s, i) => {
+        const color = s.color || COLORS[i % COLORS.length];
+        return `<span class="key"><span class="swatch" style="background:${color}"></span>${s.name}</span>`;
+      }).join('');
+    }
+
+    function renderGrid(rows, carats, color, clarity, cut, typeName) {
+      const predictions = rows.map(shape => carats.map(ct => predict(rowSpec({ carat: ct, shape, color, clarity, cut, typeName })).price));
+      const max = Math.max(...predictions.flat());
+      const min = Math.min(...predictions.flat());
+      let html = '<table><thead><tr><th>Shape</th>' + carats.map(c => `<th>${c}ct</th>`).join('') + '</tr></thead><tbody>';
+      rows.forEach((shape, i) => {
+        html += `<tr><td>${shape}</td>`;
+        predictions[i].forEach(value => {
+          const t = max > min ? (value - min) / (max - min) : 0;
+          const bg = `rgba(23,108,125,${0.08 + t * 0.42})`;
+          html += `<td class="heat" style="background:${bg}">${fmt(value)}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('grid-table').innerHTML = html;
+    }
+
+    function renderJumpTable(color, clarity, cut, typeName, maxCt) {
+      const carats = caratSeries(maxCt);
+      const jumps = [];
+      const combos = [
+        ...SHAPES.map(shape => ({ label: `${shape} · ${cut}`, shape, cut })),
+        ...CUTS.map(entry => ({ label: `HEART · ${entry[1]}`, shape: 'HEART', cut: entry[0] })),
+      ];
+      for (const combo of combos) {
+        let prev = null;
+        for (const carat of carats) {
+          const p = predict(rowSpec({ carat, shape: combo.shape, color, clarity, cut: combo.cut, typeName }));
+          if (prev) {
+            const pct = prev.rate > 0 ? ((p.rate - prev.rate) / prev.rate) * 100 : 0;
+            jumps.push({
+              label: combo.label,
+              from: prev.carat,
+              to: carat,
+              prevRate: prev.rate,
+              rate: p.rate,
+              pct,
+              absPct: Math.abs(pct),
+            });
+          }
+          prev = { carat, rate: p.rate };
+        }
+      }
+      jumps.sort((a, b) => b.absPct - a.absPct);
+      const rows = jumps.slice(0, 16);
+      let html = '<table><thead><tr><th>Combo</th><th>From</th><th>To</th><th>Rate from</th><th>Rate to</th><th>Jump</th></tr></thead><tbody>';
+      for (const row of rows) {
+        const intensity = Math.min(0.5, 0.08 + row.absPct / 90);
+        const bg = row.pct >= 0 ? `rgba(47,133,90,${intensity})` : `rgba(159,18,57,${intensity})`;
+        html += `<tr>
+          <td>${row.label}</td>
+          <td>${row.from}ct</td>
+          <td>${row.to}ct</td>
+          <td>$${Math.round(row.prevRate)}/ct</td>
+          <td>$${Math.round(row.rate)}/ct</td>
+          <td class="heat" style="background:${bg}">${row.pct >= 0 ? '+' : ''}${row.pct.toFixed(1)}%</td>
+        </tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById('jump-table').innerHTML = html;
+    }
+
+    function render() {
+      const color = document.getElementById('color').value;
+      const clarity = document.getElementById('clarity').value;
+      const typeName = document.getElementById('typeName').value;
+      const cut = document.getElementById('cut').value;
+      const maxCt = Math.max(5, Math.min(20, Number(document.getElementById('maxCt').value) || 14));
+      const carats = caratSeries(maxCt);
+
+      for (const ct of [3, 8, 10, 12]) {
+        const p = predict(rowSpec({ carat: ct, shape: 'ROUND', color, clarity, cut, typeName }));
+        document.getElementById('m' + ct).textContent = `${fmt(p.price)} · $${Math.round(p.rate)}/ct`;
+      }
+
+      chart('shape-chart', 'shape-legend', SHAPES.map((shape, i) => ({
+        name: shape,
+        color: COLORS[i % COLORS.length],
+        points: carats.map(carat => ({ x: carat, y: predict(rowSpec({ carat, shape, color, clarity, cut: 'ID', typeName })).rate })),
+      })), { height: 430, yLabel: '$/ct' });
+
+      chart('cut-chart', 'cut-legend', CUTS.map((entry, i) => ({
+        name: entry[1],
+        color: COLORS[i % COLORS.length],
+        points: carats.map(carat => ({ x: carat, y: predict(rowSpec({ carat, shape: 'HEART', color, clarity, cut: entry[0], typeName })).rate })),
+      })), { height: 360, yLabel: '$/ct' });
+
+      const tailCarats = [];
+      for (let c = 5; c <= maxCt + 0.001; c += 0.5) tailCarats.push(Number(c.toFixed(2)));
+      chart('tail-chart', 'tail-legend', TAIL_SHAPES.map((shape, i) => ({
+        name: shape,
+        color: COLORS[i % COLORS.length],
+        points: tailCarats.map(carat => {
+          const p = predict(rowSpec({ carat, shape, color, clarity, cut, typeName }));
+          return { x: carat, y: p.price };
+        }),
+      })), { height: 360, yLabel: 'total $' });
+
+      renderGrid(SHAPES, [1, 2, 3, 5, 8, 10, 12, maxCt], color, clarity, cut, typeName);
+      renderJumpTable(color, clarity, cut, typeName, maxCt);
+    }
+
+    async function init() {
+      const res = await fetch(MODEL_URL);
+      if (!res.ok) throw new Error(`Could not load model: HTTP ${res.status}`);
+      model = await res.json();
+      document.getElementById('model-name').textContent = `${model.modelName} · ${model.treeCount} trees`;
+      const m = model.metrics || {};
+      document.getElementById('model-metrics').textContent = `MAPE ${m.mape ?? '-'}% · MAE $${Math.round(m.mae ?? 0).toLocaleString()}`;
+      const tail = model.largeCaratTail || {};
+      document.getElementById('tail-summary').textContent = `tail starts ${tail.startCarat || 5}ct · global slope ${tail.globalSlope ?? '-'}`;
+      document.getElementById('status').hidden = true;
+      document.getElementById('app').hidden = false;
+      ['color','clarity','typeName','cut','maxCt'].forEach(id => document.getElementById(id).addEventListener('input', render));
+      render();
+    }
+
+    init().catch(err => {
+      document.getElementById('status').textContent = err.message || String(err);
+    });
+  </script>
+</body>
+</html>

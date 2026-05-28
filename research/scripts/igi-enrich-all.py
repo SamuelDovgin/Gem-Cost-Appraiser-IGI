@@ -11,7 +11,9 @@ Rate-limited full IGI enrichment for all supplier report numbers.
 Updates:
   research/data/igi-report-enrichment.json
   research/data/starsgem-index.json
+  research/data/starsgem-color-index.json
   research/data/messi-gems-index.json
+  research/data/messi-color-index.json
   research/igi-enrichment-progress.md
 """
 
@@ -32,7 +34,9 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from igi_enrichment import (  # noqa: E402
     ENRICHMENT_PATH,
+    MESSI_COLOR_INDEX,
     MESSI_INDEX,
+    STARSGEM_COLOR_INDEX,
     STARSGEM_INDEX,
     all_report_digits_from_indexes,
     apply_enrichment_to_index,
@@ -51,7 +55,12 @@ def log(*args, **kwargs) -> None:
 
 def write_progress_doc(store: dict) -> None:
     by_supplier = all_report_digits_from_indexes()
-    all_ids = by_supplier["starsgem"] | by_supplier["messi"]
+    all_ids = (
+        by_supplier["starsgem"]
+        | by_supplier["starsgem_color"]
+        | by_supplier["messi"]
+        | by_supplier["messi_color"]
+    )
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     def stat(ids: set[str]) -> dict:
@@ -67,7 +76,11 @@ def write_progress_doc(store: dict) -> None:
         shapes = Counter(e.get("shapeMapped") for e in ok if e.get("shapeMapped"))
         return {"counts": c, "shapes": shapes.most_common(15), "complete": complete}
 
-    sg_s, ms_s, all_s = stat(by_supplier["starsgem"]), stat(by_supplier["messi"]), stat(all_ids)
+    sg_s = stat(by_supplier["starsgem"])
+    sc_s = stat(by_supplier["starsgem_color"])
+    ms_s = stat(by_supplier["messi"])
+    mc_s = stat(by_supplier["messi_color"])
+    all_s = stat(all_ids)
     pt = [
         (d, store[d])
         for d in sorted(all_ids)
@@ -91,7 +104,13 @@ def write_progress_doc(store: dict) -> None:
         "| Scope | Reports | not_started | ok | complete | not_found | rate_limited |",
         "|-------|---------|-------------|-----|----------|-----------|--------------|",
     ]
-    for label, st in [("Starsgem", sg_s), ("Messi", ms_s), ("**Total**", all_s)]:
+    for label, st in [
+        ("Starsgem", sg_s),
+        ("Starsgem color", sc_s),
+        ("Messi", ms_s),
+        ("Messi color", mc_s),
+        ("**Total**", all_s),
+    ]:
         c = st["counts"]
         lines.append(
             f"| {label} | {sum(c.values())} | {c.get('not_started',0)} | "
@@ -138,10 +157,14 @@ def build_queue(
     by = all_report_digits_from_indexes()
     if supplier == "starsgem":
         pool = by["starsgem"]
+    elif supplier == "starsgem_color":
+        pool = by["starsgem_color"]
     elif supplier == "messi":
         pool = by["messi"]
+    elif supplier == "messi_color":
+        pool = by["messi_color"]
     else:
-        pool = by["starsgem"] | by["messi"]
+        pool = by["starsgem"] | by["starsgem_color"] | by["messi"] | by["messi_color"]
 
     incomplete: list[str] = []
     rate_limited: list[str] = []
@@ -193,10 +216,14 @@ def scope_stats(
     by = all_report_digits_from_indexes()
     if supplier == "starsgem":
         pool = by["starsgem"]
+    elif supplier == "starsgem_color":
+        pool = by["starsgem_color"]
     elif supplier == "messi":
         pool = by["messi"]
+    elif supplier == "messi_color":
+        pool = by["messi_color"]
     else:
-        pool = by["starsgem"] | by["messi"]
+        pool = by["starsgem"] | by["starsgem_color"] | by["messi"] | by["messi_color"]
 
     ok = not_found = rate_limited = 0
     for d in pool:
@@ -247,7 +274,11 @@ def fetch_one(
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--supplier", choices=("all", "starsgem", "messi"), default="all")
+    ap.add_argument(
+        "--supplier",
+        choices=("all", "starsgem", "starsgem_color", "messi", "messi_color"),
+        default="all",
+    )
     ap.add_argument("--status", choices=("pending", "rate_limited"), default="pending")
     ap.add_argument(
         "--limit",
@@ -274,7 +305,9 @@ def main() -> None:
     if args.apply_only:
         print("Applying enrichment to indexes…")
         print("  starsgem:", apply_enrichment_to_index(STARSGEM_INDEX, store))
+        print("  starsgem_color:", apply_enrichment_to_index(STARSGEM_COLOR_INDEX, store))
         print("  messi:", apply_enrichment_to_index(MESSI_INDEX, store))
+        print("  messi_color:", apply_enrichment_to_index(MESSI_COLOR_INDEX, store))
         write_progress_doc(store)
         return
 
@@ -358,7 +391,9 @@ def main() -> None:
 
         if not args.no_apply and batch_num % max(1, args.apply_every) == 0:
             apply_enrichment_to_index(STARSGEM_INDEX, store)
+            apply_enrichment_to_index(STARSGEM_COLOR_INDEX, store)
             apply_enrichment_to_index(MESSI_INDEX, store)
+            apply_enrichment_to_index(MESSI_COLOR_INDEX, store)
 
         write_progress_doc(store)
         if not args.run_all:
@@ -367,7 +402,9 @@ def main() -> None:
 
     if not args.no_apply:
         apply_enrichment_to_index(STARSGEM_INDEX, store)
+        apply_enrichment_to_index(STARSGEM_COLOR_INDEX, store)
         apply_enrichment_to_index(MESSI_INDEX, store)
+        apply_enrichment_to_index(MESSI_COLOR_INDEX, store)
 
     pending = len(build_queue(store, "all", "pending"))
     ok = sum(1 for v in store.values() if v.get("status") == "ok")
