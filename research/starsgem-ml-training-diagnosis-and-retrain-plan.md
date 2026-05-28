@@ -399,3 +399,167 @@ S7 balanced validation MAPE: 4.8878%
 That means the remembered ~5 MAPE model is real and still valuable, but it is a cert/training-row style metric. It does not solve the app's selected-spec-only inference state where growth method and dimensions are missing. S19 is intentionally a selected-spec model; it should be compared against selected-spec validation, not used as evidence that the full S7 balanced benchmark was wrong.
 
 The new result is still the raw ML card: it is not replacing the display with the lookup reconstruction. The model target is the learned residual multiplier around the coarse StarGem lookup rate, so dense commodity cells stay anchored while the ensemble can still adjust for features when support exists.
+
+---
+
+## Real Bucket Analysis — May 2026
+
+Full analysis run on the complete StarGem XLS (28,394 rows). Results below are based on actual `SaleDollorPrice` distributions, not model predictions.
+
+### Price spread by carat bucket
+
+| Carat bucket | n | Mean $/ct | CV | Range |
+|---|---:|---:|---:|---|
+| 0.30–0.49 | 981 | $153 | 21% | $108–$276 |
+| 0.50–0.69 | 4,138 | $142 | 30% | $98–$352 |
+| 0.70–0.89 | 728 | $150 | 26% | $109–$282 |
+| 1.00–1.49 | 8,430 | $127 | 20% | $85–$324 |
+| 1.50–1.99 | 2,801 | $130 | 28% | $82–$297 |
+| 2.00–2.99 | 5,111 | $144 | 31% | $94–$418 |
+| 3.00–3.99 | 3,227 | $148 | **38%** | $94–$440 |
+| 4.00–4.99 | 552 | $153 | 22% | $107–$306 |
+| 5.00–9.99 | 1,977 | $180 | **34%** | $19–$469 |
+| 10.00+ | 443 | $335 | **61%** | $134–$1,220 |
+
+10ct+ is the hardest bucket by a wide margin: 61% CV across $134–$1,220/ct. That does not mean the UI should turn ML off. It means a plain tree ensemble should not be the only source of truth in the tail. Large-stone pricing needs a structured extrapolation term: bigger lab diamonds are less available, and within comparable shape/color/clarity/cut groups the expected $/ct should generally rise with carat. The retrain should combine lookup anchors, a monotonic large-carat scarcity curve, and tree residuals rather than falling back to lookup-only.
+
+### Worst high-spread spec cells (price CV within Shape × Color × Clarity × Carat-bucket, n ≥ 5)
+
+| Spec | n | CV | Min | Max | Ratio |
+|---|---:|---:|---:|---:|---:|
+| EMERALD E VVS2 10ct+ | 24 | **78%** | $145/ct | $945/ct | 6.5× |
+| EMERALD D VVS1 10ct+ | 27 | 51% | $205/ct | $727/ct | 3.5× |
+| OVAL E VVS2 10ct+ | 36 | 50% | $198/ct | $840/ct | 4.2× |
+| OVAL D VVS1 10ct+ | 29 | 48% | $328/ct | $1,220/ct | 3.7× |
+| HEART D VVS2 2ct | 67 | **43%** | $120/ct | $353/ct | 3.0× |
+| HEART E VVS2 1.5ct | 11 | 41% | $110/ct | $257/ct | 2.3× |
+| HEART D VS1 3ct | 34 | 40% | $105/ct | $268/ct | 2.6× |
+| PRINCESS D VVS1 1ct | 49 | 36% | $124/ct | $306/ct | 2.5× |
+| PEAR D VVS1 10ct+ | 32 | 34% | $334/ct | $926/ct | 2.8× |
+| ROUND E VS1 5ct+ | 70 | 27% | $114/ct | $310/ct | 2.7× |
+
+### Root cause for every high-spread cell
+
+There are two distinct sources of price spread:
+
+**Source 1 — Chinese specialty cut labels mixed with standard cut stones**
+
+The `Cut` column contains both IGI standard grades (`ID`, `EX`, `VG`) and Chinese supplier-specific styles: `传统切` (traditional/antique round), `冰花切` (ice flower/optical illusion), `长垫形` (elongated cushion), `老欧切` (old European), `老矿切` (old miner). These are fundamentally different products — different faceting, different buyers, different price logic.
+
+Example, HEART D VVS2 2ct:
+
+| Cut | n | Mean | Range |
+|---|---:|---:|---|
+| 传统切 (traditional) | 18 | $310/ct | $234–$353 |
+| 冰花切 (ice flower) | 3 | $213/ct | $155–$243 |
+| standard (`-`) | 46 | $157/ct | $120–$353 |
+
+The traditional-cut hearts command **2× the standard price** for the same shape/color/clarity/carat. A model that one-hot encodes `Cut` with all Chinese labels grouped sees this signal, but the `传统切` cells have only ~300 rows total across the entire dataset, so the signal is sparse and the 10-tree model consistently misses the splits.
+
+Example, OVAL D VVS1 10ct+:
+
+| Cut | n | Mean | Range |
+|---|---:|---:|---|
+| `-` (no cut grade) | 12 | $643/ct | $328–$1,220 |
+| `冰花切` | 15 | $405/ct | $334–$627 |
+| `传统切` | 2 | $564/ct | — |
+
+Even within cut style the 10ct+ range is extreme: a no-cut-grade oval at 10ct ranges $328–$1,220.
+
+**Source 2 — The ROUND E VS1 3ct commodity/premium bimodal split**
+
+All 241 rows in this bucket are either standard commodity CVD (`-` or `ID` cut, $327–$330) or premium-priced ID/EX stones ($476–$509). Breakdown:
+
+| Price tier | n | Price per ct | Internal rate |
+|---|---:|---:|---:|
+| Commodity ($327–$330) | 157 | $109/ct | ~18,350 int/ct |
+| Premium ($476–$509) | 84 | $158–$169/ct | ~26,900–28,800 int/ct |
+
+The lookup aggregates all 241 rows and returns 18,498 int/ct ≈ $109/ct as the bucket median. The ML model needs to learn the +$60/ct premium for specific stone characteristics. With 10 trees, individual tree predictions span $109–$403/ct; the average ($159/ct) is between the two modes but correct for neither.
+
+With 200 trees, the 3ct ROUND E VS1 result was $126.24/ct ($378.72 total) — closer to commodity but still over. The selected-spec model S19 gets it to $109/ct ($327) for the selected-spec case.
+
+### Conclusion on worst buckets
+
+1. **10ct+ stones across all shapes** — CV 50–78%, so unconstrained trees alone are not enough. ML should still be shown, but it must be anchor-first plus a monotonic parametric tail and a wider confidence band.
+2. **Heart shape at 2ct+** — Consistently 30–43% CV, driven by 传统切/冰花切 specialty cuts mixed with standard. The model treats heart as one shape family but it should be at least two: standard and specialty cut.
+3. **Large-carat fantasy shapes (OVAL/EMERALD/PEAR at 10ct+)** — Same issue: Chinese cut styles create a 3–6× price premium over standard in the same nominal bucket.
+4. **Any shape at 3ct+ where commodity vs premium sub-segments exist** — The model cannot cleanly split them without more trees.
+
+## Concrete Recommendations for Next Training Run (S20)
+
+### P0 — Use the largest validated tree artifact that loads cleanly
+
+The browser should use the largest, best validated tree artifact that still loads cleanly on the page. The old 50-tree artifact (`starsgem-ml-extra-trees-model-50-trees.json`, 72 MB) exists, but bigger file size is not automatically better: it is an old first-N-tree slice and is less calibrated for selected-spec inference than the current S19 selected-spec artifact (`starsgem-ml-extra-trees-model-s19-selected-spec.json`, 96 trees, about 15 MB).
+
+**Action**: Keep S19 selected-spec as the browser default unless a newer S20 artifact beats it on validation and load tests. For S20, export the highest tree count that satisfies:
+
+- page load remains acceptable on desktop and mobile,
+- median compact drift vs the full model <= 2%,
+- P95 compact drift <= 8%,
+- pinned dense cells do not drift by > 10%,
+- 5ct+ and 10ct+ bucket MAPE improves or remains neutral.
+
+If a 128-, 160-, or 200-tree artifact loads properly and passes those checks, use it. If not, select a representative compact subset by calibration-grid drift. Do not take the first N trees from a larger ensemble.
+
+### P1 — Add Chinese cut style as explicit group features
+
+Current: `Cut` is one-hot with all values treated equally.
+
+Proposed: Add binary and grouped features so the model can distinguish specialty products from standard cuts:
+
+- `Is_Specialty_Cut` = 1 when `Cut ∈ {传统切, 冰花切, 长垫形, 老欧切, 老矿切}`.
+- `Is_Traditional_Cut` = 1 specifically for `传统切`.
+- `Is_IceFlower_Cut` = 1 specifically for `冰花切`.
+- `Cut_Style_Group ∈ {standard_grade, traditional, ice_flower, elongated_cushion, old_european, old_miner, unknown}`.
+
+These styles have separate price logic from standard faceting. The point is not to always add a premium; it is to stop specialty cuts from contaminating standard-cut estimates and stop standard-cut anchors from underpricing true specialty stones.
+
+This is a low-cost improvement: it reuses existing training data and adds a small number of explicit style features to the vector.
+
+### P1 — Add a per-spec cut-adjusted lookup rate
+
+The current `Lookup_RatePerCt` feature aggregates all cut grades in a bucket. For cells where specialty cuts are present, this anchor is pulled too high (or too low). A secondary lookup that conditions on `Is_Specialty_Cut` would give the model a better anchor to regress against.
+
+### P2 — Model 8ct+ and 10ct+ with a monotonic parametric tail
+
+There are only 443 10ct+ stones, CV=61%, so the model needs structure in this range. Do not suppress the ML card above 8ct, and do not return lookup-only unless every model path fails. Instead, train the large-carat estimate as:
+
+```text
+log(rate_per_ct) =
+  lookup_anchor(shape, color, clarity, cut_style, type)
+  + f_shape_color_clarity(log(carat))
+  + g_tail(max(0, log(carat / 5)))
+  + specialty_cut_interactions
+  + tree_residual
+```
+
+Requirements:
+
+- `g_tail` should be monotonic non-decreasing for comparable specs above the large-stone threshold.
+- Fit the tail on 5ct+ and 10ct+ rows, with shrinkage toward broader shape/color/clarity families when exact support is thin.
+- Let specialty-cut interactions override the standard tail when the cut style is known.
+- Show the ML estimate in the UI with a wider range/low-support note, not an "insufficient training data" replacement.
+- Validate 8ct+, 10ct+, and 12ct+ smoke cases separately so the model neither flattens rare stones to commodity prices nor blindly overprices every large stone.
+
+### P2 — Add per-carat-bucket MAPE to validation output
+
+The current `mrpe-v2-results.json` only reports global MAPE. The training script should emit:
+
+```
+MAPE by carat bucket
+MAPE by shape
+MAPE by cut (standard vs specialty)
+MAPE for stones with vs without dimensions
+MAPE for 10ct+ separately
+```
+
+This makes it impossible to choose a model that looks good globally while being broken on specific segments.
+
+### P3 — Clean up price outliers in 5ct+ bucket
+
+The 5.00–9.99ct bucket has a $19/ct minimum, which is almost certainly a data entry error (should be $190/ct or $1,900). Before the next training run, audit and remove prices below $50/ct for stones above 3ct.
+
+### P3 — Train separate models for specialty-cut and standard-cut diamonds
+
+传统切/冰花切 stones are genuinely different products with different buyers. A joint model has to interpolate between their price logics. Two separate models (or a gating layer) would reduce their mutual contamination of each other's predictions.
