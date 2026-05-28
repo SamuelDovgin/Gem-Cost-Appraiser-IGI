@@ -861,6 +861,8 @@ let _starsgemPricingIntel = null;
 let _starsgemPricingIntelPromise = null;
 let _starsgemMlModel = null;
 let _starsgemMlModelPromise = null;
+let _colorDiamondMlModel = null;
+let _colorDiamondMlModelPromise = null;
 let _v3engineReadyPromise = null;
 let _chartAxis = 'carat'; // 'carat' | 'clarity' | 'color'
 
@@ -886,11 +888,12 @@ async function loadAlibabaCompsIndex() {
 
   _compsIdxLoadPromise = (async () => {
     try {
-      const [alibRes, messiRes, starsRes, messiColorRes] = await Promise.all([
+      const [alibRes, messiRes, starsRes, messiColorRes, starsColorRes] = await Promise.all([
         fetch('research/data/alibaba-comps-index.json'),
         fetch('research/data/messi-comps.json'),
         fetch('research/data/starsgem-comps.json'),
         fetch('research/data/messi-color-comps.json'),
+        fetch('research/data/starsgem-color-comps.json'),
       ]);
       if (!alibRes.ok) throw new Error('HTTP ' + alibRes.status);
       _compsIdx = await alibRes.json();
@@ -906,6 +909,10 @@ async function loadAlibabaCompsIndex() {
       if (messiColorRes.ok) {
         const messiColorData = await messiColorRes.json();
         _compsIdx.comps.push(...(messiColorData.comps || []));
+      }
+      if (starsColorRes.ok) {
+        const starsColorData = await starsColorRes.json();
+        _compsIdx.comps.push(...(starsColorData.comps || []));
       }
       const engine = window._v3engine || await waitForV3Engine();
       if (engine) {
@@ -963,6 +970,26 @@ async function loadStarsgemMlModel() {
   return _starsgemMlModelPromise;
 }
 
+async function loadColorDiamondMlModel() {
+  if (_colorDiamondMlModel) return _colorDiamondMlModel;
+  if (_colorDiamondMlModelPromise) return _colorDiamondMlModelPromise;
+  _colorDiamondMlModelPromise = fetch('research/data/color-diamond-ml-model.json?v=20260527-color-source-adjusted')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _colorDiamondMlModel = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('Color diamond ML model unavailable.', err);
+      return null;
+    });
+  return _colorDiamondMlModelPromise;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════════════════════════
@@ -986,6 +1013,9 @@ const state = {
   reportMeasurements: '',
   reportTablePct: null,
   reportDepthPct: null,
+  reportPolish: '',
+  reportSymmetry: '',
+  reportFluorescence: '',
   ratioAssessment: null,
   reportShapeRaw: '',
   shapeMappedFromReport: null,
@@ -1052,6 +1082,9 @@ function setCaratValue(value, options = {}) {
   state.reportMeasurements = '';
   state.reportTablePct = null;
   state.reportDepthPct = null;
+  state.reportPolish = '';
+  state.reportSymmetry = '';
+  state.reportFluorescence = '';
   state.ratioAssessment = null;
   syncCaratControls(options);
   if (options.deferRender) scheduleRender({ interactive: !!options.interactive });
@@ -1871,6 +1904,113 @@ function starsgemLookupRowFromState(ct = state.carat) {
   };
 }
 
+function colorModelCategory(value) {
+  const text = String(value ?? '').trim();
+  return text || '-';
+}
+
+function colorModelHueFromKey(key) {
+  const base = String(key || '').split('_')[0];
+  return base || 'unknown';
+}
+
+function colorModelIntensityFromKey(key) {
+  const suffix = String(key || '').split('_')[1] || 'f';
+  return ({ fl:'light', f:'fancy', fi:'intense', fv:'vivid' })[suffix] || 'fancy';
+}
+
+function colorModelIntensityRank(intensity) {
+  return ({ light:0, fancy:1, deep:1, dark:1, intense:2, vivid:3 })[intensity] ?? 1;
+}
+
+function colorModelTreatmentGroup() {
+  if (state.asgrown) return 'as_grown';
+  if (state.postTreatment) return 'may_include_treatment';
+  return '-';
+}
+
+function colorDiamondModelRowFromState(ct = state.carat) {
+  const dims = parseMeasurementTriplet(state.reportMeasurements);
+  const color = fancyColorBase[state.colorFamily]?.label || colorLabel();
+  const intensity = colorModelIntensityFromKey(state.colorFamily);
+  return {
+    shape: colorModelCategory(state.shape),
+    subVariant: colorModelCategory(state.shape),
+    color: colorModelCategory(color),
+    colorHue: colorModelCategory(colorModelHueFromKey(state.colorFamily)),
+    colorIntensity: colorModelCategory(intensity),
+    appColorKey: colorModelCategory(state.colorFamily),
+    clarity: colorModelCategory(state.clarity),
+    growthMethod: colorModelCategory(starsgemTypeNameForState()),
+    cut: colorModelCategory(state.hasCutGrade ? (state.cut === 'ideal' ? 'Ideal' : state.cut === 'vg' ? 'Very Good' : state.cut === 'good' ? 'Good' : '-') : '-'),
+    polish: colorModelCategory(state.reportPolish || 'Excellent'),
+    symmetry: colorModelCategory(state.reportSymmetry || 'Excellent'),
+    fluorescence: colorModelCategory(state.reportFluorescence || '-'),
+    treatmentGroup: colorModelCategory(colorModelTreatmentGroup()),
+    diamondType: '-',
+    certShapeMapped: colorModelCategory(state.shape),
+    carat: ct,
+    logCarat: Math.log(Math.max(ct, 0.001)),
+    colorIntensityRank: colorModelIntensityRank(intensity),
+    modifierCount: state.fancyColorModifierTerms?.length || 0,
+    lwRatio: state.ratio || dims.ratio,
+    size1: dims.length,
+    size2: dims.width,
+    size3: dims.height,
+    tablePct: state.reportTablePct,
+    depthPct: state.reportDepthPct,
+    IGI_Enriched: state.reportShapeRaw ? 1 : 0,
+    IGI_IsTypeIIa: 0,
+    isLargeCarat: ct >= 5 ? 1 : 0,
+    is10ctPlus: ct >= 10 ? 1 : 0,
+  };
+}
+
+function colorModelNumericValue(row, field) {
+  const value = row?.[field];
+  const n = Number(value);
+  return Number.isFinite(n) ? n : value;
+}
+
+function colorModelVector(row, model) {
+  const features = model?.features;
+  if (!features) return [];
+  const vector = [];
+  for (const field of features.categorical || []) {
+    const value = colorModelCategory(row[field]);
+    const cats = features.categories?.[field] || [];
+    for (const cat of cats) vector.push(value === cat ? 1 : 0);
+  }
+  for (const field of features.numeric || []) {
+    const raw = colorModelNumericValue(row, field);
+    const n = raw === null || raw === undefined || raw === '' ? NaN : Number(raw);
+    const fallback = Number(features.numericMedians?.[field]);
+    vector.push(Number.isFinite(n) ? n : Number.isFinite(fallback) ? fallback : 0);
+  }
+  return vector;
+}
+
+function predictColorDiamondMl(row) {
+  const model = _colorDiamondMlModel;
+  if (!model || !Array.isArray(model.trees) || !model.trees.length) return null;
+  const vector = colorModelVector(row, model);
+  let logSum = 0;
+  for (const tree of model.trees) {
+    let node = 0;
+    while (tree.childrenLeft[node] !== -1) {
+      const feature = tree.feature[node];
+      const threshold = tree.threshold[node];
+      const value = vector[feature] ?? 0;
+      node = value <= threshold ? tree.childrenLeft[node] : tree.childrenRight[node];
+    }
+    logSum += tree.value[node];
+  }
+  const logRate = logSum / model.trees.length;
+  const carat = Number(row.carat);
+  const price = Math.max(0.01, Math.exp(logRate) * carat);
+  return { price, method: 'color_ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount, sourceAdjustment: model.sourceAdjustment };
+}
+
 function parseMeasurementTriplet(measurements) {
   const nums = String(measurements || '').match(/\d+(?:\.\d+)?/g)?.map(Number) || [];
   const length = Number.isFinite(nums[0]) ? nums[0] : null;
@@ -2196,21 +2336,40 @@ function updateStarsgemPricingIntel() {
   if (factorEl) factorEl.textContent = `/${factor}`;
 
   const row = starsgemLookupRowFromState(state.carat);
-  const mlPred = predictStarsgemMl(row);
+  const colorRow = !isWhite() ? colorDiamondModelRowFromState(state.carat) : null;
+  const colorMlPred = colorRow ? predictColorDiamondMl(colorRow) : null;
+  const mlPred = colorMlPred || predictStarsgemMl(row);
   if (mlPred && mlPriceEl) {
-    const methodLabel = 'ML model';
+    const methodLabel = colorMlPred ? 'color ML model' : 'ML model';
     mlPriceEl.textContent = `${fmt(mlPred.price)} ${methodLabel}`;
     if (mlModelEl) mlModelEl.textContent = mlPred.modelName || 'ML';
     if (mlNoteEl) {
-      const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth when available' : 'using selected specs; dimensions are imputed until an IGI report is loaded';
-      const tailNote = mlPred.tail?.level && mlPred.tail.level !== 'NONE'
-        ? ` Large-stone tail: ${escapeHTML(mlPred.tail.level)}${mlPred.tail.count ? `, n=${mlPred.tail.count}` : ''}, ${mlPred.tail.multiplier.toFixed(2)}×.`
-        : '';
-      mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> Extra Trees model prediction (${dims}).${tailNote}`;
+      if (colorMlPred) {
+        const adj = colorMlPred.sourceAdjustment?.messiColorToStarsgemLikeFactor || 1.25;
+        const dims = state.reportMeasurements ? 'using IGI dimensions when available' : 'using selected specs; dimensions are imputed until an IGI report is loaded';
+        mlNoteEl.innerHTML = `<strong>${escapeHTML(colorRow.shape)} ${escapeHTML(colorRow.color)} ${escapeHTML(colorRow.clarity)}</strong> source-adjusted color model (${dims}). Messi color training rows are divided by ${Number(adj).toFixed(2)}; direct StarGem color anchors are unadjusted.`;
+      } else {
+        const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth when available' : 'using selected specs; dimensions are imputed until an IGI report is loaded';
+        const tailNote = mlPred.tail?.level && mlPred.tail.level !== 'NONE'
+          ? ` Large-stone tail: ${escapeHTML(mlPred.tail.level)}${mlPred.tail.count ? `, n=${mlPred.tail.count}` : ''}, ${mlPred.tail.multiplier.toFixed(2)}×.`
+          : '';
+        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> Extra Trees model prediction (${dims}).${tailNote}`;
+      }
     }
   } else if (mlPriceEl) {
     mlPriceEl.textContent = 'Loading ML model…';
-    if (mlNoteEl) mlNoteEl.textContent = 'The compact Extra Trees browser model is loading from the StarGem benchmark artifact.';
+    if (mlNoteEl) mlNoteEl.textContent = isWhite()
+      ? 'The compact Extra Trees browser model is loading from the StarGem benchmark artifact.'
+      : 'The source-adjusted color model is loading from the enriched Messi/StarGem color artifact.';
+  }
+
+  if (!isWhite()) {
+    bucketEl.textContent = 'color model';
+    priceEl.textContent = 'No StarGem color lookup table yet';
+    noteEl.textContent = 'Fancy colors now use the source-adjusted color ML model plus exact/direct color comps. The white StarGem /170 sheet reconstruction is intentionally hidden for colored stones.';
+    levelEl.textContent = '—';
+    rateEl.textContent = '—';
+    return;
   }
 
   const pred = predictStarsgemLookup(row);
@@ -2471,6 +2630,10 @@ const SOURCE_SHEET_META = {
     label: 'Messi color sheet',
     file: 'research/data/2026.05.11MESSIGEMS COLORS LAB DIAMONDS LIST.xlsx',
   },
+  'starsgem-color': {
+    label: 'StarGem color anchors',
+    file: null,
+  },
 };
 
 function getCompSourceMeta(row) {
@@ -2533,7 +2696,7 @@ function renderCompLinks(entry) {
       ? `source row sample ${rows.slice(0, 2).map(escapeHTML).join(', ')}${rows.length > 2 ? '…' : ''}`
       : rows.length === 1 ? `source row ${escapeHTML(rows[0])}` : 'source sheet';
     links.push(`<a href="${escapeAttr(spreadsheetViewerLink(row))}" target="_blank" rel="noopener">${rowLabel} ↗</a>`);
-    links.push(`<a href="${escapeAttr(meta.file)}" target="_blank" rel="noopener">xlsx ↗</a>`);
+    if (meta.file) links.push(`<a href="${escapeAttr(meta.file)}" target="_blank" rel="noopener">xlsx ↗</a>`);
     if (reports.length) {
       const report = displayIGINumber(extractIGINumber(reports[0]));
       const suffix = reports.length > 1 ? ` +${reports.length - 1}` : '';
@@ -5133,6 +5296,9 @@ function applyIGIReport(options = {}) {
   state.reportMeasurements = r.measurements || '';
   state.reportTablePct = r.tablePercent || null;
   state.reportDepthPct = r.depthPercent || null;
+  state.reportPolish = r.polish || '';
+  state.reportSymmetry = r.symmetry || '';
+  state.reportFluorescence = r.fluorescence || '';
   state.ratioAssessment = state.ratio ? assessRatio(state.ratio, state.shape) : null;
 
   // Map cut — many IGI lab reports omit Cut Grade (polish/sym only)
@@ -5223,6 +5389,7 @@ syncWhiteSection();
 loadAlibabaCompsIndex(); // async: triggers update() again once comps are ready
 loadStarsgemPricingIntel(); // async: exposes StarGem lookup/formula diagnostics
 loadStarsgemMlModel(); // async: loads compact browser ML price predictor
+loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor
 update();
 
 </script>

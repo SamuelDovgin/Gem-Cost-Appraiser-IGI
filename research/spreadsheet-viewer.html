@@ -68,6 +68,11 @@ const SOURCES = {
     index: 'data/messi-color-index.json',
     xlsx: 'data/2026.05.11MESSIGEMS COLORS LAB DIAMONDS LIST.xlsx',
   },
+  'starsgem-color': {
+    label: 'Wuzhou StarGem Fancy Color Direct Quotes',
+    index: 'data/starsgem-color-index.json',
+    xlsx: null,
+  },
 };
 const IGI_PDF_BASE = 'https://pdf.igi.org/';
 const params = new URLSearchParams(location.search);
@@ -116,9 +121,10 @@ function rowHtml(r){
 
 async function main(){
   document.getElementById('title').textContent = source.label;
-  document.getElementById('actions').innerHTML =
-    `<a class="btn" href="${esc(source.xlsx)}" target="_blank" rel="noopener">Open spreadsheet file</a>` +
-    `<a class="btn" href="${esc(source.index)}" target="_blank" rel="noopener">Open JSON index</a>`;
+  const actionLinks = [];
+  if (source.xlsx) actionLinks.push(`<a class="btn" href="${esc(source.xlsx)}" target="_blank" rel="noopener">Open spreadsheet file</a>`);
+  actionLinks.push(`<a class="btn" href="${esc(source.index)}" target="_blank" rel="noopener">Open JSON index</a>`);
+  document.getElementById('actions').innerHTML = actionLinks.join('');
   if (location.protocol === 'file:') {
     document.getElementById('status').innerHTML =
       'This row viewer needs to be opened from the app or a local web server so it can load the JSON index. Use the spreadsheet file link above for direct file access.';

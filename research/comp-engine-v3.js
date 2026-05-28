@@ -172,6 +172,35 @@ function supplierKey(row) {
 
 // Maximum rows any single supplier can contribute to the ensemble.
 const MAX_PER_SUPPLIER = 2;
+const MESSI_TO_STARGEM_SOURCE_FACTOR = 1.25;
+
+function sourceAdjustmentFactor(row) {
+  if (!row) return 1;
+  const supplier = String(row.supplier || '').toLowerCase();
+  if (
+    row.sourceKey === 'messi-color' ||
+    row.sourceKey === 'messi-gems' ||
+    row.sourceType === 'supplier-color-sheet' ||
+    supplier.includes('messi')
+  ) {
+    return MESSI_TO_STARGEM_SOURCE_FACTOR;
+  }
+  return 1;
+}
+
+function effectiveCompPriceUsd(row) {
+  const raw = Number(row?.priceUsd);
+  if (!Number.isFinite(raw) || raw <= 0) return raw;
+  return raw / sourceAdjustmentFactor(row);
+}
+
+function sourceAdjustmentParts(row) {
+  const factor = sourceAdjustmentFactor(row);
+  if (!Number.isFinite(factor) || factor <= 1.0001) return [];
+  const isColor = row?.sourceKey === 'messi-color' || row?.sourceType === 'supplier-color-sheet' || row?.colorFamily === 'fancy';
+  const scope = isColor ? 'Messi color' : 'Messi';
+  return [`source adjust ÷${factor.toFixed(2)} (${scope} → StarGem-like factory)`];
+}
 
 /**
  * applySupplierCap — limit each supplier to at most MAX_PER_SUPPLIER rows.
@@ -225,7 +254,7 @@ function buildOtherFactoryExactList(exactAdjustedOrdered, floorSupplierKey, quer
  */
 function selectCheapestExactEnsemble(exactScored, maxN = MAX_ENSEMBLE) {
   return [...exactScored]
-    .sort((a, b) => a.row.priceUsd - b.row.priceUsd || a.score - b.score)
+    .sort((a, b) => effectiveCompPriceUsd(a.row) - effectiveCompPriceUsd(b.row) || a.score - b.score)
     .slice(0, maxN);
 }
 
@@ -968,9 +997,10 @@ function compErrorScore(query, row) {
 function adjustCompToQuery(query, row, context = {}) {
   const compCt = row.carat || 1;
   const queryCt = query.carat;
-  const logDpcComp = Math.log(row.priceUsd / compCt);
+  const effectivePrice = effectiveCompPriceUsd(row);
+  const logDpcComp = Math.log(effectivePrice / compCt);
 
-  const parts = [];
+  const parts = sourceAdjustmentParts(row);
   let logDpcAdj = logDpcComp;
   let sigmaCarat, sigmaColor, sigmaClarity, sigmaShape;
 
@@ -1275,6 +1305,7 @@ const SUPPLEMENTAL_COMP_FILES = [
   'messi-comps.json',
   'starsgem-comps.json',
   'messi-color-comps.json',
+  'starsgem-color-comps.json',
 ];
 
 function mergeSupplementalComps(index, supplementalIndexes) {
@@ -1532,9 +1563,10 @@ function resolveAlibabaComp(query) {
     if (exactForSupplier.length) {
       const best = exactForSupplier[0];
       const usesCaratScale = caratGapNeedsExactAdjustment(nq.carat, best.row?.carat);
+      const hasSourceAdjustment = best.parts && best.parts.length;
       const estPrice = usesCaratScale
         ? Math.round(Math.exp(best.logEstimate))
-        : best.row.priceUsd;
+        : hasSourceAdjustment ? Math.round(Math.exp(best.logEstimate)) : best.row.priceUsd;
       supplierComparisons.push({
         supplierKey: sk,
         label: shortLabel(best.row),
@@ -1543,7 +1575,7 @@ function resolveAlibabaComp(query) {
         url: best.row.url,
         row: best.row,
         matchType: 'exact',
-        modifiers: (usesCaratScale || (best.parts && best.parts.length))
+        modifiers: (usesCaratScale || hasSourceAdjustment)
           ? { combined: Math.exp(best.logEstimate - Math.log(best.row.priceUsd)), estimated: estPrice, parts: best.parts }
           : null,
       });
@@ -1584,8 +1616,11 @@ function resolveAlibabaComp(query) {
   supplierComparisons.sort((a, b) => a.estimatedPrice - b.estimatedPrice);
   const exactUsesCaratScale = matchType === 'exact'
     && caratGapNeedsExactAdjustment(nq.carat, primaryAdj.row?.carat);
+  const exactUsesSourceAdjustment = matchType === 'exact'
+    && primaryAdj.parts
+    && primaryAdj.parts.length;
   const primaryEstPrice = matchType === 'exact'
-    ? (exactUsesCaratScale
+    ? (exactUsesCaratScale || exactUsesSourceAdjustment
         ? Math.round(Math.exp(primaryAdj.logEstimate))
         : primaryAdj.row.priceUsd)
     : blend.estimate;
@@ -1593,7 +1628,7 @@ function resolveAlibabaComp(query) {
 
   // Legacy modifiers object (for UI compatibility)
   const legacyModifiers = (matchType === 'exact')
-    ? (exactUsesCaratScale || (primaryAdj.parts && primaryAdj.parts.length)
+    ? (exactUsesCaratScale || exactUsesSourceAdjustment
         ? {
             combined: Math.exp(primaryAdj.logEstimate - Math.log(primaryAdj.row.priceUsd)),
             estimated: primaryEstPrice,
