@@ -2518,7 +2518,7 @@ function updateStarsgemPricingIntel() {
   if (mlPred && mlPriceEl) {
     const methodLabel = colorMlPred ? 'color ML model' : 'ML model';
     mlPriceEl.textContent = `${fmt(mlPred.price)} ${methodLabel}`;
-    if (mlModelEl) mlModelEl.textContent = mlPred.modelName || 'ML';
+    if (mlModelEl) mlModelEl.textContent = colorMlPred ? (mlPred.modelName || 'ML') : 'S22 (ExtraTrees + PAV)';
     if (mlNoteEl) {
       if (colorMlPred) {
         const adj = colorMlPred.sourceAdjustment?.messiColorToStarsgemLikeFactor || 1.25;
@@ -2529,13 +2529,13 @@ function updateStarsgemPricingIntel() {
         const tailNote = mlPred.tail?.level && mlPred.tail.level !== 'NONE'
           ? ` Large-stone tail: ${escapeHTML(mlPred.tail.level)}${mlPred.tail.count ? `, n=${mlPred.tail.count}` : ''}, ${mlPred.tail.multiplier.toFixed(2)}×.`
           : '';
-        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> LightGBM monotone model prediction (${dims}).${tailNote}`;
+        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ExtraTrees model prediction, S22 (${dims}).${tailNote}`;
       }
     }
   } else if (mlPriceEl) {
     mlPriceEl.textContent = 'Loading ML model…';
     if (mlNoteEl) mlNoteEl.textContent = isWhite()
-      ? 'The LightGBM monotone browser model is loading from the StarGem benchmark artifact.'
+      ? 'The ExtraTrees ML model (S22) is loading from the StarGem benchmark artifact.'
       : 'The source-adjusted color model is loading from the enriched Messi/StarGem color artifact.';
   }
 
