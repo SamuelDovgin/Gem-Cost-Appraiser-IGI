@@ -1031,8 +1031,14 @@ async function loadStarsgemPricingIntel() {
 async function loadStarsgemMlModel() {
   if (_starsgemMlModel) return _starsgemMlModel;
   if (_starsgemMlModelPromise) return _starsgemMlModelPromise;
-  // S20 keeps selected-spec calibration while adding specialty-cut features and a monotonic 5ct+ tail.
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s20-specialty-tail.json?v=20260527-s20-specialty-tail')
+  // S22 = S20 ExtraTrees base + Layer-4 PAV. The S20 base is the point-pricing model
+  // (raw predictStarsgemMl → 4.63% selected-spec MAPE); Layer-4 two-axis PAV projection
+  // is used only for the clarity/color ladder display (0 inversions).
+  // NOTE: the S21 LightGBM artifact was evaluated and shelved — its raw JS point predictions
+  // regress to ~14.4% MAPE on the selected-spec test set (worst on 1.5–4ct commercial sizes),
+  // and PAV already delivers 0 inversions on S20, so the S21 monotone constraints bought no
+  // ladder benefit while costing point accuracy. See research/s22-and-color-monotonicity-plan.md.
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s20-specialty-tail.json?v=20260529-s22-s20base')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1388,7 +1394,7 @@ const SHAPE_MARKET_APPEAL = {
   round: { demand:'★★★★★', resale:'strong', appeal:'Classic brilliant — maximum sparkle and buyer recognition.', trend:'Still #1 globally (~26–63% of sales by metric); dominance narrowing vs oval in 2026.', summary:'The default engagement cut and resale benchmark.' },
   oval: { demand:'★★★★★', resale:'strong', appeal:'Elongated, finger-flattering; reads larger face-up per carat.', trend:'Fastest-growing fancy shape; some 2026 datasets show oval nearly matching round share.', summary:'Among the hottest cuts for modern and lab-grown rings.' },
   pear: { demand:'★★★★☆', resale:'strong', appeal:'Elegant teardrop; strong in solitaires and east-west settings.', trend:'Rising again in 2025–26 (celebrity + modern settings); ~6–8% of shape sales.', summary:'Top-tier fancy — liquid if proportions and point are clean.' },
-  marquise: { demand:'★★★☆☆', resale:'moderate', appeal:'Bold elongated outline; vintage comeback aesthetic.', trend:'Resurging 2025–26 in vintage-inspired designs; still a deeper fancy discount vs round at retail.', summary:'Fashion-forward but not round/oval liquidity — tips and bowtie matter.' },
+  marquise: { demand:'★★★☆☆', resale:'moderate', appeal:'Bold elongated outline; vintage comeback aesthetic.', trend:'Resurging 2025–26 in vintage-inspired designs; still a deeper fancy discount vs round at retail.', summary:'Fashion-forward but not round/oval liquidity — tips and bowtie matter.', extra:'Face-up reads ~10–15% larger than round per carat — the strongest face-up-to-carat ratio among pointed fancy shapes. Bowtie severity (usually more pronounced than oval) and tip symmetry must be confirmed in video; the IGI cert grades neither. Natural-market context: Rapaport places marquise 20–25% below round at retail; the lab-grown gap narrows to ~13% here on the back of a broad vintage/Art Deco revival and celebrity-driven bridal demand in 2024–26. Tips are a genuine durability concern — V-prong or bezel-set protection is strongly preferred over a standard prong head; budget an extra $50–200 vs a round/oval prong. Ideal L/W 1.90–2.10 (below 1.90 looks stubby; above 2.10 increases tip exposure risk). For fancy color, marquise is favored for vivid pink: color concentrates toward the tips, deepening apparent saturation — modeled at −7% vs colorless-fancy baseline vs −13% on white.' },
   heart: { demand:'★★★☆☆', resale:'moderate', appeal:'Romantic silhouette; consistent niche bridal demand.', trend:'Steady specialty choice; pink/yellow hearts often preferred over white.', summary:'Emotional purchase cut — narrower buyer pool than ovals.' },
   cushion: { demand:'★★★★☆', resale:'good', appeal:'Soft vintage pillow look; excellent for fancy color saturation.', trend:'Sustained popularity; crushed-ice vs chunky facet styles split buyers.', summary:'Mainstream fancy — good factory stock, softer than round resale.' },
   cushion_brilliant: { demand:'★★★★☆', resale:'good', appeal:'Chunkier facet pattern than modified cushion; slightly more brilliance.', trend:'Same cushion family demand; verify facet pattern in video.', summary:'Common lab fancy — appeal hinges on face-up pattern.' },
@@ -1418,6 +1424,7 @@ const SHAPE_MARKET_APPEAL = {
   flanders: { demand:'★☆☆☆☆', resale:'very thin', appeal:'Octagonal square brilliant (Belgian / Flanders Ideal).', trend:'Discontinued / scarce distribution; niche even when found.', summary:'Exotic — often ~13% smaller face-up than radiant; tiny resale pool.', extra:'PriceScope: limited cutters and supply vs mainstream squares.' },
 };
 const SHAPE_RESEARCH_NOTES = {
+  marquise: SHAPE_MARKET_APPEAL.marquise.extra,
   moval: SHAPE_MARKET_APPEAL.moval.extra,
   hexagonal_dutch: SHAPE_MARKET_APPEAL.hexagonal_dutch.extra,
   portuguese: SHAPE_MARKET_APPEAL.portuguese.extra,
@@ -2196,6 +2203,34 @@ function starsgemNumericFeatureValue(row, field, model) {
   }
   if (field === 'Has_GrowthMethod') return starsgemNorm(row?.TypeName) === '-' ? 0 : 1;
   if (field === 'Has_Report_Cut') return starsgemNorm(row?.Cut) === '-' ? 0 : 1;
+  if (field === 'Clarity_Rank') {
+    const _CR = { IF: 0, VVS1: 1, VVS2: 2, VS1: 3, VS2: 4, SI1: 5, SI2: 6 };
+    return _CR[starsgemNorm(row?.Clarity)] ?? 7;
+  }
+  if (field === 'Color_Rank') {
+    const _OR = { D: 0, E: 1, F: 2, G: 3, H: 4, I: 5, J: 6 };
+    return _OR[starsgemNorm(row?.Color)] ?? 7;
+  }
+  // S21 dimensional composite features
+  if (field === 'Dim_Volume') {
+    const l = Number(row?.Length), w = Number(row?.Width), h = Number(row?.Height);
+    return (Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0)
+      ? l * w * h : undefined;
+  }
+  if (field === 'Dim_Surface') {
+    const l = Number(row?.Length), w = Number(row?.Width), h = Number(row?.Height);
+    return (Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0)
+      ? 2 * (l * w + w * h + l * h) : undefined;
+  }
+  if (field === 'LW_Ratio_refined') {
+    const l = Number(row?.Length), w = Number(row?.Width);
+    return (Number.isFinite(l) && Number.isFinite(w) && l > 0 && w > 0)
+      ? Math.max(l, w) / Math.min(l, w) : undefined;
+  }
+  if (field === 'Table_Depth_Ratio') {
+    const t = Number(row?.Table_Scale), d = Number(row?.Depth_Scale);
+    return (Number.isFinite(t) && Number.isFinite(d) && d > 0) ? t / d : undefined;
+  }
   if (field === 'Is_SelectedSpec_Mode') {
     const l = Number(row?.Length);
     const w = Number(row?.Width);
@@ -2359,7 +2394,7 @@ function predictStarsgemMl(row) {
     }
     logSum += tree.value[node];
   }
-  const logVal = logSum / model.trees.length;
+  const logVal = model.lgbmBaseScore != null ? logSum + model.lgbmBaseScore : logSum / model.trees.length;
   const carat = Number(row.Carat ?? row.carat);
   const isTailResidual = model.targetType === 'log_tail_lookup_residual';
   const lookupRate = isTailResidual
@@ -2374,6 +2409,64 @@ function predictStarsgemMl(row) {
     ? Math.max(0.01, Math.exp(logVal) * carat)
     : Math.max(0.01, Math.exp(logVal));
   return { price, method: 'ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount, tail };
+}
+
+// S21 Layer-4: two-axis PAV projection guaranteeing strict grade ordering
+const _CLARITY_ORDER_ML = ['IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2'];
+const _COLOR_ORDER_ML   = ['D', 'E', 'F', 'G', 'H'];
+
+function pavNonIncreasing(values) {
+  const n = values.length;
+  const out = values.slice();
+  // Pool-adjacent violators for non-increasing constraint
+  let i = 0;
+  while (i < n) {
+    let j = i;
+    let sum = out[i];
+    while (j + 1 < n && out[j + 1] > sum / (j - i + 1)) {
+      j++;
+      sum += out[j];
+    }
+    const avg = sum / (j - i + 1);
+    for (let k = i; k <= j; k++) out[k] = avg;
+    i = j + 1;
+  }
+  return out;
+}
+
+function predictStarsgemMlMonotone(row) {
+  const model = _starsgemMlModel;
+  if (!model || !Array.isArray(model.trees) || !model.trees.length) return null;
+  const carat = Number(row.Carat ?? row.carat);
+  const isTailResidual = model.targetType === 'log_tail_lookup_residual';
+  // Build 5×7 grid: [colorIdx][clarityIdx] = raw perCt prediction
+  const grid = _COLOR_ORDER_ML.map(color => {
+    return _CLARITY_ORDER_ML.map(clarity => {
+      const r = { ...row, Color: color, Clarity: clarity };
+      const p = predictStarsgemMl(r);
+      return p ? p.price / carat : null;
+    });
+  });
+  // Step 1: PAV over clarity axis for each color (non-increasing: IF best, SI2 worst)
+  const clarPavGrid = grid.map(colorRow => {
+    const valid = colorRow.map((v, i) => ({ v, i })).filter(x => x.v != null);
+    if (!valid.length) return colorRow;
+    const paved = pavNonIncreasing(valid.map(x => x.v));
+    const out = colorRow.slice();
+    valid.forEach((x, k) => { out[x.i] = paved[k]; });
+    return out;
+  });
+  // Step 2: PAV over color axis at each clarity grade (non-increasing: D best, H worst)
+  const clarityIdx = _CLARITY_ORDER_ML.indexOf(starsgemNorm(row.Clarity));
+  const colorIdx   = _COLOR_ORDER_ML.indexOf(starsgemNorm(row.Color));
+  const safeCI = clarityIdx >= 0 ? clarityIdx : 3;
+  const safeOI = colorIdx >= 0 ? colorIdx : 2;
+  const colVec = clarPavGrid.map(r => r[safeCI]);
+  const colPaved = pavNonIncreasing(colVec.map(v => v ?? 0));
+  const perCt = colPaved[safeOI];
+  // Retrieve the raw prediction for tail/modelName metadata
+  const raw = predictStarsgemMl(row);
+  return raw ? { ...raw, price: perCt * carat, perCt } : null;
 }
 
 function starsgemCompareSummary(mlPred, lookupPred) {
@@ -2417,6 +2510,10 @@ function updateStarsgemPricingIntel() {
   const row = starsgemLookupRowFromState(state.carat);
   const colorRow = !isWhite() ? colorDiamondModelRowFromState(state.carat) : null;
   const colorMlPred = colorRow ? predictColorDiamondMl(colorRow) : null;
+  // P0 (S22): Price card uses raw point estimate — predictStarsgemMl — NOT predictStarsgemMlMonotone.
+  // PAV projection is intentionally limited to the clarity/color ladder display (getMlPredictionForReconciler).
+  // Using the monotone path here costs ~+5 pp MAPE because PAV averages adjacent cells,
+  // which systematically biases a single high-clarity stone toward lower-clarity neighbours.
   const mlPred = colorMlPred || predictStarsgemMl(row);
   if (mlPred && mlPriceEl) {
     const methodLabel = colorMlPred ? 'color ML model' : 'ML model';
@@ -2432,13 +2529,13 @@ function updateStarsgemPricingIntel() {
         const tailNote = mlPred.tail?.level && mlPred.tail.level !== 'NONE'
           ? ` Large-stone tail: ${escapeHTML(mlPred.tail.level)}${mlPred.tail.count ? `, n=${mlPred.tail.count}` : ''}, ${mlPred.tail.multiplier.toFixed(2)}×.`
           : '';
-        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> Extra Trees model prediction (${dims}).${tailNote}`;
+        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> LightGBM monotone model prediction (${dims}).${tailNote}`;
       }
     }
   } else if (mlPriceEl) {
     mlPriceEl.textContent = 'Loading ML model…';
     if (mlNoteEl) mlNoteEl.textContent = isWhite()
-      ? 'The compact Extra Trees browser model is loading from the StarGem benchmark artifact.'
+      ? 'The LightGBM monotone browser model is loading from the StarGem benchmark artifact.'
       : 'The source-adjusted color model is loading from the enriched Messi/StarGem color artifact.';
   }
 
@@ -2565,7 +2662,10 @@ function getMlPredictionForReconciler(ct) {
     } : null;
   }
   const row = starsgemLookupRowFromState(ct);
-  const pred = predictStarsgemMl(row);
+  // P0 (S22): getMlPredictionForReconciler feeds the reconciler's ML anchor, which
+  // is a ladder-context value. Keep predictStarsgemMlMonotone here to guarantee
+  // 0 inversions on the clarity/color ladder. (Price card above uses raw predictStarsgemMl.)
+  const pred = predictStarsgemMlMonotone(row);
   if (!pred) return null;
   const lookup = _starsgemMlModel ? starsgemModelLookupRate(row, _starsgemMlModel) : null;
   return {

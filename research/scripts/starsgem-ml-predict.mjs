@@ -212,6 +212,38 @@ function starsgemNumericFeatureValue(row, field, model) {
     const h = Number(row?.Height);
     return Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0 ? 0 : 1;
   }
+  // S21 dimensional composite features
+  if (field === 'Dim_Volume') {
+    const l = Number(row?.Length), w = Number(row?.Width), h = Number(row?.Height);
+    return (Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0)
+      ? l * w * h : undefined;
+  }
+  if (field === 'Dim_Surface') {
+    const l = Number(row?.Length), w = Number(row?.Width), h = Number(row?.Height);
+    return (Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0)
+      ? 2 * (l * w + w * h + l * h) : undefined;
+  }
+  if (field === 'LW_Ratio_refined') {
+    const l = Number(row?.Length), w = Number(row?.Width);
+    return (Number.isFinite(l) && Number.isFinite(w) && l > 0 && w > 0)
+      ? Math.max(l, w) / Math.min(l, w) : undefined;
+  }
+  if (field === 'Table_Depth_Ratio') {
+    const t = Number(row?.Table_Scale), d = Number(row?.Depth_Scale);
+    return (Number.isFinite(t) && Number.isFinite(d) && d > 0)
+      ? t / d : undefined;
+  }
+  // S21 ordinal rank features
+  if (field === 'Clarity_Rank') {
+    const CLARITY_RANK = { IF: 0, VVS1: 1, VVS2: 2, VS1: 3, VS2: 4, SI1: 5, SI2: 6 };
+    const cl = starsgemNorm(row?.Clarity);
+    return CLARITY_RANK[cl] ?? 7;
+  }
+  if (field === 'Color_Rank') {
+    const COLOR_RANK = { D: 0, E: 1, F: 2, G: 3, H: 4, I: 5, J: 6 };
+    const co = starsgemNorm(row?.Color);
+    return COLOR_RANK[co] ?? 7;
+  }
   return row?.[field];
 }
 
@@ -284,7 +316,11 @@ export function predictStarsgemMl(row, model) {
     }
     logSum += tree.value[node];
   }
-  const logVal = logSum / model.trees.length;
+  // LightGBM: sum of all tree leaf values + lgbmBaseScore.
+  // ExtraTrees: mean of all tree leaf values (lgbmBaseScore absent).
+  const logVal = model.lgbmBaseScore != null
+    ? logSum + model.lgbmBaseScore
+    : logSum / model.trees.length;
   const carat = Number(row.Carat ?? row.carat);
   const isTailResidual = model.targetType === 'log_tail_lookup_residual';
   const lookupRate = isTailResidual
@@ -307,5 +343,227 @@ export function predictStarsgemMl(row, model) {
     lookupLevel: lookup.level,
     lookupCount: lookup.count,
     residualMult: Number.isFinite(lookupRate) && lookupRate > 0 ? price / (lookupRate * carat) : null,
+  };
+}
+
+/**
+ * Layer-4 isotonic projection: run predictStarsgemMl across the full clarity
+ * ladder and apply PAV (non-increasing) to guarantee zero inversions.
+ * Returns the same shape as predictStarsgemMl but with .projected = true.
+ *
+ * Also sweeps the color ladder and returns projected ladders for debugging.
+ */
+
+const CLARITY_ORDER_PRED = ['IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2'];
+const COLOR_ORDER_PRED   = ['D', 'E', 'F', 'G', 'H'];
+
+export function pavNonIncreasing(values) {
+  /** Pool-adjacent violators: returns isotonically non-increasing sequence. */
+  const n = values.length;
+  if (n <= 1) return [...values];
+  // Each block: { sum, count, start, end }
+  const blocks = values.map((v, i) => ({ sum: v, count: 1, start: i, end: i }));
+  let i = 0;
+  while (i < blocks.length - 1) {
+    const avgI  = blocks[i].sum  / blocks[i].count;
+    const avgI1 = blocks[i + 1].sum / blocks[i + 1].count;
+    if (avgI < avgI1) {
+      // Violation: merge block i and i+1
+      blocks[i].sum   += blocks[i + 1].sum;
+      blocks[i].count += blocks[i + 1].count;
+      blocks[i].end    = blocks[i + 1].end;
+      blocks.splice(i + 1, 1);
+      if (i > 0) i -= 1;
+    } else {
+      i += 1;
+    }
+  }
+  const result = new Array(n);
+  for (const b of blocks) {
+    const avg = b.sum / b.count;
+    for (let j = b.start; j <= b.end; j++) result[j] = avg;
+  }
+  return result;
+}
+
+export function predictStarsgemMlMonotone(row, model) {
+  /**
+   * Layer-4 two-axis PAV wrapper.
+   *
+   * Guarantees monotonicity on BOTH clarity and color axes:
+   *   1. For each of the 5 COLOR_ORDER_PRED colors, compute a PAV-projected
+   *      clarity ladder (7 points). This yields a 5×7 grid where every column
+   *      is non-increasing in clarity.
+   *   2. At the requested clarity index (clarIdx), read off the 5 color values
+   *      and apply a second PAV along the color axis (D→H non-increasing).
+   *   3. Return the doubly-projected $/ct for the stone's (color, clarity).
+   *
+   * Total model calls: 5 × 7 = 35 per invocation.
+   */
+  const carat    = Number(row.Carat ?? row.carat);
+  const clarity  = starsgemNorm(row.Clarity);
+  const color    = starsgemNorm(row.Color);
+  const clarIdx  = CLARITY_ORDER_PRED.indexOf(clarity);
+  const colorIdx = COLOR_ORDER_PRED.indexOf(color);
+
+  // Step 1: build 5×7 grid — clarProjGrid[ci][ki] = PAV-projected $/ct for color ci, clarity ki
+  const clarProjGrid = COLOR_ORDER_PRED.map((co) => {
+    const clarRaw = CLARITY_ORDER_PRED.map((cl) => {
+      const r = { ...row, Color: co, Clarity: cl };
+      const p = predictStarsgemMl(r, model);
+      return p ? p.perCt : null;
+    });
+    return pavNonIncreasing(clarRaw);
+  });
+
+  // Step 2: at the requested clarity index, extract the color vector and apply PAV
+  const colVecAtClarity = clarProjGrid.map((clarRow) =>
+    clarIdx >= 0 ? clarRow[clarIdx] : clarRow[0],
+  );
+  const projColorAtClarity = pavNonIncreasing(colVecAtClarity);
+
+  const projPerCt = colorIdx >= 0 ? projColorAtClarity[colorIdx] : colVecAtClarity[0];
+  const price     = projPerCt != null ? projPerCt * carat : null;
+
+  // Build clarity ladder at requested color (for diagnostics)
+  const colIdx2 = colorIdx >= 0 ? colorIdx : 0;
+  const clarLadderAtColor = CLARITY_ORDER_PRED.map((cl, ki) => {
+    const colVec = clarProjGrid.map((clarRow) => clarRow[ki]);
+    const projColVec = pavNonIncreasing(colVec);
+    return { clarity: cl, perCt: projColVec[colIdx2] };
+  });
+
+  return {
+    price,
+    perCt: projPerCt,
+    projected: true,
+    modelName: model.modelName,
+    rawPerCt:  predictStarsgemMl({ ...row }, model)?.perCt ?? null,
+    projectedClarityLadder: clarLadderAtColor,
+    projectedColorLadder:   COLOR_ORDER_PRED.map((co, i) => ({ color: co, perCt: projColorAtClarity[i] })),
+    clarityIdx: clarIdx,
+    colorIdx,
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Generalized monotone projection — driven by monotone-axes.json
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Complement of pavNonIncreasing: returns an isotonically non-decreasing
+ * sequence (used for direction = +1 axes such as carat or intensity).
+ */
+export function pavNonDecreasing(values) {
+  // Reverse → non-increasing PAV → reverse back
+  const reversed = pavNonIncreasing([...values].reverse());
+  return reversed.reverse();
+}
+
+/**
+ * Apply PAV in the direction specified by an axis entry.
+ * @param {number[]} values - raw $/ct values in order of axis.order
+ * @param {number} direction - +1 (non-decreasing) or -1 (non-increasing)
+ */
+export function pavForAxis(values, direction) {
+  return direction >= 0 ? pavNonDecreasing(values) : pavNonIncreasing(values);
+}
+
+/**
+ * Generalized two-axis (or one-axis) PAV projection, driven by axis specs from
+ * monotone-axes.json. S23 (white) and P4 (color) both consume this function.
+ *
+ * @param {object} row - the stone row (same shape as buildStarsgemRow output)
+ * @param {object} model - loaded ML model object
+ * @param {Array<{feature: string, rowField: string|null, order: string[]|null, direction: number}>} axisSpecs
+ *   Ordered axis specs for this gem family. Only axes with a non-null rowField and order are swept;
+ *   continuous axes (rowField: null) are monotone-constrained at training time only.
+ *
+ * @returns {object} - { price, perCt, projected, projectedLadders }
+ *   projectedLadders: array parallel to sweepable axes; each element is
+ *   [{value: string, perCt: number}] for the stone's other-axis position.
+ *
+ * Usage:
+ *   import { loadMonotoneAxes } from './load-monotone-axes.mjs';
+ *   const axes = loadMonotoneAxes('white_diamond');
+ *   predictMonotoneGeneralized(row, model, axes);
+ */
+export function predictMonotoneGeneralized(row, model, axisSpecs) {
+  // Filter to only the sweepable axes (those with order arrays)
+  const sweepable = axisSpecs.filter((a) => a.order && a.rowField);
+
+  if (sweepable.length === 0) {
+    // No ladder axes — fall back to raw prediction
+    return { ...predictStarsgemMl(row, model), projected: false };
+  }
+
+  const carat = Number(row.Carat ?? row.carat ?? 1);
+
+  if (sweepable.length === 1) {
+    // ── 1-D case ────────────────────────────────────────────────────────────
+    const ax = sweepable[0];
+    const rawValues = ax.order.map((v) => {
+      const r = { ...row, [ax.rowField]: v };
+      return predictStarsgemMl(r, model)?.perCt ?? null;
+    });
+    const projValues = pavForAxis(rawValues, ax.direction);
+    const stoneIdx = ax.order.indexOf(starsgemNorm(row[ax.rowField] ?? ''));
+    const projPerCt = stoneIdx >= 0 ? projValues[stoneIdx] : projValues[0];
+    return {
+      price:     projPerCt != null ? projPerCt * carat : null,
+      perCt:     projPerCt,
+      projected: true,
+      modelName: model.modelName,
+      projectedLadders: [
+        ax.order.map((v, i) => ({ value: v, perCt: projValues[i] })),
+      ],
+    };
+  }
+
+  // ── 2-D case (most common: clarity × color, or intensity × modifier) ────
+  const ax0 = sweepable[0]; // primary axis (applied first, column-wise)
+  const ax1 = sweepable[1]; // secondary axis (applied second, row-wise)
+
+  const stoneVal0 = starsgemNorm(row[ax0.rowField] ?? '');
+  const stoneVal1 = starsgemNorm(row[ax1.rowField] ?? '');
+  const idx0 = ax0.order.indexOf(stoneVal0);
+  const idx1 = ax1.order.indexOf(stoneVal1);
+
+  // Build grid: grid[i1][i0] = raw $/ct, sweeping ax0 within each ax1 slice
+  const grid = ax1.order.map((v1) => {
+    const rawSlice = ax0.order.map((v0) => {
+      const r = { ...row, [ax0.rowField]: v0, [ax1.rowField]: v1 };
+      return predictStarsgemMl(r, model)?.perCt ?? null;
+    });
+    return pavForAxis(rawSlice, ax0.direction); // project primary axis
+  });
+
+  // At the stone's ax0 position, extract the ax1 vector and apply PAV
+  const ax0Idx = idx0 >= 0 ? idx0 : 0;
+  const ax1Vec = grid.map((row_) => row_[ax0Idx]);
+  const projAx1 = pavForAxis(ax1Vec, ax1.direction);
+
+  const projPerCt = idx1 >= 0 ? projAx1[idx1] : projAx1[0];
+
+  // Build ax0 ladder at the stone's ax1 position (for display)
+  const ax1Idx = idx1 >= 0 ? idx1 : 0;
+  const ax0Ladder = ax0.order.map((v0, i0) => {
+    const ax1VecAtThisAx0 = grid.map((row_) => row_[i0]);
+    const projAx1AtAx0 = pavForAxis(ax1VecAtThisAx0, ax1.direction);
+    return { value: v0, perCt: projAx1AtAx0[ax1Idx] };
+  });
+
+  return {
+    price:     projPerCt != null ? projPerCt * carat : null,
+    perCt:     projPerCt,
+    projected: true,
+    modelName: model.modelName,
+    rawPerCt:  predictStarsgemMl({ ...row }, model)?.perCt ?? null,
+    projectedLadders: [
+      ax0Ladder,
+      ax1.order.map((v1, i1) => ({ value: v1, perCt: projAx1[i1] })),
+    ],
+    axis0Idx: idx0,
+    axis1Idx: idx1,
   };
 }

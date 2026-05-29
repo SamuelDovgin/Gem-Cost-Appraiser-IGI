@@ -1,0 +1,3275 @@
+{
+  "generatedDate": "2026-05-29",
+  "testRows": 792,
+  "split": "one_holdout_per_bucket",
+  "note": "Holdout MAPE uses Python inference (S20 ExtraTrees, S21 LightGBM Layers 1\u20133). Browser S21 additionally applies Layer-4 PAV for grade ordering; that projection is measured in compare-s20-s21.mjs monotonicity sweeps.",
+  "s20": {
+    "name": "S20 \u2014 Specialty cut + monotonic large-carat tail",
+    "strategy": "specialty_cut_tail_selected_spec",
+    "target_type": "log_tail_lookup_residual",
+    "metrics": {
+      "count": 792,
+      "mape": 6.0122,
+      "mae": 62.2378,
+      "rmse": 332.4362,
+      "r2": 0.967953
+    },
+    "certLoadedMetrics": {
+      "count": 792,
+      "mape": 5.4058,
+      "mae": 58.427,
+      "rmse": 327.8815,
+      "r2": 0.968825
+    },
+    "segmentMetrics": {
+      "byCaratBucket": {
+        "0.30-0.49": {
+          "count": 13,
+          "mape": 4.1742,
+          "mae": 2.3247,
+          "rmse": 2.8784,
+          "r2": 0.95939
+        },
+        "0.50-0.69": {
+          "count": 46,
+          "mape": 4.6965,
+          "mae": 5.2862,
+          "rmse": 9.1287,
+          "r2": 0.939552
+        },
+        "0.70-0.89": {
+          "count": 38,
+          "mape": 4.3444,
+          "mae": 6.2472,
+          "rmse": 11.0677,
+          "r2": 0.891093
+        },
+        "0.90-0.99": {
+          "count": 1,
+          "mape": 0.4954,
+          "mae": 0.6706,
+          "rmse": 0.6706,
+          "r2": null
+        },
+        "1.00-1.49": {
+          "count": 151,
+          "mape": 3.6161,
+          "mae": 6.0983,
+          "rmse": 13.367,
+          "r2": 0.903295
+        },
+        "1.50-1.99": {
+          "count": 115,
+          "mape": 6.3824,
+          "mae": 15.3921,
+          "rmse": 30.8164,
+          "r2": 0.812194
+        },
+        "10.00+": {
+          "count": 51,
+          "mape": 7.213,
+          "mae": 540.3144,
+          "rmse": 1273.2203,
+          "r2": 0.935081
+        },
+        "2.00-2.99": {
+          "count": 113,
+          "mape": 5.6454,
+          "mae": 20.2751,
+          "rmse": 34.9607,
+          "r2": 0.914429
+        },
+        "3.00-3.99": {
+          "count": 99,
+          "mape": 6.0922,
+          "mae": 33.0675,
+          "rmse": 74.6166,
+          "r2": 0.863079
+        },
+        "4.00-4.99": {
+          "count": 56,
+          "mape": 3.5582,
+          "mae": 27.5351,
+          "rmse": 52.2188,
+          "r2": 0.898428
+        },
+        "5.00-9.99": {
+          "count": 109,
+          "mape": 11.354,
+          "mae": 104.8368,
+          "rmse": 188.2948,
+          "r2": 0.900014
+        }
+      },
+      "byCutStyle": {
+        "elongated_cushion": {
+          "count": 5,
+          "mape": 10.9791,
+          "mae": 257.0859,
+          "rmse": 390.0199,
+          "r2": 0.5665
+        },
+        "ice_flower": {
+          "count": 32,
+          "mape": 9.6644,
+          "mae": 359.0391,
+          "rmse": 971.2925,
+          "r2": 0.946841
+        },
+        "standard_grade": {
+          "count": 185,
+          "mape": 7.4641,
+          "mae": 41.462,
+          "rmse": 292.5274,
+          "r2": 0.922669
+        },
+        "traditional": {
+          "count": 33,
+          "mape": 7.4,
+          "mae": 77.589,
+          "rmse": 156.1373,
+          "r2": 0.994695
+        },
+        "unknown": {
+          "count": 537,
+          "mape": 5.1629,
+          "mae": 48.9512,
+          "rmse": 272.7266,
+          "r2": 0.976118
+        }
+      },
+      "selectedSpec10ctPlus": {
+        "count": 51,
+        "mape": 7.213,
+        "mae": 540.3144,
+        "rmse": 1273.2203,
+        "r2": 0.935081
+      },
+      "selectedSpec8ctPlus": {
+        "count": 70,
+        "mape": 6.9368,
+        "mae": 433.3364,
+        "rmse": 1096.3709,
+        "r2": 0.942476
+      }
+    },
+    "description": "S19 residual model plus explicit Chinese specialty-cut features and a monotonic parametric 5ct+ tail, 160 trees, depth=20",
+    "pinnedCases": {
+      "3ct_round_e_vs1_id_selected_spec": {
+        "price": 326.7514,
+        "rate": 108.9171,
+        "tailBaseRate": 108.8138,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 239,
+        "tailMultiplier": 1.0,
+        "tailLevel": "NONE",
+        "tailCount": 0,
+        "tailSlope": 0.0
+      },
+      "8ct_round_e_vs1_id_selected_spec": {
+        "price": 1730.0335,
+        "rate": 216.2542,
+        "tailBaseRate": 127.7915,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.44365,
+        "tailLevel": "SCCG",
+        "tailCount": 58,
+        "tailSlope": 0.78121679
+      },
+      "10ct_round_e_vs1_id_selected_spec": {
+        "price": 3082.9673,
+        "rate": 308.2967,
+        "tailBaseRate": 127.7915,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.71858,
+        "tailLevel": "SCCG",
+        "tailCount": 58,
+        "tailSlope": 0.78121679
+      },
+      "12ct_round_e_vs1_id_selected_spec": {
+        "price": 4078.4904,
+        "rate": 339.8742,
+        "tailBaseRate": 127.7915,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.981652,
+        "tailLevel": "SCCG",
+        "tailCount": 58,
+        "tailSlope": 0.78121679
+      }
+    },
+    "largeCaratTailSummary": {
+      "globalSlope": 0.30225472,
+      "startCarat": 5.0,
+      "levelCounts": {
+        "SCCT": 71,
+        "SCCG": 69,
+        "SCC": 62,
+        "SG": 19,
+        "S": 12,
+        "G": 5
+      }
+    }
+  },
+  "s21": {
+    "name": "S21 \u2014 Monotone grade model (LightGBM + isotonic lookup + rank features)",
+    "strategy": "monotone_grade_lgbm_selected_spec",
+    "target_type": "log_tail_lookup_residual",
+    "metrics": {
+      "count": 792,
+      "mape": 6.7561,
+      "mae": 70.1924,
+      "rmse": 341.3531,
+      "r2": 0.966211
+    },
+    "certLoadedMetrics": {
+      "count": 792,
+      "mape": 5.6111,
+      "mae": 62.6559,
+      "rmse": 296.6647,
+      "r2": 0.974479
+    },
+    "segmentMetrics": {
+      "byCaratBucket": {
+        "0.30-0.49": {
+          "count": 13,
+          "mape": 5.2707,
+          "mae": 2.565,
+          "rmse": 2.8972,
+          "r2": 0.958858
+        },
+        "0.50-0.69": {
+          "count": 46,
+          "mape": 4.6671,
+          "mae": 5.1776,
+          "rmse": 8.0848,
+          "r2": 0.952586
+        },
+        "0.70-0.89": {
+          "count": 38,
+          "mape": 3.638,
+          "mae": 5.0956,
+          "rmse": 6.9466,
+          "r2": 0.957097
+        },
+        "0.90-0.99": {
+          "count": 1,
+          "mape": 0.3748,
+          "mae": 0.5073,
+          "rmse": 0.5073,
+          "r2": null
+        },
+        "1.00-1.49": {
+          "count": 151,
+          "mape": 4.0907,
+          "mae": 7.0118,
+          "rmse": 13.9357,
+          "r2": 0.894892
+        },
+        "1.50-1.99": {
+          "count": 115,
+          "mape": 7.5028,
+          "mae": 17.7938,
+          "rmse": 29.9478,
+          "r2": 0.822632
+        },
+        "10.00+": {
+          "count": 51,
+          "mape": 8.9991,
+          "mae": 614.2954,
+          "rmse": 1311.5878,
+          "r2": 0.93111
+        },
+        "2.00-2.99": {
+          "count": 113,
+          "mape": 6.1175,
+          "mae": 21.7883,
+          "rmse": 33.511,
+          "r2": 0.921378
+        },
+        "3.00-3.99": {
+          "count": 99,
+          "mape": 6.8739,
+          "mae": 36.6847,
+          "rmse": 66.8625,
+          "r2": 0.890058
+        },
+        "4.00-4.99": {
+          "count": 56,
+          "mape": 4.984,
+          "mae": 37.8816,
+          "rmse": 58.8513,
+          "r2": 0.870987
+        },
+        "5.00-9.99": {
+          "count": 109,
+          "mape": 12.2813,
+          "mae": 114.4711,
+          "rmse": 183.021,
+          "r2": 0.905537
+        }
+      },
+      "byCutStyle": {
+        "elongated_cushion": {
+          "count": 5,
+          "mape": 13.0922,
+          "mae": 291.7579,
+          "rmse": 344.3486,
+          "r2": 0.662082
+        },
+        "ice_flower": {
+          "count": 32,
+          "mape": 9.2542,
+          "mae": 359.9128,
+          "rmse": 875.4107,
+          "r2": 0.956818
+        },
+        "standard_grade": {
+          "count": 185,
+          "mape": 8.7634,
+          "mae": 52.5458,
+          "rmse": 303.5057,
+          "r2": 0.916756
+        },
+        "traditional": {
+          "count": 33,
+          "mape": 8.0627,
+          "mae": 70.6171,
+          "rmse": 129.6121,
+          "r2": 0.996344
+        },
+        "unknown": {
+          "count": 537,
+          "mape": 5.7765,
+          "mae": 56.9181,
+          "rmse": 303.8355,
+          "r2": 0.970359
+        }
+      },
+      "selectedSpec10ctPlus": {
+        "count": 51,
+        "mape": 8.9991,
+        "mae": 614.2954,
+        "rmse": 1311.5878,
+        "r2": 0.93111
+      },
+      "selectedSpec8ctPlus": {
+        "count": 70,
+        "mape": 8.4335,
+        "mae": 492.2929,
+        "rmse": 1127.5158,
+        "r2": 0.939161
+      }
+    },
+    "description": "Layer-1 isotonic lookup PAV + Layer-2 Clarity_Rank/Color_Rank ordinal features + Layer-3 LightGBM monotone_constraints (400 trees, num_leaves=63, lr=0.04) + Layer-4 PAV projection at browser inference",
+    "pinnedCases": {
+      "3ct_round_e_vs1_id_selected_spec": {
+        "price": 342.7299,
+        "rate": 114.2433,
+        "tailBaseRate": 113.4933,
+        "tailBaseLevel": "E",
+        "tailMultiplier": 1.0
+      },
+      "8ct_round_e_vs1_id_selected_spec": {
+        "price": 1755.8828,
+        "rate": 219.4853,
+        "tailBaseRate": 127.4611,
+        "tailBaseLevel": "E",
+        "tailMultiplier": 1.443606
+      },
+      "10ct_round_e_vs1_id_selected_spec": {
+        "price": 3147.547,
+        "rate": 314.7547,
+        "tailBaseRate": 127.4611,
+        "tailBaseLevel": "E",
+        "tailMultiplier": 1.718502
+      },
+      "12ct_round_e_vs1_id_selected_spec": {
+        "price": 3980.7673,
+        "rate": 331.7306,
+        "tailBaseRate": 127.4611,
+        "tailBaseLevel": "E",
+        "tailMultiplier": 1.981539
+      }
+    },
+    "clarityLadderCases": {
+      "MARQUISE_4.08ct_E": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "price": 718.33,
+            "perCt": 176.06
+          },
+          {
+            "clarity": "VVS1",
+            "price": 852.81,
+            "perCt": 209.02
+          },
+          {
+            "clarity": "VVS2",
+            "price": 808.31,
+            "perCt": 198.11
+          },
+          {
+            "clarity": "VS1",
+            "price": 634.35,
+            "perCt": 155.48
+          },
+          {
+            "clarity": "VS2",
+            "price": 521.64,
+            "perCt": 127.85
+          },
+          {
+            "clarity": "SI1",
+            "price": 711.83,
+            "perCt": 174.47
+          },
+          {
+            "clarity": "SI2",
+            "price": 560.84,
+            "perCt": 137.46
+          }
+        ],
+        "violations": [
+          "VVS1\u2192VVS2 (\u22125.2%)",
+          "VVS2\u2192VS1 (\u221221.5%)",
+          "VS1\u2192VS2 (\u221217.8%)",
+          "SI1\u2192SI2 (\u221221.2%)"
+        ],
+        "monotone": false
+      },
+      "HEART_3.0ct_E": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "price": 461.42,
+            "perCt": 153.81
+          },
+          {
+            "clarity": "VVS1",
+            "price": 653.49,
+            "perCt": 217.83
+          },
+          {
+            "clarity": "VVS2",
+            "price": 348.37,
+            "perCt": 116.12
+          },
+          {
+            "clarity": "VS1",
+            "price": 340.14,
+            "perCt": 113.38
+          },
+          {
+            "clarity": "VS2",
+            "price": 374.43,
+            "perCt": 124.81
+          },
+          {
+            "clarity": "SI1",
+            "price": 396.08,
+            "perCt": 132.03
+          },
+          {
+            "clarity": "SI2",
+            "price": 373.35,
+            "perCt": 124.45
+          }
+        ],
+        "violations": [
+          "VVS1\u2192VVS2 (\u221246.7%)",
+          "VVS2\u2192VS1 (\u22122.4%)",
+          "SI1\u2192SI2 (\u22125.7%)"
+        ],
+        "monotone": false
+      },
+      "ROUND_2.0ct_E": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "price": 292.27,
+            "perCt": 146.13
+          },
+          {
+            "clarity": "VVS1",
+            "price": 392.24,
+            "perCt": 196.12
+          },
+          {
+            "clarity": "VVS2",
+            "price": 248.49,
+            "perCt": 124.25
+          },
+          {
+            "clarity": "VS1",
+            "price": 239.79,
+            "perCt": 119.89
+          },
+          {
+            "clarity": "VS2",
+            "price": 238.11,
+            "perCt": 119.06
+          },
+          {
+            "clarity": "SI1",
+            "price": 245.52,
+            "perCt": 122.76
+          },
+          {
+            "clarity": "SI2",
+            "price": 248.17,
+            "perCt": 124.09
+          }
+        ],
+        "violations": [
+          "VVS1\u2192VVS2 (\u221236.6%)",
+          "VVS2\u2192VS1 (\u22123.5%)",
+          "VS1\u2192VS2 (\u22120.7%)"
+        ],
+        "monotone": false
+      }
+    },
+    "largeCaratTailSummary": {
+      "globalSlope": 0.30200103,
+      "startCarat": 5.0
+    }
+  },
+  "delta": {
+    "selectedSpecMapePp": 0.7439,
+    "certLoadedMapePp": 0.2053
+  },
+  "segments": {
+    "byCaratBucket": {
+      "s20": {
+        "0.30-0.49": {
+          "count": 13,
+          "mape": 4.1742,
+          "mae": 2.3247,
+          "rmse": 2.8784,
+          "r2": 0.95939
+        },
+        "0.50-0.69": {
+          "count": 46,
+          "mape": 4.6965,
+          "mae": 5.2862,
+          "rmse": 9.1287,
+          "r2": 0.939552
+        },
+        "0.70-0.89": {
+          "count": 38,
+          "mape": 4.3444,
+          "mae": 6.2472,
+          "rmse": 11.0677,
+          "r2": 0.891093
+        },
+        "0.90-0.99": {
+          "count": 1,
+          "mape": 0.4954,
+          "mae": 0.6706,
+          "rmse": 0.6706,
+          "r2": null
+        },
+        "1.00-1.49": {
+          "count": 151,
+          "mape": 3.6161,
+          "mae": 6.0983,
+          "rmse": 13.367,
+          "r2": 0.903295
+        },
+        "1.50-1.99": {
+          "count": 115,
+          "mape": 6.3824,
+          "mae": 15.3921,
+          "rmse": 30.8164,
+          "r2": 0.812194
+        },
+        "10.00+": {
+          "count": 51,
+          "mape": 7.213,
+          "mae": 540.3144,
+          "rmse": 1273.2203,
+          "r2": 0.935081
+        },
+        "2.00-2.99": {
+          "count": 113,
+          "mape": 5.6454,
+          "mae": 20.2751,
+          "rmse": 34.9607,
+          "r2": 0.914429
+        },
+        "3.00-3.99": {
+          "count": 99,
+          "mape": 6.0922,
+          "mae": 33.0675,
+          "rmse": 74.6166,
+          "r2": 0.863079
+        },
+        "4.00-4.99": {
+          "count": 56,
+          "mape": 3.5582,
+          "mae": 27.5351,
+          "rmse": 52.2188,
+          "r2": 0.898428
+        },
+        "5.00-9.99": {
+          "count": 109,
+          "mape": 11.354,
+          "mae": 104.8368,
+          "rmse": 188.2948,
+          "r2": 0.900014
+        }
+      },
+      "s21": {
+        "0.30-0.49": {
+          "count": 13,
+          "mape": 5.2707,
+          "mae": 2.565,
+          "rmse": 2.8972,
+          "r2": 0.958858
+        },
+        "0.50-0.69": {
+          "count": 46,
+          "mape": 4.6671,
+          "mae": 5.1776,
+          "rmse": 8.0848,
+          "r2": 0.952586
+        },
+        "0.70-0.89": {
+          "count": 38,
+          "mape": 3.638,
+          "mae": 5.0956,
+          "rmse": 6.9466,
+          "r2": 0.957097
+        },
+        "0.90-0.99": {
+          "count": 1,
+          "mape": 0.3748,
+          "mae": 0.5073,
+          "rmse": 0.5073,
+          "r2": null
+        },
+        "1.00-1.49": {
+          "count": 151,
+          "mape": 4.0907,
+          "mae": 7.0118,
+          "rmse": 13.9357,
+          "r2": 0.894892
+        },
+        "1.50-1.99": {
+          "count": 115,
+          "mape": 7.5028,
+          "mae": 17.7938,
+          "rmse": 29.9478,
+          "r2": 0.822632
+        },
+        "10.00+": {
+          "count": 51,
+          "mape": 8.9991,
+          "mae": 614.2954,
+          "rmse": 1311.5878,
+          "r2": 0.93111
+        },
+        "2.00-2.99": {
+          "count": 113,
+          "mape": 6.1175,
+          "mae": 21.7883,
+          "rmse": 33.511,
+          "r2": 0.921378
+        },
+        "3.00-3.99": {
+          "count": 99,
+          "mape": 6.8739,
+          "mae": 36.6847,
+          "rmse": 66.8625,
+          "r2": 0.890058
+        },
+        "4.00-4.99": {
+          "count": 56,
+          "mape": 4.984,
+          "mae": 37.8816,
+          "rmse": 58.8513,
+          "r2": 0.870987
+        },
+        "5.00-9.99": {
+          "count": 109,
+          "mape": 12.2813,
+          "mae": 114.4711,
+          "rmse": 183.021,
+          "r2": 0.905537
+        }
+      },
+      "deltaMapePp": {
+        "0.30-0.49": 1.0965,
+        "0.50-0.69": -0.0294,
+        "0.70-0.89": -0.7064,
+        "0.90-0.99": -0.1206,
+        "1.00-1.49": 0.4746,
+        "1.50-1.99": 1.1204,
+        "10.00+": 1.7861,
+        "2.00-2.99": 0.4721,
+        "3.00-3.99": 0.7817,
+        "4.00-4.99": 1.4258,
+        "5.00-9.99": 0.9273
+      }
+    },
+    "byShape": {
+      "s20": {
+        "-": {
+          "count": 15,
+          "mape": 4.8751,
+          "mae": 46.8457,
+          "rmse": 87.6276,
+          "r2": 0.972672
+        },
+        "ASHOKA": {
+          "count": 1,
+          "mape": 0.5797,
+          "mae": 16.874,
+          "rmse": 16.874,
+          "r2": null
+        },
+        "ASSCHER": {
+          "count": 21,
+          "mape": 2.1433,
+          "mae": 7.2013,
+          "rmse": 11.7218,
+          "r2": 0.998466
+        },
+        "CUSHION": {
+          "count": 47,
+          "mape": 5.8002,
+          "mae": 56.201,
+          "rmse": 142.125,
+          "r2": 0.958744
+        },
+        "EMERALD": {
+          "count": 69,
+          "mape": 7.1876,
+          "mae": 45.0719,
+          "rmse": 110.0042,
+          "r2": 0.998592
+        },
+        "HEART": {
+          "count": 61,
+          "mape": 8.0736,
+          "mae": 85.9781,
+          "rmse": 236.9492,
+          "r2": 0.975009
+        },
+        "MARQUISE": {
+          "count": 54,
+          "mape": 5.2238,
+          "mae": 143.2883,
+          "rmse": 758.013,
+          "r2": 0.907151
+        },
+        "OVAL": {
+          "count": 107,
+          "mape": 3.475,
+          "mae": 106.7135,
+          "rmse": 525.5853,
+          "r2": 0.969497
+        },
+        "PEAR": {
+          "count": 103,
+          "mape": 3.992,
+          "mae": 51.6869,
+          "rmse": 216.1899,
+          "r2": 0.973377
+        },
+        "PRINCESS": {
+          "count": 64,
+          "mape": 7.4403,
+          "mae": 26.2294,
+          "rmse": 45.9918,
+          "r2": 0.98204
+        },
+        "RADIANT": {
+          "count": 45,
+          "mape": 3.4574,
+          "mae": 26.9495,
+          "rmse": 83.5766,
+          "r2": 0.997446
+        },
+        "ROUND": {
+          "count": 163,
+          "mape": 8.2409,
+          "mae": 46.6502,
+          "rmse": 311.6391,
+          "r2": 0.921592
+        },
+        "SQUARE": {
+          "count": 42,
+          "mape": 8.1379,
+          "mae": 58.3437,
+          "rmse": 111.2858,
+          "r2": 0.994438
+        }
+      },
+      "s21": {
+        "-": {
+          "count": 15,
+          "mape": 6.4719,
+          "mae": 58.1473,
+          "rmse": 89.2191,
+          "r2": 0.97167
+        },
+        "ASHOKA": {
+          "count": 1,
+          "mape": 7.3247,
+          "mae": 213.2129,
+          "rmse": 213.2129,
+          "r2": null
+        },
+        "ASSCHER": {
+          "count": 21,
+          "mape": 3.3432,
+          "mae": 10.1329,
+          "rmse": 16.2308,
+          "r2": 0.997059
+        },
+        "CUSHION": {
+          "count": 47,
+          "mape": 5.9325,
+          "mae": 58.2828,
+          "rmse": 121.7351,
+          "r2": 0.969733
+        },
+        "EMERALD": {
+          "count": 69,
+          "mape": 8.3852,
+          "mae": 73.8836,
+          "rmse": 211.5355,
+          "r2": 0.994792
+        },
+        "HEART": {
+          "count": 61,
+          "mape": 8.8493,
+          "mae": 107.8381,
+          "rmse": 336.2732,
+          "r2": 0.949666
+        },
+        "MARQUISE": {
+          "count": 54,
+          "mape": 5.2371,
+          "mae": 133.6331,
+          "rmse": 732.0134,
+          "r2": 0.913411
+        },
+        "OVAL": {
+          "count": 107,
+          "mape": 4.2437,
+          "mae": 116.9024,
+          "rmse": 546.6478,
+          "r2": 0.967003
+        },
+        "PEAR": {
+          "count": 103,
+          "mape": 4.2077,
+          "mae": 48.2604,
+          "rmse": 157.2155,
+          "r2": 0.985921
+        },
+        "PRINCESS": {
+          "count": 64,
+          "mape": 9.3944,
+          "mae": 33.4004,
+          "rmse": 49.269,
+          "r2": 0.979389
+        },
+        "RADIANT": {
+          "count": 45,
+          "mape": 4.1379,
+          "mae": 40.1487,
+          "rmse": 115.048,
+          "r2": 0.995161
+        },
+        "ROUND": {
+          "count": 163,
+          "mape": 9.7085,
+          "mae": 59.2061,
+          "rmse": 323.3347,
+          "r2": 0.915596
+        },
+        "SQUARE": {
+          "count": 42,
+          "mape": 5.6865,
+          "mae": 37.8166,
+          "rmse": 66.4892,
+          "r2": 0.998015
+        }
+      }
+    },
+    "byClarity": {
+      "s20": {
+        "IF": {
+          "count": 8,
+          "mape": 1.0651,
+          "mae": 2.4647,
+          "rmse": 2.8315,
+          "r2": 0.99909
+        },
+        "SI1": {
+          "count": 4,
+          "mape": 4.1435,
+          "mae": 8.515,
+          "rmse": 10.3212,
+          "r2": 0.987012
+        },
+        "VS": {
+          "count": 1,
+          "mape": 1.6093,
+          "mae": 1.6471,
+          "rmse": 1.6471,
+          "r2": null
+        },
+        "VS1": {
+          "count": 252,
+          "mape": 4.9546,
+          "mae": 31.877,
+          "rmse": 88.5762,
+          "r2": 0.986523
+        },
+        "VS2": {
+          "count": 104,
+          "mape": 4.6219,
+          "mae": 16.1118,
+          "rmse": 42.4895,
+          "r2": 0.97166
+        },
+        "VVS": {
+          "count": 1,
+          "mape": 0.4376,
+          "mae": 0.4634,
+          "rmse": 0.4634,
+          "r2": null
+        },
+        "VVS1": {
+          "count": 132,
+          "mape": 5.8163,
+          "mae": 98.4082,
+          "rmse": 397.7059,
+          "r2": 0.979679
+        },
+        "VVS2": {
+          "count": 290,
+          "mape": 7.7157,
+          "mae": 91.5102,
+          "rmse": 471.5461,
+          "r2": 0.955431
+        }
+      },
+      "s21": {
+        "IF": {
+          "count": 8,
+          "mape": 8.9708,
+          "mae": 22.0801,
+          "rmse": 27.0977,
+          "r2": 0.916623
+        },
+        "SI1": {
+          "count": 4,
+          "mape": 6.514,
+          "mae": 13.0823,
+          "rmse": 14.8788,
+          "r2": 0.973009
+        },
+        "VS": {
+          "count": 1,
+          "mape": 1.4637,
+          "mae": 1.4982,
+          "rmse": 1.4982,
+          "r2": null
+        },
+        "VS1": {
+          "count": 252,
+          "mape": 5.2823,
+          "mae": 33.59,
+          "rmse": 80.5795,
+          "r2": 0.988847
+        },
+        "VS2": {
+          "count": 104,
+          "mape": 5.5505,
+          "mae": 18.9635,
+          "rmse": 39.8734,
+          "r2": 0.975043
+        },
+        "VVS": {
+          "count": 1,
+          "mape": 1.107,
+          "mae": 1.1721,
+          "rmse": 1.1721,
+          "r2": null
+        },
+        "VVS1": {
+          "count": 132,
+          "mape": 7.2621,
+          "mae": 121.4347,
+          "rmse": 437.3536,
+          "r2": 0.975425
+        },
+        "VVS2": {
+          "count": 290,
+          "mape": 8.2189,
+          "mae": 99.636,
+          "rmse": 474.2628,
+          "r2": 0.954916
+        }
+      }
+    },
+    "byColor": {
+      "s20": {
+        "D": {
+          "count": 359,
+          "mape": 6.0911,
+          "mae": 100.7023,
+          "rmse": 483.7384,
+          "r2": 0.965537
+        },
+        "E": {
+          "count": 283,
+          "mape": 6.2345,
+          "mae": 30.2493,
+          "rmse": 98.0509,
+          "r2": 0.985579
+        },
+        "F": {
+          "count": 143,
+          "mape": 5.5826,
+          "mae": 31.6013,
+          "rmse": 74.6776,
+          "r2": 0.984803
+        },
+        "G": {
+          "count": 7,
+          "mape": 1.7569,
+          "mae": 8.6688,
+          "rmse": 15.7813,
+          "r2": 0.998681
+        }
+      },
+      "s21": {
+        "D": {
+          "count": 359,
+          "mape": 6.403,
+          "mae": 107.8675,
+          "rmse": 493.0399,
+          "r2": 0.964199
+        },
+        "E": {
+          "count": 283,
+          "mape": 7.3554,
+          "mae": 39.5186,
+          "rmse": 120.8705,
+          "r2": 0.978086
+        },
+        "F": {
+          "count": 143,
+          "mape": 6.3261,
+          "mae": 37.7991,
+          "rmse": 77.716,
+          "r2": 0.983542
+        },
+        "G": {
+          "count": 7,
+          "mape": 9.4225,
+          "mae": 39.8407,
+          "rmse": 51.3283,
+          "r2": 0.986042
+        }
+      }
+    },
+    "byCutStyle": {
+      "s20": {
+        "elongated_cushion": {
+          "count": 5,
+          "mape": 10.9791,
+          "mae": 257.0859,
+          "rmse": 390.0199,
+          "r2": 0.5665
+        },
+        "ice_flower": {
+          "count": 32,
+          "mape": 9.6644,
+          "mae": 359.0391,
+          "rmse": 971.2925,
+          "r2": 0.946841
+        },
+        "standard_grade": {
+          "count": 185,
+          "mape": 7.4641,
+          "mae": 41.462,
+          "rmse": 292.5274,
+          "r2": 0.922669
+        },
+        "traditional": {
+          "count": 33,
+          "mape": 7.4,
+          "mae": 77.589,
+          "rmse": 156.1373,
+          "r2": 0.994695
+        },
+        "unknown": {
+          "count": 537,
+          "mape": 5.1629,
+          "mae": 48.9512,
+          "rmse": 272.7266,
+          "r2": 0.976118
+        }
+      },
+      "s21": {
+        "elongated_cushion": {
+          "count": 5,
+          "mape": 13.0922,
+          "mae": 291.7579,
+          "rmse": 344.3486,
+          "r2": 0.662082
+        },
+        "ice_flower": {
+          "count": 32,
+          "mape": 9.2542,
+          "mae": 359.9128,
+          "rmse": 875.4107,
+          "r2": 0.956818
+        },
+        "standard_grade": {
+          "count": 185,
+          "mape": 8.7634,
+          "mae": 52.5458,
+          "rmse": 303.5057,
+          "r2": 0.916756
+        },
+        "traditional": {
+          "count": 33,
+          "mape": 8.0627,
+          "mae": 70.6171,
+          "rmse": 129.6121,
+          "r2": 0.996344
+        },
+        "unknown": {
+          "count": 537,
+          "mape": 5.7765,
+          "mae": 56.9181,
+          "rmse": 303.8355,
+          "r2": 0.970359
+        }
+      }
+    }
+  },
+  "mapeMethodology": {
+    "perStonePctOff": "For each holdout stone: pctOff = 100 \u00d7 |predicted \u2212 actual| / actual. Uses SaleDollorPrice (total stone), selected-spec inference view.",
+    "bucketMape": "Within a bucket (e.g. carat_bucket '1.00-1.49'): MAPE = arithmetic mean of pctOff over stones in that bucket only. Each stone counts equally \u2014 not dollar-weighted within the bucket.",
+    "overallMape": "MAPE over all 792 holdout stones = mean(pctOff). Mathematically equals volume-weighted mean of bucket MAPEs when buckets partition the set, but does NOT match catalog-weighted MAPE (see below).",
+    "wmape": "100 \u00d7 \u03a3|error| / \u03a3(actual) \u2014 dollar-weighted; large stones pull more.",
+    "catalogWeightedMape": "\u03a3 (training_stock_count_segment \u00d7 pctOff) / \u03a3 training_stock_count_segment for stones in that segment. Reflects how much of the sheet is round 1\u20132 ct vs 5 ct+, so headline MAPE is not dominated by rare holdout buckets.",
+    "holdoutCaveat": "Holdout is one stone per (Shape \u00d7 carat_bucket \u00d7 Color \u00d7 Clarity \u00d7 Cut) \u2014 balanced for training, not proportional to sales volume. Raw overall MAPE can look acceptable because 1\u20132 ct round is accurate while large-carat buckets are worse but fewer holdout rows."
+  },
+  "overallWmape": {
+    "s20": 7.8913,
+    "s21": 8.8999,
+    "deltaPp": 1.0086
+  },
+  "prioritySegments": {
+    "round_1_00_to_2_00ct": {
+      "count": 55,
+      "s20": {
+        "count": 55,
+        "mape": 5.0847,
+        "mae": 9.1379,
+        "rmse": 15.6293,
+        "r2": 0.947578,
+        "wmape": 5.1918
+      },
+      "s21": {
+        "count": 55,
+        "mape": 5.9825,
+        "mae": 11.2928,
+        "rmse": 16.9474,
+        "r2": 0.938362,
+        "wmape": 6.4161
+      },
+      "deltaMapePp": 0.8978,
+      "deltaWmapePp": 1.2243
+    },
+    "round_1_00_to_3_00ct": {
+      "count": 71,
+      "s20": {
+        "count": 71,
+        "mape": 4.7985,
+        "mae": 9.8276,
+        "rmse": 17.0269,
+        "r2": 0.966204,
+        "wmape": 4.7294
+      },
+      "s21": {
+        "count": 71,
+        "mape": 6.2126,
+        "mae": 13.6972,
+        "rmse": 20.2706,
+        "r2": 0.952101,
+        "wmape": 6.5915
+      },
+      "deltaMapePp": 1.4141,
+      "deltaWmapePp": 1.8621
+    },
+    "round_1_00_to_1_49_bucket": {
+      "count": 28,
+      "s20": {
+        "count": 28,
+        "mape": 4.9056,
+        "mae": 6.215,
+        "rmse": 8.5927,
+        "r2": 0.875231,
+        "wmape": 4.8981
+      },
+      "s21": {
+        "count": 28,
+        "mape": 5.6118,
+        "mae": 7.1811,
+        "rmse": 9.4963,
+        "r2": 0.847609,
+        "wmape": 5.6595
+      },
+      "deltaMapePp": 0.7062,
+      "deltaWmapePp": 0.7614
+    },
+    "round_1_50_to_1_99_bucket": {
+      "count": 22,
+      "s20": {
+        "count": 22,
+        "mape": 5.4205,
+        "mae": 11.9259,
+        "rmse": 19.9098,
+        "r2": 0.906149,
+        "wmape": 5.4379
+      },
+      "s21": {
+        "count": 22,
+        "mape": 6.391,
+        "mae": 15.08,
+        "rmse": 21.2975,
+        "r2": 0.892611,
+        "wmape": 6.8761
+      },
+      "deltaMapePp": 0.9705,
+      "deltaWmapePp": 1.4382
+    },
+    "round_2_00_to_2_99_bucket": {
+      "count": 19,
+      "s20": {
+        "count": 19,
+        "mape": 4.0887,
+        "mae": 12.5421,
+        "rmse": 22.137,
+        "r2": 0.91936,
+        "wmape": 4.1983
+      },
+      "s21": {
+        "count": 19,
+        "mape": 6.7063,
+        "mae": 20.179,
+        "rmse": 28.055,
+        "r2": 0.870481,
+        "wmape": 6.7546
+      },
+      "deltaMapePp": 2.6176,
+      "deltaWmapePp": 2.5563
+    },
+    "holdout_excluding_round_1_2ct": {
+      "count": 737,
+      "s20": {
+        "count": 737,
+        "mape": 6.0814,
+        "mae": 66.2005,
+        "rmse": 344.591,
+        "r2": 0.967692,
+        "wmape": 7.9338
+      },
+      "s21": {
+        "count": 737,
+        "mape": 6.8139,
+        "mae": 74.5879,
+        "rmse": 353.8307,
+        "r2": 0.965937,
+        "wmape": 8.939
+      },
+      "deltaMapePp": 0.7325,
+      "deltaWmapePp": 1.0052
+    },
+    "holdout_excluding_carat_1_49_and_below": {
+      "count": 543,
+      "s20": {
+        "count": 543,
+        "mape": 6.9609,
+        "mae": 88.1401,
+        "rmse": 401.405,
+        "r2": 0.966023,
+        "wmape": 8.0943
+      },
+      "s21": {
+        "count": 543,
+        "mape": 7.9398,
+        "mae": 99.5726,
+        "rmse": 412.179,
+        "r2": 0.964175,
+        "wmape": 9.1442
+      },
+      "deltaMapePp": 0.9789,
+      "deltaWmapePp": 1.0499
+    }
+  },
+  "catalogWeighting": {
+    "trainingRowCounts": {
+      "trainRows": 27602,
+      "allSheetRows": 28394,
+      "round_1_00_to_2_00ct_on_sheet": 6188,
+      "round_1_00_to_3_00ct_on_sheet": 8278,
+      "round_1_2ct_share_of_sheet_pct": 21.79
+    },
+    "catalogWeightedMape": {
+      "byCaratBucketStockWeight": {
+        "s20": 5.2318,
+        "s21": 5.8203,
+        "deltaPp": 0.5885
+      },
+      "byShapeAndCaratBucketStockWeight": {
+        "s20": 5.3136,
+        "s21": 6.3026
+      }
+    },
+    "note": "Each holdout stone is weighted by how many priced rows exist on the full StarGem sheet in the same segment. This raises MAPE toward high-volume buckets (often 1\u20131.49 ct round) but large-dollar 5 ct+ rows still move WMAPE. Compare prioritySegments.round_1_00_to_2_00ct for the product focus in isolation."
+  },
+  "rowAnalysis": {
+    "worseOnS21": [
+      {
+        "rowNo": 491,
+        "carat": 11.96,
+        "carat_bucket": "10.00+",
+        "shape": "EMERALD",
+        "color": "E",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 1855.59,
+        "s20": 2607.42,
+        "s21": 3231.91,
+        "deltaPct": 23.95,
+        "mapeS20": 40.517,
+        "mapeS21": 74.171,
+        "mapeDelta": 33.654
+      },
+      {
+        "rowNo": 13396,
+        "carat": 1.52,
+        "carat_bucket": "1.50-1.99",
+        "shape": "PRINCESS",
+        "color": "G",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 172.76,
+        "s20": 166.93,
+        "s21": 229.36,
+        "deltaPct": 37.39,
+        "mapeS20": 3.375,
+        "mapeS21": 32.756,
+        "mapeDelta": 29.381
+      },
+      {
+        "rowNo": 381,
+        "carat": 5.02,
+        "carat_bucket": "5.00-9.99",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "ID",
+        "actual": 2082.35,
+        "s20": 2081.2,
+        "s21": 1480.78,
+        "deltaPct": -28.85,
+        "mapeS20": 0.055,
+        "mapeS21": 28.889,
+        "mapeDelta": 28.834
+      },
+      {
+        "rowNo": 15115,
+        "carat": 1.83,
+        "carat_bucket": "1.50-1.99",
+        "shape": "EMERALD",
+        "color": "D",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 150.92,
+        "s20": 172.88,
+        "s21": 205.27,
+        "deltaPct": 18.74,
+        "mapeS20": 14.549,
+        "mapeS21": 36.013,
+        "mapeDelta": 21.464
+      },
+      {
+        "rowNo": 8139,
+        "carat": 1.55,
+        "carat_bucket": "1.50-1.99",
+        "shape": "MARQUISE",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 303.0,
+        "s20": 278.15,
+        "s21": 220.81,
+        "deltaPct": -20.62,
+        "mapeS20": 8.201,
+        "mapeS21": 27.126,
+        "mapeDelta": 18.925
+      },
+      {
+        "rowNo": 14747,
+        "carat": 1.52,
+        "carat_bucket": "1.50-1.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 158.29,
+        "s20": 160.94,
+        "s21": 190.58,
+        "deltaPct": 18.41,
+        "mapeS20": 1.674,
+        "mapeS21": 20.394,
+        "mapeDelta": 18.72
+      },
+      {
+        "rowNo": 13854,
+        "carat": 1.65,
+        "carat_bucket": "1.50-1.99",
+        "shape": "ASSCHER",
+        "color": "D",
+        "clarity": "IF",
+        "cut": "-",
+        "actual": 168.53,
+        "s20": 166.95,
+        "s21": 199.47,
+        "deltaPct": 19.48,
+        "mapeS20": 0.937,
+        "mapeS21": 18.357,
+        "mapeDelta": 17.42
+      },
+      {
+        "rowNo": 11925,
+        "carat": 2.05,
+        "carat_bucket": "2.00-2.99",
+        "shape": "HEART",
+        "color": "E",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 232.78,
+        "s20": 228.38,
+        "s21": 276.23,
+        "deltaPct": 20.95,
+        "mapeS20": 1.892,
+        "mapeS21": 18.664,
+        "mapeDelta": 16.773
+      },
+      {
+        "rowNo": 3345,
+        "carat": 4.18,
+        "carat_bucket": "4.00-4.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 568.41,
+        "s20": 566.49,
+        "s21": 663.61,
+        "deltaPct": 17.14,
+        "mapeS20": 0.337,
+        "mapeS21": 16.749,
+        "mapeDelta": 16.411
+      },
+      {
+        "rowNo": 882,
+        "carat": 6.5,
+        "carat_bucket": "5.00-9.99",
+        "shape": "OVAL",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 1453.59,
+        "s20": 1427.16,
+        "s21": 1717.77,
+        "deltaPct": 20.36,
+        "mapeS20": 1.818,
+        "mapeS21": 18.174,
+        "mapeDelta": 16.356
+      },
+      {
+        "rowNo": 10431,
+        "carat": 2.05,
+        "carat_bucket": "2.00-2.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 248.12,
+        "s20": 257.85,
+        "s21": 297.13,
+        "deltaPct": 15.23,
+        "mapeS20": 3.922,
+        "mapeS21": 19.753,
+        "mapeDelta": 15.832
+      },
+      {
+        "rowNo": 13114,
+        "carat": 1.04,
+        "carat_bucket": "1.00-1.49",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "IF",
+        "cut": "ID",
+        "actual": 177.35,
+        "s20": 179.0,
+        "s21": 205.71,
+        "deltaPct": 14.92,
+        "mapeS20": 0.93,
+        "mapeS21": 15.989,
+        "mapeDelta": 15.06
+      },
+      {
+        "rowNo": 132,
+        "carat": 12.69,
+        "carat_bucket": "10.00+",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "\u51b0\u82b1\u5207",
+        "actual": 4730.12,
+        "s20": 5074.03,
+        "s21": 5745.6,
+        "deltaPct": 13.24,
+        "mapeS20": 7.271,
+        "mapeS21": 21.469,
+        "mapeDelta": 14.198
+      },
+      {
+        "rowNo": 7523,
+        "carat": 1.01,
+        "carat_bucket": "1.00-1.49",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 327.53,
+        "s20": 290.95,
+        "s21": 244.87,
+        "deltaPct": -15.84,
+        "mapeS20": 11.167,
+        "mapeS21": 25.236,
+        "mapeDelta": 14.069
+      },
+      {
+        "rowNo": 283,
+        "carat": 15.58,
+        "carat_bucket": "10.00+",
+        "shape": "EMERALD",
+        "color": "F",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 2528.82,
+        "s20": 2595.54,
+        "s21": 2949.81,
+        "deltaPct": 13.65,
+        "mapeS20": 2.638,
+        "mapeS21": 16.648,
+        "mapeDelta": 14.009
+      },
+      {
+        "rowNo": 4394,
+        "carat": 2.09,
+        "carat_bucket": "2.00-2.99",
+        "shape": "EMERALD",
+        "color": "E",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 471.18,
+        "s20": 484.49,
+        "s21": 396.4,
+        "deltaPct": -18.18,
+        "mapeS20": 2.825,
+        "mapeS21": 15.87,
+        "mapeDelta": 13.045
+      },
+      {
+        "rowNo": 2588,
+        "carat": 3.02,
+        "carat_bucket": "3.00-3.99",
+        "shape": "PEAR",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 654.86,
+        "s20": 654.76,
+        "s21": 569.7,
+        "deltaPct": -12.99,
+        "mapeS20": 0.015,
+        "mapeS21": 13.005,
+        "mapeDelta": 12.99
+      },
+      {
+        "rowNo": 3745,
+        "carat": 2.09,
+        "carat_bucket": "2.00-2.99",
+        "shape": "-",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 527.51,
+        "s20": 564.69,
+        "s21": 630.93,
+        "deltaPct": 11.73,
+        "mapeS20": 7.05,
+        "mapeS21": 19.606,
+        "mapeDelta": 12.557
+      },
+      {
+        "rowNo": 6620,
+        "carat": 3.06,
+        "carat_bucket": "3.00-3.99",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "EX",
+        "actual": 342.88,
+        "s20": 342.41,
+        "s21": 385.44,
+        "deltaPct": 12.57,
+        "mapeS20": 0.137,
+        "mapeS21": 12.412,
+        "mapeDelta": 12.275
+      },
+      {
+        "rowNo": 4205,
+        "carat": 4.06,
+        "carat_bucket": "4.00-4.99",
+        "shape": "EMERALD",
+        "color": "F",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 494.12,
+        "s20": 493.98,
+        "s21": 554.32,
+        "deltaPct": 12.21,
+        "mapeS20": 0.029,
+        "mapeS21": 12.183,
+        "mapeDelta": 12.154
+      },
+      {
+        "rowNo": 2591,
+        "carat": 5.01,
+        "carat_bucket": "5.00-9.99",
+        "shape": "OVAL",
+        "color": "E",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 654.85,
+        "s20": 648.57,
+        "s21": 739.92,
+        "deltaPct": 14.08,
+        "mapeS20": 0.958,
+        "mapeS21": 12.992,
+        "mapeDelta": 12.034
+      },
+      {
+        "rowNo": 5067,
+        "carat": 1.6,
+        "carat_bucket": "1.50-1.99",
+        "shape": "HEART",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 400.24,
+        "s20": 366.53,
+        "s21": 318.44,
+        "deltaPct": -13.12,
+        "mapeS20": 8.422,
+        "mapeS21": 20.437,
+        "mapeDelta": 12.016
+      },
+      {
+        "rowNo": 1294,
+        "carat": 4.05,
+        "carat_bucket": "4.00-4.99",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "ID",
+        "actual": 1194.81,
+        "s20": 1164.08,
+        "s21": 1023.66,
+        "deltaPct": -12.06,
+        "mapeS20": 2.572,
+        "mapeS21": 14.324,
+        "mapeDelta": 11.753
+      },
+      {
+        "rowNo": 6047,
+        "carat": 2.08,
+        "carat_bucket": "2.00-2.99",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VVS1",
+        "cut": "ID",
+        "actual": 363.35,
+        "s20": 360.46,
+        "s21": 407.64,
+        "deltaPct": 13.09,
+        "mapeS20": 0.795,
+        "mapeS21": 12.189,
+        "mapeDelta": 11.394
+      },
+      {
+        "rowNo": 2007,
+        "carat": 3.09,
+        "carat_bucket": "3.00-3.99",
+        "shape": "-",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 796.76,
+        "s20": 796.47,
+        "s21": 883.29,
+        "deltaPct": 10.9,
+        "mapeS20": 0.038,
+        "mapeS21": 10.86,
+        "mapeDelta": 10.822
+      },
+      {
+        "rowNo": 1616,
+        "carat": 4.01,
+        "carat_bucket": "4.00-4.99",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "ID",
+        "actual": 1000.52,
+        "s20": 874.4,
+        "s21": 767.58,
+        "deltaPct": -12.22,
+        "mapeS20": 12.605,
+        "mapeS21": 23.281,
+        "mapeDelta": 10.677
+      },
+      {
+        "rowNo": 23436,
+        "carat": 5.06,
+        "carat_bucket": "5.00-9.99",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "ID",
+        "actual": 95.47,
+        "s20": 640.63,
+        "s21": 650.74,
+        "deltaPct": 1.58,
+        "mapeS20": 571.026,
+        "mapeS21": 581.612,
+        "mapeDelta": 10.586
+      },
+      {
+        "rowNo": 4741,
+        "carat": 1.57,
+        "carat_bucket": "1.50-1.99",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "IF",
+        "cut": "ID",
+        "actual": 430.18,
+        "s20": 435.45,
+        "s21": 379.38,
+        "deltaPct": -12.88,
+        "mapeS20": 1.224,
+        "mapeS21": 11.809,
+        "mapeDelta": 10.585
+      },
+      {
+        "rowNo": 2086,
+        "carat": 4.03,
+        "carat_bucket": "4.00-4.99",
+        "shape": "PRINCESS",
+        "color": "F",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 748.59,
+        "s20": 732.55,
+        "s21": 654.37,
+        "deltaPct": -10.67,
+        "mapeS20": 2.143,
+        "mapeS21": 12.587,
+        "mapeDelta": 10.444
+      },
+      {
+        "rowNo": 27949,
+        "carat": 0.32,
+        "carat_bucket": "0.30-0.49",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VS2",
+        "cut": "ID",
+        "actual": 44.49,
+        "s20": 43.81,
+        "s21": 39.19,
+        "deltaPct": -10.55,
+        "mapeS20": 1.527,
+        "mapeS21": 11.914,
+        "mapeDelta": 10.387
+      },
+      {
+        "rowNo": 6879,
+        "carat": 3.18,
+        "carat_bucket": "3.00-3.99",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VS2",
+        "cut": "ID",
+        "actual": 337.2,
+        "s20": 351.84,
+        "s21": 386.86,
+        "deltaPct": 9.95,
+        "mapeS20": 4.342,
+        "mapeS21": 14.727,
+        "mapeDelta": 10.385
+      },
+      {
+        "rowNo": 7735,
+        "carat": 3.03,
+        "carat_bucket": "3.00-3.99",
+        "shape": "HEART",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 319.41,
+        "s20": 319.32,
+        "s21": 351.39,
+        "deltaPct": 10.04,
+        "mapeS20": 0.028,
+        "mapeS21": 10.012,
+        "mapeDelta": 9.984
+      },
+      {
+        "rowNo": 26054,
+        "carat": 0.51,
+        "carat_bucket": "0.50-0.69",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "ID",
+        "actual": 61.41,
+        "s20": 61.48,
+        "s21": 67.6,
+        "deltaPct": 9.95,
+        "mapeS20": 0.114,
+        "mapeS21": 10.078,
+        "mapeDelta": 9.964
+      },
+      {
+        "rowNo": 14642,
+        "carat": 1.5,
+        "carat_bucket": "1.50-1.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 159.71,
+        "s20": 160.44,
+        "s21": 176.27,
+        "deltaPct": 9.87,
+        "mapeS20": 0.457,
+        "mapeS21": 10.369,
+        "mapeDelta": 9.912
+      },
+      {
+        "rowNo": 2375,
+        "carat": 3.11,
+        "carat_bucket": "3.00-3.99",
+        "shape": "PRINCESS",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 672.18,
+        "s20": 694.65,
+        "s21": 761.05,
+        "deltaPct": 9.56,
+        "mapeS20": 3.343,
+        "mapeS21": 13.221,
+        "mapeDelta": 9.878
+      },
+      {
+        "rowNo": 12633,
+        "carat": 1.67,
+        "carat_bucket": "1.50-1.99",
+        "shape": "EMERALD",
+        "color": "G",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 197.65,
+        "s20": 198.6,
+        "s21": 177.57,
+        "deltaPct": -10.59,
+        "mapeS20": 0.484,
+        "mapeS21": 10.156,
+        "mapeDelta": 9.672
+      },
+      {
+        "rowNo": 29,
+        "carat": 30.21,
+        "carat_bucket": "10.00+",
+        "shape": "OVAL",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 16312.76,
+        "s20": 18631.45,
+        "s21": 20199.65,
+        "deltaPct": 8.42,
+        "mapeS20": 14.214,
+        "mapeS21": 23.827,
+        "mapeDelta": 9.613
+      },
+      {
+        "rowNo": 4339,
+        "carat": 3.52,
+        "carat_bucket": "3.00-3.99",
+        "shape": "EMERALD",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 476.47,
+        "s20": 469.35,
+        "s21": 528.22,
+        "deltaPct": 12.54,
+        "mapeS20": 1.495,
+        "mapeS21": 10.861,
+        "mapeDelta": 9.366
+      },
+      {
+        "rowNo": 257,
+        "carat": 8.09,
+        "carat_bucket": "5.00-9.99",
+        "shape": "CUSHION",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "\u957f\u57ab\u5f62",
+        "actual": 2728.94,
+        "s20": 2716.84,
+        "s21": 2465.15,
+        "deltaPct": -9.26,
+        "mapeS20": 0.444,
+        "mapeS21": 9.667,
+        "mapeDelta": 9.223
+      },
+      {
+        "rowNo": 7783,
+        "carat": 1.55,
+        "carat_bucket": "1.50-1.99",
+        "shape": "EMERALD",
+        "color": "D",
+        "clarity": "IF",
+        "cut": "-",
+        "actual": 314.82,
+        "s20": 317.26,
+        "s21": 283.67,
+        "deltaPct": -10.59,
+        "mapeS20": 0.775,
+        "mapeS21": 9.897,
+        "mapeDelta": 9.122
+      }
+    ],
+    "betterOnS21": [
+      {
+        "rowNo": 13032,
+        "carat": 1.62,
+        "carat_bucket": "1.50-1.99",
+        "shape": "SQUARE",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 179.12,
+        "s20": 310.06,
+        "s21": 240.97,
+        "deltaPct": -22.28,
+        "mapeS20": 73.107,
+        "mapeS21": 34.532,
+        "mapeDelta": -38.574
+      },
+      {
+        "rowNo": 5047,
+        "carat": 3.07,
+        "carat_bucket": "3.00-3.99",
+        "shape": "MARQUISE",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 402.35,
+        "s20": 577.58,
+        "s21": 435.47,
+        "deltaPct": -24.61,
+        "mapeS20": 43.551,
+        "mapeS21": 8.23,
+        "mapeDelta": -35.321
+      },
+      {
+        "rowNo": 8247,
+        "carat": 1.89,
+        "carat_bucket": "1.50-1.99",
+        "shape": "SQUARE",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 291.0,
+        "s20": 398.16,
+        "s21": 309.12,
+        "deltaPct": -22.36,
+        "mapeS20": 36.825,
+        "mapeS21": 6.225,
+        "mapeDelta": -30.6
+      },
+      {
+        "rowNo": 6015,
+        "carat": 3.07,
+        "carat_bucket": "3.00-3.99",
+        "shape": "EMERALD",
+        "color": "D",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 363.78,
+        "s20": 504.3,
+        "s21": 395.31,
+        "deltaPct": -21.61,
+        "mapeS20": 38.629,
+        "mapeS21": 8.669,
+        "mapeDelta": -29.96
+      },
+      {
+        "rowNo": 12131,
+        "carat": 2.02,
+        "carat_bucket": "2.00-2.99",
+        "shape": "EMERALD",
+        "color": "F",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 223.69,
+        "s20": 291.53,
+        "s21": 241.48,
+        "deltaPct": -17.17,
+        "mapeS20": 30.324,
+        "mapeS21": 7.952,
+        "mapeDelta": -22.372
+      },
+      {
+        "rowNo": 10391,
+        "carat": 2.03,
+        "carat_bucket": "2.00-2.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 248.82,
+        "s20": 369.67,
+        "s21": 323.18,
+        "deltaPct": -12.58,
+        "mapeS20": 48.567,
+        "mapeS21": 29.883,
+        "mapeDelta": -18.684
+      },
+      {
+        "rowNo": 456,
+        "carat": 10.06,
+        "carat_bucket": "10.00+",
+        "shape": "RADIANT",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 1937.47,
+        "s20": 2453.3,
+        "s21": 2093.01,
+        "deltaPct": -14.69,
+        "mapeS20": 26.624,
+        "mapeS21": 8.028,
+        "mapeDelta": -18.596
+      },
+      {
+        "rowNo": 14968,
+        "carat": 0.89,
+        "carat_bucket": "0.70-0.89",
+        "shape": "PEAR",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 154.59,
+        "s20": 193.32,
+        "s21": 167.64,
+        "deltaPct": -13.28,
+        "mapeS20": 25.055,
+        "mapeS21": 8.443,
+        "mapeDelta": -16.612
+      },
+      {
+        "rowNo": 488,
+        "carat": 5.21,
+        "carat_bucket": "5.00-9.99",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 1873.94,
+        "s20": 2251.32,
+        "s21": 1802.55,
+        "deltaPct": -19.93,
+        "mapeS20": 20.138,
+        "mapeS21": 3.81,
+        "mapeDelta": -16.328
+      },
+      {
+        "rowNo": 2909,
+        "carat": 4.07,
+        "carat_bucket": "4.00-4.99",
+        "shape": "EMERALD",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 629.65,
+        "s20": 725.91,
+        "s21": 629.07,
+        "deltaPct": -13.34,
+        "mapeS20": 15.289,
+        "mapeS21": 0.092,
+        "mapeDelta": -15.197
+      },
+      {
+        "rowNo": 14445,
+        "carat": 0.72,
+        "carat_bucket": "0.70-0.89",
+        "shape": "PEAR",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 161.82,
+        "s20": 129.44,
+        "s21": 152.18,
+        "deltaPct": 17.57,
+        "mapeS20": 20.015,
+        "mapeS21": 5.962,
+        "mapeDelta": -14.053
+      },
+      {
+        "rowNo": 4258,
+        "carat": 2.02,
+        "carat_bucket": "2.00-2.99",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "\u51b0\u82b1\u5207",
+        "actual": 491.12,
+        "s20": 408.4,
+        "s21": 505.88,
+        "deltaPct": 23.87,
+        "mapeS20": 16.843,
+        "mapeS21": 3.005,
+        "mapeDelta": -13.837
+      },
+      {
+        "rowNo": 2179,
+        "carat": 4.06,
+        "carat_bucket": "4.00-4.99",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "EX",
+        "actual": 726.18,
+        "s20": 850.84,
+        "s21": 701.84,
+        "deltaPct": -17.51,
+        "mapeS20": 17.167,
+        "mapeS21": 3.351,
+        "mapeDelta": -13.816
+      },
+      {
+        "rowNo": 1843,
+        "carat": 4.1,
+        "carat_bucket": "4.00-4.99",
+        "shape": "CUSHION",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 849.88,
+        "s20": 1095.79,
+        "s21": 989.85,
+        "deltaPct": -9.67,
+        "mapeS20": 28.934,
+        "mapeS21": 16.469,
+        "mapeDelta": -12.465
+      },
+      {
+        "rowNo": 8306,
+        "carat": 2.05,
+        "carat_bucket": "2.00-2.99",
+        "shape": "SQUARE",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 287.74,
+        "s20": 371.45,
+        "s21": 336.14,
+        "deltaPct": -9.51,
+        "mapeS20": 29.094,
+        "mapeS21": 16.822,
+        "mapeDelta": -12.271
+      },
+      {
+        "rowNo": 13125,
+        "carat": 1.53,
+        "carat_bucket": "1.50-1.99",
+        "shape": "ROUND",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "ID",
+        "actual": 176.47,
+        "s20": 232.93,
+        "s21": 212.03,
+        "deltaPct": -8.97,
+        "mapeS20": 31.991,
+        "mapeS21": 20.149,
+        "mapeDelta": -11.842
+      },
+      {
+        "rowNo": 15992,
+        "carat": 0.62,
+        "carat_bucket": "0.50-0.69",
+        "shape": "MARQUISE",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 136.41,
+        "s20": 166.14,
+        "s21": 151.2,
+        "deltaPct": -8.99,
+        "mapeS20": 21.796,
+        "mapeS21": 10.841,
+        "mapeDelta": -10.956
+      },
+      {
+        "rowNo": 6032,
+        "carat": 2.06,
+        "carat_bucket": "2.00-2.99",
+        "shape": "SQUARE",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 363.71,
+        "s20": 308.91,
+        "s21": 348.05,
+        "deltaPct": 12.67,
+        "mapeS20": 15.065,
+        "mapeS21": 4.305,
+        "mapeDelta": -10.76
+      },
+      {
+        "rowNo": 4002,
+        "carat": 3.05,
+        "carat_bucket": "3.00-3.99",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "EX",
+        "actual": 509.47,
+        "s20": 409.11,
+        "s21": 463.57,
+        "deltaPct": 13.31,
+        "mapeS20": 19.7,
+        "mapeS21": 9.009,
+        "mapeDelta": -10.69
+      },
+      {
+        "rowNo": 1609,
+        "carat": 3.08,
+        "carat_bucket": "3.00-3.99",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 1000.59,
+        "s20": 751.51,
+        "s21": 856.92,
+        "deltaPct": 14.03,
+        "mapeS20": 24.893,
+        "mapeS21": 14.359,
+        "mapeDelta": -10.535
+      },
+      {
+        "rowNo": 4782,
+        "carat": 2.02,
+        "carat_bucket": "2.00-2.99",
+        "shape": "OVAL",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "\u51b0\u82b1\u5207",
+        "actual": 427.41,
+        "s20": 367.44,
+        "s21": 411.85,
+        "deltaPct": 12.09,
+        "mapeS20": 14.031,
+        "mapeS21": 3.641,
+        "mapeDelta": -10.39
+      },
+      {
+        "rowNo": 7702,
+        "carat": 3.01,
+        "carat_bucket": "3.00-3.99",
+        "shape": "HEART",
+        "color": "F",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 321.18,
+        "s20": 383.88,
+        "s21": 351.58,
+        "deltaPct": -8.41,
+        "mapeS20": 19.524,
+        "mapeS21": 9.466,
+        "mapeDelta": -10.058
+      },
+      {
+        "rowNo": 91,
+        "carat": 12.09,
+        "carat_bucket": "10.00+",
+        "shape": "MARQUISE",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 6640.41,
+        "s20": 5502.62,
+        "s21": 6159.86,
+        "deltaPct": 11.94,
+        "mapeS20": 17.134,
+        "mapeS21": 7.237,
+        "mapeDelta": -9.898
+      },
+      {
+        "rowNo": 1086,
+        "carat": 7.02,
+        "carat_bucket": "5.00-9.99",
+        "shape": "CUSHION",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 1319.82,
+        "s20": 1087.2,
+        "s21": 1207.45,
+        "deltaPct": 11.06,
+        "mapeS20": 17.625,
+        "mapeS21": 8.515,
+        "mapeDelta": -9.11
+      },
+      {
+        "rowNo": 21732,
+        "carat": 0.63,
+        "carat_bucket": "0.50-0.69",
+        "shape": "EMERALD",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 114.53,
+        "s20": 126.43,
+        "s21": 116.39,
+        "deltaPct": -7.94,
+        "mapeS20": 10.389,
+        "mapeS21": 1.624,
+        "mapeDelta": -8.765
+      },
+      {
+        "rowNo": 1415,
+        "carat": 6.0,
+        "carat_bucket": "5.00-9.99",
+        "shape": "OVAL",
+        "color": "F",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 1128.0,
+        "s20": 801.49,
+        "s21": 900.14,
+        "deltaPct": 12.31,
+        "mapeS20": 28.946,
+        "mapeS21": 20.2,
+        "mapeDelta": -8.746
+      },
+      {
+        "rowNo": 13308,
+        "carat": 1.72,
+        "carat_bucket": "1.50-1.99",
+        "shape": "SQUARE",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 173.47,
+        "s20": 190.75,
+        "s21": 175.86,
+        "deltaPct": -7.81,
+        "mapeS20": 9.963,
+        "mapeS21": 1.378,
+        "mapeDelta": -8.585
+      },
+      {
+        "rowNo": 320,
+        "carat": 8.09,
+        "carat_bucket": "5.00-9.99",
+        "shape": "CUSHION",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "\u957f\u57ab\u5f62",
+        "actual": 2365.06,
+        "s20": 1663.14,
+        "s21": 1853.69,
+        "deltaPct": 11.46,
+        "mapeS20": 29.679,
+        "mapeS21": 21.622,
+        "mapeDelta": -8.057
+      },
+      {
+        "rowNo": 12065,
+        "carat": 1.09,
+        "carat_bucket": "1.00-1.49",
+        "shape": "PRINCESS",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 227.29,
+        "s20": 128.06,
+        "s21": 146.33,
+        "deltaPct": 14.27,
+        "mapeS20": 43.657,
+        "mapeS21": 35.62,
+        "mapeDelta": -8.037
+      },
+      {
+        "rowNo": 13130,
+        "carat": 1.68,
+        "carat_bucket": "1.50-1.99",
+        "shape": "EMERALD",
+        "color": "F",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 176.47,
+        "s20": 192.23,
+        "s21": 174.64,
+        "deltaPct": -9.15,
+        "mapeS20": 8.928,
+        "mapeS21": 1.037,
+        "mapeDelta": -7.891
+      },
+      {
+        "rowNo": 4770,
+        "carat": 2.02,
+        "carat_bucket": "2.00-2.99",
+        "shape": "PRINCESS",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 427.41,
+        "s20": 271.35,
+        "s21": 304.77,
+        "deltaPct": 12.32,
+        "mapeS20": 36.514,
+        "mapeS21": 28.694,
+        "mapeDelta": -7.82
+      },
+      {
+        "rowNo": 377,
+        "carat": 7.61,
+        "carat_bucket": "5.00-9.99",
+        "shape": "PEAR",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 2092.24,
+        "s20": 2479.24,
+        "s21": 2315.94,
+        "deltaPct": -6.59,
+        "mapeS20": 18.497,
+        "mapeS21": 10.692,
+        "mapeDelta": -7.805
+      },
+      {
+        "rowNo": 5489,
+        "carat": 2.52,
+        "carat_bucket": "2.00-2.99",
+        "shape": "CUSHION",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 384.88,
+        "s20": 344.07,
+        "s21": 373.58,
+        "deltaPct": 8.58,
+        "mapeS20": 10.605,
+        "mapeS21": 2.937,
+        "mapeDelta": -7.668
+      },
+      {
+        "rowNo": 734,
+        "carat": 8.1,
+        "carat_bucket": "5.00-9.99",
+        "shape": "SQUARE",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 1546.41,
+        "s20": 1665.62,
+        "s21": 1547.15,
+        "deltaPct": -7.11,
+        "mapeS20": 7.709,
+        "mapeS21": 0.048,
+        "mapeDelta": -7.661
+      },
+      {
+        "rowNo": 6466,
+        "carat": 3.03,
+        "carat_bucket": "3.00-3.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 345.58,
+        "s20": 489.21,
+        "s21": 463.5,
+        "deltaPct": -5.25,
+        "mapeS20": 41.56,
+        "mapeS21": 34.122,
+        "mapeDelta": -7.438
+      },
+      {
+        "rowNo": 2077,
+        "carat": 5.07,
+        "carat_bucket": "5.00-9.99",
+        "shape": "RADIANT",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 755.29,
+        "s20": 824.78,
+        "s21": 768.66,
+        "deltaPct": -6.8,
+        "mapeS20": 9.2,
+        "mapeS21": 1.77,
+        "mapeDelta": -7.431
+      },
+      {
+        "rowNo": 8654,
+        "carat": 1.52,
+        "carat_bucket": "1.50-1.99",
+        "shape": "OVAL",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "\u51b0\u82b1\u5207",
+        "actual": 278.29,
+        "s20": 243.0,
+        "s21": 263.24,
+        "deltaPct": 8.33,
+        "mapeS20": 12.684,
+        "mapeS21": 5.408,
+        "mapeDelta": -7.276
+      },
+      {
+        "rowNo": 3593,
+        "carat": 3.56,
+        "carat_bucket": "3.00-3.99",
+        "shape": "OVAL",
+        "color": "D",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 546.71,
+        "s20": 504.42,
+        "s21": 544.12,
+        "deltaPct": 7.87,
+        "mapeS20": 7.735,
+        "mapeS21": 0.473,
+        "mapeDelta": -7.262
+      },
+      {
+        "rowNo": 12125,
+        "carat": 2.01,
+        "carat_bucket": "2.00-2.99",
+        "shape": "EMERALD",
+        "color": "E",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 223.69,
+        "s20": 247.34,
+        "s21": 231.27,
+        "deltaPct": -6.5,
+        "mapeS20": 10.572,
+        "mapeS21": 3.387,
+        "mapeDelta": -7.186
+      },
+      {
+        "rowNo": 2151,
+        "carat": 4.09,
+        "carat_bucket": "4.00-4.99",
+        "shape": "SQUARE",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 727.76,
+        "s20": 670.69,
+        "s21": 732.6,
+        "deltaPct": 9.23,
+        "mapeS20": 7.843,
+        "mapeS21": 0.665,
+        "mapeDelta": -7.178
+      }
+    ],
+    "largestPriceShift": [
+      {
+        "rowNo": 13396,
+        "carat": 1.52,
+        "carat_bucket": "1.50-1.99",
+        "shape": "PRINCESS",
+        "color": "G",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 172.76,
+        "s20": 166.93,
+        "s21": 229.36,
+        "deltaPct": 37.39,
+        "mapeS20": 3.375,
+        "mapeS21": 32.756,
+        "mapeDelta": 29.381
+      },
+      {
+        "rowNo": 381,
+        "carat": 5.02,
+        "carat_bucket": "5.00-9.99",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "ID",
+        "actual": 2082.35,
+        "s20": 2081.2,
+        "s21": 1480.78,
+        "deltaPct": -28.85,
+        "mapeS20": 0.055,
+        "mapeS21": 28.889,
+        "mapeDelta": 28.834
+      },
+      {
+        "rowNo": 1413,
+        "carat": 5.71,
+        "carat_bucket": "5.00-9.99",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "VS2",
+        "cut": "ID",
+        "actual": 1128.0,
+        "s20": 1246.13,
+        "s21": 936.62,
+        "deltaPct": -24.84,
+        "mapeS20": 10.472,
+        "mapeS21": 16.967,
+        "mapeDelta": 6.494
+      },
+      {
+        "rowNo": 5047,
+        "carat": 3.07,
+        "carat_bucket": "3.00-3.99",
+        "shape": "MARQUISE",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 402.35,
+        "s20": 577.58,
+        "s21": 435.47,
+        "deltaPct": -24.61,
+        "mapeS20": 43.551,
+        "mapeS21": 8.23,
+        "mapeDelta": -35.321
+      },
+      {
+        "rowNo": 12666,
+        "carat": 1.0,
+        "carat_bucket": "1.00-1.49",
+        "shape": "MARQUISE",
+        "color": "E",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 190.59,
+        "s20": 168.88,
+        "s21": 209.99,
+        "deltaPct": 24.34,
+        "mapeS20": 11.391,
+        "mapeS21": 10.179,
+        "mapeDelta": -1.212
+      },
+      {
+        "rowNo": 491,
+        "carat": 11.96,
+        "carat_bucket": "10.00+",
+        "shape": "EMERALD",
+        "color": "E",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 1855.59,
+        "s20": 2607.42,
+        "s21": 3231.91,
+        "deltaPct": 23.95,
+        "mapeS20": 40.517,
+        "mapeS21": 74.171,
+        "mapeDelta": 33.654
+      },
+      {
+        "rowNo": 4258,
+        "carat": 2.02,
+        "carat_bucket": "2.00-2.99",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "\u51b0\u82b1\u5207",
+        "actual": 491.12,
+        "s20": 408.4,
+        "s21": 505.88,
+        "deltaPct": 23.87,
+        "mapeS20": 16.843,
+        "mapeS21": 3.005,
+        "mapeDelta": -13.837
+      },
+      {
+        "rowNo": 1960,
+        "carat": 4.09,
+        "carat_bucket": "4.00-4.99",
+        "shape": "PRINCESS",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 804.71,
+        "s20": 702.88,
+        "s21": 862.94,
+        "deltaPct": 22.77,
+        "mapeS20": 12.654,
+        "mapeS21": 7.237,
+        "mapeDelta": -5.417
+      },
+      {
+        "rowNo": 8247,
+        "carat": 1.89,
+        "carat_bucket": "1.50-1.99",
+        "shape": "SQUARE",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 291.0,
+        "s20": 398.16,
+        "s21": 309.12,
+        "deltaPct": -22.36,
+        "mapeS20": 36.825,
+        "mapeS21": 6.225,
+        "mapeDelta": -30.6
+      },
+      {
+        "rowNo": 13032,
+        "carat": 1.62,
+        "carat_bucket": "1.50-1.99",
+        "shape": "SQUARE",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 179.12,
+        "s20": 310.06,
+        "s21": 240.97,
+        "deltaPct": -22.28,
+        "mapeS20": 73.107,
+        "mapeS21": 34.532,
+        "mapeDelta": -38.574
+      },
+      {
+        "rowNo": 6015,
+        "carat": 3.07,
+        "carat_bucket": "3.00-3.99",
+        "shape": "EMERALD",
+        "color": "D",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 363.78,
+        "s20": 504.3,
+        "s21": 395.31,
+        "deltaPct": -21.61,
+        "mapeS20": 38.629,
+        "mapeS21": 8.669,
+        "mapeDelta": -29.96
+      },
+      {
+        "rowNo": 11925,
+        "carat": 2.05,
+        "carat_bucket": "2.00-2.99",
+        "shape": "HEART",
+        "color": "E",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 232.78,
+        "s20": 228.38,
+        "s21": 276.23,
+        "deltaPct": 20.95,
+        "mapeS20": 1.892,
+        "mapeS21": 18.664,
+        "mapeDelta": 16.773
+      },
+      {
+        "rowNo": 8139,
+        "carat": 1.55,
+        "carat_bucket": "1.50-1.99",
+        "shape": "MARQUISE",
+        "color": "F",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 303.0,
+        "s20": 278.15,
+        "s21": 220.81,
+        "deltaPct": -20.62,
+        "mapeS20": 8.201,
+        "mapeS21": 27.126,
+        "mapeDelta": 18.925
+      },
+      {
+        "rowNo": 882,
+        "carat": 6.5,
+        "carat_bucket": "5.00-9.99",
+        "shape": "OVAL",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 1453.59,
+        "s20": 1427.16,
+        "s21": 1717.77,
+        "deltaPct": 20.36,
+        "mapeS20": 1.818,
+        "mapeS21": 18.174,
+        "mapeDelta": 16.356
+      },
+      {
+        "rowNo": 488,
+        "carat": 5.21,
+        "carat_bucket": "5.00-9.99",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 1873.94,
+        "s20": 2251.32,
+        "s21": 1802.55,
+        "deltaPct": -19.93,
+        "mapeS20": 20.138,
+        "mapeS21": 3.81,
+        "mapeDelta": -16.328
+      },
+      {
+        "rowNo": 13854,
+        "carat": 1.65,
+        "carat_bucket": "1.50-1.99",
+        "shape": "ASSCHER",
+        "color": "D",
+        "clarity": "IF",
+        "cut": "-",
+        "actual": 168.53,
+        "s20": 166.95,
+        "s21": 199.47,
+        "deltaPct": 19.48,
+        "mapeS20": 0.937,
+        "mapeS21": 18.357,
+        "mapeDelta": 17.42
+      },
+      {
+        "rowNo": 15115,
+        "carat": 1.83,
+        "carat_bucket": "1.50-1.99",
+        "shape": "EMERALD",
+        "color": "D",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 150.92,
+        "s20": 172.88,
+        "s21": 205.27,
+        "deltaPct": 18.74,
+        "mapeS20": 14.549,
+        "mapeS21": 36.013,
+        "mapeDelta": 21.464
+      },
+      {
+        "rowNo": 11981,
+        "carat": 1.81,
+        "carat_bucket": "1.50-1.99",
+        "shape": "PRINCESS",
+        "color": "D",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 231.0,
+        "s20": 213.32,
+        "s21": 253.28,
+        "deltaPct": 18.73,
+        "mapeS20": 7.654,
+        "mapeS21": 9.647,
+        "mapeDelta": 1.993
+      },
+      {
+        "rowNo": 14747,
+        "carat": 1.52,
+        "carat_bucket": "1.50-1.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 158.29,
+        "s20": 160.94,
+        "s21": 190.58,
+        "deltaPct": 18.41,
+        "mapeS20": 1.674,
+        "mapeS21": 20.394,
+        "mapeDelta": 18.72
+      },
+      {
+        "rowNo": 4394,
+        "carat": 2.09,
+        "carat_bucket": "2.00-2.99",
+        "shape": "EMERALD",
+        "color": "E",
+        "clarity": "VVS1",
+        "cut": "-",
+        "actual": 471.18,
+        "s20": 484.49,
+        "s21": 396.4,
+        "deltaPct": -18.18,
+        "mapeS20": 2.825,
+        "mapeS21": 15.87,
+        "mapeDelta": 13.045
+      },
+      {
+        "rowNo": 14445,
+        "carat": 0.72,
+        "carat_bucket": "0.70-0.89",
+        "shape": "PEAR",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 161.82,
+        "s20": 129.44,
+        "s21": 152.18,
+        "deltaPct": 17.57,
+        "mapeS20": 20.015,
+        "mapeS21": 5.962,
+        "mapeDelta": -14.053
+      },
+      {
+        "rowNo": 2179,
+        "carat": 4.06,
+        "carat_bucket": "4.00-4.99",
+        "shape": "ROUND",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "EX",
+        "actual": 726.18,
+        "s20": 850.84,
+        "s21": 701.84,
+        "deltaPct": -17.51,
+        "mapeS20": 17.167,
+        "mapeS21": 3.351,
+        "mapeDelta": -13.816
+      },
+      {
+        "rowNo": 12131,
+        "carat": 2.02,
+        "carat_bucket": "2.00-2.99",
+        "shape": "EMERALD",
+        "color": "F",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 223.69,
+        "s20": 291.53,
+        "s21": 241.48,
+        "deltaPct": -17.17,
+        "mapeS20": 30.324,
+        "mapeS21": 7.952,
+        "mapeDelta": -22.372
+      },
+      {
+        "rowNo": 3345,
+        "carat": 4.18,
+        "carat_bucket": "4.00-4.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 568.41,
+        "s20": 566.49,
+        "s21": 663.61,
+        "deltaPct": 17.14,
+        "mapeS20": 0.337,
+        "mapeS21": 16.749,
+        "mapeDelta": 16.411
+      },
+      {
+        "rowNo": 13311,
+        "carat": 1.73,
+        "carat_bucket": "1.50-1.99",
+        "shape": "SQUARE",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 173.47,
+        "s20": 166.32,
+        "s21": 193.53,
+        "deltaPct": 16.36,
+        "mapeS20": 4.122,
+        "mapeS21": 11.562,
+        "mapeDelta": 7.44
+      },
+      {
+        "rowNo": 1753,
+        "carat": 4.56,
+        "carat_bucket": "4.00-4.99",
+        "shape": "PEAR",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 931.22,
+        "s20": 1031.04,
+        "s21": 863.24,
+        "deltaPct": -16.27,
+        "mapeS20": 10.72,
+        "mapeS21": 7.3,
+        "mapeDelta": -3.42
+      },
+      {
+        "rowNo": 7523,
+        "carat": 1.01,
+        "carat_bucket": "1.00-1.49",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 327.53,
+        "s20": 290.95,
+        "s21": 244.87,
+        "deltaPct": -15.84,
+        "mapeS20": 11.167,
+        "mapeS21": 25.236,
+        "mapeDelta": 14.069
+      },
+      {
+        "rowNo": 10431,
+        "carat": 2.05,
+        "carat_bucket": "2.00-2.99",
+        "shape": "PRINCESS",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 248.12,
+        "s20": 257.85,
+        "s21": 297.13,
+        "deltaPct": 15.23,
+        "mapeS20": 3.922,
+        "mapeS21": 19.753,
+        "mapeDelta": 15.832
+      },
+      {
+        "rowNo": 13114,
+        "carat": 1.04,
+        "carat_bucket": "1.00-1.49",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "IF",
+        "cut": "ID",
+        "actual": 177.35,
+        "s20": 179.0,
+        "s21": 205.71,
+        "deltaPct": 14.92,
+        "mapeS20": 0.93,
+        "mapeS21": 15.989,
+        "mapeDelta": 15.06
+      },
+      {
+        "rowNo": 456,
+        "carat": 10.06,
+        "carat_bucket": "10.00+",
+        "shape": "RADIANT",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 1937.47,
+        "s20": 2453.3,
+        "s21": 2093.01,
+        "deltaPct": -14.69,
+        "mapeS20": 26.624,
+        "mapeS21": 8.028,
+        "mapeDelta": -18.596
+      },
+      {
+        "rowNo": 14378,
+        "carat": 0.53,
+        "carat_bucket": "0.50-0.69",
+        "shape": "HEART",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 163.64,
+        "s20": 173.4,
+        "s21": 148.34,
+        "deltaPct": -14.45,
+        "mapeS20": 5.963,
+        "mapeS21": 9.353,
+        "mapeDelta": 3.39
+      },
+      {
+        "rowNo": 12065,
+        "carat": 1.09,
+        "carat_bucket": "1.00-1.49",
+        "shape": "PRINCESS",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 227.29,
+        "s20": 128.06,
+        "s21": 146.33,
+        "deltaPct": 14.27,
+        "mapeS20": 43.657,
+        "mapeS21": 35.62,
+        "mapeDelta": -8.037
+      },
+      {
+        "rowNo": 16503,
+        "carat": 0.52,
+        "carat_bucket": "0.50-0.69",
+        "shape": "MARQUISE",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut": "-",
+        "actual": 134.54,
+        "s20": 122.29,
+        "s21": 139.74,
+        "deltaPct": 14.27,
+        "mapeS20": 9.109,
+        "mapeS21": 3.865,
+        "mapeDelta": -5.244
+      },
+      {
+        "rowNo": 2108,
+        "carat": 6.03,
+        "carat_bucket": "5.00-9.99",
+        "shape": "EMERALD",
+        "color": "G",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 741.18,
+        "s20": 702.34,
+        "s21": 802.42,
+        "deltaPct": 14.25,
+        "mapeS20": 5.24,
+        "mapeS21": 8.263,
+        "mapeDelta": 3.023
+      },
+      {
+        "rowNo": 2591,
+        "carat": 5.01,
+        "carat_bucket": "5.00-9.99",
+        "shape": "OVAL",
+        "color": "E",
+        "clarity": "VS2",
+        "cut": "-",
+        "actual": 654.85,
+        "s20": 648.57,
+        "s21": 739.92,
+        "deltaPct": 14.08,
+        "mapeS20": 0.958,
+        "mapeS21": 12.992,
+        "mapeDelta": 12.034
+      },
+      {
+        "rowNo": 1609,
+        "carat": 3.08,
+        "carat_bucket": "3.00-3.99",
+        "shape": "HEART",
+        "color": "D",
+        "clarity": "VVS2",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 1000.59,
+        "s20": 751.51,
+        "s21": 856.92,
+        "deltaPct": 14.03,
+        "mapeS20": 24.893,
+        "mapeS21": 14.359,
+        "mapeDelta": -10.535
+      },
+      {
+        "rowNo": 283,
+        "carat": 15.58,
+        "carat_bucket": "10.00+",
+        "shape": "EMERALD",
+        "color": "F",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 2528.82,
+        "s20": 2595.54,
+        "s21": 2949.81,
+        "deltaPct": 13.65,
+        "mapeS20": 2.638,
+        "mapeS21": 16.648,
+        "mapeDelta": 14.009
+      },
+      {
+        "rowNo": 2909,
+        "carat": 4.07,
+        "carat_bucket": "4.00-4.99",
+        "shape": "EMERALD",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "-",
+        "actual": 629.65,
+        "s20": 725.91,
+        "s21": 629.07,
+        "deltaPct": -13.34,
+        "mapeS20": 15.289,
+        "mapeS21": 0.092,
+        "mapeDelta": -15.197
+      },
+      {
+        "rowNo": 4002,
+        "carat": 3.05,
+        "carat_bucket": "3.00-3.99",
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "EX",
+        "actual": 509.47,
+        "s20": 409.11,
+        "s21": 463.57,
+        "deltaPct": 13.31,
+        "mapeS20": 19.7,
+        "mapeS21": 9.009,
+        "mapeDelta": -10.69
+      },
+      {
+        "rowNo": 14968,
+        "carat": 0.89,
+        "carat_bucket": "0.70-0.89",
+        "shape": "PEAR",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "\u4f20\u7edf\u5207",
+        "actual": 154.59,
+        "s20": 193.32,
+        "s21": 167.64,
+        "deltaPct": -13.28,
+        "mapeS20": 25.055,
+        "mapeS21": 8.443,
+        "mapeDelta": -16.612
+      }
+    ]
+  },
+  "meanAbsPriceDeltaPct": 4.056
+}

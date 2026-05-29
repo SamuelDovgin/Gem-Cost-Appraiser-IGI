@@ -1,0 +1,68 @@
+{
+  "_comment": "Single source of truth for ordinal monotone axes per gem family. Consumed by: (1) starsgem-mrpe-v2.py build_monotone_vector() at training time, (2) starsgem-ml-predict.mjs predictMonotoneGeneralized() at inference time. Adding a new gem family = add one entry here; no other monotonicity code changes.",
+  "_schema": {
+    "feature":   "name of the derived numeric feature in the ML model (e.g. Clarity_Rank)",
+    "rowField":  "key in the buildStarsgemRow / row dict to sweep when building a ladder (e.g. Clarity)",
+    "order":     "ordered list of raw values from best-to-highest-rank; JS inference sweeps this array",
+    "direction": "+1 = price non-decreasing as rank index increases (Carat, Intensity); -1 = non-increasing (Clarity_Rank rank 0=IF=best)",
+    "note":      "human-readable reminder about sign convention"
+  },
+
+  "white_diamond": [
+    {
+      "feature":   "Clarity_Rank",
+      "rowField":  "Clarity",
+      "order":     ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2"],
+      "direction": -1,
+      "note":      "rank 0=IF=best; price is non-increasing as rank increases (PAV non-increasing)"
+    },
+    {
+      "feature":   "Color_Rank",
+      "rowField":  "Color",
+      "order":     ["D", "E", "F", "G", "H", "I", "J"],
+      "direction": -1,
+      "note":      "rank 0=D=best; price is non-increasing as rank increases"
+    },
+    {
+      "feature":   "Carat",
+      "rowField":  null,
+      "order":     null,
+      "direction": 1,
+      "note":      "continuous — constraint only; no ladder sweep needed"
+    }
+  ],
+
+  "fancy_color_diamond": [
+    {
+      "feature":   "colorIntensityRank",
+      "rowField":  "colorIntensity",
+      "order":     ["faint", "very_light", "light", "fancy_light", "fancy", "fancy_intense", "fancy_vivid"],
+      "direction": 1,
+      "note":      "rank 0=Faint=lowest; price non-decreasing toward Vivid. Deep/Dark are NOT on this ladder — see modifierPenaltyRank."
+    },
+    {
+      "feature":   "modifierPenaltyRank",
+      "rowField":  "colorModifier",
+      "order":     ["none", "yellowish", "brownish", "greyish"],
+      "direction": -1,
+      "note":      "rank 0=pure hue=no penalty; higher rank=heavier modifier=lower price. Treat as a discount multiplier, not a primary axis."
+    },
+    {
+      "feature":   "carat",
+      "rowField":  null,
+      "order":     null,
+      "direction": 1,
+      "note":      "continuous — constraint only"
+    }
+  ],
+
+  "_future_colored_gemstone": {
+    "_comment": "Template for a future sapphire / ruby / emerald model. Uncomment and fill in when training begins.",
+    "axes": [
+      { "feature": "saturationRank",  "rowField": "saturation",  "order": ["light", "medium_light", "medium", "medium_dark", "dark", "vivid"], "direction": 1 },
+      { "feature": "clarityRank",     "rowField": "clarity",     "order": ["eye_clean", "slightly_included", "moderately_included", "heavily_included"], "direction": -1 },
+      { "feature": "originTierRank",  "rowField": "originTier",  "order": ["commercial", "fine", "premium", "top_premium"], "direction": 1 },
+      { "feature": "carat",           "rowField": null,           "order": null, "direction": 1 }
+    ]
+  }
+}

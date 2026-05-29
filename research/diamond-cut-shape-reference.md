@@ -167,7 +167,7 @@ Jeweler cost = Round G/VS1 × shape multiplier × carat multiplier (per [white-d
 
 ## 4. Marquise Brilliant
 
-**Description:** Football-shaped (elongated, two pointed tips). One of the oldest fancy cuts. Maximizes face-up size per carat (larger footprint than round of same carat). Subject to bowtie. Tip protection critical for durability.
+**Description:** Football-shaped (elongated, two pointed tips). One of the oldest fancy cuts — dating to 18th-century French court jewelry. Maximizes face-up size per carat: at the same carat weight a marquise shows approximately **10–15% more surface area** than a round, making it the strongest face-up-to-carat ratio among the pointed fancy shapes. Subject to bowtie. Tip protection critical for durability.
 
 **Facet count:** 55–57
 
@@ -182,20 +182,33 @@ Jeweler cost = Round G/VS1 × shape multiplier × carat multiplier (per [white-d
 - < 1.75: Very wide/short. Stubby. Not classical marquise look.
 - 1.75–1.90: Acceptable; chunkier.
 - **1.90–2.10: Sweet spot. Classic marquise outline.**
-- 2.10–2.30: Long. Elegant but harder to set; tip exposure risk.
-- > 2.30: Very elongated. Niche.
+- 2.10–2.30: Long. Elegant but harder to set; tip exposure risk increases.
+- > 2.30: Very elongated. Niche; tip chips much more likely.
 
-**Wholesale multiplier:** 0.87 (−13% vs round)
+**Wholesale multiplier:** 0.87 (−13% vs round white) · 0.93 (−7% vs oval/pear for fancy color)
 
-**Why discounted:** Lower demand relative to round, oval, pear. Tips are prone to chipping. Bowtie can be severe. Growing in popularity in 2025–2026 but still below round/oval.
+**Why discounted (white):** Lower demand relative to round, oval, pear. Tips are prone to chipping. Bowtie can be severe. Growing in popularity in 2025–2026 but still behind round/oval in liquidity. Natural-market benchmark: **Rapaport places marquise 20–25% below round at retail**; the lab-grown gap is narrower (~13%) because fashion trendiness and lower absolute price stakes both compress the penalty.
 
-**Clarity visibility:** Low-moderate. Brilliance hides inclusions in center; tip areas more transparent.
+**Why smaller penalty for fancy color:** Marquise is a favored cut for **vivid pink and blue lab-grown**. Color concentrates toward the tips, visually deepening perceived saturation — cutters often orient marquise to exploit this effect. This drives higher relative demand in the fancy-color segment.
+
+**2024–26 market context:** A broad **vintage/Art Deco revival** in bridal jewelry pushed marquise search volume and Alibaba listing depth upward meaningfully. Multiple celebrity engagements featuring marquise engagement rings accelerated the trend. Despite the resurgence, marquise still trails oval and pear in mainstream lab-grown resale liquidity.
+
+**Clarity visibility:** Low-moderate. Brilliant faceting hides inclusions in the center and wings; **tip areas are more transparent** — inclusions or naturals near a tip are more visible. The bowtie region can also reveal tilt-visible clouds or feathers.
+
+**Bowtie effect:** Marquise bowties are often **more pronounced than oval** — a dark bow-tie shadow runs perpendicular to the length axis. Severity ranges from faint/acceptable to dominant/value-killing. The **IGI cert does not grade bowtie**; it must be assessed in a slow tilt video under diffused lighting.
+
+**Tip durability:** The two pointed tips concentrate mechanical stress; a hard knock can chip or crack an unprotected tip. **V-prong or full bezel/halo settings are strongly preferred** over standard prong heads. Add ~$50–200 to the setting budget vs a round/oval prong.
+
+**Wing flatness:** Wings (curved sides) should be smoothly curved — flat or pinched wings signal a poorly cut stone and reduce face-up appeal.
 
 **What to check:**
-- Bowtie severity (often more pronounced than oval).
-- Tip symmetry — both tips should align on the same axis.
-- Whether tips are protected or exposed in the proposed setting.
-- Wing flatness — wings should be curved, not flat/pinched.
+- Bowtie severity — request a slow tilt video in diffused light. Never rely on a static photo.
+- Tip symmetry — both tips should align precisely on the long axis. Misaligned tips are a cut defect.
+- Wing shape — wings should be gently curved, not flat, pinched, or bulging.
+- Whether tips are protected in the proposed setting (V-prong or bezel recommended).
+- L/W ratio from the measurement field on the cert — photos distort apparent ratio.
+- For fancy color: check that color saturation appears even across the stone in face-up video; tips can look darker.
+- Table% and depth% — out-of-range depth causes fish-eye or nail-head effects even in fancy shapes.
 
 **Jeweler cost estimate (G/VS1/Ideal/IGI):**
 | Carat | $/stone |
@@ -204,6 +217,8 @@ Jeweler cost = Round G/VS1 × shape multiplier × carat multiplier (per [white-d
 | 2ct | ~$305 |
 | 3ct | ~$426 |
 | 5ct | ~$1,079 |
+
+**Setting cost note:** V-prong or peg-head marquise heads are specialty items — not all benches stock them. Allow extra lead time and ~$50–200 over a standard round/oval prong setting.
 
 ---
 

@@ -133,6 +133,45 @@ HYBRID_EXACT_CARAT_TOLERANCE = 0.005
 HYBRID_NEAR_CARAT_TOLERANCE = 0.03
 HYBRID_INTERPOLATION_MAX_GAP = 0.75
 
+# ──────────────────────────────────────────────────────────────────────────
+# S21 — Monotonic grade model constants
+# ──────────────────────────────────────────────────────────────────────────
+CLARITY_RANK = {"IF": 0, "VVS1": 1, "VVS2": 2, "VS1": 3, "VS2": 4, "SI1": 5, "SI2": 6}
+COLOR_RANK   = {"D": 0, "E": 1, "F": 2, "G": 3, "H": 4, "I": 5, "J": 6}
+CLARITY_ORDER_S21 = ["IF", "VVS1", "VVS2", "VS1", "VS2", "SI1", "SI2"]
+COLOR_ORDER_S21   = ["D", "E", "F", "G", "H", "I", "J"]
+MONOTONE_LOOKUP_MIN_SUPPORT = 15   # shrink cells with n < this toward parent
+MONOTONE_LOOKUP_SHRINK_K    = 10   # pseudo-count weight for shrinkage
+S21_MODEL_JSON = os.path.join(DATA_DIR, "starsgem-ml-extra-trees-model-s21-monotone.json")
+MONOTONE_AXES_JSON = os.path.join(DATA_DIR, "monotone-axes.json")
+
+
+def load_monotone_axes_registry(path=MONOTONE_AXES_JSON):
+    """Load the monotone-axes.json registry from disk."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def build_monotone_vector(feature_names_out, gem_family, registry):
+    """
+    Build the LightGBM monotone_constraints vector from the monotone-axes registry.
+
+    feature_names_out: list of feature names as returned by ColumnTransformer.get_feature_names_out().
+        ColumnTransformer prefixes: "num__<feature>" for numeric, "cat__<feature>_<value>" for one-hot.
+    gem_family: key into registry (e.g. "white_diamond").
+    registry: dict loaded from monotone-axes.json.
+
+    Returns a list of +1 / -1 / 0 (one per feature), matching the order of feature_names_out.
+
+    Example:
+        registry = load_monotone_axes_registry()
+        constraints = build_monotone_vector(feat_names_out, "white_diamond", registry)
+    """
+    axes = registry.get(gem_family, [])
+    # Build lookup: "num__<feature>" → direction
+    by_feat = {f"num__{ax['feature']}": ax["direction"] for ax in axes if ax.get("direction") is not None}
+    return [by_feat.get(name, 0) for name in feature_names_out]
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # DATA UTILITIES
@@ -597,6 +636,149 @@ def build_lookup(rows):
     return tables, global_rate
 
 
+def pav_non_increasing(values):
+    """Pool-adjacent violators: return isotonically non-increasing sequence closest to `values`.
+
+    values[i] >= values[i+1] is guaranteed for every i in the output.
+    None entries are propagated unchanged (skipped during merge).
+    """
+    # Work only on finite positions; keep None positions as-is
+    idxs = [i for i, v in enumerate(values) if v is not None]
+    if len(idxs) <= 1:
+        return list(values)
+
+    # Initialise blocks: [(block_sum, block_count, [original_indices])]
+    blocks = [[values[i], 1, [i]] for i in idxs]
+
+    j = 0
+    while j < len(blocks) - 1:
+        avg_j  = blocks[j][0]  / blocks[j][1]
+        avg_j1 = blocks[j+1][0] / blocks[j+1][1]
+        if avg_j < avg_j1:          # violation: j < j+1, merge
+            blocks[j][0] += blocks[j+1][0]
+            blocks[j][1] += blocks[j+1][1]
+            blocks[j][2]  = blocks[j][2] + blocks[j+1][2]
+            blocks.pop(j+1)
+            if j > 0:
+                j -= 1
+        else:
+            j += 1
+
+    result = list(values)  # copy
+    for bsum, bcnt, bidxs in blocks:
+        avg = bsum / bcnt
+        for i in bidxs:
+            result[i] = avg
+    return result
+
+
+def build_monotone_lookup_tables(rows):
+    """Layer-1 lookup: build tables, then isotonically regularise clarity+color.
+
+    For every (carat_bucket, Shape, Color) group in Level-E cells:
+      1. Shrink sparse cells (n < MIN_SUPPORT) toward the group weighted mean.
+      2. Apply PAV (non-increasing) over the CLARITY_ORDER_S21 axis.
+    Same procedure for color axis: fix (carat_bucket, Shape, Clarity), PAV over COLOR_ORDER_S21.
+    A 'monotonic': True marker is written into Level-E for diagnostic use.
+    """
+    tables, global_rate = build_lookup(rows)
+
+    MIN_SUPPORT = MONOTONE_LOOKUP_MIN_SUPPORT
+    SHRINK_K    = MONOTONE_LOOKUP_SHRINK_K
+
+    # Find Level-E table: fields = ["carat_bucket", "Shape", "Color", "Clarity"]
+    for tbl_idx, tbl in enumerate(tables):
+        if tbl["level"] != "E":
+            continue
+        groups = tbl["groups"]  # key="cb||shape||color||clarity" → {usdPerCt, rate, count}
+
+        # ── Clarity axis PAV ──────────────────────────────────────────────
+        # Collect unique (cb, shape, color) combos
+        cs_combos = set()
+        for key in groups:
+            parts = key.split("||")
+            cs_combos.add((parts[0], parts[1], parts[2]))  # cb, shape, color
+
+        for (cb, shape, color) in cs_combos:
+            rates  = {}   # clarity → usdPerCt
+            counts = {}   # clarity → n
+            for cl in CLARITY_ORDER_S21:
+                k = f"{cb}||{shape}||{color}||{cl}"
+                if k in groups:
+                    rates[cl]  = groups[k]["usdPerCt"]
+                    counts[cl] = groups[k]["count"]
+            if not rates:
+                continue
+            # Weighted group average for shrinkage prior
+            total_cnt = sum(counts.values())
+            group_avg = sum(rates[cl] * counts[cl] for cl in rates) / max(total_cnt, 1)
+            # Shrink
+            shrunk = {}
+            for cl in rates:
+                n = counts[cl]
+                if n < MIN_SUPPORT:
+                    shrunk[cl] = (n * rates[cl] + SHRINK_K * group_avg) / (n + SHRINK_K)
+                else:
+                    shrunk[cl] = rates[cl]
+            # PAV
+            present = [cl for cl in CLARITY_ORDER_S21 if cl in shrunk]
+            if len(present) < 2:
+                continue
+            pav_vals = pav_non_increasing([shrunk[cl] for cl in present])
+            for cl, pav_rate in zip(present, pav_vals):
+                k = f"{cb}||{shape}||{color}||{cl}"
+                if k in groups:
+                    groups[k] = {
+                        "usdPerCt": round(pav_rate, 4),
+                        "rate":     round(pav_rate / 170, 6),
+                        "count":    groups[k]["count"],
+                    }
+
+        # ── Color axis PAV ────────────────────────────────────────────────
+        sc_combos = set()
+        for key in groups:
+            parts = key.split("||")
+            sc_combos.add((parts[0], parts[1], parts[3]))  # cb, shape, clarity
+
+        for (cb, shape, clarity) in sc_combos:
+            rates  = {}
+            counts = {}
+            for co in COLOR_ORDER_S21:
+                k = f"{cb}||{shape}||{co}||{clarity}"
+                if k in groups:
+                    rates[co]  = groups[k]["usdPerCt"]
+                    counts[co] = groups[k]["count"]
+            if not rates:
+                continue
+            total_cnt = sum(counts.values())
+            group_avg = sum(rates[co] * counts[co] for co in rates) / max(total_cnt, 1)
+            shrunk = {}
+            for co in rates:
+                n = counts[co]
+                if n < MIN_SUPPORT:
+                    shrunk[co] = (n * rates[co] + SHRINK_K * group_avg) / (n + SHRINK_K)
+                else:
+                    shrunk[co] = rates[co]
+            present = [co for co in COLOR_ORDER_S21 if co in shrunk]
+            if len(present) < 2:
+                continue
+            pav_vals = pav_non_increasing([shrunk[co] for co in present])
+            for co, pav_rate in zip(present, pav_vals):
+                k = f"{cb}||{shape}||{co}||{clarity}"
+                if k in groups:
+                    groups[k] = {
+                        "usdPerCt": round(pav_rate, 4),
+                        "rate":     round(pav_rate / 170, 6),
+                        "count":    groups[k]["count"],
+                    }
+
+        tables[tbl_idx]["groups"]    = groups
+        tables[tbl_idx]["monotonic"] = True
+        break  # only Level-E needs PAV; others serve as coarser fallbacks
+
+    return tables, global_rate
+
+
 def lookup_predict_rate(row, tables, global_rate):
     """Return (predicted_rate_per_ct, level, count)."""
     for table in tables:
@@ -1015,6 +1197,36 @@ def s20_predict_prices(pipe, rows, lookup_tables, lookup_global_rate,
     return prices
 
 
+def as_model_frame_s21(rows, lookup_tables, lookup_global_rate,
+                       cat_tables, cat_global_prior, cat_levels, tail_model):
+    """S21 frame: S20 features plus Clarity_Rank and Color_Rank ordinal features (Layer 2)."""
+    import pandas as pd
+    df = as_model_frame_s20(rows, lookup_tables, lookup_global_rate,
+                            cat_tables, cat_global_prior, cat_levels, tail_model)
+    for idx, row in enumerate(rows):
+        clarity = norm_cat(row.get("Clarity", "-"))
+        color   = norm_cat(row.get("Color",   "-"))
+        df.at[idx, "Clarity_Rank"] = float(CLARITY_RANK.get(clarity, 7))
+        df.at[idx, "Color_Rank"]   = float(COLOR_RANK.get(color, 7))
+    return df
+
+
+def s21_predict_prices(lgbm_model, pre, rows, lookup_tables, lookup_global_rate,
+                       cat_tables, cat_global_prior, cat_levels, tail_model):
+    """Inference with the S21 LightGBM model (raw, no PAV projection)."""
+    import numpy as np
+    x_df = as_model_frame_s21(rows, lookup_tables, lookup_global_rate,
+                               cat_tables, cat_global_prior, cat_levels, tail_model)
+    X    = pre.transform(x_df)
+    residuals = lgbm_model.predict(X)
+    prices = []
+    for residual, row in zip(residuals, rows):
+        base_rate, _, _ = lookup_predict_rate(tail_anchor_lookup_row(row), lookup_tables, lookup_global_rate)
+        tail_mult, _, _, _ = large_carat_tail_multiplier(row, tail_model)
+        prices.append(max(0.01, base_rate * tail_mult * math.exp(residual) * row["Carat"]))
+    return prices
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MODEL EXPORT
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1105,6 +1317,159 @@ def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_
         json.dump(out, f, separators=(",", ":"))
     print(f"    → Exported to {ML_MODEL_JSON}")
     return out
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# S21 LIGHTGBM EXPORT HELPERS
+# ═══════════════════════════════════════════════════════════════════════════
+
+def convert_lgbm_tree_to_flat(tree_struct):
+    """Convert LightGBM recursive tree dict → flat arrays (same shape as ExtraTrees export).
+
+    Leaf nodes:  childrenLeft[i] = childrenRight[i] = -1, value[i] = leaf_value.
+    Split nodes: childrenLeft[i] = left child index, decision_type is '<='.
+    """
+    children_left  = []
+    children_right = []
+    feature_arr    = []
+    threshold_arr  = []
+    value_arr      = []
+
+    def visit(node):
+        idx = len(children_left)
+        children_left.append(-1)
+        children_right.append(-1)
+        feature_arr.append(-2)
+        threshold_arr.append(-2.0)
+        value_arr.append(0.0)
+
+        if "leaf_value" in node:
+            value_arr[idx] = float(node["leaf_value"])
+        else:
+            feature_arr[idx]   = int(node["split_feature"])
+            threshold_arr[idx] = float(node["threshold"])  # LightGBM stores as numeric
+            l_idx = visit(node["left_child"])
+            children_left[idx]  = l_idx
+            r_idx = visit(node["right_child"])
+            children_right[idx] = r_idx
+        return idx
+
+    visit(tree_struct)
+    return {
+        "childrenLeft":  children_left,
+        "childrenRight": children_right,
+        "feature":       feature_arr,
+        "threshold":     [round(t, 8) for t in threshold_arr],
+        "value":         [round(v, 8) for v in value_arr],
+    }
+
+
+def export_model_lgbm(lgbm_model, pre, feat_names_numeric, model_name,
+                      model_metrics, target_type,
+                      X_train_transformed, y_train,
+                      lookup_tables=None, lookup_global=None,
+                      cat_tables=None, cat_global=None, cat_levels=None,
+                      large_carat_tail=None, all_rows=None):
+    """Serialize a fitted LightGBM model to the same JSON schema as export_model().
+
+    Key differences vs ExtraTrees:
+      - modelType: 'lgbm'
+      - lgbmBaseScore: base score (init_score); prediction = base + sum(tree values)
+      - trees: same flat array format (childrenLeft/Right/feature/threshold/value)
+    """
+    from scipy.sparse import issparse
+    import numpy as np
+
+    booster = lgbm_model.booster_
+    dump    = booster.dump_model()
+
+    # Convert trees
+    flat_trees = [
+        convert_lgbm_tree_to_flat(ti["tree_structure"])
+        for ti in dump.get("tree_info", [])
+    ]
+
+    # ── Compute base_score empirically ───────────────────────────────────
+    # Walk all trees for one sample; base_score = full_pred − tree_sum.
+    sample = X_train_transformed[:1]
+    sample_dense = sample.toarray() if issparse(sample) else np.array(sample)
+    row_vec = sample_dense[0]
+
+    def walk_flat(flat_tree, rv):
+        node = 0
+        cl   = flat_tree["childrenLeft"]
+        while cl[node] != -1:
+            feat  = flat_tree["feature"][node]
+            thresh = flat_tree["threshold"][node]
+            val   = float(rv[feat]) if feat < len(rv) else 0.0
+            node  = cl[node] if val <= thresh else flat_tree["childrenRight"][node]
+        return flat_tree["value"][node]
+
+    raw_sum    = sum(walk_flat(t, row_vec) for t in flat_trees)
+    full_pred  = float(lgbm_model.predict(sample)[0])
+    base_score = float(full_pred - raw_sum)
+
+    # ── Encoder / imputer metadata ──────────────────────────────────────
+    encoder = pre.named_transformers_["cat"]
+    imputer = pre.named_transformers_["num"]
+    categories = {
+        feature: [str(v) for v in cats]
+        for feature, cats in zip(CATEGORICAL_FEATURES, encoder.categories_)
+    }
+    numeric_medians = {
+        feature: round(float(value), 8)
+        for feature, value in zip(feat_names_numeric, imputer.statistics_)
+    }
+
+    # ── Build hybrid router ──────────────────────────────────────────────
+    rows_for_router = all_rows or load_rows()
+
+    out = {
+        "generatedDate": str(date.today()),
+        "modelName":     model_name,
+        "modelType":     "lgbm",
+        "lgbmBaseScore": round(base_score, 8),
+        "target":        "log((SaleDollorPrice/Carat)/(Lookup_RatePerCt*Large_Carat_Tail_Multiplier))",
+        "prediction":    "Lookup_RatePerCt * Large_Carat_Tail_Multiplier * exp(sum(tree_log_preds) + lgbmBaseScore) * Carat",
+        "targetType":    target_type,
+        "features": {
+            "categorical":    CATEGORICAL_FEATURES,
+            "numeric":        feat_names_numeric,
+            "categories":     categories,
+            "numericMedians": numeric_medians,
+        },
+        "metrics": model_metrics,
+        "validation": {
+            "split":           "one_holdout_per_bucket",
+            "bucketFields":    VALIDATION_BUCKET_FIELDS,
+            "selectionMetric": "bucket-balanced MAPE",
+        },
+        "featureLookups": {
+            "lookupTables":    lookup_tables or [],
+            "lookupGlobalRate": lookup_global,
+            "categoryTables":  cat_tables or {},
+            "categoryGlobalRate": cat_global,
+            "categoryLevels":  cat_levels or [],
+            "monotonic":       True,
+        },
+        "largeCaratTail": large_carat_tail,
+        "hybridRouter":   build_hybrid_anchor_table(rows_for_router),
+        "treeCount":      len(flat_trees),
+        "trees":          flat_trees,
+        "monotone": {
+            "clarityRank": CLARITY_RANK,
+            "colorRank":   COLOR_RANK,
+            "clarityConstraint": -1,
+            "colorConstraint":   -1,
+            "caratConstraint":   +1,
+        },
+    }
+
+    with open(S21_MODEL_JSON, "w", encoding="utf-8") as f:
+        json.dump(out, f, separators=(",", ":"))
+    sz = os.path.getsize(S21_MODEL_JSON) / 1024 / 1024
+    print(f"    → S21 model exported to {S21_MODEL_JSON}  ({sz:.1f} MB, {len(flat_trees)} trees)")
+    return S21_MODEL_JSON
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2481,6 +2846,210 @@ def strategy_s20_specialty_tail_selected_spec(train, test, all_rows=None):
     }
 
 
+def strategy_s21_monotone_grade_selected_spec(train, test, all_rows=None):
+    """S21 — Monotone grade model (four-layer defence).
+
+    Layer 1: Isotonic lookup surface (PAV over clarity/color at Level-E).
+    Layer 2: Clarity_Rank + Color_Rank ordinal numeric features.
+    Layer 3: LightGBM with monotone_constraints on Carat (+1), Clarity_Rank (−1), Color_Rank (−1).
+    Layer 4: PAV projection at inference (predictStarsgemMlMonotone in browser).
+    Target: same log_tail_lookup_residual as S20.
+    """
+    import numpy as np
+    import lightgbm as lgb
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.preprocessing import OneHotEncoder
+
+    # ── Layer 1: monotone lookup surface ───────────────────────────────────────
+    tables, global_rate = build_monotone_lookup_tables(train)
+    cat_tables, cat_global, cat_levels = build_category_prior(train)
+    tail_model = build_large_carat_tail_model(train, tables, global_rate)
+
+    augmented_train = s19_augmented_training_rows(train)
+    cert_test     = [cert_loaded_view(row) for row in test]
+    selected_test = [selected_spec_view(row, mask_cut=False) for row in test]
+
+    # ── Layer 2: feature frame with rank features ─────────────────────────────
+    feats_num = NUMERIC_FEATURES + SELECTED_SPEC_FLAGS + [
+        "Carat_sq", "Carat_cube", "Log_Carat",
+        "Carat_bucket_pos", "Dist_carat_threshold",
+        "Dim_Volume", "Dim_Surface", "LW_Ratio_refined", "Table_Depth_Ratio",
+        "Lookup_RatePerCt", "Lookup_IsGlobal", "Lookup_Count", "Log_Lookup_Count",
+        "Log_Lookup_RatePerCt", "Category_RatePerCt", "Log_Category_RatePerCt",
+        "Is_Specialty_Cut", "Is_Traditional_Cut", "Is_IceFlower_Cut",
+        "Is_Large_Carat", "Is_10ct_Plus",
+        "Large_Carat_Tail_X", "Large_Carat_Tail_X_sq",
+        "Tail_Base_Lookup_RatePerCt", "Log_Tail_Base_Lookup_RatePerCt",
+        "Tail_Base_Lookup_Count",
+        "Large_Carat_Tail_Multiplier", "Log_Large_Carat_Tail_Multiplier",
+        "Large_Carat_Tail_Slope", "Large_Carat_Tail_Count",
+        "Clarity_Rank",   # ordinal: 0=IF → 6=SI2  (monotone constraint −1)
+        "Color_Rank",     # ordinal: 0=D  → 6=J    (monotone constraint −1)
+    ]
+
+    x_train_df = as_model_frame_s21(
+        augmented_train, tables, global_rate, cat_tables, cat_global, cat_levels, tail_model
+    )
+    y_train = []
+    for row in augmented_train:
+        base_rate, _, _ = lookup_predict_rate(tail_anchor_lookup_row(row), tables, global_rate)
+        tail_mult, _, _, _ = large_carat_tail_multiplier(row, tail_model)
+        y_train.append(math.log(max(row["usd_per_ct"], 0.01) / max(base_rate * tail_mult, 0.01)))
+    y_train = np.array(y_train)
+
+    # Fit pre-processor to get feature names
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+        ("num", SimpleImputer(strategy="median"), feats_num),
+    ])
+    X_train = pre.fit_transform(x_train_df)
+
+    # ── Layer 3: LightGBM with monotone_constraints ────────────────────────
+    feat_names_out = list(pre.get_feature_names_out())
+
+    # Build constraint vector from the monotone-axes registry (source of truth)
+    _axes_registry = load_monotone_axes_registry()
+    constraints = build_monotone_vector(feat_names_out, "white_diamond", _axes_registry)
+
+    lgbm = lgb.LGBMRegressor(
+        n_estimators=400,
+        num_leaves=63,
+        max_depth=-1,
+        learning_rate=0.04,
+        min_child_samples=20,
+        monotone_constraints=constraints,
+        monotone_constraints_method="advanced",
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        verbose=-1,
+        n_jobs=-1,
+    )
+    lgbm.fit(X_train, y_train, feature_name=feat_names_out)
+
+    # ── Evaluate ───────────────────────────────────────────────────────────
+    selected_preds = s21_predict_prices(lgbm, pre, selected_test, tables, global_rate,
+                                        cat_tables, cat_global, cat_levels, tail_model)
+    cert_preds     = s21_predict_prices(lgbm, pre, cert_test,     tables, global_rate,
+                                        cat_tables, cat_global, cat_levels, tail_model)
+
+    # Pinned regression cases
+    pinned_cases = {}
+    for ct in (3.0, 8.0, 10.0, 12.0):
+        pinned = selected_spec_view({
+            "Carat": ct, "carat_bucket": carat_bucket(ct),
+            "Shape": "ROUND", "Color": "E", "Clarity": "VS1",
+            "Cut": "ID", "Polish": "EX", "Symmetry": "EX",
+            "Fluorescence": "-", "Report": "IGI", "TypeName": "-",
+            "SaleDollorPrice": 0, "usd_per_ct": 0,
+        })
+        price = s21_predict_prices(lgbm, pre, [pinned], tables, global_rate,
+                                   cat_tables, cat_global, cat_levels, tail_model)[0]
+        base_rate, base_level, base_count = lookup_predict_rate(tail_anchor_lookup_row(pinned), tables, global_rate)
+        tail_mult, tail_level, tail_count, tail_slope = large_carat_tail_multiplier(pinned, tail_model)
+        pinned_cases[f"{ct:g}ct_round_e_vs1_id_selected_spec"] = {
+            "price": round(price, 4), "rate": round(price / ct, 4),
+            "tailBaseRate": round(base_rate, 4), "tailBaseLevel": base_level,
+            "tailMultiplier": round(tail_mult, 6),
+        }
+
+    # Clarity-ladder pinned cases (the key regression tests for R1–R3)
+    clarity_ladder_cases = {}
+    for (shape, carat, color, cut) in [
+        ("MARQUISE", 4.08, "E", "-"),
+        ("HEART", 3.0, "E", "-"),
+        ("ROUND", 2.0, "E", "ID"),
+    ]:
+        ladder = []
+        for cl in CLARITY_ORDER_S21:
+            row = selected_spec_view({
+                "Carat": carat, "carat_bucket": carat_bucket(carat),
+                "Shape": shape.upper(), "Color": color, "Clarity": cl,
+                "Cut": cut, "Polish": "EX", "Symmetry": "EX",
+                "Fluorescence": "-", "Report": "IGI", "TypeName": "-",
+                "SaleDollorPrice": 0, "usd_per_ct": 0,
+            })
+            p = s21_predict_prices(lgbm, pre, [row], tables, global_rate,
+                                   cat_tables, cat_global, cat_levels, tail_model)[0]
+            ladder.append({"clarity": cl, "price": round(p, 2), "perCt": round(p / carat, 2)})
+        # Check for inversions
+        violations = [
+            f"{ladder[i]['clarity']}→{ladder[i+1]['clarity']} (−{((ladder[i]['perCt']-ladder[i+1]['perCt'])/ladder[i]['perCt']*100):.1f}%)"
+            for i in range(len(ladder) - 1)
+            if ladder[i+1]["perCt"] < ladder[i]["perCt"] * 0.999
+        ]
+        clarity_ladder_cases[f"{shape}_{carat}ct_{color}"] = {
+            "ladder": ladder,
+            "violations": violations,
+            "monotone": len(violations) == 0,
+        }
+
+    selected_metrics = metrics([r["SaleDollorPrice"] for r in test], selected_preds)
+    cert_metrics     = metrics([r["SaleDollorPrice"] for r in test], cert_preds)
+    bucket_metrics   = {
+        bucket: metrics_for_subset(test, selected_preds, lambda r, b=bucket: r.get("carat_bucket") == b)
+        for bucket in sorted({r.get("carat_bucket") for r in test})
+    }
+    cut_style_metrics = {
+        group: metrics_for_subset(test, selected_preds, lambda r, g=group: cut_style_group(r.get("Cut")) == g)
+        for group in sorted({cut_style_group(r.get("Cut")) for r in test})
+    }
+
+    # ── Export ───────────────────────────────────────────────────────────────
+    print(f"\n    Exporting S21 model…", end=" ", flush=True)
+    export_model_lgbm(
+        lgbm_model=lgbm,
+        pre=pre,
+        feat_names_numeric=feats_num,
+        model_name="S21 — Monotone grade model (LightGBM)",
+        model_metrics=selected_metrics,
+        target_type="log_tail_lookup_residual",
+        X_train_transformed=X_train,
+        y_train=y_train,
+        lookup_tables=tables,
+        lookup_global=global_rate,
+        cat_tables=cat_tables,
+        cat_global=cat_global,
+        cat_levels=cat_levels,
+        large_carat_tail=tail_model,
+        all_rows=all_rows,
+    )
+
+    return {
+        "name": "S21 — Monotone grade model (LightGBM + isotonic lookup + rank features)",
+        "strategy": "monotone_grade_lgbm_selected_spec",
+        "target_type": "log_tail_lookup_residual",
+        "metrics": selected_metrics,
+        "certLoadedMetrics": cert_metrics,
+        "segmentMetrics": {
+            "byCaratBucket": bucket_metrics,
+            "byCutStyle": cut_style_metrics,
+            "selectedSpec10ctPlus": metrics_for_subset(test, selected_preds, lambda r: r.get("Carat", 0) >= 10.0),
+            "selectedSpec8ctPlus":  metrics_for_subset(test, selected_preds, lambda r: r.get("Carat", 0) >= 8.0),
+        },
+        "description": (
+            "Layer-1 isotonic lookup PAV + Layer-2 Clarity_Rank/Color_Rank ordinal features + "
+            "Layer-3 LightGBM monotone_constraints (400 trees, num_leaves=63, lr=0.04) + "
+            "Layer-4 PAV projection at browser inference"
+        ),
+        "pinnedCases": pinned_cases,
+        "clarityLadderCases": clarity_ladder_cases,
+        "largeCaratTailSummary": {
+            "globalSlope": tail_model.get("globalSlope"),
+            "startCarat":  tail_model.get("startCarat"),
+        },
+        "_lgbm": lgbm,
+        "_pre": pre,
+        "_lookup_tables": tables,
+        "_lookup_global": global_rate,
+        "_cat_tables": cat_tables,
+        "_cat_global": cat_global,
+        "_cat_levels": cat_levels,
+        "_large_carat_tail": tail_model,
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MAIN RUNNER
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2495,6 +3064,7 @@ def run():
     use_enriched = "--enriched" in sys.argv
     only_s19 = "--only-s19" in sys.argv
     only_s20 = "--only-s20" in sys.argv
+    only_s21 = "--only-s21" in sys.argv
     
     if use_enriched:
         rows = load_rows_enriched()
@@ -2510,7 +3080,11 @@ def run():
     print(f"Price range: ${min(r['SaleDollorPrice'] for r in rows):.2f}–${max(r['SaleDollorPrice'] for r in rows):.2f}")
     print()
 
-    if only_s20:
+    if only_s21:
+        strategies_fns = [
+            ("S21 (monotone grade LightGBM)", strategy_s21_monotone_grade_selected_spec),
+        ]
+    elif only_s20:
         strategies_fns = [
             ("S20 (specialty cut + large-carat tail)", strategy_s20_specialty_tail_selected_spec),
         ]
@@ -2547,6 +3121,7 @@ def run():
             ("S18 (temporal shallow)",        strategy_s18_temporal_shallow),
             ("S19 (lookup residual selected-spec)", strategy_s19_lookup_residual_selected_spec),
             ("S20 (specialty cut + large-carat tail)", strategy_s20_specialty_tail_selected_spec),
+            ("S21 (monotone grade LightGBM)",          strategy_s21_monotone_grade_selected_spec),
         ])
 
     results = []

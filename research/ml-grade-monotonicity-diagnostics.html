@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ML grade monotonicity — S20 diagnostics</title>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #697586;
+      --line: #d8dee8;
+      --surface: #ffffff;
+      --bg: #f6f7f9;
+      --bad: #9f1239;
+      --good: #2f855a;
+      --accent: #176c7d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    header {
+      padding: 20px 24px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    h1 { margin: 0 0 8px; font-size: 22px; font-weight: 720; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 13px; }
+    main { padding: 18px 24px 48px; max-width: 1480px; margin: 0 auto; }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric, .panel, .note {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .metric { padding: 13px 14px; }
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .metric .value { margin-top: 6px; font-size: 20px; font-weight: 740; }
+    .metric.bad .value { color: var(--bad); }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .wide { grid-column: 1 / -1; }
+    .panel { padding: 14px; overflow: hidden; }
+    .panel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    h2 { margin: 0; font-size: 15px; font-weight: 740; }
+    .hint { color: var(--muted); font-size: 12px; text-align: right; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    select {
+      min-width: 120px;
+      min-height: 38px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 14px;
+    }
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #fbfcfd;
+      border: 1px solid #eef1f5;
+      border-radius: 6px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .key { display: inline-flex; align-items: center; gap: 6px; }
+    .swatch { width: 18px; height: 3px; border-radius: 999px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+    th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    tr.invert td { background: rgba(159, 18, 57, 0.08); }
+    .note {
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 14px;
+    }
+    .note h3 { margin: 0 0 8px; font-size: 14px; }
+    .note ul { margin: 0; padding-left: 1.2em; }
+    .note li { margin: 6px 0; }
+    .note code { font-size: 12px; background: #eef1f5; padding: 1px 5px; border-radius: 4px; }
+    #status { padding: 24px; color: var(--muted); }
+    @media (max-width: 900px) {
+      .summary { grid-template-columns: repeat(2, 1fr); }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ML grade monotonicity — S20 Extra Trees</h1>
+    <div class="meta">
+      <span id="model-meta">Loading…</span>
+      <span id="gen-meta"></span>
+      <span>Open via <code>npm run serve</code> → <code>/research/ml-grade-monotonicity-diagnostics.html</code></span>
+    </div>
+  </header>
+  <div id="status">Loading sweep data…</div>
+  <main id="app" hidden>
+    <div class="summary">
+      <div class="metric bad"><div class="label">Clarity inversions</div><div class="value" id="m-clar">—</div></div>
+      <div class="metric bad"><div class="label">Color inversions</div><div class="value" id="m-color">—</div></div>
+      <div class="metric"><div class="label">Lookup-driven (log jump &gt;15%)</div><div class="value" id="m-lookup">—</div></div>
+      <div class="metric"><div class="label">Adjacent-step violation rate</div><div class="value" id="m-rate">—</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="panel wide">
+        <div class="panel-head">
+          <h2>Pinned ladders — clarity should rise left → right</h2>
+          <span class="hint">Red segments = higher clarity costs less</span>
+        </div>
+        <div id="pinned-tabs" class="controls"></div>
+        <div id="pinned-chart"></div>
+        <div id="pinned-legend" class="legend"></div>
+        <table id="pinned-table" style="margin-top:12px"></table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Lookup anchor vs ML $/ct (pinned)</h2>
+          <span class="hint">Bars = lookup; line overlay = ML</span>
+        </div>
+        <div id="decomp-chart"></div>
+        <div id="decomp-legend" class="legend"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Color ladder at VS1 (pinned)</h2>
+          <span class="hint">D should be highest; H lowest</span>
+        </div>
+        <div id="color-pinned-chart"></div>
+        <div id="color-pinned-legend" class="legend"></div>
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-head">
+          <h2>Interactive clarity ladder</h2>
+          <span class="hint">Pick shape / carat / color</span>
+        </div>
+        <div class="controls">
+          <label>Shape <select id="shape"></select></label>
+          <label>Carat <select id="carat"></select></label>
+          <label>Color <select id="color"></select></label>
+        </div>
+        <div id="ladder-chart"></div>
+        <div id="ladder-legend" class="legend"></div>
+        <p id="ladder-warn" style="color:var(--bad);font-size:13px;margin:8px 0 0"></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Violation heatmap — shape × carat</h2>
+          <span class="hint">Count of inverted clarity steps</span>
+        </div>
+        <div id="heat-chart"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Worst adjacent steps (clarity)</h2>
+          <span class="hint">Top 20 by % drop</span>
+        </div>
+        <div style="max-height:420px;overflow:auto">
+          <table id="viol-table"></table>
+        </div>
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-head">
+          <h2>All shapes at one carat — clarity fan</h2>
+          <span class="hint">Compare specialty vs round</span>
+        </div>
+        <div class="controls">
+          <label>Carat <select id="fan-carat"></select></label>
+          <label>Color <select id="fan-color"></select></label>
+        </div>
+        <div id="fan-chart"></div>
+        <div id="fan-legend" class="legend"></div>
+      </div>
+    </div>
+
+    <div class="note wide">
+      <h3>Research notes — why higher clarity sometimes prices lower</h3>
+      <ul id="notes-list"></ul>
+    </div>
+  </main>
+
+  <script>
+    const DATA_URL = 'data/ml-grade-monotonicity-sweep.json';
+    const COLORS = ['#176c7d', '#b45309', '#6d5bd0', '#9f1239', '#2f855a', '#334155', '#0e7490', '#a16207'];
+    const CLARITY_ORDER = ['IF', 'VVS1', 'VVS2', 'VS1', 'VS2', 'SI1', 'SI2'];
+
+    let data;
+
+    function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+
+    function chart(elId, legendId, series, opts = {}) {
+      const width = opts.width || 1120;
+      const height = opts.height || 380;
+      const pad = { l: 58, r: 20, t: 18, b: 48 };
+      const all = series.flatMap(s => s.points);
+      if (!all.length) return;
+      const xs = opts.ordinalX
+        ? series[0].points.map((_, i) => i)
+        : all.map(p => p.x);
+      const minX = opts.ordinalX ? 0 : Math.min(...xs);
+      const maxX = opts.ordinalX ? series[0].points.length - 1 : Math.max(...xs);
+      const maxY = Math.max(...all.map(p => p.y)) * 1.12;
+      const minY = opts.minY ?? 0;
+      const sx = x => {
+        if (opts.ordinalX) {
+          const n = maxX || 1;
+          return pad.l + (x / n) * (width - pad.l - pad.r);
+        }
+        return pad.l + (x - minX) / (maxX - minX || 1) * (width - pad.l - pad.r);
+      };
+      const sy = y => height - pad.b - (y - minY) / (maxY - minY || 1) * (height - pad.t - pad.b);
+
+      let grid = '';
+      const yTicks = 5;
+      for (let i = 0; i <= yTicks; i++) {
+        const y = minY + (maxY - minY) * i / yTicks;
+        grid += `<line x1="${pad.l}" x2="${width - pad.r}" y1="${sy(y)}" y2="${sy(y)}" stroke="#e8edf3"/>`;
+        grid += `<text x="${pad.l - 8}" y="${sy(y) + 4}" text-anchor="end" font-size="11" fill="#697586">${opts.yPrefix || '$'}${Math.round(y)}</text>`;
+      }
+      if (opts.ordinalX && opts.xLabels) {
+        opts.xLabels.forEach((lab, i) => {
+          grid += `<text x="${sx(i)}" y="${height - 14}" text-anchor="middle" font-size="11" fill="#697586">${lab}</text>`;
+        });
+      }
+
+      const paths = series.map((s, i) => {
+        const d = s.points.map((p, j) => {
+          const x = opts.ordinalX ? j : p.x;
+          return `${j ? 'L' : 'M'}${sx(x).toFixed(2)},${sy(p.y).toFixed(2)}`;
+        }).join(' ');
+        const color = s.color || COLORS[i % COLORS.length];
+        let extra = '';
+        if (s.segments) {
+          for (const seg of s.segments) {
+            extra += `<line x1="${sx(seg.from).toFixed(2)}" x2="${sx(seg.to).toFixed(2)}" y1="${sy(seg.yFrom).toFixed(2)}" y2="${sy(seg.yTo).toFixed(2)}" stroke="${seg.bad ? '#9f1239' : '#2f855a'}" stroke-width="4" stroke-linecap="round"/>`;
+          }
+        }
+        return `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.4"/>${extra}`;
+      }).join('');
+
+      const bars = (opts.bars || []).map(b => {
+        const x = sx(b.i) - (opts.barWidth || 28) / 2;
+        const y0 = sy(0);
+        const y1 = sy(b.y);
+        return `<rect x="${x}" y="${Math.min(y0, y1)}" width="${opts.barWidth || 28}" height="${Math.abs(y1 - y0)}" fill="${b.color || 'rgba(23,108,125,0.35)}" rx="2"/>`;
+      }).join('');
+
+      document.getElementById(elId).innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" role="img">
+          ${grid}${bars}${paths}
+          <text x="${pad.l}" y="${pad.t + 2}" font-size="11" fill="#697586">${opts.yLabel || '$/ct'}</text>
+        </svg>`;
+      if (legendId) {
+        document.getElementById(legendId).innerHTML = series.map((s, i) => {
+          const color = s.color || COLORS[i % COLORS.length];
+          return `<span class="key"><span class="swatch" style="background:${color}"></span>${s.name}</span>`;
+        }).join('');
+      }
+    }
+
+    function clarityLadder(shape, carat, color) {
+      const cut = shape === 'HEART' || shape === 'MARQUISE' ? '-' : 'ID';
+      return CLARITY_ORDER.map(clarity => {
+        const hit = data.predictions.find(p =>
+          p.shape === shape && p.carat === carat && p.color === color && p.clarity === clarity && p.cut === cut);
+        return hit || { clarity, perCt: 0, lookupRate: 0, lookupCount: 0, residualMult: 1 };
+      });
+    }
+
+    function ladderSegments(ladder) {
+      const segs = [];
+      for (let i = 1; i < ladder.length; i++) {
+        if (ladder[i].perCt < ladder[i - 1].perCt * 0.999) {
+          segs.push({ from: i - 1, to: i, yFrom: ladder[i - 1].perCt, yTo: ladder[i].perCt, bad: true });
+        }
+      }
+      return segs;
+    }
+
+    function renderPinned(pin) {
+      const ladder = pin.clarityLadder;
+      const pts = ladder.map(r => ({ y: r.perCt }));
+      chart('pinned-chart', 'pinned-legend', [{
+        name: pin.label,
+        color: COLORS[0],
+        points: pts,
+        segments: ladderSegments(ladder),
+      }], { ordinalX: true, xLabels: CLARITY_ORDER, yLabel: 'ML $/ct', height: 340 });
+
+      chart('decomp-chart', 'decomp-legend', [{
+        name: 'ML $/ct',
+        color: COLORS[1],
+        points: ladder.map(r => ({ y: r.perCt })),
+      }], {
+        ordinalX: true,
+        xLabels: CLARITY_ORDER,
+        yLabel: '$/ct',
+        height: 320,
+        bars: ladder.map((r, i) => ({ i, y: r.lookupRate || 0, color: 'rgba(23,108,125,0.4)' })),
+        barWidth: 36,
+      });
+
+      chart('color-pinned-chart', 'color-pinned-legend', [{
+        name: 'VS1 color ladder',
+        color: COLORS[2],
+        points: pin.colorLadderVs1.map(r => ({ y: r.perCt })),
+        segments: ladderSegments(pin.colorLadderVs1),
+      }], { ordinalX: true, xLabels: pin.colorLadderVs1.map(r => r.grade), height: 300 });
+
+      let html = '<thead><tr><th>Clarity</th><th>ML/ct</th><th>Lookup/ct</th><th>n</th><th>Residual×</th><th>Step</th></tr></thead><tbody>';
+      for (let i = 0; i < ladder.length; i++) {
+        const r = ladder[i];
+        const prev = ladder[i - 1];
+        let step = '—';
+        let cls = '';
+        if (prev) {
+          const d = ((r.perCt - prev.perCt) / prev.perCt) * 100;
+          step = (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
+          if (r.perCt < prev.perCt * 0.999) cls = 'invert';
+        }
+        html += `<tr class="${cls}"><td>${r.grade}</td><td>${fmt(r.perCt)}</td><td>${r.lookupRate ? fmt(r.lookupRate) : '—'}</td><td>${r.lookupCount ?? '—'}</td><td>${r.residualMult != null ? r.residualMult.toFixed(3) : '—'}</td><td>${step}</td></tr>`;
+      }
+      html += '</tbody>';
+      document.getElementById('pinned-table').innerHTML = html;
+    }
+
+    function renderInteractiveLadder() {
+      const shape = document.getElementById('shape').value;
+      const carat = Number(document.getElementById('carat').value);
+      const color = document.getElementById('color').value;
+      const ladder = clarityLadder(shape, carat, color);
+      chart('ladder-chart', 'ladder-legend', [{
+        name: `${shape} ${carat}ct ${color}`,
+        color: COLORS[0],
+        points: ladder.map(r => ({ y: r.perCt })),
+        segments: ladderSegments(ladder),
+      }], { ordinalX: true, xLabels: CLARITY_ORDER, height: 320 });
+
+      const inv = ladderSegments(ladder);
+      document.getElementById('ladder-warn').textContent = inv.length
+        ? `⚠ ${inv.length} inverted step(s) on this ladder — higher clarity is cheaper at those transitions.`
+        : '✓ No adjacent-step inversions on this ladder.';
+    }
+
+    function violCountForCell(shape, carat) {
+      let n = 0;
+      for (const color of data.colorOrder) {
+        n += ladderSegments(clarityLadder(shape, carat, color)).length;
+      }
+      return n;
+    }
+
+    function renderHeatmap() {
+      const shapes = data.shapes;
+      const carats = data.carats;
+      const cellW = 44;
+      const cellH = 28;
+      const pad = { l: 72, t: 24, r: 12, b: 36 };
+      const width = pad.l + carats.length * cellW + pad.r;
+      const height = pad.t + shapes.length * cellH + pad.b;
+      const counts = shapes.map(shape => carats.map(carat => violCountForCell(shape, carat)));
+      const max = Math.max(...counts.flat(), 1);
+
+      let cells = '';
+      shapes.forEach((shape, si) => {
+        carats.forEach((carat, ci) => {
+          const count = counts[si][ci];
+          const t = count / max;
+          const fill = `rgba(159,18,57,${0.06 + t * 0.75})`;
+          const x = pad.l + ci * cellW;
+          const y = pad.t + si * cellH;
+          cells += `<rect x="${x}" y="${y}" width="${cellW - 2}" height="${cellH - 2}" fill="${fill}" rx="3"/>`;
+          cells += `<text x="${x + cellW / 2 - 1}" y="${y + cellH / 2 + 4}" text-anchor="middle" font-size="10" fill="#334155">${count || ''}</text>`;
+        });
+        cells += `<text x="${pad.l - 8}" y="${pad.t + si * cellH + cellH / 2 + 4}" text-anchor="end" font-size="10" fill="#697586">${shape.slice(0, 6)}</text>`;
+      });
+      carats.forEach((c, ci) => {
+        cells += `<text x="${pad.l + ci * cellW + cellW / 2}" y="${height - 10}" text-anchor="middle" font-size="10" fill="#697586">${c}</text>`;
+      });
+      document.getElementById('heat-chart').innerHTML = `<svg viewBox="0 0 ${width} ${height}">${cells}</svg>`;
+    }
+
+    function renderViolTable() {
+      const rows = data.topClarityViolations.slice(0, 20);
+      let html = '<thead><tr><th>Shape</th><th>ct</th><th>Col</th><th>Step</th><th>Drop</th><th>Lookup n</th></tr></thead><tbody>';
+      for (const v of rows) {
+        html += `<tr class="invert"><td>${v.shape}</td><td>${v.carat}</td><td>${v.color}</td><td>${v.fromGrade}→${v.toGrade}</td><td>−${v.dropPct.toFixed(1)}%</td><td>${v.fromLookupCount}→${v.toLookupCount}</td></tr>`;
+      }
+      html += '</tbody>';
+      document.getElementById('viol-table').innerHTML = html;
+    }
+
+    function renderFan() {
+      const carat = Number(document.getElementById('fan-carat').value);
+      const color = document.getElementById('fan-color').value;
+      const series = data.shapes.map((shape, i) => ({
+        name: shape,
+        color: COLORS[i % COLORS.length],
+        points: clarityLadder(shape, carat, color).map(r => ({ y: r.perCt })),
+      }));
+      chart('fan-chart', 'fan-legend', series, {
+        ordinalX: true,
+        xLabels: CLARITY_ORDER,
+        height: 400,
+        width: 1120,
+      });
+    }
+
+    function initControls() {
+      const shapeSel = document.getElementById('shape');
+      const caratSel = document.getElementById('carat');
+      const colorSel = document.getElementById('color');
+      data.shapes.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; shapeSel.appendChild(o); });
+      data.carats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c + 'ct'; caratSel.appendChild(o); });
+      data.colorOrder.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; colorSel.appendChild(o); });
+      shapeSel.value = 'MARQUISE';
+      caratSel.value = '4.08';
+      colorSel.value = 'E';
+
+      const fanCarat = document.getElementById('fan-carat');
+      const fanColor = document.getElementById('fan-color');
+      data.carats.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c + 'ct'; fanCarat.appendChild(o); });
+      data.colorOrder.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; fanColor.appendChild(o); });
+      fanCarat.value = '4.08';
+      fanColor.value = 'E';
+
+      [shapeSel, caratSel, colorSel].forEach(el => el.addEventListener('change', renderInteractiveLadder));
+      [fanCarat, fanColor].forEach(el => el.addEventListener('change', renderFan));
+    }
+
+    function initPinnedTabs() {
+      const wrap = document.getElementById('pinned-tabs');
+      data.pinnedLadders.forEach((pin, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = pin.label;
+        btn.style.cssText = 'padding:8px 12px;border:1px solid var(--line);background:var(--surface);border-radius:6px;cursor:pointer;font:inherit;font-size:13px';
+        btn.addEventListener('click', () => {
+          wrap.querySelectorAll('button').forEach(b => b.style.fontWeight = '400');
+          btn.style.fontWeight = '700';
+          renderPinned(pin);
+        });
+        if (i === 0) btn.style.fontWeight = '700';
+        wrap.appendChild(btn);
+      });
+      renderPinned(data.pinnedLadders[0]);
+    }
+
+    async function init() {
+      const res = await fetch(DATA_URL);
+      if (!res.ok) throw new Error(`Could not load ${DATA_URL}: HTTP ${res.status}`);
+      data = await res.json();
+
+      document.getElementById('model-meta').textContent = data.modelName;
+      document.getElementById('gen-meta').textContent = `Generated ${data.generatedAt} · ${data.summary.predictionCount.toLocaleString()} predictions`;
+      document.getElementById('m-clar').textContent = data.summary.clarityViolationCount.toLocaleString();
+      document.getElementById('m-color').textContent = data.summary.colorViolationCount.toLocaleString();
+      document.getElementById('m-lookup').textContent = data.summary.lookupDrivenViolationCount.toLocaleString();
+      document.getElementById('m-rate').textContent = data.summary.clarityViolationRatePct + '%';
+
+      document.getElementById('notes-list').innerHTML = `
+        <li><strong>Lookup-first residual model</strong> — S20 predicts <code>exp(tree) × lookupRate × tail × carat</code>. Trees never see an explicit “clarity rank” feature beyond one-hot buckets.</li>
+        <li><strong>Bucket cliffs</strong> — ${data.summary.lookupDrivenViolationCount} inversions coincide with a &gt;15% log change in lookup rate between adjacent clarities (e.g. VVS1 n=496 @ ~$140/ct vs VVS2 n=8 @ ~$192/ct on Marquise 4.08 E).</li>
+        <li><strong>Off-catalog SI</strong> — SI1/SI2 on white lab goods often have <code>n=1</code> or share a global fallback with unrelated grades, so ML can price SI1 above VS1.</li>
+        <li><strong>VVS1→VVS2</strong> — Most extreme drops (~50–64%) happen on this single step across shapes; not a data entry bug but sparse slice + tree noise.</li>
+        <li><strong>Comps vs ML</strong> — Alibaba comp engine applies monotonic <code>CLARITY_MULT_COLOR</code>; ML card can disagree until reconciler / isotonic fix.</li>
+        <li><strong>Fix path</strong> — Isotonic regression on clarity (per shape×bucket), lookup smoothing toward VS1, or train-time monotonic penalty. See <code>research/ml-grade-monotonicity-analysis.md</code>.</li>
+      `;
+
+      document.getElementById('status').hidden = true;
+      document.getElementById('app').hidden = false;
+      initControls();
+      initPinnedTabs();
+      renderInteractiveLadder();
+      renderHeatmap();
+      renderViolTable();
+      renderFan();
+    }
+
+    init().catch(err => {
+      document.getElementById('status').textContent = err.message || String(err);
+    });
+  </script>
+</body>
+</html>

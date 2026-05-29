@@ -1,6 +1,6 @@
 # ML grade monotonicity — S20 Extra Trees
 
-Generated **2026-05-29** from `S20 — Specialty cut + monotonic large-carat tail` (`log_tail_lookup_residual`, 160 trees).
+Generated **2026-05-29** from `S21 — Monotone grade model (LightGBM)` (`log_tail_lookup_residual`, 400 trees).
 
 Open the interactive charts: `research/ml-grade-monotonicity-diagnostics.html` (run `npm run serve` from repo root, then visit `/research/ml-grade-monotonicity-diagnostics.html`).
 
@@ -13,9 +13,9 @@ Wholesale buyers expect **higher clarity ⇒ higher $/ct** and **better color (D
 | Metric | Value |
 | --- | --- |
 | Grid predictions | 3,465 |
-| Clarity step inversions (IF→…→SI2) | **1297** (43.7% of adjacent clarity steps) |
-| Color step inversions (D→…→H) | **869** |
-| Clarity inversions with lookup rate jump >15% log | **458** |
+| Clarity step inversions (IF→…→SI2) | **0** (0.0% of adjacent clarity steps) |
+| Color step inversions (D→…→H) | **0** |
+| Clarity inversions with lookup rate jump >15% log | **0** |
 
 ## Pinned case — Marquise 4.08ct E (your IGI example)
 
@@ -23,15 +23,15 @@ Cert shows **VVS2**; UI may show **SI1** for pricing. ML uses whatever clarity i
 
 | Clarity | ML $/ct | Total | Lookup n | Lookup $/ct | Residual × |
 | --- | --- | --- | --- | --- | --- |
-| IF | $140/ct | $572 | 496 | $139/ct | 1.012 |
-| VVS1 | $140/ct | $572 | 496 | $139/ct | 1.011 |
-| VVS2 | $194/ct | $790 | 8 | $192/ct | 1.011 |
-| VS1 | $154/ct | $629 | 17 | $155/ct | 0.996 |
-| VS2 | $129/ct | $525 | 3 | $129/ct | 0.999 |
-| SI1 | $176/ct | $717 | 1 | $176/ct | 1.001 |
-| SI2 | $140/ct | $572 | 496 | $139/ct | 1.011 |
+| IF | $201/ct | $820 | — | — | — |
+| VVS1 | $201/ct | $820 | — | — | — |
+| VVS2 | $194/ct | $793 | — | — | — |
+| VS1 | $155/ct | $634 | — | — | — |
+| VS2 | $151/ct | $617 | — | — | — |
+| SI1 | $147/ct | $600 | — | — | — |
+| SI2 | $137/ct | $561 | — | — | — |
 
-**Violations on this ladder:** VVS2→VS1 (−20.3%), VS1→VS2 (−16.5%), SI1→SI2 (−20.3%)
+**Violations on this ladder:** VVS1→VVS2 (−3.3%), VVS2→VS1 (−20.0%), VS1→VS2 (−2.8%), VS2→SI1 (−2.7%), SI1→SI2 (−6.5%)
 
 Notable pattern here:
 
@@ -45,21 +45,7 @@ That is why “higher clarity” in the cert does not always mean “higher ML p
 
 | Shape | ct | Color | Step | $/ct drop | Lookup n |
 | --- | --- | --- | --- | --- | --- |
-| HEART | 3 | E | VVS1→VVS2 | −64.7% | 1→29 |
-| HEART | 0.5 | D | VS1→VS2 | −61.6% | 9→20 |
-| HEART | 3 | D | VVS1→VVS2 | −60.0% | 63→63 |
-| PEAR | 0.5 | D | VS1→VS2 | −57.3% | 14→20 |
-| HEART | 0.5 | E | VS1→VS2 | −55.2% | 2→15 |
-| PEAR | 0.5 | E | VS1→VS2 | −55.1% | 10→15 |
-| HEART | 3 | F | VVS1→VVS2 | −55.0% | 1→4 |
-| OVAL | 4.08 | F | VVS1→VVS2 | −55.0% | 1→1 |
-| RADIANT | 3 | D | VVS1→VVS2 | −53.5% | 63→29 |
-| CUSHION | 0.5 | D | VVS2→VS1 | −53.0% | 1→1703 |
-| ROUND | 4.08 | F | VVS1→VVS2 | −52.5% | 1→12 |
-| HEART | 4.08 | F | VVS1→VVS2 | −52.5% | 1→19 |
-| PEAR | 4.08 | F | VVS1→VVS2 | −52.4% | 1→19 |
-| PRINCESS | 0.5 | D | VS1→VS2 | −52.4% | 3→20 |
-| PRINCESS | 4.08 | F | VVS1→VVS2 | −52.2% | 1→19 |
+
 
 ## Root causes (research notes)
 

@@ -1,0 +1,2037 @@
+{
+  "generatedAt": "2026-05-29",
+  "models": {
+    "s20": {
+      "name": "S20 — Specialty cut + monotonic large-carat tail",
+      "type": "extratrees",
+      "trees": 160
+    },
+    "s21": {
+      "name": "S21 — Monotone grade model (LightGBM)",
+      "type": "lgbm",
+      "trees": 400
+    },
+    "s22": {
+      "name": "S22 — S20 ExtraTrees + Layer-4 PAV",
+      "type": "extratrees+pav",
+      "trees": 160
+    }
+  },
+  "monotonicity": {
+    "s20Raw": {
+      "clarityViolations": 1127,
+      "colorViolations": 869,
+      "clarityInversionPct": 37.95,
+      "colorInversionPct": 31.35,
+      "clarStepsTotal": 2970,
+      "colorStepsTotal": 2772,
+      "byShape": {
+        "ROUND": 126,
+        "OVAL": 120,
+        "MARQUISE": 120,
+        "PEAR": 128,
+        "CUSHION": 132,
+        "EMERALD": 133,
+        "RADIANT": 121,
+        "PRINCESS": 124,
+        "HEART": 123
+      },
+      "byCarat": {
+        "1": 100,
+        "2": 109,
+        "3": 87,
+        "5": 121,
+        "8": 104,
+        "10": 103,
+        "12": 105,
+        "0.5": 93,
+        "0.7": 106,
+        "1.5": 91,
+        "4.08": 108
+      },
+      "byBucket": {
+        "0.50-0.69": 93,
+        "0.70-0.89": 106,
+        "1.00-1.49": 100,
+        "1.50-1.99": 91,
+        "2.00-2.99": 109,
+        "3.00-3.99": 87,
+        "4.00-4.99": 108,
+        "5.00-9.99": 225,
+        "10.00+": 208
+      }
+    },
+    "s22Pav": {
+      "clarityViolations": 0,
+      "colorViolations": 0,
+      "clarityInversionPct": 0,
+      "colorInversionPct": 0,
+      "clarStepsTotal": 2970,
+      "colorStepsTotal": 2772,
+      "byShape": {
+        "ROUND": 0,
+        "OVAL": 0,
+        "MARQUISE": 0,
+        "PEAR": 0,
+        "CUSHION": 0,
+        "EMERALD": 0,
+        "RADIANT": 0,
+        "PRINCESS": 0,
+        "HEART": 0
+      },
+      "byCarat": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "5": 0,
+        "8": 0,
+        "10": 0,
+        "12": 0,
+        "0.5": 0,
+        "0.7": 0,
+        "1.5": 0,
+        "4.08": 0
+      },
+      "byBucket": {
+        "0.50-0.69": 0,
+        "0.70-0.89": 0,
+        "1.00-1.49": 0,
+        "1.50-1.99": 0,
+        "2.00-2.99": 0,
+        "3.00-3.99": 0,
+        "4.00-4.99": 0,
+        "5.00-9.99": 0,
+        "10.00+": 0
+      }
+    },
+    "s21Pav": {
+      "clarityViolations": 0,
+      "colorViolations": 0,
+      "clarityInversionPct": 0,
+      "colorInversionPct": 0,
+      "clarStepsTotal": 2970,
+      "colorStepsTotal": 2772,
+      "byShape": {
+        "ROUND": 0,
+        "OVAL": 0,
+        "MARQUISE": 0,
+        "PEAR": 0,
+        "CUSHION": 0,
+        "EMERALD": 0,
+        "RADIANT": 0,
+        "PRINCESS": 0,
+        "HEART": 0
+      },
+      "byCarat": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "5": 0,
+        "8": 0,
+        "10": 0,
+        "12": 0,
+        "0.5": 0,
+        "0.7": 0,
+        "1.5": 0,
+        "4.08": 0
+      },
+      "byBucket": {
+        "0.50-0.69": 0,
+        "0.70-0.89": 0,
+        "1.00-1.49": 0,
+        "1.50-1.99": 0,
+        "2.00-2.99": 0,
+        "3.00-3.99": 0,
+        "4.00-4.99": 0,
+        "5.00-9.99": 0,
+        "10.00+": 0
+      }
+    }
+  },
+  "mape": {
+    "s20Raw": {
+      "mape": 4.6338,
+      "mae": 25.43,
+      "n": 658,
+      "byBucket": {
+        "1.50-1.99": {
+          "mape": 5.2066,
+          "mae": 12.07,
+          "n": 99
+        },
+        "2.00-2.99": {
+          "mape": 5.8556,
+          "mae": 21.23,
+          "n": 99
+        },
+        "3.00-3.99": {
+          "mape": 5.3347,
+          "mae": 27.1,
+          "n": 87
+        },
+        "5.00-9.99": {
+          "mape": 3.2527,
+          "mae": 41.07,
+          "n": 86
+        },
+        "1.00-1.49": {
+          "mape": 5.5196,
+          "mae": 7.49,
+          "n": 109
+        },
+        "0.70-0.89": {
+          "mape": 3.776,
+          "mae": 5.23,
+          "n": 31
+        },
+        "4.00-4.99": {
+          "mape": 3.1237,
+          "mae": 22.85,
+          "n": 52
+        },
+        "0.50-0.69": {
+          "mape": 3.7883,
+          "mae": 4.01,
+          "n": 40
+        },
+        "10.00+": {
+          "mape": 3.0629,
+          "mae": 115.35,
+          "n": 45
+        },
+        "0.90-0.99": {
+          "mape": 3.0799,
+          "mae": 4.13,
+          "n": 1
+        },
+        "0.30-0.49": {
+          "mape": 4.0503,
+          "mae": 2.36,
+          "n": 9
+        }
+      },
+      "worst10": [
+        {
+          "shape": "HEART",
+          "carat": 2.06,
+          "color": "E",
+          "clarity": "VVS2",
+          "ape": 45.30779400423984,
+          "predicted": 265.7076054817548,
+          "actual": 485.8235294117647
+        },
+        {
+          "shape": "MARQUISE",
+          "carat": 3.01,
+          "color": "D",
+          "clarity": "VS1",
+          "ape": 44.01728565928353,
+          "predicted": 519.4537270649774,
+          "actual": 927.8823529411765
+        },
+        {
+          "shape": "EMERALD",
+          "carat": 3.07,
+          "color": "D",
+          "clarity": "VS2",
+          "ape": 41.2281056545341,
+          "predicted": 513.7546182286881,
+          "actual": 363.77647058823527
+        },
+        {
+          "shape": "SQUARE",
+          "carat": 1.89,
+          "color": "D",
+          "clarity": "VVS1",
+          "ape": 40.12034360285337,
+          "predicted": 407.7501998843033,
+          "actual": 291
+        },
+        {
+          "shape": "PRINCESS",
+          "carat": 1.01,
+          "color": "E",
+          "clarity": "VVS1",
+          "ape": 39.43739426649646,
+          "predicted": 189.47081220918048,
+          "actual": 135.88235294117646
+        },
+        {
+          "shape": "SQUARE",
+          "carat": 2.05,
+          "color": "D",
+          "clarity": "VS1",
+          "ape": 32.702768639074506,
+          "predicted": 381.83270164590175,
+          "actual": 287.7352941176471
+        },
+        {
+          "shape": "SQUARE",
+          "carat": 2.05,
+          "color": "D",
+          "clarity": "VVS2",
+          "ape": 32.329808668672484,
+          "predicted": 392.0620866597075,
+          "actual": 296.2764705882353
+        },
+        {
+          "shape": "-",
+          "carat": 2.1,
+          "color": "D",
+          "clarity": "VVS2",
+          "ape": 30.74999462817526,
+          "predicted": 737.4299697029085,
+          "actual": 564
+        },
+        {
+          "shape": "CUSHION",
+          "carat": 4.1,
+          "color": "D",
+          "clarity": "VVS2",
+          "ape": 29.252572249071502,
+          "predicted": 1098.494802267403,
+          "actual": 849.8823529411765
+        },
+        {
+          "shape": "PRINCESS",
+          "carat": 2.02,
+          "color": "E",
+          "clarity": "VS1",
+          "ape": 28.785009330597294,
+          "predicted": 259.01311018171583,
+          "actual": 363.70588235294116
+        }
+      ]
+    },
+    "s21Raw": {
+      "mape": 14.4189,
+      "mae": 74.2,
+      "n": 658,
+      "byBucket": {
+        "1.50-1.99": {
+          "mape": 20.5153,
+          "mae": 38.36,
+          "n": 99
+        },
+        "2.00-2.99": {
+          "mape": 18.9467,
+          "mae": 55.03,
+          "n": 99
+        },
+        "3.00-3.99": {
+          "mape": 18.1966,
+          "mae": 77.77,
+          "n": 87
+        },
+        "5.00-9.99": {
+          "mape": 9.4358,
+          "mae": 105.54,
+          "n": 86
+        },
+        "1.00-1.49": {
+          "mape": 15.9566,
+          "mae": 21.25,
+          "n": 109
+        },
+        "0.70-0.89": {
+          "mape": 4.496,
+          "mae": 5.91,
+          "n": 31
+        },
+        "4.00-4.99": {
+          "mape": 13.6008,
+          "mae": 85.13,
+          "n": 52
+        },
+        "0.50-0.69": {
+          "mape": 4.4653,
+          "mae": 4.44,
+          "n": 40
+        },
+        "10.00+": {
+          "mape": 8.1895,
+          "mae": 368.68,
+          "n": 45
+        },
+        "0.90-0.99": {
+          "mape": 11.0462,
+          "mae": 14.8,
+          "n": 1
+        },
+        "0.30-0.49": {
+          "mape": 4.693,
+          "mae": 2.56,
+          "n": 9
+        }
+      },
+      "worst10": [
+        {
+          "shape": "HEART",
+          "carat": 3.01,
+          "color": "F",
+          "clarity": "VS1",
+          "ape": 52.38734263903415,
+          "predicted": 489.43228871125086,
+          "actual": 321.1764705882353
+        },
+        {
+          "shape": "PRINCESS",
+          "carat": 2.03,
+          "color": "D",
+          "clarity": "VVS2",
+          "ape": 49.95216258071154,
+          "predicted": 400.63689555387754,
+          "actual": 267.1764705882353
+        },
+        {
+          "shape": "EMERALD",
+          "carat": 3.07,
+          "color": "D",
+          "clarity": "VS2",
+          "ape": 49.11887334437809,
+          "predicted": 542.4593744331194,
+          "actual": 363.77647058823527
+        },
+        {
+          "shape": "CUSHION",
+          "carat": 1.56,
+          "color": "E",
+          "clarity": "VS1",
+          "ape": 47.952464079837206,
+          "predicted": 229.76147362986487,
+          "actual": 155.29411764705884
+        },
+        {
+          "shape": "EMERALD",
+          "carat": 1.51,
+          "color": "D",
+          "clarity": "VVS2",
+          "ape": 47.517095540076006,
+          "predicted": 256.4194219534851,
+          "actual": 173.82352941176472
+        },
+        {
+          "shape": "EMERALD",
+          "carat": 1.07,
+          "color": "D",
+          "clarity": "VVS2",
+          "ape": 46.66516548453787,
+          "predicted": 170.30413921557516,
+          "actual": 116.11764705882354
+        },
+        {
+          "shape": "EMERALD",
+          "carat": 4.06,
+          "color": "E",
+          "clarity": "VS1",
+          "ape": 45.06685542042913,
+          "predicted": 749.0569746356041,
+          "actual": 516.3529411764706
+        },
+        {
+          "shape": "HEART",
+          "carat": 3.04,
+          "color": "D",
+          "clarity": "VS1",
+          "ape": 44.23397963100453,
+          "predicted": 461.9729524063645,
+          "actual": 320.29411764705884
+        },
+        {
+          "shape": "RADIANT",
+          "carat": 3.05,
+          "color": "E",
+          "clarity": "VVS2",
+          "ape": 42.8363246975722,
+          "predicted": 529.3346150557088,
+          "actual": 370.5882352941177
+        },
+        {
+          "shape": "OVAL",
+          "carat": 1.53,
+          "color": "D",
+          "clarity": "VS1",
+          "ape": 42.223414376831435,
+          "predicted": 235.92354620156743,
+          "actual": 165.88235294117646
+        }
+      ]
+    },
+    "s22Pav": {
+      "mape": 9.9716,
+      "mae": 82.48,
+      "n": 658,
+      "byBucket": {
+        "1.50-1.99": {
+          "mape": 10.7952,
+          "mae": 22.42,
+          "n": 99
+        },
+        "2.00-2.99": {
+          "mape": 11.8061,
+          "mae": 43.45,
+          "n": 99
+        },
+        "3.00-3.99": {
+          "mape": 11.6793,
+          "mae": 65.68,
+          "n": 87
+        },
+        "5.00-9.99": {
+          "mape": 10.3177,
+          "mae": 134.17,
+          "n": 86
+        },
+        "1.00-1.49": {
+          "mape": 6.7678,
+          "mae": 9.18,
+          "n": 109
+        },
+        "0.70-0.89": {
+          "mape": 11.3427,
+          "mae": 16.39,
+          "n": 31
+        },
+        "4.00-4.99": {
+          "mape": 8.4377,
+          "mae": 61.83,
+          "n": 52
+        },
+        "0.50-0.69": {
+          "mape": 10.7162,
+          "mae": 14.39,
+          "n": 40
+        },
+        "10.00+": {
+          "mape": 8.8938,
+          "mae": 559.12,
+          "n": 45
+        },
+        "0.90-0.99": {
+          "mape": 4.5666,
+          "mae": 6.12,
+          "n": 1
+        },
+        "0.30-0.49": {
+          "mape": 6.5368,
+          "mae": 3.84,
+          "n": 9
+        }
+      },
+      "worst10": [
+        {
+          "shape": "HEART",
+          "carat": 3.04,
+          "color": "D",
+          "clarity": "VS1",
+          "ape": 55.06106925344633,
+          "predicted": 496.65148357942076,
+          "actual": 320.29411764705884
+        },
+        {
+          "shape": "ASSCHER",
+          "carat": 1.66,
+          "color": "D",
+          "clarity": "IF",
+          "ape": 54.4937053111855,
+          "predicted": 260.3673327744391,
+          "actual": 168.52941176470588
+        },
+        {
+          "shape": "MARQUISE",
+          "carat": 3.01,
+          "color": "D",
+          "clarity": "VS1",
+          "ape": 44.01728565928353,
+          "predicted": 519.4537270649774,
+          "actual": 927.8823529411765
+        },
+        {
+          "shape": "ROUND",
+          "carat": 5.85,
+          "color": "F",
+          "clarity": "VS2",
+          "ape": 40.690639957914215,
+          "predicted": 895.7359250120521,
+          "actual": 636.6705882352941
+        },
+        {
+          "shape": "SQUARE",
+          "carat": 1.89,
+          "color": "D",
+          "clarity": "VVS1",
+          "ape": 40.12034360285337,
+          "predicted": 407.7501998843033,
+          "actual": 291
+        },
+        {
+          "shape": "HEART",
+          "carat": 3.03,
+          "color": "E",
+          "clarity": "VS1",
+          "ape": 39.03050335560929,
+          "predicted": 457.57392133802,
+          "actual": 329.11764705882354
+        },
+        {
+          "shape": "EMERALD",
+          "carat": 8.27,
+          "color": "G",
+          "clarity": "VS1",
+          "ape": 37.26394343514348,
+          "predicted": 1332.267686282275,
+          "actual": 970.5882352941177
+        },
+        {
+          "shape": "HEART",
+          "carat": 2.06,
+          "color": "E",
+          "clarity": "VVS2",
+          "ape": 36.82013924943721,
+          "predicted": 306.9426293758224,
+          "actual": 485.8235294117647
+        },
+        {
+          "shape": "PRINCESS",
+          "carat": 1.01,
+          "color": "E",
+          "clarity": "VVS1",
+          "ape": 36.34489914769432,
+          "predicted": 185.2686570771611,
+          "actual": 135.88235294117646
+        },
+        {
+          "shape": "HEART",
+          "carat": 3.09,
+          "color": "E",
+          "clarity": "VVS2",
+          "ape": 34.926420886370316,
+          "predicted": 463.82941391761653,
+          "actual": 343.7647058823529
+        }
+      ]
+    },
+    "s21Pav": {
+      "mape": 17.0611,
+      "mae": 91.88,
+      "n": 658,
+      "byBucket": {
+        "1.50-1.99": {
+          "mape": 24.468,
+          "mae": 45.07,
+          "n": 99
+        },
+        "2.00-2.99": {
+          "mape": 21.8221,
+          "mae": 65.11,
+          "n": 99
+        },
+        "3.00-3.99": {
+          "mape": 20.8993,
+          "mae": 94.81,
+          "n": 87
+        },
+        "5.00-9.99": {
+          "mape": 11.0333,
+          "mae": 131.69,
+          "n": 86
+        },
+        "1.00-1.49": {
+          "mape": 16.5411,
+          "mae": 21.89,
+          "n": 109
+        },
+        "0.70-0.89": {
+          "mape": 10.7373,
+          "mae": 15.3,
+          "n": 31
+        },
+        "4.00-4.99": {
+          "mape": 14.9572,
+          "mae": 93.42,
+          "n": 52
+        },
+        "0.50-0.69": {
+          "mape": 10.9863,
+          "mae": 13.98,
+          "n": 40
+        },
+        "10.00+": {
+          "mape": 9.8989,
+          "mae": 480.92,
+          "n": 45
+        },
+        "0.90-0.99": {
+          "mape": 11.5537,
+          "mae": 15.48,
+          "n": 1
+        },
+        "0.30-0.49": {
+          "mape": 7.3651,
+          "mae": 4.26,
+          "n": 9
+        }
+      },
+      "worst10": [
+        {
+          "shape": "HEART",
+          "carat": 3.04,
+          "color": "D",
+          "clarity": "VS1",
+          "ape": 78.53689883951056,
+          "predicted": 571.8431848124324,
+          "actual": 320.29411764705884
+        },
+        {
+          "shape": "ASSCHER",
+          "carat": 1.66,
+          "color": "D",
+          "clarity": "IF",
+          "ape": 63.110635643018774,
+          "predicted": 274.88939477485224,
+          "actual": 168.52941176470588
+        },
+        {
+          "shape": "RADIANT",
+          "carat": 1.56,
+          "color": "D",
+          "clarity": "VS1",
+          "ape": 61.68111298050552,
+          "predicted": 224.60359789103634,
+          "actual": 138.91764705882352
+        },
+        {
+          "shape": "RADIANT",
+          "carat": 1.54,
+          "color": "E",
+          "clarity": "VS1",
+          "ape": 60.49642541332596,
+          "predicted": 216.10371633594303,
+          "actual": 134.64705882352942
+        },
+        {
+          "shape": "RADIANT",
+          "carat": 1.52,
+          "color": "E",
+          "clarity": "VVS2",
+          "ape": 59.175032453959744,
+          "predicted": 216.571676509417,
+          "actual": 136.05882352941177
+        },
+        {
+          "shape": "HEART",
+          "carat": 3.03,
+          "color": "E",
+          "clarity": "VS1",
+          "ape": 56.17339276779081,
+          "predicted": 513.994195609288,
+          "actual": 329.11764705882354
+        },
+        {
+          "shape": "CUSHION",
+          "carat": 1.56,
+          "color": "E",
+          "clarity": "VS1",
+          "ape": 53.14690081708473,
+          "predicted": 237.82812832770807,
+          "actual": 155.29411764705884
+        },
+        {
+          "shape": "RADIANT",
+          "carat": 1.58,
+          "color": "F",
+          "clarity": "VS1",
+          "ape": 52.31164208995411,
+          "predicted": 198.90108555276362,
+          "actual": 130.58823529411765
+        },
+        {
+          "shape": "EMERALD",
+          "carat": 1.52,
+          "color": "E",
+          "clarity": "VS2",
+          "ape": 52.12084401900198,
+          "predicted": 221.4700523217823,
+          "actual": 145.58823529411765
+        },
+        {
+          "shape": "HEART",
+          "carat": 3.09,
+          "color": "E",
+          "clarity": "VVS2",
+          "ape": 50.879945624919486,
+          "predicted": 518.6720013129585,
+          "actual": 343.7647058823529
+        }
+      ]
+    }
+  },
+  "pavCost": {
+    "n": 658,
+    "nChanged": 518,
+    "nChangedPct": 78.72,
+    "nWorse": 433,
+    "nWorsePct": 83.59,
+    "s20RawMape": 4.6338,
+    "s22PavMape": 9.9716,
+    "mapeDeltaPp": 5.3378
+  },
+  "pinnedLadders": [
+    {
+      "id": "marquise-408-e",
+      "label": "Marquise 4.08ct E",
+      "carat": 4.08,
+      "shape": "MARQUISE",
+      "color": "E",
+      "cut": "-",
+      "s20Raw": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 140.27,
+            "price": 572.28
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 140.19,
+            "price": 571.97
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 193.56,
+            "price": 789.73
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 154.26,
+            "price": 629.37
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 128.79,
+            "price": 525.46
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 175.79,
+            "price": 717.22
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 140.12,
+            "price": 571.68
+          }
+        ],
+        "violations": [
+          "VVS1→VVS2 (+38.07%)",
+          "VS2→SI1 (+36.49%)"
+        ]
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 181.76,
+            "price": 741.57
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 181.76,
+            "price": 741.57
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 165.4,
+            "price": 674.84
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 154.26,
+            "price": 629.37
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 152.29,
+            "price": 621.34
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 145.94,
+            "price": 595.42
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 139.85,
+            "price": 570.59
+          }
+        ],
+        "violations": []
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 200.96,
+            "price": 819.93
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 200.96,
+            "price": 819.93
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 194.4,
+            "price": 793.15
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 155.48,
+            "price": 634.35
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 151.16,
+            "price": 616.73
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 147.04,
+            "price": 599.91
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 137.46,
+            "price": 560.84
+          }
+        ],
+        "violations": []
+      }
+    },
+    {
+      "id": "heart-3-e",
+      "label": "Heart 3ct E",
+      "carat": 3,
+      "shape": "HEART",
+      "color": "E",
+      "cut": "-",
+      "s20Raw": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 126.91,
+            "price": 380.72
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 312.42,
+            "price": 937.25
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 110.33,
+            "price": 330.98
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 109,
+            "price": 326.99
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 223.78,
+            "price": 671.33
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 126.89,
+            "price": 380.66
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 126.69,
+            "price": 380.07
+          }
+        ],
+        "violations": [
+          "IF→VVS1 (+146.17%)",
+          "VS1→VS2 (+105.3%)"
+        ]
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 219.66,
+            "price": 658.98
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 219.66,
+            "price": 658.98
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 147.7,
+            "price": 443.1
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 147.7,
+            "price": 443.1
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 147.7,
+            "price": 443.1
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 126.89,
+            "price": 380.66
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 126.62,
+            "price": 379.87
+          }
+        ],
+        "violations": []
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 185.82,
+            "price": 557.45
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 185.82,
+            "price": 557.45
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 122.16,
+            "price": 366.47
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 122.16,
+            "price": 366.47
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 122.16,
+            "price": 366.47
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 122.16,
+            "price": 366.47
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 122.16,
+            "price": 366.47
+          }
+        ],
+        "violations": []
+      }
+    },
+    {
+      "id": "round-2-e",
+      "label": "Round 2ct E",
+      "carat": 2,
+      "shape": "ROUND",
+      "color": "E",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 125.41,
+            "price": 250.82
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 175.83,
+            "price": 351.66
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 120.98,
+            "price": 241.97
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 117.44,
+            "price": 234.89
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 118.48,
+            "price": 236.95
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 130.38,
+            "price": 260.75
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 125.96,
+            "price": 251.92
+          }
+        ],
+        "violations": [
+          "IF→VVS1 (+40.2%)",
+          "VS1→VS2 (+0.89%)",
+          "VS2→SI1 (+10.04%)"
+        ]
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 150.62,
+            "price": 301.24
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 150.62,
+            "price": 301.24
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 126.33,
+            "price": 252.66
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 126.33,
+            "price": 252.66
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 125.16,
+            "price": 250.31
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 124.85,
+            "price": 249.69
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 124.84,
+            "price": 249.68
+          }
+        ],
+        "violations": []
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 171.13,
+            "price": 342.25
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 171.13,
+            "price": 342.25
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 125.45,
+            "price": 250.9
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 123.77,
+            "price": 247.54
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 122.07,
+            "price": 244.14
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 122.07,
+            "price": 244.14
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 122.07,
+            "price": 244.14
+          }
+        ],
+        "violations": []
+      }
+    },
+    {
+      "id": "oval-3-d",
+      "label": "Oval 3ct D",
+      "carat": 3,
+      "shape": "OVAL",
+      "color": "D",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 128.81,
+            "price": 386.42
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 262.33,
+            "price": 786.99
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 165.2,
+            "price": 495.6
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 153.74,
+            "price": 461.23
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 135.77,
+            "price": 407.3
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 139.8,
+            "price": 419.4
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 128.12,
+            "price": 384.36
+          }
+        ],
+        "violations": [
+          "IF→VVS1 (+103.66%)",
+          "VS2→SI1 (+2.97%)"
+        ]
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 195.57,
+            "price": 586.71
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 195.57,
+            "price": 586.71
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 165.2,
+            "price": 495.6
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 153.74,
+            "price": 461.23
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 137.78,
+            "price": 413.35
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 137.78,
+            "price": 413.35
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 128.12,
+            "price": 384.36
+          }
+        ],
+        "violations": []
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "perCt": 208.25,
+            "price": 624.76
+          },
+          {
+            "clarity": "VVS1",
+            "perCt": 208.25,
+            "price": 624.76
+          },
+          {
+            "clarity": "VVS2",
+            "perCt": 165.79,
+            "price": 497.36
+          },
+          {
+            "clarity": "VS1",
+            "perCt": 152.16,
+            "price": 456.49
+          },
+          {
+            "clarity": "VS2",
+            "perCt": 141.91,
+            "price": 425.72
+          },
+          {
+            "clarity": "SI1",
+            "perCt": 141.91,
+            "price": 425.72
+          },
+          {
+            "clarity": "SI2",
+            "perCt": 125.69,
+            "price": 377.07
+          }
+        ],
+        "violations": []
+      }
+    }
+  ],
+  "colorLadders": [
+    {
+      "shape": "ROUND",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 124.16
+          },
+          {
+            "color": "E",
+            "perCt": 117.44
+          },
+          {
+            "color": "F",
+            "perCt": 126.06
+          },
+          {
+            "color": "G",
+            "perCt": 134.15
+          },
+          {
+            "color": "H",
+            "perCt": 125.77
+          }
+        ],
+        "viol": 2
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 127.5
+          },
+          {
+            "color": "E",
+            "perCt": 126.33
+          },
+          {
+            "color": "F",
+            "perCt": 126.33
+          },
+          {
+            "color": "G",
+            "perCt": 126.33
+          },
+          {
+            "color": "H",
+            "perCt": 125.88
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 129.19
+          },
+          {
+            "color": "E",
+            "perCt": 123.77
+          },
+          {
+            "color": "F",
+            "perCt": 123.77
+          },
+          {
+            "color": "G",
+            "perCt": 123.77
+          },
+          {
+            "color": "H",
+            "perCt": 120.88
+          }
+        ],
+        "viol": 0
+      }
+    },
+    {
+      "shape": "OVAL",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 132.53
+          },
+          {
+            "color": "E",
+            "perCt": 121.4
+          },
+          {
+            "color": "F",
+            "perCt": 119.16
+          },
+          {
+            "color": "G",
+            "perCt": 137.16
+          },
+          {
+            "color": "H",
+            "perCt": 127.42
+          }
+        ],
+        "viol": 1
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 132.53
+          },
+          {
+            "color": "E",
+            "perCt": 129.96
+          },
+          {
+            "color": "F",
+            "perCt": 127.99
+          },
+          {
+            "color": "G",
+            "perCt": 127.99
+          },
+          {
+            "color": "H",
+            "perCt": 127.67
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 130.17
+          },
+          {
+            "color": "E",
+            "perCt": 128.38
+          },
+          {
+            "color": "F",
+            "perCt": 123.7
+          },
+          {
+            "color": "G",
+            "perCt": 123.7
+          },
+          {
+            "color": "H",
+            "perCt": 120.88
+          }
+        ],
+        "viol": 0
+      }
+    },
+    {
+      "shape": "MARQUISE",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "-",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 196.8
+          },
+          {
+            "color": "E",
+            "perCt": 122.8
+          },
+          {
+            "color": "F",
+            "perCt": 118.32
+          },
+          {
+            "color": "G",
+            "perCt": 136.44
+          },
+          {
+            "color": "H",
+            "perCt": 126.23
+          }
+        ],
+        "viol": 1
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 193.19
+          },
+          {
+            "color": "E",
+            "perCt": 129.23
+          },
+          {
+            "color": "F",
+            "perCt": 127.23
+          },
+          {
+            "color": "G",
+            "perCt": 127.23
+          },
+          {
+            "color": "H",
+            "perCt": 126.34
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 197.4
+          },
+          {
+            "color": "E",
+            "perCt": 130.09
+          },
+          {
+            "color": "F",
+            "perCt": 124.8
+          },
+          {
+            "color": "G",
+            "perCt": 124.8
+          },
+          {
+            "color": "H",
+            "perCt": 121.7
+          }
+        ],
+        "viol": 0
+      }
+    },
+    {
+      "shape": "PEAR",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 130.13
+          },
+          {
+            "color": "E",
+            "perCt": 121.42
+          },
+          {
+            "color": "F",
+            "perCt": 119.4
+          },
+          {
+            "color": "G",
+            "perCt": 137.14
+          },
+          {
+            "color": "H",
+            "perCt": 127.64
+          }
+        ],
+        "viol": 1
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 130.13
+          },
+          {
+            "color": "E",
+            "perCt": 128.07
+          },
+          {
+            "color": "F",
+            "perCt": 127.63
+          },
+          {
+            "color": "G",
+            "perCt": 127.63
+          },
+          {
+            "color": "H",
+            "perCt": 127.63
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 134.55
+          },
+          {
+            "color": "E",
+            "perCt": 129.24
+          },
+          {
+            "color": "F",
+            "perCt": 123.7
+          },
+          {
+            "color": "G",
+            "perCt": 123.7
+          },
+          {
+            "color": "H",
+            "perCt": 120.61
+          }
+        ],
+        "viol": 0
+      }
+    },
+    {
+      "shape": "CUSHION",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 127.35
+          },
+          {
+            "color": "E",
+            "perCt": 125.63
+          },
+          {
+            "color": "F",
+            "perCt": 124.41
+          },
+          {
+            "color": "G",
+            "perCt": 136.46
+          },
+          {
+            "color": "H",
+            "perCt": 128.22
+          }
+        ],
+        "viol": 1
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 130.88
+          },
+          {
+            "color": "E",
+            "perCt": 130.88
+          },
+          {
+            "color": "F",
+            "perCt": 128.87
+          },
+          {
+            "color": "G",
+            "perCt": 128.87
+          },
+          {
+            "color": "H",
+            "perCt": 128.33
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 129.64
+          },
+          {
+            "color": "E",
+            "perCt": 129.64
+          },
+          {
+            "color": "F",
+            "perCt": 126.24
+          },
+          {
+            "color": "G",
+            "perCt": 123.61
+          },
+          {
+            "color": "H",
+            "perCt": 120.83
+          }
+        ],
+        "viol": 0
+      }
+    },
+    {
+      "shape": "EMERALD",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 122.44
+          },
+          {
+            "color": "E",
+            "perCt": 113.76
+          },
+          {
+            "color": "F",
+            "perCt": 112.77
+          },
+          {
+            "color": "G",
+            "perCt": 135.64
+          },
+          {
+            "color": "H",
+            "perCt": 127.61
+          }
+        ],
+        "viol": 1
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 127.65
+          },
+          {
+            "color": "E",
+            "perCt": 126.67
+          },
+          {
+            "color": "F",
+            "perCt": 126.67
+          },
+          {
+            "color": "G",
+            "perCt": 126.67
+          },
+          {
+            "color": "H",
+            "perCt": 126.67
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 126.68
+          },
+          {
+            "color": "E",
+            "perCt": 124.38
+          },
+          {
+            "color": "F",
+            "perCt": 119.32
+          },
+          {
+            "color": "G",
+            "perCt": 119.32
+          },
+          {
+            "color": "H",
+            "perCt": 119.32
+          }
+        ],
+        "viol": 0
+      }
+    },
+    {
+      "shape": "RADIANT",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 140.87
+          },
+          {
+            "color": "E",
+            "perCt": 131.11
+          },
+          {
+            "color": "F",
+            "perCt": 119.53
+          },
+          {
+            "color": "G",
+            "perCt": 135.76
+          },
+          {
+            "color": "H",
+            "perCt": 127.66
+          }
+        ],
+        "viol": 1
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 140.87
+          },
+          {
+            "color": "E",
+            "perCt": 134.2
+          },
+          {
+            "color": "F",
+            "perCt": 127.94
+          },
+          {
+            "color": "G",
+            "perCt": 127.94
+          },
+          {
+            "color": "H",
+            "perCt": 127.75
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 140.76
+          },
+          {
+            "color": "E",
+            "perCt": 133.38
+          },
+          {
+            "color": "F",
+            "perCt": 123.01
+          },
+          {
+            "color": "G",
+            "perCt": 123.01
+          },
+          {
+            "color": "H",
+            "perCt": 121.85
+          }
+        ],
+        "viol": 0
+      }
+    },
+    {
+      "shape": "PRINCESS",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "ID",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 127.88
+          },
+          {
+            "color": "E",
+            "perCt": 125.1
+          },
+          {
+            "color": "F",
+            "perCt": 146.5
+          },
+          {
+            "color": "G",
+            "perCt": 136.47
+          },
+          {
+            "color": "H",
+            "perCt": 127.56
+          }
+        ],
+        "viol": 1
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 144.1
+          },
+          {
+            "color": "E",
+            "perCt": 144.1
+          },
+          {
+            "color": "F",
+            "perCt": 144.1
+          },
+          {
+            "color": "G",
+            "perCt": 132.27
+          },
+          {
+            "color": "H",
+            "perCt": 127.63
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 140.41
+          },
+          {
+            "color": "E",
+            "perCt": 137.8
+          },
+          {
+            "color": "F",
+            "perCt": 130.65
+          },
+          {
+            "color": "G",
+            "perCt": 125.23
+          },
+          {
+            "color": "H",
+            "perCt": 122.82
+          }
+        ],
+        "viol": 0
+      }
+    },
+    {
+      "shape": "HEART",
+      "carat": 2,
+      "clarity": "VS1",
+      "cut": "-",
+      "s20Raw": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 126.68
+          },
+          {
+            "color": "E",
+            "perCt": 117.75
+          },
+          {
+            "color": "F",
+            "perCt": 195.02
+          },
+          {
+            "color": "G",
+            "perCt": 156
+          },
+          {
+            "color": "H",
+            "perCt": 127.58
+          }
+        ],
+        "viol": 1
+      },
+      "s22Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 145.23
+          },
+          {
+            "color": "E",
+            "perCt": 145.23
+          },
+          {
+            "color": "F",
+            "perCt": 145.23
+          },
+          {
+            "color": "G",
+            "perCt": 137.48
+          },
+          {
+            "color": "H",
+            "perCt": 126.92
+          }
+        ],
+        "viol": 0
+      },
+      "s21Pav": {
+        "ladder": [
+          {
+            "color": "D",
+            "perCt": 138.16
+          },
+          {
+            "color": "E",
+            "perCt": 134.23
+          },
+          {
+            "color": "F",
+            "perCt": 133.05
+          },
+          {
+            "color": "G",
+            "perCt": 129.98
+          },
+          {
+            "color": "H",
+            "perCt": 120.67
+          }
+        ],
+        "viol": 0
+      }
+    }
+  ]
+}

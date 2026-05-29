@@ -11,6 +11,7 @@ import {
   buildStarsgemRow,
   loadStarsgemMlModel,
   predictStarsgemMl,
+  predictStarsgemMlMonotone,
 } from './starsgem-ml-predict.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,16 +37,20 @@ function predictRow(model, opts) {
     symmetry: 'EX',
     ...opts,
   });
-  const p = predictStarsgemMl(row, model);
+  // For LightGBM models (S21+) use the Layer-4 PAV projection — the unconditional
+  // monotonicity guarantee that Phase 3 of the training plan adds.
+  const isLgbm = model.modelType === 'lgbm';
+  const p = isLgbm ? predictStarsgemMlMonotone(row, model) : predictStarsgemMl(row, model);
   return {
     ...opts,
     price: p.price,
     perCt: p.perCt,
-    lookupRate: p.lookupRate,
-    lookupLevel: p.lookupLevel,
-    lookupCount: p.lookupCount,
-    residualMult: p.residualMult,
+    lookupRate: p.lookupRate ?? null,
+    lookupLevel: p.lookupLevel ?? null,
+    lookupCount: p.lookupCount ?? null,
+    residualMult: p.residualMult ?? null,
     modelName: p.modelName,
+    projected: p.projected ?? false,
   };
 }
 
@@ -84,7 +89,9 @@ function mdTable(headers, rows) {
   return `| ${headers.join(' | ')} |\n| ${sep.join(' | ')} |\n${body}`;
 }
 
-const model = await loadStarsgemMlModel();
+// Accept optional CLI arg: node analyze-ml-grade-monotonicity.mjs [model-rel-path]
+const modelRelPath = process.argv[2] || undefined;
+const model = await loadStarsgemMlModel(modelRelPath);
 const generatedAt = new Date().toISOString().slice(0, 10);
 
 const predictions = [];
@@ -115,7 +122,7 @@ for (const shape of SHAPES) {
           residualMult: row.residualMult,
         });
       }
-      for (const v of ladderViolations(clarLadder, true)) {
+      for (const v of ladderViolations(clarLadder, false)) {
         clarityViolations.push({ shape, carat, color, cut, ...v });
       }
     }

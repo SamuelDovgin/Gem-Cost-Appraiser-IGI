@@ -1,0 +1,660 @@
+{
+  "generatedAt": "2026-05-29",
+  "models": {
+    "s20": {
+      "name": "S20 — Specialty cut + monotonic large-carat tail",
+      "trees": 160,
+      "type": "extratrees"
+    },
+    "s21": {
+      "name": "S21 — Monotone grade model (LightGBM)",
+      "trees": 400,
+      "type": "lgbm"
+    }
+  },
+  "monotonicity": {
+    "s20": {
+      "clarityViol": 1127,
+      "colorViol": 869,
+      "byShape": {
+        "ROUND": 126,
+        "OVAL": 120,
+        "MARQUISE": 120,
+        "PEAR": 128,
+        "CUSHION": 132,
+        "EMERALD": 133,
+        "RADIANT": 121,
+        "PRINCESS": 124,
+        "HEART": 123
+      },
+      "byCarat": {
+        "1": 100,
+        "2": 109,
+        "3": 87,
+        "5": 121,
+        "8": 104,
+        "10": 103,
+        "12": 105,
+        "0.5": 93,
+        "0.7": 106,
+        "1.5": 91,
+        "4.08": 108
+      },
+      "byBucket": {
+        "0.50-0.69": 93,
+        "0.70-0.89": 106,
+        "1.00-1.49": 100,
+        "1.50-1.99": 91,
+        "2.00-2.99": 109,
+        "3.00-3.99": 87,
+        "4.00-4.99": 108,
+        "5.00-9.99": 225,
+        "10.00+": 208
+      }
+    },
+    "s21Raw": {
+      "clarityViol": 934,
+      "colorViol": 826,
+      "byShape": {
+        "ROUND": 108,
+        "OVAL": 103,
+        "MARQUISE": 99,
+        "PEAR": 101,
+        "CUSHION": 99,
+        "EMERALD": 107,
+        "RADIANT": 110,
+        "PRINCESS": 108,
+        "HEART": 99
+      },
+      "byCarat": {
+        "1": 72,
+        "2": 86,
+        "3": 105,
+        "5": 86,
+        "8": 87,
+        "10": 86,
+        "12": 72,
+        "0.5": 96,
+        "0.7": 94,
+        "1.5": 74,
+        "4.08": 76
+      },
+      "byBucket": {
+        "0.50-0.69": 96,
+        "0.70-0.89": 94,
+        "1.00-1.49": 72,
+        "1.50-1.99": 74,
+        "2.00-2.99": 86,
+        "3.00-3.99": 105,
+        "4.00-4.99": 76,
+        "5.00-9.99": 173,
+        "10.00+": 158
+      }
+    },
+    "s21Layer4": {
+      "clarityViol": 0,
+      "colorViol": 0,
+      "byShape": {
+        "ROUND": 0,
+        "OVAL": 0,
+        "MARQUISE": 0,
+        "PEAR": 0,
+        "CUSHION": 0,
+        "EMERALD": 0,
+        "RADIANT": 0,
+        "PRINCESS": 0,
+        "HEART": 0
+      },
+      "byCarat": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "5": 0,
+        "8": 0,
+        "10": 0,
+        "12": 0,
+        "0.5": 0,
+        "0.7": 0,
+        "1.5": 0,
+        "4.08": 0
+      },
+      "byBucket": {
+        "0.50-0.69": 0,
+        "0.70-0.89": 0,
+        "1.00-1.49": 0,
+        "1.50-1.99": 0,
+        "2.00-2.99": 0,
+        "3.00-3.99": 0,
+        "4.00-4.99": 0,
+        "5.00-9.99": 0,
+        "10.00+": 0
+      }
+    },
+    "clarityStepsTotal": 2970,
+    "colorStepsTotal": 2772
+  },
+  "gridComparison": {
+    "cellCount": 3465,
+    "meanAbsRawVsS20Pct": 7.1,
+    "meanAbsProjVsS20Pct": 10.2,
+    "s21RawClarityViolationsOnGrid": 934,
+    "s21ProjClarityViolationsOnGrid": 0,
+    "largestProjShifts": [
+      {
+        "shape": "MARQUISE",
+        "carat": 12,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 183.63,
+        "s21RawPerCt": 248.7,
+        "s21ProjPerCt": 381.45,
+        "rawVsS20Pct": 35.4,
+        "projVsS20Pct": 107.7
+      },
+      {
+        "shape": "PEAR",
+        "carat": 0.5,
+        "color": "E",
+        "clarity": "IF",
+        "s20PerCt": 125.39,
+        "s21RawPerCt": 138.88,
+        "s21ProjPerCt": 248.47,
+        "rawVsS20Pct": 10.8,
+        "projVsS20Pct": 98.2
+      },
+      {
+        "shape": "MARQUISE",
+        "carat": 3,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 127.03,
+        "s21RawPerCt": 172.55,
+        "s21ProjPerCt": 250.98,
+        "rawVsS20Pct": 35.8,
+        "projVsS20Pct": 97.6
+      },
+      {
+        "shape": "HEART",
+        "carat": 3,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 127.19,
+        "s21RawPerCt": 169.16,
+        "s21ProjPerCt": 249.51,
+        "rawVsS20Pct": 33,
+        "projVsS20Pct": 96.2
+      },
+      {
+        "shape": "ROUND",
+        "carat": 3,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 126.82,
+        "s21RawPerCt": 168.45,
+        "s21ProjPerCt": 246.51,
+        "rawVsS20Pct": 32.8,
+        "projVsS20Pct": 94.4
+      },
+      {
+        "shape": "PEAR",
+        "carat": 3,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 128.57,
+        "s21RawPerCt": 176.01,
+        "s21ProjPerCt": 249.56,
+        "rawVsS20Pct": 36.9,
+        "projVsS20Pct": 94.1
+      },
+      {
+        "shape": "RADIANT",
+        "carat": 3,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 128.51,
+        "s21RawPerCt": 168.96,
+        "s21ProjPerCt": 247.2,
+        "rawVsS20Pct": 31.5,
+        "projVsS20Pct": 92.4
+      },
+      {
+        "shape": "CUSHION",
+        "carat": 3,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 128.97,
+        "s21RawPerCt": 164.9,
+        "s21ProjPerCt": 245.11,
+        "rawVsS20Pct": 27.9,
+        "projVsS20Pct": 90.1
+      },
+      {
+        "shape": "MARQUISE",
+        "carat": 10,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 180.08,
+        "s21RawPerCt": 229.42,
+        "s21ProjPerCt": 340.44,
+        "rawVsS20Pct": 27.4,
+        "projVsS20Pct": 89
+      },
+      {
+        "shape": "HEART",
+        "carat": 10,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 218.68,
+        "s21RawPerCt": 267.6,
+        "s21ProjPerCt": 408.21,
+        "rawVsS20Pct": 22.4,
+        "projVsS20Pct": 86.7
+      },
+      {
+        "shape": "HEART",
+        "carat": 12,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 247.28,
+        "s21RawPerCt": 297.97,
+        "s21ProjPerCt": 447.48,
+        "rawVsS20Pct": 20.5,
+        "projVsS20Pct": 81
+      },
+      {
+        "shape": "HEART",
+        "carat": 0.5,
+        "color": "E",
+        "clarity": "IF",
+        "s20PerCt": 123.92,
+        "s21RawPerCt": 140.38,
+        "s21ProjPerCt": 218.54,
+        "rawVsS20Pct": 13.3,
+        "projVsS20Pct": 76.4
+      },
+      {
+        "shape": "MARQUISE",
+        "carat": 4.08,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 139.86,
+        "s21RawPerCt": 203.39,
+        "s21ProjPerCt": 246.43,
+        "rawVsS20Pct": 45.4,
+        "projVsS20Pct": 76.2
+      },
+      {
+        "shape": "HEART",
+        "carat": 4.08,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 138.8,
+        "s21RawPerCt": 202.74,
+        "s21ProjPerCt": 243.58,
+        "rawVsS20Pct": 46.1,
+        "projVsS20Pct": 75.5
+      },
+      {
+        "shape": "CUSHION",
+        "carat": 12,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 186.32,
+        "s21RawPerCt": 231.22,
+        "s21ProjPerCt": 324.78,
+        "rawVsS20Pct": 24.1,
+        "projVsS20Pct": 74.3
+      },
+      {
+        "shape": "CUSHION",
+        "carat": 10,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 184.35,
+        "s21RawPerCt": 212.62,
+        "s21ProjPerCt": 317.34,
+        "rawVsS20Pct": 15.3,
+        "projVsS20Pct": 72.1
+      },
+      {
+        "shape": "MARQUISE",
+        "carat": 0.5,
+        "color": "E",
+        "clarity": "IF",
+        "s20PerCt": 123.8,
+        "s21RawPerCt": 141.47,
+        "s21ProjPerCt": 211.15,
+        "rawVsS20Pct": 14.3,
+        "projVsS20Pct": 70.6
+      },
+      {
+        "shape": "PEAR",
+        "carat": 5,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 156.16,
+        "s21RawPerCt": 198.39,
+        "s21ProjPerCt": 266.1,
+        "rawVsS20Pct": 27,
+        "projVsS20Pct": 70.4
+      },
+      {
+        "shape": "ROUND",
+        "carat": 4.08,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 141,
+        "s21RawPerCt": 198.33,
+        "s21ProjPerCt": 238.04,
+        "rawVsS20Pct": 40.7,
+        "projVsS20Pct": 68.8
+      },
+      {
+        "shape": "OVAL",
+        "carat": 5,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 158.81,
+        "s21RawPerCt": 191.74,
+        "s21ProjPerCt": 267.87,
+        "rawVsS20Pct": 20.7,
+        "projVsS20Pct": 68.7
+      },
+      {
+        "shape": "PEAR",
+        "carat": 12,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 222.6,
+        "s21RawPerCt": 270.43,
+        "s21ProjPerCt": 375.07,
+        "rawVsS20Pct": 21.5,
+        "projVsS20Pct": 68.5
+      },
+      {
+        "shape": "PEAR",
+        "carat": 4.08,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 142.42,
+        "s21RawPerCt": 210.53,
+        "s21ProjPerCt": 235.23,
+        "rawVsS20Pct": 47.8,
+        "projVsS20Pct": 65.2
+      },
+      {
+        "shape": "CUSHION",
+        "carat": 4.08,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 142.44,
+        "s21RawPerCt": 193.23,
+        "s21ProjPerCt": 232.07,
+        "rawVsS20Pct": 35.7,
+        "projVsS20Pct": 62.9
+      },
+      {
+        "shape": "PRINCESS",
+        "carat": 10,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 199.17,
+        "s21RawPerCt": 220,
+        "s21ProjPerCt": 323.31,
+        "rawVsS20Pct": 10.5,
+        "projVsS20Pct": 62.3
+      },
+      {
+        "shape": "OVAL",
+        "carat": 3,
+        "color": "D",
+        "clarity": "IF",
+        "s20PerCt": 128.81,
+        "s21RawPerCt": 169.35,
+        "s21ProjPerCt": 208.25,
+        "rawVsS20Pct": 31.5,
+        "projVsS20Pct": 61.7
+      }
+    ],
+    "s20InversionsFixedByS21Proj": 421,
+    "deltasSample": []
+  },
+  "pinnedLadders": [
+    {
+      "id": "marquise-408-e",
+      "label": "Marquise 4.08ct E",
+      "carat": 4.08,
+      "shape": "MARQUISE",
+      "color": "E",
+      "cut": "-",
+      "ladder": [
+        {
+          "clarity": "IF",
+          "s20": 140.26515557261965,
+          "s21Raw": 176.06069999935096,
+          "s21Proj": 200.96379971042933,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VVS1",
+          "s20": 140.18966144093162,
+          "s21Raw": 209.02266727360526,
+          "s21Proj": 200.96379971042933,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "VVS2",
+          "s20": 193.56084131411333,
+          "s21Raw": 198.1141547322055,
+          "s21Proj": 194.39917400172058,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VS1",
+          "s20": 154.25656827196772,
+          "s21Raw": 155.4772735480588,
+          "s21Proj": 155.4772735480588,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VS2",
+          "s20": 128.79009248567203,
+          "s21Raw": 127.8532289282371,
+          "s21Proj": 151.16023738489145,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "SI1",
+          "s20": 175.7884759927415,
+          "s21Raw": 174.46724584154578,
+          "s21Proj": 147.03698515320286,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "SI2",
+          "s20": 140.11841778043464,
+          "s21Raw": 137.4598427795292,
+          "s21Proj": 137.4598427795292,
+          "s20ViolatesNext": null
+        }
+      ]
+    },
+    {
+      "id": "heart-3-e",
+      "label": "Heart 3ct E",
+      "carat": 3,
+      "shape": "HEART",
+      "color": "E",
+      "cut": "-",
+      "ladder": [
+        {
+          "clarity": "IF",
+          "s20": 126.90590239162485,
+          "s21Raw": 153.8065915617633,
+          "s21Proj": 185.81747422337696,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "VVS1",
+          "s20": 312.41553789477376,
+          "s21Raw": 217.8283568849906,
+          "s21Proj": 185.81747422337696,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VVS2",
+          "s20": 110.326661331549,
+          "s21Raw": 116.12336041642543,
+          "s21Proj": 122.15821051109454,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VS1",
+          "s20": 108.99798920626706,
+          "s21Raw": 113.37934342293755,
+          "s21Proj": 122.15821051109454,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "VS2",
+          "s20": 223.7766108004063,
+          "s21Raw": 124.81095166893601,
+          "s21Proj": 122.15821051109454,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "SI1",
+          "s20": 126.88769837150205,
+          "s21Raw": 132.02729931052338,
+          "s21Proj": 122.15821051109454,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "SI2",
+          "s20": 126.69157592863753,
+          "s21Raw": 124.4500977366503,
+          "s21Proj": 122.15821051109454,
+          "s20ViolatesNext": null
+        }
+      ]
+    },
+    {
+      "id": "round-2-e",
+      "label": "Round 2ct E",
+      "carat": 2,
+      "shape": "ROUND",
+      "color": "E",
+      "cut": "ID",
+      "ladder": [
+        {
+          "clarity": "IF",
+          "s20": 125.40954559062395,
+          "s21Raw": 146.13258367650377,
+          "s21Proj": 171.12591703007996,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "VVS1",
+          "s20": 175.83187874673277,
+          "s21Raw": 196.11925038365615,
+          "s21Proj": 171.12591703007996,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VVS2",
+          "s20": 120.98310895499306,
+          "s21Raw": 124.24718655070913,
+          "s21Proj": 125.4475561313199,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VS1",
+          "s20": 117.4431126907671,
+          "s21Raw": 119.89342156296435,
+          "s21Proj": 123.76934124241764,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "VS2",
+          "s20": 118.47532909622713,
+          "s21Raw": 119.05561406027287,
+          "s21Proj": 122.0717354711058,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "SI1",
+          "s20": 130.37733250708925,
+          "s21Raw": 122.7581472463137,
+          "s21Proj": 122.0717354711058,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "SI2",
+          "s20": 125.96127584979475,
+          "s21Raw": 124.08592969326598,
+          "s21Proj": 122.0717354711058,
+          "s20ViolatesNext": null
+        }
+      ]
+    },
+    {
+      "id": "oval-3-d",
+      "label": "Oval 3ct D",
+      "carat": 3,
+      "shape": "OVAL",
+      "color": "D",
+      "cut": "ID",
+      "ladder": [
+        {
+          "clarity": "IF",
+          "s20": 128.80645091528163,
+          "s21Raw": 169.35453100263143,
+          "s21Proj": 208.25428805367852,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "VVS1",
+          "s20": 262.33135108555217,
+          "s21Raw": 247.15404510472558,
+          "s21Proj": 208.25428805367852,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VVS2",
+          "s20": 165.19974781386105,
+          "s21Raw": 165.78712615412894,
+          "s21Proj": 165.78712615412894,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VS1",
+          "s20": 153.74367812990664,
+          "s21Raw": 152.1630379050939,
+          "s21Proj": 152.1630379050939,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "VS2",
+          "s20": 135.76591414781268,
+          "s21Raw": 137.67236918699496,
+          "s21Proj": 141.90641903620457,
+          "s20ViolatesNext": true
+        },
+        {
+          "clarity": "SI1",
+          "s20": 139.80161086708793,
+          "s21Raw": 146.14046888541415,
+          "s21Proj": 141.90641903620457,
+          "s20ViolatesNext": false
+        },
+        {
+          "clarity": "SI2",
+          "s20": 128.11837153097716,
+          "s21Raw": 125.69101887558547,
+          "s21Proj": 125.69101887558547,
+          "s20ViolatesNext": null
+        }
+      ]
+    }
+  ]
+}

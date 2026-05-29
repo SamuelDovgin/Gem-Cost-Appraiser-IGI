@@ -1,0 +1,98 @@
+{
+  "generatedDate": "2026-05-29",
+  "modelFile": "starsgem-ml-extra-trees-model-s21-monotone.json",
+  "tolerancePct": 0.5,
+  "note": "Golden values from S22 fixed JS inference. Gate 6 checks stability across code changes. Gate 2 verifies cert-loaded != selected-spec (proves 4 dim features active).",
+  "fixtures": [
+    {
+      "id": "round-1ct-E-VS1-cert",
+      "input": {
+        "id": "round-1ct-E-VS1-cert",
+        "carat": 1,
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VS1",
+        "cut": "ID",
+        "tablePct": 56,
+        "depthPct": 61.4,
+        "length": 6.43,
+        "width": 6.45,
+        "height": 3.95
+      },
+      "jsPriceUsd": 124.72,
+      "jsPerCtUsd": 124.72
+    },
+    {
+      "id": "oval-2ct-D-VS1-cert",
+      "input": {
+        "id": "oval-2ct-D-VS1-cert",
+        "carat": 2,
+        "shape": "OVAL",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "ID",
+        "tablePct": 59,
+        "depthPct": 62.5,
+        "length": 9.2,
+        "width": 7.1,
+        "height": 4.5
+      },
+      "jsPriceUsd": 261.59,
+      "jsPerCtUsd": 130.79
+    },
+    {
+      "id": "oval-2ct-D-VS1-selected-spec",
+      "input": {
+        "id": "oval-2ct-D-VS1-selected-spec",
+        "carat": 2,
+        "shape": "OVAL",
+        "color": "D",
+        "clarity": "VS1",
+        "cut": "ID",
+        "tablePct": null,
+        "depthPct": null,
+        "length": null,
+        "width": null,
+        "height": null
+      },
+      "jsPriceUsd": 260.07,
+      "jsPerCtUsd": 130.03
+    },
+    {
+      "id": "round-3ct-E-VVS1-cert",
+      "input": {
+        "id": "round-3ct-E-VVS1-cert",
+        "carat": 3,
+        "shape": "ROUND",
+        "color": "E",
+        "clarity": "VVS1",
+        "cut": "ID",
+        "tablePct": 57,
+        "depthPct": 61,
+        "length": 9.35,
+        "width": 9.38,
+        "height": 5.71
+      },
+      "jsPriceUsd": 616.99,
+      "jsPerCtUsd": 205.66
+    },
+    {
+      "id": "cushion-1pt5ct-F-VS2-cert",
+      "input": {
+        "id": "cushion-1pt5ct-F-VS2-cert",
+        "carat": 1.5,
+        "shape": "CUSHION",
+        "color": "F",
+        "clarity": "VS2",
+        "cut": "ID",
+        "tablePct": 58,
+        "depthPct": 64.5,
+        "length": 6.6,
+        "width": 6.55,
+        "height": 4.25
+      },
+      "jsPriceUsd": 175.6,
+      "jsPerCtUsd": 117.07
+    }
+  ]
+}
