@@ -1,0 +1,48 @@
+{
+  "version": "conformal-v1",
+  "createdAt": "2026-05-28T21:52:53.859Z",
+  "runId": "r0.2-comp-conformal-v1-2026-05-28-full",
+  "status": "active",
+  "dataHash": "sha256:pending-fit-script-stable-inputs",
+  "engineGitSha": "local-r0-implementation",
+  "alpha": 0.2,
+  "targetCoverage": 0.8,
+  "method": "split_conformal_log_residual",
+  "holdoutProtocol": "supplier_grouped_split",
+  "truthDefinition": "Held-out supplier catalog/list total price in USD, not realized transaction price.",
+  "segments": {
+    "white_round_1_2": {
+      "qLog": 0.21,
+      "nCal": 612,
+      "reportingCoverage": 0.81,
+      "nReport": 748,
+      "reportingSupport": "standard",
+      "description": "White round 1.00–2.00ct comp-engine intervals."
+    },
+    "white": {
+      "qLog": 0.275,
+      "nCal": 2148,
+      "reportingCoverage": 0.8136,
+      "nReport": 2715,
+      "reportingSupport": "standard"
+    },
+    "fancy": {
+      "qLog": 0.452,
+      "nCal": 1268,
+      "reportingCoverage": 0.6,
+      "nReport": 5,
+      "reportingSupport": "low"
+    }
+  },
+  "fallback": {
+    "qLog": 0.3489,
+    "nCal": 3416,
+    "reportingCoverage": 0.8632,
+    "nReport": 2720,
+    "reportingSupport": "standard"
+  },
+  "copy": {
+    "shortLabel": "80% holdout band",
+    "disclosure": "This band is calibrated against held-out supplier catalog/list prices, not realized negotiated transaction prices."
+  }
+}

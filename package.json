@@ -6,9 +6,15 @@
   "scripts": {
     "test:engine": "node research/scripts/test-comp-engine-v3.mjs",
     "test:igi-browser-parser": "node research/scripts/test-igi-browser-parser.mjs",
+    "test:r0-contracts": "node research/scripts/validate-r0-contracts.mjs",
+    "test:r0-reconciler": "node research/scripts/reconcile-price.test.mjs",
+    "test:r0-waterfall": "node research/scripts/comp-waterfall.test.mjs",
+    "test:r0-calibration": "node research/scripts/fit-conformal-calibration.mjs",
+    "test:r0-reconciled-calibration": "node research/scripts/fit-reconciled-conformal-calibration.mjs",
+    "test:r0-backtest-reconciler": "node research/scripts/backtest-reconciler.mjs",
     "test:parity": "node research/scripts/parity-regression.mjs",
     "test:parity:full": "node research/scripts/parity-regression.mjs --tier=full",
-    "test": "npm run test:igi-browser-parser && npm run test:engine && npm run test:parity",
+    "test": "npm run test:r0-contracts && npm run test:r0-reconciler && npm run test:r0-waterfall && npm run test:r0-calibration && npm run test:r0-reconciled-calibration && npm run test:r0-backtest-reconciler && npm run test:igi-browser-parser && npm run test:engine && npm run test:parity",
     "serve": "python3 -m http.server 8765"
   },
   "engines": {

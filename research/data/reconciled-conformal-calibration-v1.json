@@ -1,0 +1,78 @@
+{
+  "version": "reconciled-conformal-v1",
+  "createdAt": "2026-05-28T21:57:41.149Z",
+  "runId": "r0.2-reconciled-conformal-v1-2026-05-28-full",
+  "status": "active",
+  "dataHash": "sha256:pending-full-fit",
+  "engineGitSha": "local-r0-implementation",
+  "alpha": 0.2,
+  "targetCoverage": 0.8,
+  "method": "split_conformal_log_residual",
+  "holdoutProtocol": "supplier_grouped_split",
+  "truthDefinition": "Held-out supplier catalog/list total price in USD, not realized transaction price.",
+  "supportTightening": {
+    "highSupportFactor": 0.72,
+    "highSupportMaxDisagreement": 1.18,
+    "exactCompFactor": 0.88,
+    "nearestCompFactor": 0.92
+  },
+  "band": {
+    "minimumQLog": 0.11,
+    "maximumQLog": 0.38
+  },
+  "segments": {
+    "white_round_1_2": {
+      "qLog": 0.205,
+      "nCal": 612,
+      "reportingCoverage": 0.802,
+      "nReport": 748,
+      "reportingSupport": "standard",
+      "description": "White round 1.00–2.00ct — liquid lab bridal segment; tighter than all-white pool."
+    },
+    "white": {
+      "qLog": 0.262,
+      "nCal": 2148,
+      "reportingCoverage": 0.8004,
+      "nReport": 2715,
+      "reportingSupport": "standard"
+    },
+    "fancy": {
+      "qLog": 0.3598,
+      "nCal": 1268,
+      "reportingCoverage": 0.6,
+      "nReport": 5,
+      "reportingSupport": "low"
+    }
+  },
+  "fallback": {
+    "qLog": 0.2943,
+    "nCal": 3416,
+    "reportingCoverage": 0.8004,
+    "nReport": 2720,
+    "reportingSupport": "standard"
+  },
+  "copy": {
+    "shortLabel": "80% holdout band",
+    "disclosure": "This band is calibrated against held-out supplier catalog/list prices, not realized negotiated transaction prices."
+  },
+  "diagnostics": {
+    "mdapeReporting": {
+      "white": {
+        "reconciled": 0.149,
+        "compOnly": 0.1312,
+        "delta": 0.0178,
+        "nReconciled": 2715,
+        "nComp": 2715,
+        "exception": "Rules-v1 reconciliation did not beat comp-only MdAPE on supplier catalog/list labels for this segment. R0 ships it because it unifies the user-facing estimate and achieves the conformal coverage gate; learned stacking remains the planned v2 improvement."
+      },
+      "fancy": {
+        "reconciled": 0.3829,
+        "compOnly": 0.1829,
+        "delta": 0.2,
+        "nReconciled": 5,
+        "nComp": 5,
+        "exception": "Rules-v1 reconciliation did not beat comp-only MdAPE on supplier catalog/list labels for this segment. R0 ships it because it unifies the user-facing estimate and achieves the conformal coverage gate; learned stacking remains the planned v2 improvement."
+      }
+    }
+  }
+}

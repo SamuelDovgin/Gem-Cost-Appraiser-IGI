@@ -1,0 +1,45 @@
+{
+  "version": "conformal-holdout-split-v1",
+  "createdAt": "2026-05-28",
+  "status": "frozen_manifest",
+  "targetCoverage": 0.8,
+  "protocol": "supplier_grouped_split",
+  "calibrationSuppliers": ["messi", "mishang", "goldleaf"],
+  "reportingSuppliers": ["starsgem"],
+  "fallbackSuppliers": ["_unknown"],
+  "dataFiles": [
+    "research/data/alibaba-comps-index.json",
+    "research/data/messi-comps.json",
+    "research/data/starsgem-comps.json",
+    "research/data/messi-color-comps.json"
+  ],
+  "segmentPolicy": {
+    "white": {
+      "fitOn": ["calibrationSuppliers"],
+      "reportOn": ["reportingSuppliers"],
+      "minimumCalibrationRows": 50
+    },
+    "fancy": {
+      "fitOn": ["calibrationSuppliers"],
+      "reportOn": ["reportingSuppliers"],
+      "minimumCalibrationRows": 50,
+      "fallback": "fallback"
+    },
+    "fallback": {
+      "fitOn": ["calibrationSuppliers", "fallbackSuppliers"],
+      "reportOn": ["reportingSuppliers"],
+      "minimumCalibrationRows": 50
+    }
+  },
+  "nonconformityScore": "abs(log(actual_total_usd) - log(predicted_total_usd))",
+  "quantile": {
+    "alpha": 0.2,
+    "finiteSampleCorrection": "ceil((n + 1) * (1 - alpha)) / n"
+  },
+  "truthDefinition": "Held-out supplier catalog/list total price in USD, not realized transaction price.",
+  "notes": [
+    "This manifest freezes the first supplier-grouped calibration/reporting protocol. It does not contain fitted qLog values.",
+    "Reporting coverage must be measured only on reportingSuppliers.",
+    "If a future run lacks enough rows for a segment, use the fallback segment and record that downgrade in the calibration artifact."
+  ]
+}

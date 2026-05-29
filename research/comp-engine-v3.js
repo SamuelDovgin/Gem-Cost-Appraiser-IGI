@@ -39,6 +39,8 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import conformalCalibration from './data/conformal-calibration-v1.json' with { type: 'json' };
+
 // ══════════════════════════════════════════════════════════════════════════════
 // §1  REFERENCE DATA
 // ══════════════════════════════════════════════════════════════════════════════
@@ -316,6 +318,48 @@ const AXIS_SIGMA = {
 const SIGMA_SYSTEMATIC_FLOOR = 0.10;
 // Empirical multiplier applied to the final sigma before computing low/high.
 const SIGMA_CALIBRATION_FACTOR = 2.0;
+
+function calibrationSegmentForQuery(query) {
+  if (query?.colorFamily === 'fancy') return 'fancy';
+  const shape = String(query?.shape || '').toLowerCase().replace(/\s+/g, '_');
+  const carat = Number(query?.carat);
+  if (
+    (shape === 'round' || shape === 'round_brilliant')
+    && Number.isFinite(carat)
+    && carat >= 1
+    && carat <= 2
+    && conformalCalibration?.segments?.white_round_1_2?.qLog
+  ) {
+    return 'white_round_1_2';
+  }
+  return 'white';
+}
+
+function getConformalCalibration(segment) {
+  const selected = conformalCalibration?.segments?.[segment] || conformalCalibration?.fallback;
+  if (!selected || !Number.isFinite(Number(selected.qLog)) || Number(selected.qLog) <= 0) return null;
+  return {
+    targetCoverage: conformalCalibration.targetCoverage || 0.8,
+    segment: conformalCalibration.segments?.[segment] ? segment : 'fallback',
+    qLog: Number(selected.qLog),
+    reportingCoverage: Number(selected.reportingCoverage),
+    nReport: Number(selected.nReport),
+    reportingSupport: Number(selected.nReport) >= 20 ? 'standard' : 'low',
+    method: conformalCalibration.method || 'split_conformal_log_residual',
+    runId: conformalCalibration.runId || conformalCalibration.version || 'conformal-v1',
+    calibratedAt: conformalCalibration.createdAt || null,
+    truthDefinition: conformalCalibration.truthDefinition,
+  };
+}
+
+function conformalInterval(logEstimate, calibration) {
+  if (!calibration) return null;
+  return {
+    low: Math.round(Math.exp(logEstimate - calibration.qLog)),
+    high: Math.round(Math.exp(logEstimate + calibration.qLog)),
+    sigmaLog: calibration.qLog / 1.28,
+  };
+}
 
 // ── Supplier blend weight cap ─────────────────────────────────────────────────
 // Maximum fraction of total blend weight any single supplier can contribute.
@@ -1197,10 +1241,10 @@ function medianOf(arr) {
  *  3. Weight accepted comps by inverse variance: w_i = 1 / (σ_i² + ε).
  *  4. Weighted mean → point estimate.
  *  5. Blended sigma = 1 / sqrt(Σ 1/σ_i²), floored at 0.05.
- *  6. 80% interval = estimate × exp(±1.28 × sigmaBlend).
+ *  6. Interval = conformal qLog when calibration metadata is available.
  *
  * @param {Array} adjustedList  — [{ logEstimate, sigmaLog, estimatedPrice, parts, row, score }]
- * @param {{ multiSupplierExact?: boolean }} options
+ * @param {{ multiSupplierExact?: boolean, calibration?: object }} options
  * @returns {{ logEstimate, sigmaLog, estimate, low, high, accepted, rejected }}
  */
 function blendComps(adjustedList, options = {}) {
@@ -1305,12 +1349,11 @@ function blendComps(adjustedList, options = {}) {
   // Both are labeled uncalibrated; tune after a proper coverage measurement.
   const sigmaBlend = 1 / Math.sqrt(weights.reduce((sum, w) => sum + w, 0));
   const sigmaWithFloor = Math.sqrt(sigmaBlend ** 2 + SIGMA_SYSTEMATIC_FLOOR ** 2);
-  const sigmaLog = sigmaWithFloor * SIGMA_CALIBRATION_FACTOR;
-
   const estimate = Math.round(Math.exp(logEstimate));
-  // 80% interval label (z = 1.28), but sigmaLog is inflated, so effective coverage > 80%.
-  const low  = Math.round(Math.exp(logEstimate - 1.28 * sigmaLog));
-  const high = Math.round(Math.exp(logEstimate + 1.28 * sigmaLog));
+  const calibrated = conformalInterval(logEstimate, options.calibration);
+  const sigmaLog = calibrated?.sigmaLog ?? sigmaWithFloor * SIGMA_CALIBRATION_FACTOR;
+  const low  = calibrated?.low ?? Math.round(Math.exp(logEstimate - 1.28 * sigmaLog));
+  const high = calibrated?.high ?? Math.round(Math.exp(logEstimate + 1.28 * sigmaLog));
 
   return { logEstimate, sigmaLog, estimate, low, high, accepted, rejected, sourceConcentration };
 }
@@ -1384,6 +1427,7 @@ function resolveAlibabaComp(query) {
   // Normalize query shape for matching
   const normShape = normalizeShapeForComp(query.shape);
   const nq = { ...query, shape: normShape };
+  const calibration = getConformalCalibration(calibrationSegmentForQuery(nq));
 
   const warnings = [];
 
@@ -1497,7 +1541,7 @@ function resolveAlibabaComp(query) {
   });
 
   // ── 6. Blend (cheapest-supplier comps only on exact path) ───────────────────
-  const blend = blendComps(adjustedList);
+  const blend = blendComps(adjustedList, { calibration });
 
   if (!blend) {
     return {
@@ -1671,8 +1715,8 @@ function resolveAlibabaComp(query) {
   return {
     matchType,
     estimate: pointEstimate,
-    low: matchType === 'exact' ? Math.round(pointEstimate * 0.87) : blend.low,
-    high: matchType === 'exact' ? Math.round(pointEstimate * 1.13) : blend.high,
+    low: matchType === 'exact' && calibration ? Math.round(pointEstimate * Math.exp(-calibration.qLog)) : matchType === 'exact' ? Math.round(pointEstimate * 0.87) : blend.low,
+    high: matchType === 'exact' && calibration ? Math.round(pointEstimate * Math.exp(calibration.qLog)) : matchType === 'exact' ? Math.round(pointEstimate * 1.13) : blend.high,
     perCt: Math.round(pointEstimate / query.carat),
     confidence,
     primary,
@@ -1738,7 +1782,8 @@ function resolveAlibabaComp(query) {
           }
       : null,
     // ── P0: calibration label ─────────────────────────────────────────────
-    calibrationNote: `intervals_sigma_inflated_${SIGMA_CALIBRATION_FACTOR}x_uncalibrated`,
+    calibration,
+    calibrationNote: calibration ? `interval_conformal_v1_${calibration.segment}` : `intervals_sigma_inflated_${SIGMA_CALIBRATION_FACTOR}x_uncalibrated`,
   };
 }
 

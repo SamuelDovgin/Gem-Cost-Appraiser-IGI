@@ -1,6 +1,6 @@
 # Current Gem Pricing Model
 
-Last reviewed: 2026-05-22
+Last reviewed: 2026-05-28
 
 ## Direct Answer
 
@@ -12,7 +12,9 @@ The current solution is a hybrid:
 2. White diamond carat pricing uses a fixed anchor table and linear interpolation between anchors.
 3. Fancy color diamond pricing uses hand-authored 1ct baselines plus power-law carat exponents by color and intensity.
 4. Alibaba/Messi/StarGem comps are used through a v3 nearest-comp engine that scores comparable rows, adjusts each comp in log price space, and blends several adjusted comps.
-5. Stones just below major carat marks get a smooth "magic weight" approach discount, not a hard step.
+5. R0 adds a reconciliation layer that blends baseline, comp, and ML source estimates into one wholesale headline.
+6. R0 adds conformal calibration artifacts for both the comp engine and the reconciled headline.
+7. Stones just below major carat marks get a smooth "magic weight" approach discount, not a hard step.
 
 So the app has continuous-ish interpolation in places, but it is not yet doing the function-fitting model you described: no per-style LOESS, spline, segmented regression, or automatically learned local curve per gem style.
 
@@ -27,6 +29,9 @@ state inputs
   -> compute(ct)
   -> base model wholesale / fair / retail
   -> resolveAlibabaComp(ct)
+  -> buildReconcileInput(...)
+  -> reconcileWholesale(...)
+  -> applyReconciledCalibration(...)
   -> UI display, charts, comp explanations
 ```
 
@@ -36,7 +41,127 @@ The standalone research version of the comp engine is in:
 research/comp-engine-v3.js
 ```
 
-The current production implementation mirrors much of that v3 logic directly inside `index.html`.
+The R0 reconciler and comp-waterfall helpers are in:
+
+```text
+research/reconcile-price.js
+research/comp-waterfall.js
+```
+
+The current production page imports these shared modules directly from `index.html`.
+
+## R0 Reconciled Wholesale
+
+The top-line wholesale panel now displays a single reconciled estimate instead of choosing one of the baseline, comp, or ML paths directly.
+
+The reconciler input contract is:
+
+```text
+query
+baseline source estimate
+comp source estimate
+ML source estimate
+flags
+```
+
+The v1 reconciler is a rules model:
+
+```text
+log-space inverse-variance blend
+source caps
+comp-support penalties
+ML-anchor penalties
+disagreement widening
+confidence tier
+```
+
+The output contract is `ReconcileResultV1`:
+
+```text
+estimate
+perCt
+low / high
+confidence
+weights: baseline / comp / ml
+inputs: baseline / comp / ml
+disagreementRatio
+bandKind
+calibration metadata when present
+warnings
+```
+
+The source files for the contract are:
+
+```text
+research/schemas/reconcile-input.schema.json
+research/schemas/reconcile-result.schema.json
+research/data/reconciler-config-v1.json
+research/fixtures/reconciler-pinned.json
+```
+
+Seller/channel modifiers such as China factory, HPHT, CVD, post-treatment, and as-grown are applied after the factory-list-anchored reconciliation step. This keeps the R0 estimate centered on the same wholesale object that comp calibration measures.
+
+## R0 Conformal Bands
+
+R0 separates three concepts:
+
+```text
+point estimate
+heuristic likely range
+conformal holdout band
+```
+
+Heuristic ranges must not be described as "80% confidence" or guaranteed. A band is labeled as holdout-calibrated only when a conformal artifact is present.
+
+The comp-engine artifact is:
+
+```text
+research/data/conformal-calibration-v1.json
+```
+
+The reconciled headline artifact is:
+
+```text
+research/data/reconciled-conformal-calibration-v1.json
+```
+
+Both are generated from the frozen split manifest:
+
+```text
+research/data/conformal-holdout-split-v1.json
+```
+
+The fit scripts are:
+
+```text
+research/scripts/fit-conformal-calibration.mjs
+research/scripts/fit-reconciled-conformal-calibration.mjs
+```
+
+The current artifact truth definition is held-out supplier catalog/list total price in USD. It is not a realized negotiated transaction price.
+
+Current reporting support:
+
+```text
+white: standard supplier-held-out reporting support
+fancy: low reporting support because the held-out StarGem fancy-color set has only 5 rows
+```
+
+The UI therefore uses:
+
+```text
+80% holdout band
+```
+
+when reporting support is standard, and:
+
+```text
+sparse holdout band
+```
+
+when the segment has low reporting support. This is deliberate: the fancy band is still a conformal-style width from the available holdout protocol, but the app does not imply that the fancy reporting fold has the same strength as white.
+
+`research/scripts/backtest-reconciler.mjs --full` also emits a segment MdAPE table. The current rules-v1 reconciler is accepted with an explicit exception: it prioritizes one calibrated user-facing estimate for R0, while learned stacking remains the planned v2 path for beating comp-only MdAPE on supplier catalog/list labels.
 
 ## Base Wholesale Model
 
@@ -356,4 +481,3 @@ hybrid: smooth market curve plus explicit threshold premium
 ```
 
 For diamond pricing psychology, the hybrid is probably best: a mostly continuous fitted curve, plus explicit threshold premiums/discounts around 1ct, 1.5ct, 2ct, 3ct, 4ct, and 5ct.
-

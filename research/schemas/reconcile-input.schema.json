@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gem-appraise.local/schemas/reconcile-input.schema.json",
+  "title": "ReconcileInputV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "query", "baseline", "comp", "ml", "flags"],
+  "properties": {
+    "schemaVersion": { "const": "reconcile-input-v1" },
+    "query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["carat", "segment", "shape", "clarity", "inferenceMode"],
+      "properties": {
+        "carat": { "type": "number", "exclusiveMinimum": 0 },
+        "segment": { "enum": ["white", "fancy"] },
+        "shape": { "type": "string", "minLength": 1 },
+        "whiteGrade": { "type": ["string", "null"] },
+        "colorFamily": { "type": ["string", "null"] },
+        "colorFamilyKey": { "type": ["string", "null"] },
+        "clarity": { "type": "string", "minLength": 1 },
+        "inferenceMode": { "enum": ["standard", "china_factory", "auction", "unknown"] }
+      }
+    },
+    "baseline": { "$ref": "#/$defs/sourceEstimate" },
+    "comp": {
+      "allOf": [
+        { "$ref": "#/$defs/sourceEstimate" },
+        {
+          "type": "object",
+          "properties": {
+            "supportCount": { "type": "integer", "minimum": 0 },
+            "matchType": {
+              "enum": ["exact", "nearest", "best_available", "model_fallback", "none", null]
+            },
+            "confidence": { "enum": ["high", "medium", "low", null] }
+          }
+        }
+      ]
+    },
+    "ml": {
+      "allOf": [
+        { "$ref": "#/$defs/sourceEstimate" },
+        {
+          "type": "object",
+          "properties": {
+            "anchorHit": { "type": ["boolean", "null"] },
+            "modelName": { "type": ["string", "null"] }
+          }
+        }
+      ]
+    },
+    "flags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["disagreementRatio", "chinaFactory", "specialtyCut"],
+      "properties": {
+        "disagreementRatio": { "type": ["number", "null"], "minimum": 1 },
+        "chinaFactory": { "type": "boolean" },
+        "specialtyCut": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "sourceEstimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "perCt", "sigmaLog", "available", "warnings"],
+      "properties": {
+        "total": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "perCt": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "sigmaLog": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "available": { "type": "boolean" },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "supportCount": { "type": "integer", "minimum": 0 },
+        "matchType": {
+          "enum": ["exact", "nearest", "best_available", "model_fallback", "none", null]
+        },
+        "confidence": { "enum": ["high", "medium", "low", null] },
+        "anchorHit": { "type": ["boolean", "null"] },
+        "modelName": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "version": "reconciler-config-v1",
+  "reconcilerVersion": "rules-v1",
+  "sourceSigmaLog": {
+    "baseline": { "white": 0.24, "fancy": 0.34 },
+    "comp": { "white": 0.18, "fancy": 0.28 },
+    "ml": { "white": 0.30, "fancy": 0.36 }
+  },
+  "sourceWeightCaps": {
+    "baseline": { "white": 0.45, "fancy": 0.40 },
+    "comp": { "white": 0.65, "fancy": 0.58 },
+    "ml": { "white": 0.45, "fancy": 0.50 }
+  },
+  "compSupportAdjustments": {
+    "exact": { "sigmaMultiplier": 0.9, "capBonus": 0.05 },
+    "nearest": { "sigmaMultiplier": 1.0, "capBonus": 0 },
+    "best_available": { "sigmaMultiplier": 1.35, "capBonus": -0.12 },
+    "model_fallback": { "sigmaMultiplier": 1.6, "capBonus": -0.2 },
+    "none": { "sigmaMultiplier": 2.0, "capBonus": -0.3 }
+  },
+  "mlAnchorAdjustments": {
+    "hitSigmaMultiplier": 0.92,
+    "missSigmaMultiplier": 1.35,
+    "missCapPenalty": 0.18
+  },
+  "mlLiquidRoundCap": {
+    "white": 0.18
+  },
+  "disagreement": {
+    "mediumRatio": 1.18,
+    "highRatio": 1.32,
+    "criticalRatio": 1.55,
+    "bandWidenMedium": 1.12,
+    "bandWidenHigh": 1.35,
+    "bandWidenCritical": 1.65
+  },
+  "confidence": {
+    "highMaxSigmaLog": 0.22,
+    "mediumMaxSigmaLog": 0.34,
+    "highMaxDisagreement": 1.15,
+    "mediumMaxDisagreement": 1.32
+  },
+  "band": {
+    "z": 1.28,
+    "minimumHalfWidthLog": 0.12,
+    "maximumHalfWidthLog": 0.82
+  }
+}

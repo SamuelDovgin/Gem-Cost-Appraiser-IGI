@@ -68,6 +68,9 @@ function loadJson(path) {
 }
 
 const baseIndex = loadJson(join(DATA, 'alibaba-comps-index.json'));
+const conformalArtifact = (() => {
+  try { return loadJson(join(DATA, 'conformal-calibration-v1.json')); } catch { return null; }
+})();
 const supplementalIndexes = SUPPLEMENTAL_FILES.map(f => {
   try { return loadJson(join(DATA, f)); } catch { return null; }
 }).filter(Boolean);
@@ -161,6 +164,15 @@ if (!targetSuppliers.length) {
 console.log('\n════════════════════════════════════════════════════════════════════════');
 console.log('COMP ENGINE v3 — LEAVE-ONE-SUPPLIER-OUT BACKTEST');
 console.log('════════════════════════════════════════════════════════════════════════');
+if (conformalArtifact?.segments) {
+  console.log(`Conformal artifact: ${conformalArtifact.runId || conformalArtifact.version}`);
+  for (const segment of ['white', 'fancy']) {
+    const row = conformalArtifact.segments[segment];
+    if (!row) continue;
+    const cov = Number.isFinite(row.reportingCoverage) ? (row.reportingCoverage * 100).toFixed(1) + '%' : 'n/a';
+    console.log(`  ${segment}: qLog=${row.qLog} reporting P80=${cov} n=${row.nReport} support=${row.reportingSupport || 'standard'}`);
+  }
+}
 if (FILTER_SEGMENT)  console.log(`Segment filter:  ${FILTER_SEGMENT}`);
 if (FILTER_SUPPLIER) console.log(`Supplier filter: ${FILTER_SUPPLIER}`);
 console.log(`Suppliers to hold out: ${targetSuppliers.length} of ${allSuppliers.length}`);

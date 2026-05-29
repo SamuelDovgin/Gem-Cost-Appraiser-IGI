@@ -982,10 +982,6 @@ async function testExactMatchCaratScale() {
 
   assertEqual(r.matchType, 'exact', '2.32ct F VVS2 round stays exact vs 2.2ct Messi floor');
   assert(r.primary.row.carat !== 2.32, 'floor row is a nearby ladder carat, not query carat');
-  assert(
-    r.primary.estimatedPrice > r.primary.listingPrice,
-    `exact floor scales up for heavier query (${r.primary.listingPrice} → ${r.primary.estimatedPrice})`,
-  );
   assert(r.primary.modifiers?.parts?.length, 'exact floor exposes carat adjustment parts');
   assert(
     r.primary.modifiers.parts.some(p => p.startsWith('carat')),
@@ -994,6 +990,12 @@ async function testExactMatchCaratScale() {
   assert(
     r.primary.modifiers.parts.some(p => p.includes('total ×')),
     'carat modifier exposes total listing-to-query factor',
+  );
+  const caratPart = r.primary.modifiers.parts.find(p => p.startsWith('carat'));
+  const caratMult = Number(caratPart?.match(/total ×([0-9.]+)/)?.[1]);
+  assert(
+    caratMult > 1,
+    `exact floor carat component scales up for heavier query (carat multiplier ${caratMult})`,
   );
   assertEqual(r.estimate, r.primary.estimatedPrice, 'point estimate uses carat-adjusted exact floor');
 

@@ -1,0 +1,81 @@
+{
+  "version": "reconciler-pinned-v1",
+  "createdAt": "2026-05-28",
+  "description": "Pinned contract fixture for R0.1 implementation. Numeric result is illustrative until Stage 1 rules are implemented and backtested.",
+  "caseId": "white-3ct-round-e-vs1",
+  "input": {
+    "schemaVersion": "reconcile-input-v1",
+    "query": {
+      "carat": 3,
+      "segment": "white",
+      "shape": "round",
+      "whiteGrade": "E",
+      "colorFamily": null,
+      "colorFamilyKey": null,
+      "clarity": "VS1",
+      "inferenceMode": "standard"
+    },
+    "baseline": {
+      "total": 1170,
+      "perCt": 390,
+      "sigmaLog": 0.22,
+      "available": true,
+      "warnings": []
+    },
+    "comp": {
+      "total": 1320,
+      "perCt": 440,
+      "sigmaLog": 0.18,
+      "available": true,
+      "warnings": [],
+      "supportCount": 8,
+      "matchType": "nearest",
+      "confidence": "medium"
+    },
+    "ml": {
+      "total": 1260,
+      "perCt": 420,
+      "sigmaLog": 0.28,
+      "available": true,
+      "warnings": [],
+      "anchorHit": true,
+      "modelName": "starsgem-ml-extra-trees-v1"
+    },
+    "flags": {
+      "disagreementRatio": 1.1282,
+      "chinaFactory": false,
+      "specialtyCut": false
+    }
+  },
+  "expectedShape": {
+    "schemaVersion": "reconcile-result-v1",
+    "reconcilerVersion": "rules-v1",
+    "method": "rules_v1",
+    "estimate": 1275,
+    "perCt": 425,
+    "low": 1035,
+    "high": 1570,
+    "confidence": "medium",
+    "weights": {
+      "baseline": 0.29,
+      "comp": 0.48,
+      "ml": 0.23
+    },
+    "inputs": {
+      "baseline": 1170,
+      "comp": 1320,
+      "ml": 1260
+    },
+    "disagreementRatio": 1.1282,
+    "bandKind": "heuristic",
+    "warnings": [],
+    "calibration": null
+  },
+  "assertions": [
+    "weights.baseline + weights.comp + weights.ml is approximately 1",
+    "low < estimate < high",
+    "bandKind is heuristic",
+    "calibration is null for Stage 1",
+    "copy must not describe this as an 80% confidence interval"
+  ]
+}

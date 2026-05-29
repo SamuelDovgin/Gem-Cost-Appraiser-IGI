@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gem-appraise.local/schemas/reconcile-result.schema.json",
+  "title": "ReconcileResultV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reconcilerVersion",
+    "method",
+    "estimate",
+    "perCt",
+    "low",
+    "high",
+    "confidence",
+    "weights",
+    "inputs",
+    "disagreementRatio",
+    "bandKind",
+    "warnings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "reconcile-result-v1" },
+    "reconcilerVersion": { "type": "string", "minLength": 1 },
+    "method": { "enum": ["rules_v1", "stacking_v2"] },
+    "estimate": { "type": "number", "exclusiveMinimum": 0 },
+    "perCt": { "type": "number", "exclusiveMinimum": 0 },
+    "low": { "type": "number", "exclusiveMinimum": 0 },
+    "high": { "type": "number", "exclusiveMinimum": 0 },
+    "confidence": { "enum": ["high", "medium", "low"] },
+    "weights": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "comp", "ml"],
+      "properties": {
+        "baseline": { "type": "number", "minimum": 0, "maximum": 1 },
+        "comp": { "type": "number", "minimum": 0, "maximum": 1 },
+        "ml": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "comp", "ml"],
+      "properties": {
+        "baseline": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "comp": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+        "ml": { "type": ["number", "null"], "exclusiveMinimum": 0 }
+      }
+    },
+    "disagreementRatio": { "type": ["number", "null"], "minimum": 1 },
+    "bandKind": { "enum": ["heuristic", "conformal"] },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "calibration": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "targetCoverage",
+        "segment",
+        "qLog",
+        "reportingCoverage",
+        "nReport",
+        "method",
+        "runId",
+        "calibratedAt"
+      ],
+      "properties": {
+        "targetCoverage": { "const": 0.8 },
+        "segment": { "enum": ["white", "fancy", "fallback"] },
+        "qLog": { "type": "number", "exclusiveMinimum": 0 },
+        "reportingCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "nReport": { "type": "integer", "minimum": 1 },
+        "reportingSupport": { "enum": ["standard", "low"] },
+        "method": { "type": "string", "minLength": 1 },
+        "runId": { "type": "string", "minLength": 1 },
+        "calibratedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

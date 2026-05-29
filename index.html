@@ -296,6 +296,53 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .comp-alt-arr{color:var(--muted);font-size:10px}
 .comp-alt-adj{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent)}
 
+/* ── R0.4 comp display: prioritized cards + adjustment ladder ─────────────── */
+.comp-source-hint{font-size:11px;color:var(--muted);margin:2px 0 8px;line-height:1.45}
+.comp-source-hint strong{color:var(--accent);font-weight:500}
+.comp-card{border:.5px solid var(--border);border-radius:7px;padding:9px 11px;margin:8px 0;background:rgba(255,255,255,.012)}
+.comp-card.hero{border-color:rgba(212,175,114,.32);background:rgba(212,175,114,.04)}
+.comp-card-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;line-height:1.5}
+.comp-card-spec{font-size:11.5px;color:var(--muted);margin:3px 0 1px;line-height:1.45}
+.comp-pref{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.04em;padding:2px 6px;border-radius:3px;color:var(--green);background:var(--green-dim);border:.5px solid rgba(76,175,122,.25);white-space:nowrap}
+.comp-card .comp-links{margin-top:3px}
+.comp-ladder{margin-top:7px;border-top:.5px solid var(--border);padding-top:6px;display:flex;flex-direction:column;gap:1px}
+.adj-row{display:grid;grid-template-columns:1fr auto 64px;align-items:baseline;gap:10px;font-size:11px;padding:2px 0;line-height:1.4}
+.adj-row .adj-label{color:var(--text)}
+.adj-row .adj-detail{color:var(--muted);margin-left:6px;font-size:10.5px}
+.adj-row .adj-mult{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--muted2);text-align:right;white-space:nowrap}
+.adj-row .adj-mult em{font-style:normal;margin-left:5px}
+.adj-row .adj-run{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);text-align:right}
+.adj-row.up .adj-mult em{color:var(--green)}
+.adj-row.down .adj-mult em{color:#d98a8a}
+.adj-row.adj-start{color:var(--muted)}.adj-row.adj-start .adj-label{color:var(--muted)}
+.adj-row.adj-final{border-top:.5px solid var(--border);margin-top:3px;padding-top:5px}
+.adj-row.adj-final .adj-label{color:var(--text);font-weight:500}
+.adj-row.adj-final .adj-run{color:var(--accent);font-family:'DM Serif Display',serif;font-size:14px}
+.comp-ladder-mini{margin-top:5px}
+.comp-ladder-mini>summary{cursor:pointer;color:var(--muted2);font-size:10.5px;list-style:none}
+.comp-ladder-mini>summary::-webkit-details-marker{display:none}
+.comp-ladder-mini>summary:before{content:'▸ ';color:var(--muted)}
+.comp-ladder-mini[open]>summary:before{content:'▾ '}
+.comp-group{margin-top:8px}
+.comp-group>summary{cursor:pointer;color:var(--muted2);font-size:11px;letter-spacing:.02em;list-style:none;padding:4px 0}
+.comp-group>summary::-webkit-details-marker{display:none}
+.comp-group>summary:before{content:'▸ ';color:var(--muted)}
+.comp-group[open]>summary:before{content:'▾ '}
+.comp-group-note{font-size:10.5px;color:var(--muted);margin:2px 0 4px;line-height:1.4}
+
+.r0-source-summary{margin:0 22px 12px;padding-top:4px}
+.r0-source-details{font-size:12px;color:var(--muted2)}
+.r0-source-details summary{cursor:pointer;color:var(--text);font-weight:600;list-style:none}
+.r0-source-details summary::-webkit-details-marker{display:none}
+.r0-blend-explainer{font-size:11.5px;line-height:1.5;color:var(--muted);margin:0 0 10px;padding:10px 12px;border-radius:8px;background:rgba(91,155,213,0.06);border:.5px solid var(--border)}
+.r0-blend-explainer strong{color:var(--text)}
+.r0-source-rows{display:grid;gap:4px;margin-top:8px}
+.r0-source-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:baseline;font-size:11.5px}
+.r0-source-row span{color:var(--muted2)}
+.r0-source-row strong{font-family:'DM Mono',monospace;color:var(--text)}
+.r0-source-row em{font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);font-style:normal}
+.r0-source-warnings{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.45}
+
 /* ── SOURCE PANEL ── */
 .sources-panel{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:680px){.sources-panel{grid-template-columns:1fr}}
@@ -676,6 +723,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
       <div class="ppc" id="price-retail-sub">ask ceiling</div>
     </div>
   </div>
+  <div class="r0-source-summary" id="r0-source-summary"></div>
 
   <div class="pricing-intel">
     <div class="pricing-intel-panel">
@@ -873,7 +921,12 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   // Shared comp engine — eliminates research/production implementation drift.
   // Requires an HTTP server (not file:// access). Run: python3 -m http.server 8765
   import { loadIndex, resolveAlibabaComp } from './research/comp-engine-v3.js';
+  import { applyReconciledCalibration, buildReconcileInput, reconcileWholesale } from './research/reconcile-price.js';
+  import { buildCompWaterfall } from './research/comp-waterfall.js';
+  import reconciledConformalCalibration from './research/data/reconciled-conformal-calibration-v1.json' with { type: 'json' };
   window._v3engine = { loadIndex, resolveAlibabaComp };
+  window._r0reconciler = { applyReconciledCalibration, buildReconcileInput, reconcileWholesale, reconciledConformalCalibration };
+  window._r0waterfall = { buildCompWaterfall };
   window.dispatchEvent(new Event('v3engine-ready'));
 </script>
 <script>
@@ -2466,6 +2519,189 @@ function syncSelectControls() {
   if (shapeSelect) shapeSelect.value = state.shape;
 }
 
+function currentPostReconcileWholesaleMultiplier() {
+  let mult = 1.0;
+  if (state.china) mult *= CHINA_WS;
+  if (state.tri3ex && state.hasCutGrade) mult *= 1.06;
+  if (state.hpht) mult *= 1.08;
+  if (state.asgrown) mult *= 1.05;
+  if (isWhite()) {
+    if (state.cvd && !state.asgrown) mult *= CVD_WS;
+    if (state.postTreatment) mult *= POST_TREAT_WS;
+    if (ELONGATED_SI_SHAPES.has(state.shape) && (state.clarity === 'SI1' || state.clarity === 'SI2')) {
+      mult *= ELONGATED_SI_WS;
+    }
+  }
+  return mult;
+}
+
+function scaleReconcileResult(result, multiplier) {
+  if (!result || !Number.isFinite(multiplier) || Math.abs(multiplier - 1) < 0.0001) return result;
+  const scaledInputs = Object.fromEntries(
+    Object.entries(result.inputs || {}).map(([key, value]) => [key, Number.isFinite(value) ? Math.round(value * multiplier) : value])
+  );
+  return {
+    ...result,
+    estimate: Math.round(result.estimate * multiplier),
+    perCt: Math.round(result.perCt * multiplier),
+    low: Math.round(result.low * multiplier),
+    high: Math.round(result.high * multiplier),
+    inputs: scaledInputs,
+    warnings: [...(result.warnings || []), `Applied post-reconciliation wholesale modifier (${multiplier.toFixed(2)}x).`],
+  };
+}
+
+function getMlPredictionForReconciler(ct) {
+  if (!isWhite()) {
+    const row = colorDiamondModelRowFromState(ct);
+    const pred = predictColorDiamondMl(row);
+    return pred ? {
+      total: pred.price,
+      perCt: pred.price / ct,
+      sigmaLog: 0.36,
+      anchorHit: false,
+      modelName: pred.modelName || 'color-diamond-ml',
+      warnings: ['Fancy color ML is source-adjusted from mixed supplier rows.'],
+    } : null;
+  }
+  const row = starsgemLookupRowFromState(ct);
+  const pred = predictStarsgemMl(row);
+  if (!pred) return null;
+  const lookup = _starsgemMlModel ? starsgemModelLookupRate(row, _starsgemMlModel) : null;
+  return {
+    total: pred.price,
+    perCt: pred.price / ct,
+    sigmaLog: 0.30,
+    anchorHit: lookup ? lookup.level !== 'GLOBAL' && (lookup.count || 0) > 0 : null,
+    modelName: pred.modelName || 'starsgem-ml',
+    warnings: [],
+  };
+}
+
+function buildR0ReconciledWholesale(m, ct) {
+  if (!window._r0reconciler) return null;
+  const ac = m.alibabaComp;
+  const ml = getMlPredictionForReconciler(ct);
+  const input = window._r0reconciler.buildReconcileInput({
+    query: {
+      carat: ct,
+      segment: isWhite() ? 'white' : 'fancy',
+      shape: state.shape,
+      whiteGrade: isWhite() ? state.whiteGrade : null,
+      colorFamily: isWhite() ? null : colorLabel(),
+      colorFamilyKey: isWhite() ? null : state.colorFamily,
+      clarity: state.clarity,
+      inferenceMode: 'standard',
+    },
+    baseline: {
+      total: m.baseWs,
+      perCt: m.baseWsPerCt,
+      sigmaLog: isWhite() ? 0.24 : 0.34,
+      warnings: [],
+    },
+    comp: ac && ac.estimate ? {
+      total: ac.estimate,
+      perCt: ac.perCt,
+      sigmaLog: ac.matchType === 'exact' ? 0.18 : ac.sigmaLog || null,
+      supportCount: ac.supportComps?.length || 0,
+      matchType: ac.matchType,
+      confidence: ac.confidence,
+      warnings: ac.warnings || [],
+    } : {
+      total: null,
+      available: false,
+      supportCount: 0,
+      matchType: 'none',
+      warnings: ['Comp market data unavailable.'],
+    },
+    ml: ml || {
+      total: null,
+      available: false,
+      anchorHit: null,
+      modelName: null,
+      warnings: ['ML model unavailable.'],
+    },
+    flags: {
+      chinaFactory: !!state.china,
+      specialtyCut: isExoticOrLowLiquidityShape(state.shape),
+    },
+  });
+  try {
+    const factoryResult = window._r0reconciler.reconcileWholesale(input);
+    const calibratedFactoryResult = window._r0reconciler.applyReconciledCalibration
+      ? window._r0reconciler.applyReconciledCalibration(factoryResult, input, window._r0reconciler.reconciledConformalCalibration)
+      : factoryResult;
+    return {
+      input,
+      factoryResult: calibratedFactoryResult,
+      result: scaleReconcileResult(calibratedFactoryResult, currentPostReconcileWholesaleMultiplier()),
+      baselineReference: m.baseWs,
+    };
+  } catch (err) {
+    console.warn('R0 reconciler unavailable — falling back to legacy wholesale display.', err);
+    return null;
+  }
+}
+
+function confidenceLabel(confidence) {
+  return confidence === 'high' ? 'High support' : confidence === 'medium' ? 'Medium support' : 'Low support';
+}
+
+function calibratedBandLabel(calibration) {
+  if (!calibration) return 'likely range';
+  return calibration.reportingSupport === 'low' || (calibration.nReport || 0) < 20
+    ? 'sparse holdout band'
+    : '80% holdout band';
+}
+
+function renderReconcileBlendExplainer(r, baselineRef) {
+  const compPct = Math.round((r.weights.comp || 0) * 100);
+  const mlPct = Math.round((r.weights.ml || 0) * 100);
+  const basePct = Math.round((r.weights.baseline || 0) * 100);
+  const marketActive = compPct + mlPct > 0;
+  if (!marketActive) {
+    return '<div class="r0-blend-explainer"><strong>Naive anchor only.</strong> Neither comp nor ML was available, so the headline uses the hand-tuned baseline curve alone.</div>';
+  }
+  const baselineNote = baselineRef
+    ? ` The anchor curve (~${fmt(baselineRef)}) is shown as <em>ref</em> for context only.`
+    : '';
+  return `<div class="r0-blend-explainer"><strong>Headline blend:</strong> Comp market <strong>${compPct}%</strong> + StarGem ML <strong>${mlPct}%</strong> = <strong>100%</strong>. The naive baseline anchor contributes <strong>${basePct}%</strong> because comp and/or ML are available.${baselineNote}</div>`;
+}
+
+function updateR0SourceSummary(reconciled) {
+  const el = document.getElementById('r0-source-summary');
+  if (!el) return;
+  if (!reconciled?.result) {
+    el.innerHTML = '';
+    return;
+  }
+  const r = reconciled.result;
+  const refBaseline = reconciled.baselineReference;
+  const explainer = renderReconcileBlendExplainer(r, refBaseline);
+  const rows = [
+    ['Baseline (anchor curve)', r.inputs.baseline, r.weights.baseline],
+    ['Comp market', r.inputs.comp, r.weights.comp],
+    ['ML', r.inputs.ml, r.weights.ml],
+  ];
+  const rowHtml = rows.map(([label, value, weight]) => {
+    const pct = Math.round((weight || 0) * 100);
+    const display = value
+      ? fmt(value)
+      : (label.startsWith('Baseline') && refBaseline && pct === 0
+        ? `${fmt(refBaseline)} ref.`
+        : '—');
+    const pctLabel = label.startsWith('Baseline') && pct === 0 && refBaseline ? '0% · ref' : `${pct}%`;
+    return `<div class="r0-source-row"><span>${escapeHTML(label)}</span><strong>${display}</strong><em>${escapeHTML(pctLabel)}</em></div>`;
+  }).join('');
+  const warningHtml = r.warnings?.length
+    ? `<div class="r0-source-warnings">${r.warnings.map(escapeHTML).join(' ')}</div>`
+    : '';
+  const calibrationHtml = r.bandKind === 'conformal' && r.calibration
+    ? `<div class="r0-source-warnings">${calibratedBandLabel(r.calibration)} calibrated on N=${Number(r.calibration.nReport || 0).toLocaleString()} held-out supplier catalog prices (${escapeHTML((r.calibration.calibratedAt || '').slice(0, 10) || 'undated')}).</div>`
+    : '';
+  el.innerHTML = `<details class="r0-source-details"><summary>How this estimate was built · ${confidenceLabel(r.confidence)} · ${r.bandKind === 'conformal' ? calibratedBandLabel(r.calibration) : 'likely range'}</summary>${explainer}<div class="r0-source-rows">${rowHtml}</div>${calibrationHtml}${warningHtml}</details>`;
+}
+
 function update(options = {}) {
   const interactive = !!options.interactive;
   syncCaratControls({ preserveInput: true });
@@ -2477,29 +2713,29 @@ function update(options = {}) {
   setShapeIcon('summary-shape-icon', state.shape);
   setShapeIcon('weak-shape-icon', state.shape);
   updateWeakPointsBar();
+  const r0 = buildR0ReconciledWholesale(m, ct);
+  m.reconciledWholesale = r0?.result || null;
 
-  // Wire Alibaba comp data to "What they paid" (factory-direct trade cost)
-  { const ac = m.alibabaComp;
+  // Reconciled wholesale headline (comp + ML when available; baseline fallback only)
+  { const r = r0?.result;
     let wsDisplay, wsSub;
-    if (ac && ac.matchType === 'exact' && ac.estimate) {
-      wsDisplay = fmtR(ac.low, ac.high);
-      wsSub = fmt(ac.perCt) + '/ct · IGI factory direct';
-    } else if (ac && (ac.matchType === 'nearest' || ac.matchType === 'best_available') && ac.estimate) {
-      wsDisplay = fmtR(ac.low, ac.high);
-      const nComps = ac.supportComps?.length || 1;
-      const primaryCt = ac.primary?.row?.carat;
-      const farFromPrimary = primaryCt ? Math.max(ct, primaryCt) / Math.max(Math.min(ct, primaryCt), 0.01) > 1.35 : false;
-      const extrapolated = farFromPrimary || ac.matchType === 'best_available' || (ac.warnings || []).some(w => /extrapolat|No close comps/i.test(w));
-      wsSub = fmt(ac.perCt) + '/ct · Alibaba ' + (extrapolated ? 'extrap.' : 'est.') + ' (' + nComps + ' comp' + (nComps > 1 ? 's' : '') + ')';
-    } else if (ac && ac.matchType === 'model_fallback' && ac.estimate) {
-      wsDisplay = fmtR(ac.low, ac.high);
-      wsSub = fmt(ac.perCt) + '/ct est. (model · no direct comp)';
+    if (r) {
+      wsDisplay = fmtR(r.low, r.high);
+      const bandLabel = r.bandKind === 'conformal' ? calibratedBandLabel(r.calibration) : 'likely range';
+      wsSub = `${fmt(r.perCt)}/ct · reconciled ${bandLabel} · ${confidenceLabel(r.confidence)}`;
     } else {
-      wsDisplay = fmtR(m.ws*0.87, m.ws*1.13);
-      wsSub = fmt(m.wsPerCt) + '/ct est. trade cost';
+      const ac = m.alibabaComp;
+      if (ac && ac.estimate) {
+        wsDisplay = fmtR(ac.low, ac.high);
+        wsSub = fmt(ac.perCt) + '/ct · comp only (reconciler unavailable)';
+      } else {
+        wsDisplay = fmtR(m.ws * 0.87, m.ws * 1.13);
+        wsSub = fmt(m.wsPerCt) + '/ct est. trade cost';
+      }
     }
     document.getElementById('price-ws').textContent = wsDisplay;
     document.getElementById('price-ws-sub').textContent = wsSub;
+    updateR0SourceSummary(r0);
   }
 
   // Wire retail pricing
@@ -2804,66 +3040,283 @@ function compSupplierKey(entry) {
   return null;
 }
 
-function sameSupplierComparison(a, b) {
-  if (!a || !b) return false;
-  const aSk = compSupplierKey(a);
-  const bSk = compSupplierKey(b);
-  // Cross-factory rows are never duplicates — shared IGI reports are common on
-  // aggregated supplier-sheet comps and should still show as separate checks.
-  if (aSk && bSk && aSk !== bSk) return false;
+// Supplier cross-source checks are now rendered as cards by renderCompMarket
+// (the "Cross-source checks" disclosure), so the legacy text-list renderer was
+// removed in R0.4. See research/comp-display-cleanup-r0.4.md.
 
-  const ar = a.row || {};
-  const br = b.row || {};
-  const aMeta = getCompSourceMeta(ar);
-  const bMeta = getCompSourceMeta(br);
-  const sameSource = aMeta?.key && bMeta?.key && aMeta.key === bMeta.key;
-  const aRows = normalizeSourceRows(ar);
-  const bRows = normalizeSourceRows(br);
-  if (sameSource && aRows.some(row => bRows.includes(row))) return true;
-  const aReports = normalizeReportList(ar);
-  const bReports = normalizeReportList(br);
-  if (aSk && bSk && aSk === bSk && aReports.some(report => bReports.includes(report))) return true;
-  if (ar.url && br.url && ar.url === br.url && ar.carat === br.carat && ar.shape === br.shape && ar.clarity === br.clarity && (ar.color || ar.colorNormalized) === (br.color || br.colorNormalized)) return true;
-  return ar === br;
+// ══════════════════════════════════════════════════════════════════════════
+// R0.4 — prioritized comp cards + adjustment ladder
+// Pure rendering over resolveAlibabaComp output; no engine changes.
+// ══════════════════════════════════════════════════════════════════════════
+const FANCY_INTENSITY_LABEL = {
+  fl: 'Fancy Light', f: 'Fancy', fi: 'Fancy Intense',
+  fv: 'Fancy Vivid', fd: 'Fancy Deep', fdk: 'Fancy Dark',
+};
+
+function preferredSourceKey() { return isWhite() ? 'starsgem' : 'messi'; }
+function preferredSourceLabel() { return isWhite() ? 'StarGem' : 'Messi'; }
+
+function compSupplierLabel(entry) {
+  const sk = compSupplierKey(entry);
+  if (sk === 'starsgem') return 'StarGem';
+  if (sk === 'messi') return 'Messi';
+  if (entry?.label) return entry.label;
+  const sup = entry?.row?.supplier;
+  if (sup) return sup;
+  return sk ? sk.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Alibaba';
 }
 
-function visibleSupplierComparisonEntries(ac) {
-  const comparisons = ac?.supplierComparisons || [];
-  let entries = comparisons.filter(entry => !sameSupplierComparison(entry, ac.primary));
-  if (!isWhite()) return entries;
-  if (entries.some(entry => compSupplierKey(entry) === 'starsgem')) return entries;
-  if (compSupplierKey(ac.primary) === 'starsgem') return entries;
-  const starsgem = comparisons.find(entry => compSupplierKey(entry) === 'starsgem');
-  if (starsgem) entries = [...entries, starsgem];
-  return entries;
+function humanizeColorKey(raw) {
+  const k = String(raw || '').trim();
+  if (!k) return '';
+  const [hue, intensity] = k.split('_');
+  if (!intensity) return k.replace(/_/g, ' ');
+  const hueCap = hue ? hue[0].toUpperCase() + hue.slice(1) : '';
+  const intLabel = FANCY_INTENSITY_LABEL[intensity] || intensity.toUpperCase();
+  return [intLabel, hueCap].filter(Boolean).join(' ');
 }
 
-function renderSupplierComparisonBlock(ac) {
-  const entries = visibleSupplierComparisonEntries(ac);
-  if (!entries.length) return '';
+function compRowSpec(row) {
+  if (!row) return '';
+  const shape = shapeNames[row.shape] || String(row.shape || '').replace(/_/g, ' ');
+  const color = row.color || row.colorNormalized || '';
+  return `${row.carat}ct ${shape} ${row.clarity}${color ? ' ' + color : ''}`.trim();
+}
 
-  let html = `<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">`;
-  html += `<div style="font-size:11px;color:var(--muted2);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase">Other supplier checks</div>`;
-  for (const entry of entries) {
-    const tag = entry.matchType === 'exact'
-      ? `<span class="comp-tag exact" style="font-size:10px;padding:1px 5px">exact</span>`
-      : `<span class="comp-tag nearest" style="font-size:10px;padding:1px 5px">nearest match</span>`;
-    const supplierLabel = escapeHTML(
-      entry.label
-      || (entry.supplierKey === 'starsgem' ? 'StarGem sheet' : entry.supplierKey === 'messi' ? 'Messi sheet' : entry.supplierKey)
-    );
-    const hasAdj = entry.listingPrice !== entry.estimatedPrice;
-    const priceHtml = hasAdj
-      ? `<span class="comp-price">${fmt(entry.listingPrice)}</span><span class="comp-arr">→</span><span class="comp-adj">~${fmt(entry.estimatedPrice)}</span>`
-      : `<span class="comp-adj">${fmt(entry.estimatedPrice)}</span>`;
-    const rowSpec = entry.row ? `${entry.row.carat}ct ${entry.row.shape} ${entry.row.clarity}${entry.row.color ? ' ' + entry.row.color : entry.row.colorNormalized ? ' ' + entry.row.colorNormalized : ''}` : '';
-    const modHtml = entry.modifiers && entry.modifiers.parts && entry.modifiers.parts.length
-      ? `<div class="comp-mod">${entry.modifiers.parts.map(escapeHTML).join(' · ')}</div>`
-      : '';
-    const linksHtml = renderCompLinks(entry);
-    html += `<div class="comp-row">${priceHtml} ${tag}${linksHtml}<span class="comp-supplier">${escapeHTML(rowSpec)} · ${supplierLabel}</span></div>${modHtml}`;
+// Parse one engine modifier string into a structured ladder step.
+// Examples handled:
+//   "carat total ×0.830 (price/ct ×0.936; 3.59ct vs 4.05ct slope=0.55)"
+//   "color ×0.920 (F vs E)"          "clarity ×1.152 (selected VVS2 vs comp VS1)"
+//   "shape ×0.903 (marquise vs pear)"  "source adjust ÷1.25 (Messi color → StarGem-like factory)"
+//   "intensity+carat ×1.002 (pink_fv vs pink_fv)"
+function parseAdjustmentPart(part) {
+  const text = String(part || '');
+  const mm = text.match(/([×÷])\s*([0-9]+(?:\.[0-9]+)?)/);
+  let multiplier = null;
+  if (mm) {
+    const n = Number(mm[2]);
+    multiplier = mm[1] === '÷' ? (n ? 1 / n : null) : n;
   }
-  html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Alternate supplier rows adjusted to the selected stone; use them as a cross-check on the floor, not as extra averaging.</div>`;
+  const paren = text.match(/\(([^)]*)\)/);
+  const detail = paren ? paren[1].trim() : '';
+
+  let key = 'modifier', label = 'Adjustment';
+  if (/^carat\b/i.test(text)) { key = 'carat'; label = 'Carat'; }
+  else if (/^clarity\b/i.test(text)) { key = 'clarity'; label = 'Clarity'; }
+  else if (/^shape\b/i.test(text)) { key = 'shape'; label = 'Shape'; }
+  else if (/^color\b/i.test(text)) { key = 'color'; label = 'Color'; }
+  else if (/source adjust/i.test(text)) { key = 'source'; label = 'Source'; }
+  else if (/intensity\+carat/i.test(text)) { key = 'intensity'; label = 'Color intensity'; }
+
+  // Build a "comp X → you Y" phrase. Parts are written "you vs comp".
+  let phrase = '';
+  if (key === 'source') {
+    phrase = detail; // already directional, e.g. "Messi color → StarGem-like factory"
+  } else if (key === 'carat') {
+    const ct = detail.match(/([0-9]+(?:\.[0-9]+)?)\s*ct\s+vs\s+([0-9]+(?:\.[0-9]+)?)\s*ct/i);
+    phrase = ct ? `comp ${ct[2]}ct \u2192 you ${ct[1]}ct` : detail;
+  } else if (key === 'intensity') {
+    // Fancy: this is the price-per-carat model term, NOT the size scaling.
+    const hue = detail.match(/([a-z]+_[a-z]+)\s+vs\s+([a-z]+_[a-z]+)/i);
+    if (hue && hue[1].toLowerCase() !== hue[2].toLowerCase()) {
+      label = 'Color intensity';
+      phrase = `comp ${humanizeColorKey(hue[2])} \u2192 you ${humanizeColorKey(hue[1])}`;
+    } else {
+      label = 'Price/ct curve';
+      phrase = 'size-adjusted $/ct';
+    }
+  } else {
+    const vs = detail.split(/\s+vs\s+/i);
+    if (vs.length >= 2) {
+      const clean = s => s.replace(/^(selected|comp)\s+/i, '').replace(/[;,].*$/, '').replace(/slope=.*/i, '').trim();
+      const you = clean(vs[0]);
+      const comp = clean(vs[1]);
+      phrase = you && comp ? `comp ${comp} \u2192 you ${you}` : detail;
+    } else {
+      phrase = detail;
+    }
+  }
+  return { key, label, multiplier, phrase };
+}
+
+function ladderStepHtml(label, phrase, multiplier, runValue) {
+  const pct = (multiplier - 1) * 100;
+  const pctStr = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+  const dir = multiplier >= 1 ? 'up' : 'down';
+  const detailHtml = phrase ? `<span class="adj-detail">${escapeHTML(phrase)}</span>` : '';
+  return `<div class="adj-row ${dir}"><span class="adj-label">${escapeHTML(label)}${detailHtml}</span><span class="adj-mult">\u00d7${multiplier.toFixed(3)} <em>${pctStr}</em></span><span class="adj-run">${fmt(runValue)}</span></div>`;
+}
+
+// Vertical ladder: listing → per-stat step → adjusted comp price.
+function renderAdjustmentLadder(entry) {
+  const listing = Number.isFinite(entry?.listingPrice) ? entry.listingPrice : entry?.row?.priceUsd;
+  const est = entry?.estimatedPrice;
+  const parts = entry?.modifiers?.parts || entry?.parts || [];
+  if (!Number.isFinite(listing)) return '';
+  const steps = parts.map(parseAdjustmentPart).filter(s => Number.isFinite(s.multiplier) && s.multiplier > 0);
+  if (!steps.length) {
+    return `<div class="comp-ladder"><div class="adj-row adj-final"><span class="adj-label">Matches your stone — no adjustment</span><span class="adj-mult"></span><span class="adj-run">${fmt(est ?? listing)}</span></div></div>`;
+  }
+  let running = listing;
+  let html = `<div class="comp-ladder"><div class="adj-row adj-start"><span class="adj-label">Supplier listing</span><span class="adj-mult"></span><span class="adj-run">${fmt(running)}</span></div>`;
+  for (const s of steps) {
+    running *= s.multiplier;
+    html += ladderStepHtml(s.label, s.phrase, s.multiplier, running);
+  }
+
+  // The engine's `parts` for fancy stones describe price-per-carat only — the
+  // carat-size scaling (queryCt/compCt) is applied separately and never appears
+  // in the string. Reconcile any residual so the ladder always lands on the
+  // adjusted price; attribute it to carat size when the ratio matches.
+  if (Number.isFinite(est) && running > 0) {
+    const residual = est / running;
+    if (Math.abs(residual - 1) > 0.012) {
+      const compCt = Number(entry?.row?.carat);
+      const queryCt = Number(state?.carat);
+      const caratRatio = (compCt > 0 && queryCt > 0) ? queryCt / compCt : null;
+      const isCarat = caratRatio && Math.abs(residual / caratRatio - 1) < 0.04;
+      running = est;
+      if (isCarat) {
+        html += ladderStepHtml('Carat size', `comp ${compCt}ct \u2192 you ${queryCt}ct`, residual, running);
+      } else {
+        html += ladderStepHtml('Size & spec', '', residual, running);
+      }
+    }
+  }
+
+  const finalVal = Number.isFinite(est) ? est : running;
+  html += `<div class="adj-row adj-final"><span class="adj-label">Adjusted to your stone</span><span class="adj-mult"></span><span class="adj-run">~${fmt(finalVal)}</span></div>`;
+  html += `</div>`;
+  return html;
+}
+
+function renderCompCard(entry, { hero = false, matchType = 'nearest', preferredKey } = {}) {
+  const row = entry?.row || {};
+  const listing = Number.isFinite(entry?.listingPrice) ? entry.listingPrice : row.priceUsd;
+  const est = entry?.estimatedPrice;
+  const hasAdj = Number.isFinite(listing) && Number.isFinite(est) && Math.abs(listing - est) > 1;
+  const priceHtml = hasAdj
+    ? `<span class="comp-adj">~${fmt(est)}</span><span class="comp-price">${fmt(listing)}</span>`
+    : `<span class="comp-adj">${fmt(Number.isFinite(est) ? est : listing)}</span>`;
+  const tagClass = matchType === 'exact' ? 'exact' : 'nearest';
+  const tagLabel = matchType === 'exact' ? 'exact' : 'nearest match';
+  const prefBadge = (compSupplierKey(entry) === preferredKey)
+    ? `<span class="comp-pref">Best ${isWhite() ? 'colorless' : 'color'} reference</span>`
+    : '';
+  const links = renderCompLinks(entry);
+  const spec = compRowSpec(row);
+  const supplier = escapeHTML(compSupplierLabel(entry));
+  const ladder = renderAdjustmentLadder(entry);
+  const ladderHtml = hero
+    ? ladder
+    : (ladder ? `<details class="comp-ladder-mini"><summary>show adjustment math</summary>${ladder}</details>` : '');
+  return `<div class="comp-card${hero ? ' hero' : ''}">`
+    + `<div class="comp-card-head">${priceHtml} <span class="comp-tag ${tagClass}">${tagLabel}</span>${prefBadge}</div>`
+    + `<div class="comp-card-spec">${escapeHTML(spec)}${spec ? ' · ' : ''}${supplier}</div>`
+    + `${links}`
+    + `${ladderHtml}`
+    + `</div>`;
+}
+
+// Build a deduped candidate list split into blend members and cross-source checks.
+function compRowIdentity(entry) {
+  const r = entry?.row || {};
+  return `${compSupplierKey(entry) || ''}|${r.carat}|${r.shape}|${r.clarity}|${r.color || r.colorNormalized || ''}|${r.priceUsd ?? ''}`;
+}
+
+function collectCompCandidates(ac) {
+  const blend = [];
+  const checks = [];
+  const seen = new Set();
+  const add = (list, entry, matchType) => {
+    if (!entry || !entry.row) return;
+    const id = compRowIdentity(entry);
+    if (seen.has(id)) return;
+    seen.add(id);
+    list.push({ entry, matchType: matchType || entry.matchType || ac.matchType });
+  };
+
+  // Build the blend group from supportComps: each carries its OWN per-comp
+  // adjusted price (exp(logEstimate)). The `primary` object's estimatedPrice is
+  // overwritten with the blended estimate for nearest matches, which would make
+  // its adjustment ladder jump to a number its own steps don't reach.
+  const matchTag = ac.matchType === 'exact' ? 'exact' : 'nearest';
+  for (const sc of ac.supportComps || []) {
+    add(blend, {
+      row: sc.row,
+      listingPrice: sc.row?.priceUsd,
+      estimatedPrice: sc.estimatedPrice,
+      url: sc.row?.url,
+      modifiers: { parts: sc.parts },
+    }, matchTag);
+  }
+  for (const alt of ac.alternatives || []) add(blend, alt, 'nearest');
+  if (!blend.length && ac.primary) add(blend, ac.primary, matchTag);
+  for (const e of ac.otherFactoryExact || []) add(checks, e, 'exact');
+  for (const e of ac.supplierComparisons || []) add(checks, e, e.matchType || 'nearest');
+
+  return { blend, checks };
+}
+
+function rankCandidate(c, preferredKey) {
+  const sk = compSupplierKey(c.entry);
+  const matchRank = { exact: 0, nearest: 1, best_available: 2, model_fallback: 3 };
+  return [
+    sk === preferredKey ? 0 : 1,
+    matchRank[c.matchType] ?? 4,
+    (sk === 'starsgem' || sk === 'messi') ? 0 : 1,
+  ];
+}
+
+function sortCandidates(list, preferredKey) {
+  return list.slice().sort((a, b) => {
+    const ra = rankCandidate(a, preferredKey);
+    const rb = rankCandidate(b, preferredKey);
+    for (let i = 0; i < ra.length; i++) if (ra[i] !== rb[i]) return ra[i] - rb[i];
+    return 0;
+  });
+}
+
+// Unified market block for exact / nearest / best_available match types.
+function renderCompMarket(ac, { headline, matchType, footerNote }) {
+  const preferredKey = preferredSourceKey();
+  const { blend, checks } = collectCompCandidates(ac);
+  const sortedBlend = sortCandidates(blend, preferredKey);
+  const sortedChecks = sortCandidates(checks, preferredKey);
+
+  const hero = sortedBlend[0];
+  const rest = sortedBlend.slice(1);
+
+  let html = `<div class="comp-block"><strong>${headline}</strong> ${fmtCompTag(matchType)}`;
+
+  const heroSourceMatches = hero && compSupplierKey(hero.entry) === preferredKey;
+  if (heroSourceMatches) {
+    html += `<div class="comp-source-hint">Showing <strong>${preferredSourceLabel()}</strong> first — usually the best reference for ${isWhite() ? 'colorless' : 'fancy color'} stones.</div>`;
+  } else {
+    html += `<br>`;
+  }
+
+  if (hero) {
+    html += renderCompCard(hero.entry, { hero: true, matchType: hero.matchType, preferredKey });
+  }
+
+  if (rest.length) {
+    html += `<details class="comp-group"><summary>Other comps in this estimate (${rest.length})</summary>`;
+    for (const c of rest) html += renderCompCard(c.entry, { matchType: c.matchType, preferredKey });
+    html += `</details>`;
+  }
+
+  if (sortedChecks.length) {
+    html += `<details class="comp-group"><summary>Cross-source checks (${sortedChecks.length})</summary>`;
+    html += `<div class="comp-group-note">Adjusted to your stone as a cross-check on the floor — not averaged into the blended estimate.</div>`;
+    for (const c of sortedChecks) html += renderCompCard(c.entry, { matchType: c.matchType, preferredKey });
+    html += `</details>`;
+  }
+
+  const blendMath = renderBlendBreakdown(ac);
+  if (blendMath) html += blendMath;
+
+  if (footerNote) html += `<div style="font-size:11px;color:var(--muted);margin-top:6px">${footerNote}</div>`;
   html += `</div>`;
   return html;
 }
@@ -2895,48 +3348,36 @@ function updateMarketBar(m){
     return;
   }
 
+  const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
+  const warnNote = ac.warnings?.length ? ` ${ac.warnings.join(' ')}` : '';
+
   if (ac.matchType === 'exact') {
-    html = `<div class="comp-block"><strong>Alibaba factory floor:</strong> ${fmtCompTag('exact')}<br>`;
-    html += renderCompEntry(ac.primary, false);
-    html += renderSupplierComparisonBlock(ac);
-    const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Lowest matched factory listing, adjusted to your selected carat/spec when needed.${rangeNote} Treat as ceiling before beauty/video premium.</div></div>`;
+    html = renderCompMarket(ac, {
+      headline: 'Alibaba factory floor',
+      matchType: 'exact',
+      footerNote: `Lowest matched factory listing, adjusted to your selected carat/spec when needed.${rangeNote} Treat as ceiling before beauty/video premium.`,
+    });
   } else if (ac.matchType === 'nearest') {
     const nComps = ac.supportComps?.length || 1;
-    html = `<div class="comp-block"><strong>Closest Alibaba comps — weighted blend <span style="color:var(--accent);font-size:1.08em;letter-spacing:.01em">${fmt(ac.estimate)}</span></strong> ${fmtCompTag('nearest')}<br>`;
-    html += renderCompEntry(ac.primary, false);
-    if (ac.alternatives && ac.alternatives.length) {
-      html += `<div class="comp-alts">`;
-      html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
-      html += `</div>`;
-    }
-    html += renderBlendBreakdown(ac);
-    html += renderSupplierComparisonBlock(ac);
-    const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
-    const warnNote = ac.warnings?.length ? ` ${ac.warnings.join(' ')}` : '';
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimate is a weighted blend of ${nComps} adjusted comp${nComps > 1 ? 's' : ''}; closer/lower-uncertainty comps receive more weight.${rangeNote}${warnNote}</div></div>`;
+    html = renderCompMarket(ac, {
+      headline: `Closest Alibaba comps — weighted blend <span style="color:var(--accent);font-size:1.08em;letter-spacing:.01em">${fmt(ac.estimate)}</span>`,
+      matchType: 'nearest',
+      footerNote: `Estimate is a weighted blend of ${nComps} adjusted comp${nComps > 1 ? 's' : ''}; closer/lower-uncertainty comps receive more weight.${rangeNote}${warnNote}`,
+    });
   } else if (ac.matchType === 'model_fallback') {
     html = `<div class="comp-block"><strong>No shape comp — model estimate</strong> ${fmtCompTag('model_fallback')}<br>`;
     html += renderCompEntry(ac.primary, false);
-    const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
     html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Estimated from Messi round IGI ladder × shape multiplier. No direct ${escapeHTML(shapeNames[state.shape]||state.shape)} Alibaba data captured yet.${rangeNote}</div></div>`;
   } else if (ac.matchType === 'best_available') {
     const nComps = ac.supportComps?.length || 1;
     const blendNote = nComps > 1
       ? `No direct listing at this spec — blended from ${nComps} nearest Alibaba data points, each adjusted for carat, clarity, and shape.`
       : 'No direct listing at this spec — extrapolated from nearest available Alibaba data point.';
-    html = `<div class="comp-block"><strong>Closest Alibaba estimate</strong> ${fmtCompTag('best_available')}<br>`;
-    html += renderCompEntry(ac.primary, false);
-    if (ac.alternatives && ac.alternatives.length) {
-      html += `<div class="comp-alts">`;
-      html += ac.alternatives.map(alt => renderCompEntry(alt, true)).join('');
-      html += `</div>`;
-    }
-    html += renderBlendBreakdown(ac);
-    html += renderSupplierComparisonBlock(ac);
-    const rangeNote = ac.low && ac.high ? ` 80% range ${fmtR(ac.low, ac.high)}.` : '';
-    const warnNote = ac.warnings?.length ? ` ${ac.warnings.join(' ')}` : '';
-    html += `<div style="font-size:11px;color:var(--muted);margin-top:4px">${blendNote}${rangeNote}${warnNote}</div></div>`;
+    html = renderCompMarket(ac, {
+      headline: 'Closest Alibaba estimate',
+      matchType: 'best_available',
+      footerNote: `${blendNote}${rangeNote}${warnNote}`,
+    });
   }
 
   if (roundBench && state.shape !== 'round') html += roundBench;
