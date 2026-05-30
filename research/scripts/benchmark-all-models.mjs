@@ -36,6 +36,7 @@ const s26 = loadJson('starsgem-ml-model-s26-champion.json');
 const starsgemIntel = loadJson('starsgem-pricing-intelligence.json');
 const colorS22 = loadJson('color-diamond-ml-model.json');
 const colorS23 = loadJson('color-diamond-ml-model-s23.json');
+const colorS27 = loadJson('color-diamond-ml-model-s27-champion.json');
 
 // ─── Helper: is a prediction hitting the global fallback? ────────────────────
 function isEffectivelyGlobal(pred) {
@@ -358,12 +359,18 @@ console.log('FANCY-COLOR MODEL CHECKPOINT');
 console.log('══════════════════════════════════════════════════════════════════');
 const c22m = colorS22.metrics || {};
 const c23m = colorS23.metrics || {};
+const c27m = colorS27.metrics || {};
 const colorRows = c22m.rowCounts?.all ?? c23m.rowCounts?.all ?? 0;
 const colorValidation = c22m.rowCounts?.validation ?? c23m.rowCounts?.validation ?? 0;
 const colorAnchors = c22m.rowCounts?.source_starsgem_color ?? c23m.rowCounts?.source_starsgem_color ?? 0;
+const c27All = c27m.productionPolicyAllAdjustedRows || {};
+const c27Anchors = c27m.directStarsgemAnchors || {};
 console.log(`  Rows: ${colorRows.toLocaleString()} fancy-color stones (${colorValidation} validation; ${colorAnchors} direct StarGem anchors)`);
+console.log(`  Messi source adjustment: ÷${colorS27.sourceAdjustment?.messiColorToStarsgemLikeFactor ?? colorS22.sourceAdjustment?.messiColorToStarsgemLikeFactor ?? 1.25} to StarGem-like factory pricing`);
 console.log(`  Color S22 (ExtraTrees): validation MAPE ${metricPct(c22m.validation?.mape)}, MdAPE ${metricPct(c22m.validation?.medianApe)}, anchor MAPE ${metricPct(c22m.directStarGemAnchorsInSample?.mape)}`);
 console.log(`  Color S23 (LightGBM monotone): validation MAPE ${metricPct(c23m.validation?.mape)}, MdAPE ${metricPct(c23m.validation?.medianApe)}, anchor MAPE ${metricPct(c23m.directStarGemAnchorsInSample?.mape)}`);
-console.log('  Recommendation: use Color S22 for the lowest point-error estimate; keep Color S23 as the monotone intensity sanity check.');
+console.log(`  S27 Color champion (S22-led): validation MAPE ${metricPct(c27m.validation?.colorS27?.mape)}, all adjusted-row MAPE ${c27All.colorS27?.mape?.toFixed?.(2) ?? 'N/A'}%, anchor MAPE ${c27Anchors.colorS27?.mape?.toFixed?.(2) ?? 'N/A'}%`);
+console.log(`  Color comp engine alone: all adjusted-row MAPE ${c27All.colorCompEngine?.mape?.toFixed?.(2) ?? 'N/A'}%, coverage ${c27m.compCoverage?.predicted ?? 0}/${c27m.compCoverage?.total ?? 0}`);
+console.log('  Recommendation: use S27/Color S22 for the lowest color point-error estimate; keep Color S23 as the monotone intensity sanity check and source-adjusted comps as support.');
 
 console.log('\n══════════════════════════════════════════════════════════════════\n');

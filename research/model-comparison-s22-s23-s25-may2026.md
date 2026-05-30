@@ -1,5 +1,5 @@
-# Diamond ML Model Comparison — S22 vs S23 vs S25 vs S26 + Fancy Color
-### May 30, 2026 · Updated after S26 champion hybrid deployment
+# Diamond ML Model Comparison — S22 vs S23 vs S25 vs S26 vs S27 Color
+### May 30, 2026 · Updated after S26 white and S27 color champion deployment
 
 ---
 
@@ -15,9 +15,9 @@ There is no single best model for every stone.
 | White sparse shapes | **S26** | S22/S23 if covered | S26 beats S25 on ASSCHER, CUSHION, and SQUARE by anchoring to the deterministic StarGem lookup surface. |
 | White large-carat specialty, 4ct+ | **S26 with live comps** | S21 fallback + source caps | S26 replaces the pure parametric extrapolator; high-carat output must lean on live comps and widen uncertainty when support is weak. |
 | White overall champion panel | **S26** | source caps + monotone display | S26 replaces S25 in the app; it blends lookup, monotone-capped ML, and comp evidence. |
-| Fancy-color / colored gems | **Color S22** | Color S23 monotone | Color S22 has lower validation MAPE; Color S23 is the intensity-monotone sanity check. |
+| Fancy-color / colored gems | **S27 / Color S22** | Color S23 monotone + source-adjusted comps | S27 is Color S22-led because it has the lowest validation MAPE and exact direct-StarGem anchor fit; Messi color rows/comps are normalized by ÷1.25. |
 
-Bottom line: **S26 replaces S25 in the app.** Use the dedicated color-diamond model family for colored gems. Do not route colored gems through S26.
+Bottom line: **S26 replaces S25 for white diamonds; S27 is the colored-gem champion policy.** Do not route colored gems through white S26.
 
 ---
 
@@ -33,6 +33,7 @@ Implemented:
 - Added `research/scripts/color-diamond-model.test.mjs` and `npm run test:color-model` to verify colored-gem artifacts.
 - Added `research/scripts/white-ml-display-monotonicity.test.mjs` and `npm run test:white-ml-display` for the 40ct E VS2/SI1 fallback inversion.
 - Added `research/scripts/train-s26-champion.mjs`, `research/data/starsgem-ml-model-s26-champion.json`, and `npm run test:s26`.
+- Added `research/scripts/train-s27-color-champion.mjs`, `research/data/color-diamond-ml-model-s27-champion.json`, and `npm run test:s27-color`.
 - Replaced the old S25 app panel with S26 champion hybrid output.
 
 Verification:
@@ -42,6 +43,7 @@ python3 research/scripts/train-s25-parametric.py
 npm run test:color-model
 npm run test:white-ml-display
 npm run test:s26
+npm run test:s27-color
 node research/scripts/benchmark-all-models.mjs
 ```
 
@@ -176,12 +178,22 @@ Color S23 LightGBM monotone:
   Validation MAPE: 3.86%
   Validation MdAPE: 1.84%
   Direct StarGem anchor MAPE: 0.23%
+
+S27 color champion:
+  Validation MAPE: 3.12%
+  All adjusted-row MAPE: 1.75%
+  Direct StarGem anchor MAPE: 0.00%
+
+Color comp engine alone:
+  All adjusted-row MAPE: 8.96%
+  Coverage: 1,656 / 1,657 rows
 ```
 
 Best colored-gem model:
 
-- **Use Color S22 for point estimates** because it has the lower validation MAPE and exact direct-anchor fit.
+- **Use S27 / Color S22 for point estimates** because it has the lower validation MAPE and exact direct-anchor fit.
 - **Use Color S23 as the monotone intensity guardrail** because it formally constrains numeric intensity rank and carat upward.
+- **Use source-adjusted color comps as support** because the current comp surface is covered but noisier than Color S22.
 
 The new `npm run test:color-model` check verifies:
 
@@ -192,6 +204,14 @@ The new `npm run test:color-model` check verifies:
 - all five direct StarGem colored anchors stay within 1% MAPE;
 - S23 remains monotone in numeric color-intensity rank.
 
+The new `npm run test:s27-color` check verifies:
+
+- Messi color source adjustment is exactly `÷1.25`;
+- all 1,652 Messi color rows and 5 direct StarGem anchors are included;
+- S27 validation MAPE matches Color S22 and beats Color S23;
+- S27 beats comp-only color pricing on all adjusted rows;
+- direct StarGem color anchors stay effectively exact.
+
 ---
 
 ## 7. Current Best Architecture
@@ -200,8 +220,9 @@ Recommended dispatch:
 
 ```text
 if fancy-color / colored:
-  primary = Color S22 ExtraTrees
+  champion panel = S27 / Color S22 ExtraTrees
   guardrail = Color S23 monotone intensity
+  comp support = source-adjusted Messi/StarGem color comps
 else:
   champion panel = S26 lookup/ML/comp hybrid
   production comparison = S22/S23 with S21 fallback and monotone display caps
@@ -211,7 +232,7 @@ else:
 For the app, the user-facing answer should be model-family aware:
 
 - White diamond: show S22, S23, and S26.
-- Colored gem: show Color S22 and Color S23; hide white StarGem lookup and white S26 as already done for white-only models.
+- Colored gem: show S27 / Color S22, Color S23, and source-adjusted color comp support; hide white StarGem lookup and white S26.
 
 ---
 
@@ -225,7 +246,8 @@ Priority improvements:
 4. Expand direct StarGem colored anchors beyond 5 stones, especially vivid pink/blue/yellow at 3ct+.
 5. Train separate white round and fancy models for S23 so the grade-agnostic anchor does not harm ROUND.
 6. Add L/W ratio to the white S26 feature context once reliable dimensions exist for Segment-A rows.
+7. Refit S27 once direct StarGem color anchors are large enough for a true color lookup surface.
 
 ---
 
-*Generated from `benchmark-all-models.mjs`, `train-s25-parametric.py`, `train-s26-champion.mjs`, and `color-diamond-model.test.mjs` on 2026-05-30.*
+*Generated from `benchmark-all-models.mjs`, `train-s25-parametric.py`, `train-s26-champion.mjs`, `train-s27-color-champion.mjs`, and `color-diamond-model.test.mjs` on 2026-05-30.*

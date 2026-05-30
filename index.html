@@ -983,6 +983,8 @@ let _colorDiamondMlModel = null;
 let _colorDiamondMlModelPromise = null;
 let _colorS23Model = null;
 let _colorS23ModelPromise = null;
+let _colorS27Model = null;
+let _colorS27ModelPromise = null;
 let _v3engineReadyPromise = null;
 let _chartAxis = 'carat'; // 'carat' | 'clarity' | 'color'
 
@@ -1317,6 +1319,26 @@ async function loadColorS23Model() {
       return null;
     });
   return _colorS23ModelPromise;
+}
+
+async function loadColorS27Model() {
+  if (_colorS27Model) return _colorS27Model;
+  if (_colorS27ModelPromise) return _colorS27ModelPromise;
+  _colorS27ModelPromise = fetch('research/data/color-diamond-ml-model-s27-champion.json?v=20260530-s27-color-v1')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _colorS27Model = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('S27 color champion model unavailable.', err);
+      return null;
+    });
+  return _colorS27ModelPromise;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2342,6 +2364,48 @@ function predictColorDiamondMl(row, model) {
   return { price, method: 'color_ml_model', modelName: m.modelName, metrics: m.metrics, treeCount: m.treeCount, sourceAdjustment: m.sourceAdjustment };
 }
 
+function predictColorS27(row, model, context = {}) {
+  if (!model || !row) return null;
+  const carat = Number(row.carat);
+  if (!Number.isFinite(carat) || carat <= 0) return null;
+
+  const s22 = context.s22Pred || predictColorDiamondMl(row, _colorDiamondMlModel);
+  const s23 = context.s23Pred || (_colorS23Model ? predictColorDiamondMl(row, _colorS23Model) : null);
+  const comp = context.compResult || resolveAlibabaComp(carat);
+  const compPrice = Number(comp?.estimate);
+
+  const sources = [];
+  const addSource = (kind, label, price, role, extra = {}) => {
+    if (!Number.isFinite(price) || price <= 0) return;
+    sources.push({ kind, label, price, role, ...extra });
+  };
+
+  addSource('colorS22', 'Color S22 ExtraTrees', s22?.price, 'point');
+  addSource('colorS23', 'Color S23 monotone', s23?.price, 'guardrail');
+  addSource('colorCompEngine', 'Source-adjusted color comps', compPrice, 'support', {
+    matchType: comp?.matchType,
+    confidence: comp?.confidence,
+    support: comp?.supportComps?.length || 0,
+  });
+
+  const primary = sources.find(source => source.kind === 'colorS22')
+    || sources.find(source => source.kind === 'colorS23')
+    || sources.find(source => source.kind === 'colorCompEngine');
+  if (!primary) return null;
+
+  return {
+    price: primary.price,
+    upc: primary.price / carat,
+    method: 's27_color_champion',
+    modelName: model.modelName,
+    modelVersion: model.modelVersion,
+    primarySource: primary.label,
+    sourceAdjustment: model.sourceAdjustment,
+    metrics: model.metrics,
+    sources,
+  };
+}
+
 function parseMeasurementTriplet(measurements) {
   const nums = String(measurements || '').match(/\d+(?:\.\d+)?/g)?.map(Number) || [];
   const length = Number.isFinite(nums[0]) ? nums[0] : null;
@@ -3003,9 +3067,35 @@ function updateStarsgemPricingIntel() {
       if (s26NoteEl) s26NoteEl.textContent = 'S26 champion hybrid could not produce a prediction.';
     }
   } else if (!isWhite()) {
-    if (s26PriceEl) s26PriceEl.textContent = '—';
-    if (s26NoteEl)  s26NoteEl.textContent  = 'S26 white champion is not used for colored stones; use Color S22/S23.';
-    if (s26ModelEl) s26ModelEl.textContent  = 'S26';
+    const colorRowS27 = colorDiamondModelRowFromState(state.carat);
+    const s23ColorForS27 = _colorS23Model && colorRowS27 ? predictColorDiamondMl(colorRowS27, _colorS23Model) : null;
+    const colorCompForS27 = resolveAlibabaComp(state.carat);
+    const s27Pred = _colorS27Model && colorRowS27
+      ? predictColorS27(colorRowS27, _colorS27Model, {
+          s22Pred: colorMlPred,
+          s23Pred: s23ColorForS27,
+          compResult: colorCompForS27,
+        })
+      : null;
+    if (s27Pred && s26PriceEl) {
+      s26PriceEl.textContent = `${fmt(s27Pred.price)} color champion`;
+      if (s26ModelEl) s26ModelEl.textContent = 'S27 (Color)';
+      if (s26NoteEl) {
+        const adj = s27Pred.sourceAdjustment?.messiColorToStarsgemLikeFactor || 1.25;
+        const compText = colorCompForS27?.estimate
+          ? ` Color comp ${escapeHTML(colorCompForS27.matchType || 'support')} ${fmt(colorCompForS27.estimate)}.`
+          : ' No color comp support for this exact hue/spec.';
+        s26NoteEl.innerHTML = (
+          `<strong>${escapeHTML(colorRowS27.shape)} ${escapeHTML(colorRowS27.color)} ${escapeHTML(colorRowS27.clarity)}</strong> `
+          + `S27 uses Color S22 as the point surface, Color S23 as the monotone intensity guardrail, and source-adjusted comps as support. `
+          + `Messi color rows/comps are normalized by ÷${Number(adj).toFixed(2)} to StarGem-like factory pricing.${compText}`
+        );
+      }
+    } else {
+      if (s26PriceEl) s26PriceEl.textContent = _colorS27Model ? 'Color row unavailable' : 'Loading S27 color…';
+      if (s26NoteEl)  s26NoteEl.textContent  = 'S27 color champion model is loading.';
+      if (s26ModelEl) s26ModelEl.textContent  = 'S27';
+    }
   } else {
     if (s26PriceEl) s26PriceEl.textContent = 'Loading S26…';
     if (s26NoteEl)  s26NoteEl.textContent  = 'S26 champion hybrid is loading.';
@@ -6518,6 +6608,7 @@ loadStarsgemS26Model(); // async: S26 champion hybrid replacing the old S25 audi
 loadStarsgemS23Model(); // async: loads S23 candidate (grade-agnostic anchor + monotone LightGBM)
 loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor (ExtraTrees S22)
 loadColorS23Model();       // async: S23-style color model (LightGBM + monotone intensity)
+loadColorS27Model();       // async: S27 color champion (S22-led + S23/comp guardrails)
 update();
 
 </script>

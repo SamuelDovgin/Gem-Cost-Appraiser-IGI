@@ -23,7 +23,7 @@ S26 does not try to rescue that curve. It uses the strongest existing evidence b
 - dense StarGem lookup surface for sheet-covered white stones;
 - monotone-capped S22/S23 ML for model signal;
 - live Alibaba/StarGem comp engine for high-carat and out-of-range cases;
-- Color S22/S23 remains the colored-gem path.
+- S27 / Color S22 remains the colored-gem path; Color S23 and source-adjusted color comps are guardrails.
 
 ---
 

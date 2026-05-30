@@ -1,0 +1,607 @@
+{
+  "generatedDate": "2026-05-30",
+  "modelName": "S27 — Color champion S22-led ML/monotone/comp policy",
+  "modelVersion": "s27-color-champion-v1",
+  "targetType": "hybrid_policy",
+  "prediction": "Color S22 is the point estimate; Color S23 and source-adjusted color comps are guardrails/support unless S22 is unavailable.",
+  "scope": {
+    "whiteDiamonds": false,
+    "fancyColorDiamonds": true,
+    "notes": "White diamonds remain on S26. S27 is only for fancy-color / colored lab diamonds."
+  },
+  "sourceAdjustment": {
+    "messiColorToStarsgemLikeFactor": 1.25,
+    "starsgemDirectFactor": 1,
+    "notes": "Messi color rows and Messi color comps are divided by this factor before scoring against StarGem-like factory pricing."
+  },
+  "sourceArtifacts": {
+    "pointEstimate": "research/data/color-diamond-ml-model.json",
+    "monotoneGuardrail": "research/data/color-diamond-ml-model-s23.json",
+    "messiColorIndex": "research/data/messi-color-index.json",
+    "starsgemColorIndex": "research/data/starsgem-color-index.json",
+    "compEngine": "research/comp-engine-v3.js"
+  },
+  "policy": {
+    "pointOrder": [
+      "Color S22",
+      "Color S23",
+      "source-adjusted color comps"
+    ],
+    "sourceCaps": {
+      "colorS22": 1,
+      "colorS23": 0.35,
+      "colorCompEngine": 0.35
+    },
+    "rationale": [
+      "Color S22 has the lowest validation MAPE and exact direct-StarGem anchor fit.",
+      "Color S23 is retained for monotone intensity sanity checks.",
+      "Color comps are source-adjusted and shown as support, but current color comp MAPE is materially worse than Color S22."
+    ]
+  },
+  "metrics": {
+    "rows": {
+      "all": 1657,
+      "messiColorSourceAdjusted": 1652,
+      "directStarsgemColorAnchors": 5
+    },
+    "validation": {
+      "colorS22": {
+        "count": 161,
+        "mape": 0.03119611500315095,
+        "medianApe": 0.007749083688684375,
+        "bySource": {
+          "messi_color": {
+            "count": 161,
+            "mape": 0.03119611500315095,
+            "medianApe": 0.007749083688684375
+          }
+        },
+        "mae": 34.46880254417882,
+        "r2": 0.9587484146856895
+      },
+      "colorS23": {
+        "count": 161,
+        "mape": 0.0385562641521378,
+        "medianApe": 0.018445950790046635,
+        "bySource": {
+          "messi_color": {
+            "count": 161,
+            "mape": 0.0385562641521378,
+            "medianApe": 0.018445950790046635
+          }
+        },
+        "mae": 37.1045355591943,
+        "r2": 0.9720395497126844
+      },
+      "colorS27": {
+        "count": 161,
+        "mape": 0.03119611500315095,
+        "medianApe": 0.007749083688684375,
+        "bySource": {
+          "messi_color": {
+            "count": 161,
+            "mape": 0.03119611500315095,
+            "medianApe": 0.007749083688684375
+          }
+        },
+        "mae": 34.46880254417882,
+        "r2": 0.9587484146856895
+      },
+      "note": "S27 point policy is Color S22-led, so held-out validation point-error equals Color S22 unless S22 is unavailable."
+    },
+    "productionPolicyAllAdjustedRows": {
+      "colorS22": {
+        "n": 1657,
+        "mape": 1.754
+      },
+      "colorS23": {
+        "n": 1657,
+        "mape": 1.8076
+      },
+      "colorCompEngine": {
+        "n": 1656,
+        "mape": 8.9625
+      },
+      "colorS27": {
+        "n": 1657,
+        "mape": 1.754
+      }
+    },
+    "directStarsgemAnchors": {
+      "colorS22": {
+        "n": 5,
+        "mape": 0
+      },
+      "colorS23": {
+        "n": 5,
+        "mape": 0.2294
+      },
+      "colorCompEngine": {
+        "n": 5,
+        "mape": 17.0189
+      },
+      "colorS27": {
+        "n": 5,
+        "mape": 0
+      }
+    },
+    "compCoverage": {
+      "predicted": 1656,
+      "total": 1657,
+      "exactOrNearest": 1656,
+      "none": 1
+    },
+    "byHue": {
+      "blue": {
+        "n": 282,
+        "colorS22": {
+          "n": 282,
+          "mape": 1.6221
+        },
+        "colorS23": {
+          "n": 282,
+          "mape": 1.9308
+        },
+        "colorCompEngine": {
+          "n": 282,
+          "mape": 5.355
+        },
+        "colorS27": {
+          "n": 282,
+          "mape": 1.6221
+        }
+      },
+      "brown": {
+        "n": 111,
+        "colorS22": {
+          "n": 111,
+          "mape": 0.0147
+        },
+        "colorS23": {
+          "n": 111,
+          "mape": 1.5603
+        },
+        "colorCompEngine": {
+          "n": 111,
+          "mape": 33.5403
+        },
+        "colorS27": {
+          "n": 111,
+          "mape": 0.0147
+        }
+      },
+      "green": {
+        "n": 114,
+        "colorS22": {
+          "n": 114,
+          "mape": 4.5906
+        },
+        "colorS23": {
+          "n": 114,
+          "mape": 3.5694
+        },
+        "colorCompEngine": {
+          "n": 114,
+          "mape": 6.2106
+        },
+        "colorS27": {
+          "n": 114,
+          "mape": 4.5906
+        }
+      },
+      "orange": {
+        "n": 1,
+        "colorS22": {
+          "n": 1,
+          "mape": 7.7176
+        },
+        "colorS23": {
+          "n": 1,
+          "mape": 5.6221
+        },
+        "colorS27": {
+          "n": 1,
+          "mape": 7.7176
+        }
+      },
+      "pink": {
+        "n": 438,
+        "colorS22": {
+          "n": 438,
+          "mape": 1.355
+        },
+        "colorS23": {
+          "n": 438,
+          "mape": 1.4967
+        },
+        "colorCompEngine": {
+          "n": 438,
+          "mape": 6.9703
+        },
+        "colorS27": {
+          "n": 438,
+          "mape": 1.355
+        }
+      },
+      "red": {
+        "n": 73,
+        "colorS22": {
+          "n": 73,
+          "mape": 1.7211
+        },
+        "colorS23": {
+          "n": 73,
+          "mape": 1.4458
+        },
+        "colorCompEngine": {
+          "n": 73,
+          "mape": 5.3003
+        },
+        "colorS27": {
+          "n": 73,
+          "mape": 1.7211
+        }
+      },
+      "yellow": {
+        "n": 638,
+        "colorS22": {
+          "n": 638,
+          "mape": 1.8764
+        },
+        "colorS23": {
+          "n": 638,
+          "mape": 1.7302
+        },
+        "colorCompEngine": {
+          "n": 638,
+          "mape": 8.5593
+        },
+        "colorS27": {
+          "n": 638,
+          "mape": 1.8764
+        }
+      }
+    },
+    "byColorKey": {
+      "blue_f": {
+        "n": 149,
+        "colorS22": {
+          "n": 149,
+          "mape": 1.4126
+        },
+        "colorS23": {
+          "n": 149,
+          "mape": 2.3902
+        },
+        "colorCompEngine": {
+          "n": 149,
+          "mape": 6.841
+        },
+        "colorS27": {
+          "n": 149,
+          "mape": 1.4126
+        }
+      },
+      "blue_fi": {
+        "n": 94,
+        "colorS22": {
+          "n": 94,
+          "mape": 1.7583
+        },
+        "colorS23": {
+          "n": 94,
+          "mape": 1.3698
+        },
+        "colorCompEngine": {
+          "n": 94,
+          "mape": 4.3459
+        },
+        "colorS27": {
+          "n": 94,
+          "mape": 1.7583
+        }
+      },
+      "blue_fl": {
+        "n": 5,
+        "colorS22": {
+          "n": 5,
+          "mape": 3.1753
+        },
+        "colorS23": {
+          "n": 5,
+          "mape": 1.0365
+        },
+        "colorCompEngine": {
+          "n": 5,
+          "mape": 4.4274
+        },
+        "colorS27": {
+          "n": 5,
+          "mape": 3.1753
+        }
+      },
+      "blue_fv": {
+        "n": 34,
+        "colorS22": {
+          "n": 34,
+          "mape": 1.9356
+        },
+        "colorS23": {
+          "n": 34,
+          "mape": 1.6001
+        },
+        "colorCompEngine": {
+          "n": 34,
+          "mape": 1.7697
+        },
+        "colorS27": {
+          "n": 34,
+          "mape": 1.9356
+        }
+      },
+      "brown_f": {
+        "n": 111,
+        "colorS22": {
+          "n": 111,
+          "mape": 0.0147
+        },
+        "colorS23": {
+          "n": 111,
+          "mape": 1.5603
+        },
+        "colorCompEngine": {
+          "n": 111,
+          "mape": 33.5403
+        },
+        "colorS27": {
+          "n": 111,
+          "mape": 0.0147
+        }
+      },
+      "green_f": {
+        "n": 76,
+        "colorS22": {
+          "n": 76,
+          "mape": 4.8361
+        },
+        "colorS23": {
+          "n": 76,
+          "mape": 4.3182
+        },
+        "colorCompEngine": {
+          "n": 76,
+          "mape": 7.3016
+        },
+        "colorS27": {
+          "n": 76,
+          "mape": 4.8361
+        }
+      },
+      "green_fi": {
+        "n": 33,
+        "colorS22": {
+          "n": 33,
+          "mape": 4.604
+        },
+        "colorS23": {
+          "n": 33,
+          "mape": 2.2885
+        },
+        "colorCompEngine": {
+          "n": 33,
+          "mape": 4.5812
+        },
+        "colorS27": {
+          "n": 33,
+          "mape": 4.604
+        }
+      },
+      "green_fv": {
+        "n": 5,
+        "colorS22": {
+          "n": 5,
+          "mape": 0.7711
+        },
+        "colorS23": {
+          "n": 5,
+          "mape": 0.6426
+        },
+        "colorCompEngine": {
+          "n": 5,
+          "mape": 0.383
+        },
+        "colorS27": {
+          "n": 5,
+          "mape": 0.7711
+        }
+      },
+      "orange_f": {
+        "n": 1,
+        "colorS22": {
+          "n": 1,
+          "mape": 7.7176
+        },
+        "colorS23": {
+          "n": 1,
+          "mape": 5.6221
+        },
+        "colorS27": {
+          "n": 1,
+          "mape": 7.7176
+        }
+      },
+      "pink_f": {
+        "n": 132,
+        "colorS22": {
+          "n": 132,
+          "mape": 0.8234
+        },
+        "colorS23": {
+          "n": 132,
+          "mape": 1.6659
+        },
+        "colorCompEngine": {
+          "n": 132,
+          "mape": 15.3541
+        },
+        "colorS27": {
+          "n": 132,
+          "mape": 0.8234
+        }
+      },
+      "pink_fi": {
+        "n": 93,
+        "colorS22": {
+          "n": 93,
+          "mape": 1.67
+        },
+        "colorS23": {
+          "n": 93,
+          "mape": 1.7202
+        },
+        "colorCompEngine": {
+          "n": 93,
+          "mape": 3.2417
+        },
+        "colorS27": {
+          "n": 93,
+          "mape": 1.67
+        }
+      },
+      "pink_fl": {
+        "n": 3,
+        "colorS22": {
+          "n": 3,
+          "mape": 0.5124
+        },
+        "colorS23": {
+          "n": 3,
+          "mape": 0.0649
+        },
+        "colorCompEngine": {
+          "n": 3,
+          "mape": 0.7702
+        },
+        "colorS27": {
+          "n": 3,
+          "mape": 0.5124
+        }
+      },
+      "pink_fv": {
+        "n": 210,
+        "colorS22": {
+          "n": 210,
+          "mape": 1.5617
+        },
+        "colorS23": {
+          "n": 210,
+          "mape": 1.3118
+        },
+        "colorCompEngine": {
+          "n": 210,
+          "mape": 3.4403
+        },
+        "colorS27": {
+          "n": 210,
+          "mape": 1.5617
+        }
+      },
+      "red_f": {
+        "n": 72,
+        "colorS22": {
+          "n": 72,
+          "mape": 1.5115
+        },
+        "colorS23": {
+          "n": 72,
+          "mape": 1.3827
+        },
+        "colorCompEngine": {
+          "n": 72,
+          "mape": 5.3705
+        },
+        "colorS27": {
+          "n": 72,
+          "mape": 1.5115
+        }
+      },
+      "red_fv": {
+        "n": 1,
+        "colorS22": {
+          "n": 1,
+          "mape": 16.8089
+        },
+        "colorS23": {
+          "n": 1,
+          "mape": 5.9852
+        },
+        "colorCompEngine": {
+          "n": 1,
+          "mape": 0.2484
+        },
+        "colorS27": {
+          "n": 1,
+          "mape": 16.8089
+        }
+      },
+      "yellow_f": {
+        "n": 49,
+        "colorS22": {
+          "n": 49,
+          "mape": 4.6582
+        },
+        "colorS23": {
+          "n": 49,
+          "mape": 2.9894
+        },
+        "colorCompEngine": {
+          "n": 49,
+          "mape": 1.6767
+        },
+        "colorS27": {
+          "n": 49,
+          "mape": 4.6582
+        }
+      },
+      "yellow_fi": {
+        "n": 197,
+        "colorS22": {
+          "n": 197,
+          "mape": 2.9392
+        },
+        "colorS23": {
+          "n": 197,
+          "mape": 2.4644
+        },
+        "colorCompEngine": {
+          "n": 197,
+          "mape": 5.2005
+        },
+        "colorS27": {
+          "n": 197,
+          "mape": 2.9392
+        }
+      },
+      "yellow_fv": {
+        "n": 392,
+        "colorS22": {
+          "n": 392,
+          "mape": 0.9946
+        },
+        "colorS23": {
+          "n": 392,
+          "mape": 1.2039
+        },
+        "colorCompEngine": {
+          "n": 392,
+          "mape": 11.1076
+        },
+        "colorS27": {
+          "n": 392,
+          "mape": 0.9946
+        }
+      }
+    },
+    "caveat": "The all-row S27 score is a production-policy benchmark over source-adjusted rows. Color S22/S23 validation metrics remain the cleaner holdout comparison."
+  }
+}
