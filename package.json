@@ -6,6 +6,8 @@
   "scripts": {
     "test:engine": "node research/scripts/test-comp-engine-v3.mjs",
     "test:color-model": "node research/scripts/color-diamond-model.test.mjs",
+    "test:white-ml-display": "node research/scripts/white-ml-display-monotonicity.test.mjs",
+    "test:s26": "node research/scripts/s26-champion.test.mjs",
     "test:igi-browser-parser": "node research/scripts/test-igi-browser-parser.mjs",
     "test:r0-contracts": "node research/scripts/validate-r0-contracts.mjs",
     "test:r0-reconciler": "node research/scripts/reconcile-price.test.mjs",
@@ -18,8 +20,9 @@
     "research:ml-monotonicity": "node research/scripts/analyze-ml-grade-monotonicity.mjs",
     "research:ml-atlas": "node research/scripts/build-ml-sample-atlas.mjs",
     "research:compare-s20-s21": "node research/scripts/compare-s20-s21.mjs && python3 research/scripts/compare-s20-s21.py",
+    "research:train-s26": "node research/scripts/train-s26-champion.mjs",
     "research:ml-gate": "node research/scripts/ml-regression-gate.mjs",
-    "test": "npm run test:r0-contracts && npm run test:r0-reconciler && npm run test:r0-waterfall && npm run test:r0-calibration && npm run test:r0-reconciled-calibration && npm run test:r0-backtest-reconciler && npm run test:igi-browser-parser && npm run test:engine && npm run test:color-model && npm run test:parity && npm run research:ml-gate",
+    "test": "npm run test:r0-contracts && npm run test:r0-reconciler && npm run test:r0-waterfall && npm run test:r0-calibration && npm run test:r0-reconciled-calibration && npm run test:r0-backtest-reconciler && npm run test:igi-browser-parser && npm run test:engine && npm run test:color-model && npm run test:white-ml-display && npm run test:s26 && npm run test:parity && npm run research:ml-gate",
     "serve": "python3 -m http.server 8765"
   },
   "engines": {

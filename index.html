@@ -759,11 +759,11 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         </div>
         <div class="ml-model-compare-col ml-model-compare-col--s25">
           <div class="ml-compare-head">
-            <div class="ml-compare-label">Parametric — extrapolation-safe</div>
-            <div class="intel-pill" id="starsgem-s25-model">S25</div>
+            <div class="ml-compare-label">Champion hybrid</div>
+            <div class="intel-pill" id="starsgem-s26-model">S26</div>
           </div>
-          <div class="intel-formula" id="starsgem-s25-price">Loading…</div>
-          <div class="intel-sub" id="starsgem-s25-note">Loading S25 model…</div>
+          <div class="intel-formula" id="starsgem-s26-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-s26-note">Loading S26 model…</div>
         </div>
       </div>
     </div>
@@ -975,8 +975,8 @@ let _starsgemMlModel = null;
 let _starsgemMlModelPromise = null;
 let _starsgemMlS21Model = null;
 let _starsgemMlS21ModelPromise = null;
-let _starsgemMlS25Model = null;
-let _starsgemMlS25ModelPromise = null;
+let _starsgemMlS26Model = null;
+let _starsgemMlS26ModelPromise = null;
 let _starsgemS23Model = null;
 let _starsgemS23ModelPromise = null;
 let _colorDiamondMlModel = null;
@@ -1120,81 +1120,143 @@ async function loadStarsgemS21Model() {
   return _starsgemMlS21ModelPromise;
 }
 
-async function loadStarsgemS25Model() {
-  if (_starsgemMlS25Model) return _starsgemMlS25Model;
-  if (_starsgemMlS25ModelPromise) return _starsgemMlS25ModelPromise;
-  // S25: Hierarchical Parametric Power-Law. Uses global β from rounds + per-spec
-  // intercepts with shrinkage. Extrapolation-safe: 100% coverage, no global sentinel.
-  _starsgemMlS25ModelPromise = fetch('research/data/starsgem-ml-model-s25-parametric.json?v=20260530-s25-v1.2')
+async function loadStarsgemS26Model() {
+  if (_starsgemMlS26Model) return _starsgemMlS26Model;
+  if (_starsgemMlS26ModelPromise) return _starsgemMlS26ModelPromise;
+  // S26: champion hybrid policy. Dense StarGem lookup is the primary anchor;
+  // monotone-capped ML and live comps are blended when support is sparse or
+  // carat is far outside the local sheet surface.
+  _starsgemMlS26ModelPromise = fetch('research/data/starsgem-ml-model-s26-champion.json?v=20260530-s26-v1')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
     })
     .then(data => {
-      _starsgemMlS25Model = data;
+      _starsgemMlS26Model = data;
       updateStarsgemPricingIntel();
       return data;
     })
     .catch(err => {
-      console.warn('StarGem S25 parametric model unavailable.', err);
+      console.warn('StarGem S26 champion model unavailable.', err);
       return null;
     });
-  return _starsgemMlS25ModelPromise;
+  return _starsgemMlS26ModelPromise;
 }
 
-function predictS25(row, model) {
-  if (!model) return null;
-  try {
-    const shape   = (row.Shape || '').toUpperCase();
-    const color   = (row.Color || '').toUpperCase();
-    const clarity = starsgemNorm(row.Clarity) || row.Clarity || '';
-    const carat   = parseFloat(row.Carat) || 0;
-    const cutRaw  = (row.Cut || '-').toUpperCase();
-    if (carat <= 0) return null;
+function s26LookupSigma(model, lookupPred) {
+  const p = model?.policy?.lookupSigma || {};
+  if (!lookupPred) return p.global ?? 0.45;
+  const fields = lookupPred.fields || [];
+  if (lookupPred.level === 'GLOBAL') return p.global ?? 0.45;
+  if (!fields.includes('Shape')) return p.shapeDropped ?? 0.34;
+  if (!fields.includes('Color') || !fields.includes('Clarity')) return p.gradeDropped ?? 0.24;
+  const count = Number(lookupPred.count ?? lookupPred.lookupCount ?? 0);
+  if (count >= 50) return p.exactDense ?? 0.08;
+  if (count >= 10) return p.exactMedium ?? 0.12;
+  return p.exactSparse ?? 0.18;
+}
 
-    // Ordinal encodings from model (fall back to defaults if missing).
-    const colorRankMap   = model.colorRank   || {D:0,E:1,F:2,G:3,H:4,I:5,J:6,K:7};
-    const clarityRankMap = model.clarityRank || {IF:0,VVS1:1,VVS:1.5,VVS2:2,VS1:3,VS:3.5,VS2:4,SI1:5,SI2:6};
-    const colorRank   = colorRankMap[color]   ?? 3;    // default G if unknown
-    const clarityRank = clarityRankMap[clarity] ?? 3.5; // default VS if unknown
-
-    // Normalize cut key.
-    let cutKey = '-';
-    if (/^(ID|IDEAL)$/.test(cutRaw)) cutKey = 'ID';
-    else if (/^(EX|EXCELLENT)$/.test(cutRaw)) cutKey = 'EX';
-    else if (/^(VG|VERY.GOOD)$/.test(cutRaw)) cutKey = 'VG';
-    else if (/^(G|GD|GOOD)$/.test(cutRaw)) cutKey = 'G';
-    else if (/^FAIR$/.test(cutRaw)) cutKey = 'FAIR';
-
-    const beta       = model.betaGlobal ?? -0.12;
-    const dColor     = model.deltaColor   ?? 0;
-    const dClarity   = model.deltaClarity ?? -0.06;
-    const specKey    = `${shape}||${color}||${clarity}`;
-    const shapeBl    = model.shapeBaseline?.[shape] ?? model.shapeBaseline?.['_global'] ?? 4.88;
-    const specEps    = model.specEps?.[specKey] ?? 0;
-    const cutAdj     = model.cutAdj?.[cutKey] ?? 0;
-    const specCount  = model.specCount?.[specKey] ?? 0;
-    const hasSpec    = specEps !== 0 || specCount > 0;
-
-    const logUpc  = shapeBl + specEps + beta * Math.log(carat)
-                    + dColor * colorRank + dClarity * clarityRank + cutAdj;
-    const upc     = Math.exp(logUpc);
-    const price   = upc * carat;
-
-    return {
-      price,
-      upc,
-      shapeBl,
-      specEps,
-      beta,
-      specKey,
-      specCount,
-      coverage: hasSpec ? 'spec' : 'gradient',
-    };
-  } catch (e) {
-    console.warn('predictS25 error', e);
-    return null;
+function s26CompSigma(model, compResult) {
+  const p = model?.policy?.compSigma || {};
+  if (!compResult || !Number.isFinite(compResult.estimate)) return null;
+  let sigma = compResult.matchType === 'exact'
+    ? (p.exact ?? 0.12)
+    : compResult.confidence === 'high'
+      ? (p.high ?? 0.18)
+      : compResult.confidence === 'medium'
+        ? (p.medium ?? 0.26)
+        : (p.low ?? 0.38);
+  if ((compResult.warnings || []).some(w => /extrapolation uncertainty is high/i.test(w))) {
+    sigma = Math.max(sigma, p.extrapolated ?? 0.48);
   }
+  return sigma;
+}
+
+function s26CappedWeights(sources, caps) {
+  const rawSum = sources.reduce((sum, s) => sum + s.rawWeight, 0) || 1;
+  const weights = sources.map(s => s.rawWeight / rawSum);
+  const locked = new Set();
+  for (let pass = 0; pass < sources.length; pass++) {
+    let changed = false;
+    for (let i = 0; i < sources.length; i++) {
+      const cap = caps[sources[i].kind] ?? 1;
+      if (!locked.has(i) && weights[i] > cap) {
+        weights[i] = cap;
+        locked.add(i);
+        changed = true;
+      }
+    }
+    if (!changed) break;
+    const lockedSum = [...locked].reduce((sum, i) => sum + weights[i], 0);
+    const free = sources.map((_, i) => i).filter(i => !locked.has(i));
+    const freeRaw = free.reduce((sum, i) => sum + sources[i].rawWeight, 0);
+    for (const i of free) {
+      weights[i] = freeRaw > 0 ? (1 - lockedSum) * sources[i].rawWeight / freeRaw : (1 - lockedSum) / Math.max(free.length, 1);
+    }
+  }
+  return weights;
+}
+
+function predictS26(row, model, context = {}) {
+  if (!model) return null;
+  const carat = Number(row?.Carat ?? row?.carat);
+  if (!Number.isFinite(carat) || carat <= 0) return null;
+  const sources = [];
+  const addSource = (kind, label, price, sigma, extra = {}) => {
+    if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(sigma) || sigma <= 0) return;
+    sources.push({ kind, label, price, sigma, rawWeight: 1 / (sigma * sigma), ...extra });
+  };
+
+  const lookupPred = context.lookupPred || predictStarsgemLookup(row);
+  if (lookupPred?.price > 0) {
+    addSource('lookup', 'StarGem lookup', lookupPred.price, s26LookupSigma(model, lookupPred), {
+      level: lookupPred.level,
+      count: lookupPred.count,
+      fields: lookupPred.fields || [],
+    });
+  }
+
+  const mlSigma = model.policy?.mlSigma ?? 0.22;
+  const cappedMlSigma = model.policy?.mlClarityCappedSigma ?? 0.26;
+  if (context.mlPred?.price > 0) {
+    addSource('ml', 'S22 monotone-capped ML', context.mlPred.price, context.mlPred._clarityCeilingApplied ? cappedMlSigma : mlSigma);
+  }
+  if (context.s23Pred?.price > 0) {
+    addSource('ml', 'S23 monotone-capped ML', context.s23Pred.price, context.s23Pred._clarityCeilingApplied ? cappedMlSigma : mlSigma);
+  }
+
+  const compResult = context.compResult;
+  const compSigma = s26CompSigma(model, compResult);
+  if (compResult?.estimate > 0 && compSigma) {
+    addSource('comp', 'Alibaba/StarGem comp engine', compResult.estimate, compSigma, {
+      matchType: compResult.matchType,
+      confidence: compResult.confidence,
+    });
+  }
+
+  if (!sources.length) return null;
+  const weights = s26CappedWeights(sources, model.policy?.sourceCaps || {});
+  let logPrice = 0;
+  let variance = 0;
+  for (let i = 0; i < sources.length; i++) {
+    sources[i].weight = weights[i];
+    logPrice += weights[i] * Math.log(sources[i].price);
+    variance += weights[i] * weights[i] * sources[i].sigma * sources[i].sigma;
+  }
+  const price = Math.exp(logPrice);
+  const sigmaLog = Math.sqrt(Math.max(variance, 0.0001));
+  const primary = sources.slice().sort((a, b) => b.weight - a.weight)[0];
+  const confidence = sigmaLog <= 0.16 ? 'high' : sigmaLog <= 0.28 ? 'medium' : 'low';
+  return {
+    price,
+    upc: price / carat,
+    sigmaLog,
+    confidence,
+    primarySource: primary?.label || 'hybrid',
+    sources,
+    low: Math.exp(logPrice - 1.28 * sigmaLog),
+    high: Math.exp(logPrice + 1.28 * sigmaLog),
+  };
 }
 
 async function loadStarsgemS23Model() {
@@ -2664,6 +2726,54 @@ function predictStarsgemMlMonotone(row) {
   return raw ? { ...raw, price: perCt * carat, perCt } : null;
 }
 
+function predictStarsgemMlWithCoverageFallback(row, model) {
+  const baseModel = model || _starsgemMlModel;
+  let pred = predictStarsgemMl(row, baseModel);
+  let usedS21Fallback = false;
+  if (isWhite() && pred && isEffectivelyGlobalLookup(pred) && _starsgemMlS21Model) {
+    const s21Pred = predictStarsgemMl(row, _starsgemMlS21Model);
+    if (s21Pred && (s21Pred.lookupCount ?? 0) > (pred.lookupCount ?? 0) && s21Pred.price > pred.price) {
+      pred = s21Pred;
+      usedS21Fallback = true;
+    }
+  }
+  return { pred, usedS21Fallback };
+}
+
+function applyClarityMonotoneCeiling(row, model, selectedPred) {
+  if (!selectedPred || !isWhite()) return selectedPred;
+  const carat = Number(row.Carat ?? row.carat);
+  const selectedIdx = _CLARITY_ORDER_ML.indexOf(starsgemNorm(row.Clarity));
+  if (!Number.isFinite(carat) || carat <= 0 || selectedIdx < 0) return selectedPred;
+
+  let ceiling = Infinity;
+  let ceilingClarity = null;
+  let selectedCeiling = null;
+  for (const clarity of _CLARITY_ORDER_ML) {
+    const { pred } = predictStarsgemMlWithCoverageFallback({ ...row, Clarity: clarity }, model);
+    if (!pred || !Number.isFinite(pred.price) || pred.price <= 0) continue;
+    const rawPrice = pred.price;
+    const cappedPrice = Math.min(rawPrice, ceiling);
+    if (clarity === starsgemNorm(row.Clarity)) {
+      selectedCeiling = { cappedPrice, rawPrice, ceilingClarity };
+      break;
+    }
+    if (cappedPrice < ceiling) {
+      ceiling = cappedPrice;
+      ceilingClarity = clarity;
+    }
+  }
+
+  if (!selectedCeiling || selectedCeiling.cappedPrice >= selectedCeiling.rawPrice - 1) return selectedPred;
+  return {
+    ...selectedPred,
+    price: selectedCeiling.cappedPrice,
+    _clarityCeilingApplied: true,
+    _rawBeforeClarityCeiling: selectedCeiling.rawPrice,
+    _clarityCeilingFrom: selectedCeiling.ceilingClarity,
+  };
+}
+
 function starsgemCompareSummary(mlPred, lookupPred) {
   if (!mlPred || !lookupPred || !Number.isFinite(mlPred.price) || !Number.isFinite(lookupPred.price)) return null;
   const ml = mlPred.price;
@@ -2705,29 +2815,12 @@ function updateStarsgemPricingIntel() {
   const row = starsgemLookupRowFromState(state.carat);
   const colorRow = !isWhite() ? colorDiamondModelRowFromState(state.carat) : null;
   const colorMlPred = colorRow ? predictColorDiamondMl(colorRow) : null;
-  // P0 (S22): Price card uses raw point estimate — predictStarsgemMl — NOT predictStarsgemMlMonotone.
-  // PAV projection is intentionally limited to the clarity/color ladder display (getMlPredictionForReconciler).
-  // Using the monotone path here costs ~+5 pp MAPE because PAV averages adjacent cells,
-  // which systematically biases a single high-clarity stone toward lower-clarity neighbours.
-  // Exception: IF clarity gets a targeted floor — StarGem stocks almost no IF stones so the raw lookup
-  // falls back to a global anchor (G·n≈2556) and the raw model inherits the sparse/wrong signal.
-  // If raw IF < raw VVS1 (a monotonicity violation) clamp to VVS1 × getClarityMult(IF)/getClarityMult(VVS1).
-  let mlPred = colorMlPred || predictStarsgemMl(row);
   // S20 coverage gap: S20 was trained on 198 samples and has no lookup data for many large-carat
-  // specialty specs (e.g. 5ct+ hearts — only 5 heart keys, all 1–1.49ct). When S20 falls through
-  // to a global lookup (lookupLevel 'GLOBAL'), its prediction can be ~10× below reality.
-  // In those cases, substitute S21 (LightGBM monotone, 792 samples, 242 5ct+ Level-A keys) which
-  // correctly handles the missing specs.
-  let _s22UsedS21Fallback = false;
-  if (isWhite() && !colorMlPred && mlPred && isEffectivelyGlobalLookup(mlPred) && _starsgemMlS21Model) {
-    const s21Pred = predictStarsgemMl(row, _starsgemMlS21Model);
-    // Use S21 when it has more lookup support than S20 and produces a higher (more credible) price.
-    // We don't require S21 to be non-global — even a sparse S21 cell beats S20's global rate.
-    if (s21Pred && (s21Pred.lookupCount ?? 0) > (mlPred.lookupCount ?? 0) && s21Pred.price > mlPred.price) {
-      mlPred = s21Pred;
-      _s22UsedS21Fallback = true;
-    }
-  }
+  // specialty specs. When S20 falls through to a global/sparse lookup, substitute S21. Then apply
+  // a final clarity ceiling so a worse grade can never display above the nearest better grade.
+  const s22WithFallback = colorMlPred ? { pred: colorMlPred, usedS21Fallback: false } : predictStarsgemMlWithCoverageFallback(row, _starsgemMlModel);
+  let mlPred = colorMlPred || applyClarityMonotoneCeiling(row, _starsgemMlModel, s22WithFallback.pred);
+  let _s22UsedS21Fallback = s22WithFallback.usedS21Fallback;
   if (isWhite() && !colorMlPred && mlPred && state.clarity === 'IF') {
     const vvs1Pred = predictStarsgemMl({ ...row, Clarity: 'VVS1' });
     if (vvs1Pred && vvs1Pred.price > mlPred.price) {
@@ -2753,10 +2846,13 @@ function updateStarsgemPricingIntel() {
         const ifFloorNote = mlPred._ifClampedFromVvs1
           ? ' IF has no StarGem stock at this carat range — raw model prediction was below VVS1; floored to VVS1 × clarity-mult ratio.'
           : '';
+        const clarityCeilingNote = mlPred._clarityCeilingApplied
+          ? ` Clarity monotone ceiling applied: raw ${fmt(Math.round(mlPred._rawBeforeClarityCeiling))} was above ${escapeHTML(mlPred._clarityCeilingFrom || 'better clarity')}; displayed value capped so worse grades never exceed better grades.`
+          : '';
         const s21FallbackNote = _s22UsedS21Fallback
           ? ' S20 (ExtraTrees) had no lookup coverage at this spec — S21 (LightGBM, 792 samples) used as fallback base.'
           : '';
-        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ExtraTrees model prediction, S22 (${dims}).${tailNote}${ifFloorNote}${s21FallbackNote}`;
+        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ExtraTrees model prediction, S22 (${dims}).${tailNote}${ifFloorNote}${clarityCeilingNote}${s21FallbackNote}`;
       }
     }
   } else if (mlPriceEl) {
@@ -2801,18 +2897,13 @@ function updateStarsgemPricingIntel() {
   const s23NoteEl  = document.getElementById('starsgem-s23-note');
   const s23ModelEl = document.getElementById('starsgem-s23-model');
   const deltaEl    = document.getElementById('ml-compare-delta');
+  let s23PredForS26 = null;
 
   if (isWhite() && _starsgemS23Model) {
-    let s23Pred = predictStarsgemMl(row, _starsgemS23Model);
-    // S23 has the same large-carat specialty coverage gap as S20. Fall back to S21 when global.
-    let _s23UsedS21Fallback = false;
-    if (s23Pred && isEffectivelyGlobalLookup(s23Pred) && _starsgemMlS21Model) {
-      const s21Pred = predictStarsgemMl(row, _starsgemMlS21Model);
-      if (s21Pred && (s21Pred.lookupCount ?? 0) > (s23Pred.lookupCount ?? 0) && s21Pred.price > s23Pred.price) {
-        s23Pred = s21Pred;
-        _s23UsedS21Fallback = true;
-      }
-    }
+    const s23WithFallback = predictStarsgemMlWithCoverageFallback(row, _starsgemS23Model);
+    let s23Pred = applyClarityMonotoneCeiling(row, _starsgemS23Model, s23WithFallback.pred);
+    let _s23UsedS21Fallback = s23WithFallback.usedS21Fallback;
+    s23PredForS26 = s23Pred;
     if (s23Pred && s23PriceEl) {
       s23PriceEl.textContent = `${fmt(s23Pred.price)} ML model`;
       if (s23ModelEl) s23ModelEl.textContent = 'S23 (LightGBM monotone)';
@@ -2824,7 +2915,10 @@ function updateStarsgemPricingIntel() {
         const s23FallbackNote = _s23UsedS21Fallback
           ? ' S23 had no anchor coverage at this spec — S21 (LightGBM, 792 samples) used as fallback base.'
           : '';
-        s23NoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> grade-agnostic anchor + monotone LightGBM residual (${dims}). Formally monotone — 0 inversions on 1728-cell sweep.${tailNote}${s23FallbackNote}`;
+        const clarityCeilingNote = s23Pred._clarityCeilingApplied
+          ? ` Clarity monotone ceiling applied: raw ${fmt(Math.round(s23Pred._rawBeforeClarityCeiling))} was above ${escapeHTML(s23Pred._clarityCeilingFrom || 'better clarity')}; displayed value capped so worse grades never exceed better grades.`
+          : '';
+        s23NoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> grade-agnostic anchor + monotone LightGBM residual (${dims}). Formally monotone display after fallback — worse clarity never exceeds better clarity.${tailNote}${clarityCeilingNote}${s23FallbackNote}`;
       }
       // Delta vs S22
       if (deltaEl && mlPred && mlPred.price) {
@@ -2867,40 +2961,54 @@ function updateStarsgemPricingIntel() {
     if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
   }
 
-  // ── S25 parametric panel ─────────────────────────────────────────────────
-  const s25PriceEl = document.getElementById('starsgem-s25-price');
-  const s25NoteEl  = document.getElementById('starsgem-s25-note');
-  const s25ModelEl = document.getElementById('starsgem-s25-model');
+  // ── S26 champion hybrid panel ────────────────────────────────────────────
+  const s26PriceEl = document.getElementById('starsgem-s26-price');
+  const s26NoteEl  = document.getElementById('starsgem-s26-note');
+  const s26ModelEl = document.getElementById('starsgem-s26-model');
 
-  if (isWhite() && _starsgemMlS25Model) {
-    const s25Pred = predictS25(row, _starsgemMlS25Model);
-    if (s25Pred && s25PriceEl) {
-      s25PriceEl.textContent = `${fmt(s25Pred.price)} parametric`;
-      if (s25ModelEl) s25ModelEl.textContent = 'S25 (Parametric)';
-      if (s25NoteEl) {
-        const betaStr  = s25Pred.beta.toFixed(3);
-        const covStr   = s25Pred.coverage === 'spec'
-          ? `spec observed (n=${s25Pred.specCount})`
-          : 'gradient-only (no spec data — uses color/clarity gradients)';
-        const upcStr   = `$${Math.round(s25Pred.upc)}/ct`;
-        s25NoteEl.innerHTML = (
+  if (isWhite() && _starsgemMlS26Model) {
+    const s26CompResult = resolveAlibabaComp(state.carat);
+    const s26Pred = predictS26(row, _starsgemMlS26Model, {
+      lookupPred: pred,
+      mlPred,
+      s23Pred: s23PredForS26,
+      compResult: s26CompResult,
+    });
+    if (s26Pred && s26PriceEl) {
+      s26PriceEl.textContent = `${fmt(s26Pred.price)} champion hybrid`;
+      if (s26ModelEl) s26ModelEl.textContent = 'S26 (Champion)';
+      if (s26NoteEl) {
+        const weights = s26Pred.sources
+          .slice()
+          .sort((a, b) => b.weight - a.weight)
+          .map(s => `${escapeHTML(s.label)} ${(s.weight * 100).toFixed(0)}%`)
+          .join(' · ');
+        const upcStr = `$${Math.round(s26Pred.upc)}/ct`;
+        const lookupSource = s26Pred.sources.find(s => s.kind === 'lookup');
+        const lookupStr = lookupSource
+          ? ` Lookup ${escapeHTML(lookupSource.level || '—')}${lookupSource.count ? `, n=${lookupSource.count}` : ''}.`
+          : '';
+        const compWarn = (s26CompResult?.warnings || []).some(w => /extrapolation uncertainty is high/i.test(w))
+          ? ' Comp support is extrapolated; S26 widens its source sigma instead of trusting it blindly.'
+          : '';
+        s26NoteEl.innerHTML = (
           `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> `
-          + `hierarchical parametric: β=${betaStr} (global from rounds), `
-          + `coverage=${covStr}. `
-          + `${upcStr}. Extrapolation-safe — 100% coverage, no global sentinel.`
+          + `S26 blends dense StarGem lookup, monotone-capped ML, and live comps in log space. `
+          + `${upcStr}; confidence ${escapeHTML(s26Pred.confidence)}.${lookupStr} `
+          + `Weights: ${weights || '—'}.${compWarn}`
         );
       }
-    } else if (s25PriceEl) {
-      s25PriceEl.textContent = 'S25 unavailable';
-      if (s25NoteEl) s25NoteEl.textContent = 'S25 parametric model could not produce a prediction.';
+    } else if (s26PriceEl) {
+      s26PriceEl.textContent = 'S26 unavailable';
+      if (s26NoteEl) s26NoteEl.textContent = 'S26 champion hybrid could not produce a prediction.';
     }
   } else if (!isWhite()) {
-    if (s25PriceEl) s25PriceEl.textContent = '—';
-    if (s25NoteEl)  s25NoteEl.textContent  = 'S25 parametric model is trained on white diamonds only.';
-    if (s25ModelEl) s25ModelEl.textContent  = 'S25';
+    if (s26PriceEl) s26PriceEl.textContent = '—';
+    if (s26NoteEl)  s26NoteEl.textContent  = 'S26 white champion is not used for colored stones; use Color S22/S23.';
+    if (s26ModelEl) s26ModelEl.textContent  = 'S26';
   } else {
-    if (s25PriceEl) s25PriceEl.textContent = 'Loading S25…';
-    if (s25NoteEl)  s25NoteEl.textContent  = 'S25 parametric model is loading.';
+    if (s26PriceEl) s26PriceEl.textContent = 'Loading S26…';
+    if (s26NoteEl)  s26NoteEl.textContent  = 'S26 champion hybrid is loading.';
   }
 }
 
@@ -6406,7 +6514,7 @@ loadAlibabaCompsIndex(); // async: triggers update() again once comps are ready
 loadStarsgemPricingIntel(); // async: exposes StarGem lookup/formula diagnostics
 loadStarsgemMlModel(); // async: loads compact browser ML price predictor (S22)
 loadStarsgemS21Model(); // async: S21 fallback for S22 when S20 hits global lookup gap
-loadStarsgemS25Model(); // async: S25 parametric power-law (extrapolation-safe, 100% coverage)
+loadStarsgemS26Model(); // async: S26 champion hybrid replacing the old S25 audit panel
 loadStarsgemS23Model(); // async: loads S23 candidate (grade-agnostic anchor + monotone LightGBM)
 loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor (ExtraTrees S22)
 loadColorS23Model();       // async: S23-style color model (LightGBM + monotone intensity)

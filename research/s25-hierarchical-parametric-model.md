@@ -128,7 +128,7 @@ SQUARE      2.53%
 HEART       4.38%
 ```
 
-S25 wins ROUND, CUSHION, ASSCHER, and SQUARE in the current comparison. S22 remains better for dense common fancy shapes, and S23 remains better for PRINCESS, EMERALD, and HEART.
+S25 was useful as a compact baseline before S26, but it is no longer the app champion. S26 now beats S25 on the current production-policy benchmark by using the deterministic StarGem lookup surface as its primary anchor, while S25 remains valuable for explaining the limits of pure parametric extrapolation.
 
 ---
 
@@ -179,6 +179,18 @@ Interpretation:
 - At 4ct+, S25 misses the specialty-heart premium because Segment A has only 13 hearts and none above 1.35ct.
 - S21 remains the better fallback for 4ct+ specialty hearts when its lookup support is available.
 
+S25 also underprices high-carat rounds outside the training range:
+
+```text
+7.77ct ROUND E VS1:
+S25      $715   ($92/ct)
+S21/S22  $1,416 ($182/ct)
+StarGem  $993   ($128/ct)
+Exact 8ct comp adjusted to 7.77ct: about $1,736 ($223/ct)
+```
+
+This example has spec coverage (`ROUND||E||VS1`, n=334), but carat is above the ROUND training max of 5.06ct. S25's per-spec residual is supported; the high-carat extrapolation is not. The app now treats this as an out-of-range parametric baseline/floor rather than a reliable candidate estimate.
+
 ---
 
 ## 8. Colored Gems Boundary
@@ -210,12 +222,13 @@ The app should keep hiding S25 for colored stones and use the color model family
 Use S25 as:
 
 - a 100%-coverage white-diamond audit baseline;
-- the best current white ROUND estimator in this benchmark;
-- a sparse-shape baseline for ASSCHER, CUSHION, and SQUARE;
+- a research comparison point against S26;
+- a sparse-shape diagnostic for ASSCHER, CUSHION, and SQUARE;
 - an explainable fallback when S22/S23 provide weak/global coverage.
 
 Do not use S25 as:
 
+- the app champion panel now that S26 is deployed;
 - the primary dense fancy-shape model where S22 is clearly better;
 - the large-specialty 4ct+ fallback when S21 has support;
 - any colored-gem pricing model.

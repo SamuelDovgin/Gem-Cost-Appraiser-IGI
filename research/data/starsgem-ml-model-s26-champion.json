@@ -1,0 +1,146 @@
+{
+  "generatedDate": "2026-05-30",
+  "modelName": "S26 — Champion hybrid lookup/ML/comp policy",
+  "modelVersion": "s26-champion-v1",
+  "targetType": "hybrid_policy",
+  "prediction": "Dense StarGem lookup anchor; browser blends lookup + monotone-capped ML + live comp evidence when available.",
+  "scope": {
+    "whiteDiamonds": true,
+    "fancyColorDiamonds": false,
+    "notes": "Fancy-color diamonds remain on Color S22/S23; S26 replaces the white S25 audit panel."
+  },
+  "sourceArtifacts": {
+    "lookup": "research/data/starsgem-pricing-intelligence.json",
+    "mlPrimary": "research/data/starsgem-ml-extra-trees-model-s20-specialty-tail.json",
+    "mlCandidate": "research/data/starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json",
+    "compEngine": "research/comp-engine-v3.js"
+  },
+  "policy": {
+    "lookupSigma": {
+      "exactDense": 0.08,
+      "exactMedium": 0.12,
+      "exactSparse": 0.18,
+      "gradeDropped": 0.24,
+      "shapeDropped": 0.34,
+      "global": 0.45
+    },
+    "mlSigma": 0.22,
+    "mlClarityCappedSigma": 0.26,
+    "compSigma": {
+      "exact": 0.12,
+      "high": 0.18,
+      "medium": 0.26,
+      "low": 0.38,
+      "extrapolated": 0.48
+    },
+    "sourceCaps": {
+      "lookup": 0.65,
+      "ml": 0.35,
+      "comp": 0.7
+    },
+    "monotonicity": [
+      "S26 consumes monotone-capped S22/S23 display predictions.",
+      "Final UI comparison keeps lower clarity from exceeding better clarity for same carat/color/shape."
+    ]
+  },
+  "metrics": {
+    "dataset": "research/data/dataset-clean-training.json",
+    "n": 12843,
+    "mape": 4.794,
+    "caveat": "White benchmark is in-sample against the StarGem lookup reconstruction; use as production policy comparison, not academic holdout.",
+    "levelCounts": {
+      "A": 12827,
+      "E": 11,
+      "B": 1,
+      "F": 2,
+      "G": 1,
+      "C": 1
+    },
+    "perShapeMape": {
+      "ASSCHER": {
+        "n": 47,
+        "mape": 1.5768
+      },
+      "CUSHION": {
+        "n": 137,
+        "mape": 2.0189
+      },
+      "EMERALD": {
+        "n": 258,
+        "mape": 2.5509
+      },
+      "HEART": {
+        "n": 13,
+        "mape": 5.5305
+      },
+      "MARQUISE": {
+        "n": 420,
+        "mape": 2.53
+      },
+      "OVAL": {
+        "n": 746,
+        "mape": 1.6029
+      },
+      "PEAR": {
+        "n": 768,
+        "mape": 1.8578
+      },
+      "PRINCESS": {
+        "n": 352,
+        "mape": 6.6717
+      },
+      "RADIANT": {
+        "n": 370,
+        "mape": 2.6679
+      },
+      "ROUND": {
+        "n": 9701,
+        "mape": 5.5076
+      },
+      "SQUARE": {
+        "n": 31,
+        "mape": 1.2401
+      }
+    },
+    "perCaratBucketMape": {
+      "0.30-0.49": {
+        "n": 929,
+        "mape": 7.1032
+      },
+      "0.50-0.69": {
+        "n": 3567,
+        "mape": 5.8779
+      },
+      "0.70-0.89": {
+        "n": 608,
+        "mape": 4.1812
+      },
+      "0.90-0.99": {
+        "n": 5,
+        "mape": 0.0099
+      },
+      "1.00-1.49": {
+        "n": 7580,
+        "mape": 4.0268
+      },
+      "1.50-1.99": {
+        "n": 153,
+        "mape": 2.313
+      },
+      "5.00-9.99": {
+        "n": 1,
+        "mape": 584.6032
+      }
+    }
+  },
+  "pinnedCases": {
+    "7.77ct ROUND E VS1": {
+      "policy": "Blend exact/nearest comp and lookup; do not use S25 beta extrapolation.",
+      "expectedBehavior": "S26 should price above the old S25 floor and flag high-carat support."
+    },
+    "40ct ROUND E VS2/SI1": {
+      "policy": "Use comp/lookup/monotone-capped ML; SI1 must not exceed VS2.",
+      "expectedBehavior": "S26 display obeys clarity ordering after fallback."
+    }
+  }
+}

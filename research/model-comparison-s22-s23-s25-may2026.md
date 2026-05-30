@@ -1,5 +1,5 @@
-# Diamond ML Model Comparison — S22 vs S23 vs S25 + Fancy Color
-### May 30, 2026 · Updated after S25 v1.2 and colored-gem regression checks
+# Diamond ML Model Comparison — S22 vs S23 vs S25 vs S26 + Fancy Color
+### May 30, 2026 · Updated after S26 champion hybrid deployment
 
 ---
 
@@ -9,14 +9,15 @@ There is no single best model for every stone.
 
 | Segment | Best point estimate | Best guardrail | Production recommendation |
 |---|---|---|---|
-| White rounds | **S25** | S22/S23 sanity check | S25 is lowest error in-sample and interpretable; keep S22 visible because S25 is trained on this sheet. |
-| White common fancy, 0.5-2ct | **S22** | S23 monotone | S22 wins most dense fancy shapes by MAPE. |
-| White step cuts / hearts | **S23** | S21 fallback | S23 wins PRINCESS, EMERALD, HEART on this benchmark. |
-| White sparse shapes | **S25** | S22/S23 if covered | S25 wins ASSCHER, CUSHION, SQUARE because parametric pooling helps sparse cells. |
-| White large-carat specialty, 4ct+ | **S21 fallback** | S25 audit baseline | S25 underestimates 5ct+ HEART because the large-specialty premium is outside S25 training coverage. |
+| White rounds | **S26** | S22/S23 sanity check | S26 wins ROUND on the current production-policy benchmark while preserving visible ML comparison. |
+| White common fancy, 0.5-2ct | **S26** | S23 monotone | S26 wins PEAR, OVAL, MARQUISE, RADIANT, EMERALD, CUSHION, ASSCHER, and SQUARE. |
+| White step cuts / hearts | **S26 except PRINCESS/HEART watch list** | S23 monotone + S21 fallback | S23 still wins PRINCESS and HEART on this benchmark, so S26 should keep source caps and visible guardrails there. |
+| White sparse shapes | **S26** | S22/S23 if covered | S26 beats S25 on ASSCHER, CUSHION, and SQUARE by anchoring to the deterministic StarGem lookup surface. |
+| White large-carat specialty, 4ct+ | **S26 with live comps** | S21 fallback + source caps | S26 replaces the pure parametric extrapolator; high-carat output must lean on live comps and widen uncertainty when support is weak. |
+| White overall champion panel | **S26** | source caps + monotone display | S26 replaces S25 in the app; it blends lookup, monotone-capped ML, and comp evidence. |
 | Fancy-color / colored gems | **Color S22** | Color S23 monotone | Color S22 has lower validation MAPE; Color S23 is the intensity-monotone sanity check. |
 
-Bottom line: **use S22/S23/S21 dispatch for the production white price card, keep S25 as the 100%-coverage parametric audit model, and use the dedicated color-diamond model family for colored gems. Do not route colored gems through S25.**
+Bottom line: **S26 replaces S25 in the app.** Use the dedicated color-diamond model family for colored gems. Do not route colored gems through S26.
 
 ---
 
@@ -30,12 +31,17 @@ Implemented:
 - `research/scripts/benchmark-all-models.mjs` now scores S25 with the raw dataset cut value. Ungraded fancy stones remain `-`; they are not coerced to `EX`.
 - `research/scripts/benchmark-all-models.mjs` now reports the fancy-color model family.
 - Added `research/scripts/color-diamond-model.test.mjs` and `npm run test:color-model` to verify colored-gem artifacts.
+- Added `research/scripts/white-ml-display-monotonicity.test.mjs` and `npm run test:white-ml-display` for the 40ct E VS2/SI1 fallback inversion.
+- Added `research/scripts/train-s26-champion.mjs`, `research/data/starsgem-ml-model-s26-champion.json`, and `npm run test:s26`.
+- Replaced the old S25 app panel with S26 champion hybrid output.
 
 Verification:
 
 ```text
 python3 research/scripts/train-s25-parametric.py
 npm run test:color-model
+npm run test:white-ml-display
+npm run test:s26
 node research/scripts/benchmark-all-models.mjs
 ```
 
@@ -53,35 +59,36 @@ Model                         MAPE      S21 fallbacks   Remaining globals
 S22 (ExtraTrees + S21)        11.36%    186 / 12,843    786 / 12,843 (6.1%)
 S23 (LightGBM + S21)          13.56%    422 / 12,843    209 / 12,843 (1.6%)
 S25 v1.2 (Parametric)          8.26%    N/A             0 / 12,843   (0.0%)
+S26 v1 (Champion hybrid)       4.80%    N/A             0 / 12,843   (0.0%)
 ```
 
-S25 is best overall on this in-sample white benchmark, but that does not make it the safest single production model. Its biggest weakness is extrapolated large specialty shapes.
+S26 is best overall on this white benchmark. Caveat: S26's benchmark path uses the StarGem lookup reconstruction in-sample, so treat the number as a production-policy benchmark rather than a pure holdout claim.
 
 ---
 
 ## 4. White MAPE by Shape
 
 ```text
-Shape        n      S22       S23       S25 v1.2   Best model
-──────────────────────────────────────────────────────────────
-ROUND     9,701   13.85%    16.69%      7.77%     S25
-PEAR        768    3.21%     3.58%     10.07%     S22
-OVAL        746    3.88%     4.23%      7.98%     S22
-MARQUISE    420    3.74%     4.08%      6.86%     S22
-RADIANT     370    3.10%     3.41%     18.53%     S22
-PRINCESS    352    2.94%     2.86%      8.21%     S23
-EMERALD     258    4.13%     3.68%     14.29%     S23
-CUSHION     137    5.35%     4.29%      3.28%     S25
-ASSCHER      47    9.70%    15.75%      2.29%     S25
-SQUARE       31    2.56%     2.93%      2.53%     S25
-HEART        13    4.37%     2.27%      4.38%     S23
+Shape        n      S22       S23       S25 v1.2   S26 v1   Best model
+──────────────────────────────────────────────────────────────────────
+ROUND     9,701   13.85%    16.69%      7.77%      5.51%    S26
+PEAR        768    3.21%     3.58%     10.07%      1.86%    S26
+OVAL        746    3.88%     4.23%      7.98%      1.60%    S26
+MARQUISE    420    3.74%     4.08%      6.86%      2.53%    S26
+RADIANT     370    3.10%     3.41%     18.53%      2.76%    S26
+PRINCESS    352    2.94%     2.86%      8.21%      6.67%    S23
+EMERALD     258    4.13%     3.68%     14.29%      2.55%    S26
+CUSHION     137    5.35%     4.29%      3.28%      2.02%    S26
+ASSCHER      47    9.70%    15.75%      2.29%      1.58%    S26
+SQUARE       31    2.56%     2.93%      2.53%      1.24%    S26
+HEART        13    4.37%     2.27%      4.38%      5.53%    S23
 ```
 
 Pattern:
 
-- S22 remains best for dense fancy shapes such as PEAR, OVAL, MARQUISE, and RADIANT.
-- S23 remains useful where monotone grade behavior matters and wins PRINCESS, EMERALD, HEART.
-- S25 is strongest on ROUND and sparse shapes where a pooled parametric baseline beats sparse lookup behavior.
+- S26 now wins most dense fancy shapes because it uses the deterministic StarGem lookup surface as the primary anchor.
+- S23 remains useful where monotone grade behavior matters and wins PRINCESS and HEART.
+- S25 is no longer the app champion; it remains a research baseline showing why pure parametric extrapolation is risky.
 
 ---
 
@@ -117,6 +124,29 @@ Heart D VS1 extrapolation:
 ```
 
 S25 is a useful audit floor/shape baseline, but **S21 remains the better fallback for 4ct+ specialty hearts** because it contains real large-heart lookup support.
+
+High-carat round warning:
+
+```text
+7.77ct ROUND E VS1:
+S25      $715   ($92/ct)
+S21/S22  $1,416 ($182/ct)
+StarGem  $993   ($128/ct)
+Exact comp adjusted from 8ct StarGem  $1,736 ($223/ct)
+```
+
+This is beyond S25's ROUND training max of 5.06ct. The issue is not lookup coverage for the spec (`ROUND||E||VS1` has observed rows); it is carat extrapolation past the observed range with a negative global beta. The app now labels S25 as an out-of-range baseline/floor in this situation instead of calling it "extrapolation-safe."
+
+Large-carat fallback monotonicity warning:
+
+```text
+40ct ROUND E, raw S21 fallback used by both S22/S23 cards:
+VS2 raw display candidate  about $12.7k
+SI1 raw display candidate  about $31.1k  ← invalid
+SI1 capped display         about $12.7k
+```
+
+The raw fallback inversion comes from sparse high-carat tail cells. The app now applies a final display-layer clarity ceiling after S21 fallback, so lower clarity can never show above a better clarity for the same carat/color/shape.
 
 ---
 
@@ -172,19 +202,16 @@ Recommended dispatch:
 if fancy-color / colored:
   primary = Color S22 ExtraTrees
   guardrail = Color S23 monotone intensity
-else if S22/S23 hits large-carat specialty coverage gap:
-  fallback = S21 lookup/monotone model
-  audit = S25 parametric
 else:
-  primary = S22 for dense fancy shapes
-  monotone alternative = S23
-  audit / sparse-shape baseline = S25
+  champion panel = S26 lookup/ML/comp hybrid
+  production comparison = S22/S23 with S21 fallback and monotone display caps
+  parametric baseline = S25 research only
 ```
 
 For the app, the user-facing answer should be model-family aware:
 
-- White diamond: show S22, S23, and S25 where useful.
-- Colored gem: show Color S22 and Color S23; hide white StarGem lookup and white S25 as already done in `index.html`.
+- White diamond: show S22, S23, and S26.
+- Colored gem: show Color S22 and Color S23; hide white StarGem lookup and white S26 as already done for white-only models.
 
 ---
 
@@ -192,13 +219,13 @@ For the app, the user-facing answer should be model-family aware:
 
 Priority improvements:
 
-1. Build a true held-out white benchmark so S25 is not judged in-sample against S22/S23.
+1. Build a true held-out white benchmark so S26's lookup-led policy is not judged only against the StarGem sheet it reconstructs.
 2. Add an explicit dispatch test for large-specialty fallback cases such as 5.21ct HEART D VS1.
-3. Add UI use of S25 `shapeSupport` to warn when carat exceeds a shape's observed range by 2x or more.
+3. Add app-level tests for S26 high-carat comp weighting, especially 7.77ct ROUND E VS1 and 40ct ROUND E VS2/SI1.
 4. Expand direct StarGem colored anchors beyond 5 stones, especially vivid pink/blue/yellow at 3ct+.
 5. Train separate white round and fancy models for S23 so the grade-agnostic anchor does not harm ROUND.
-6. Add L/W ratio to the white S25 formula once reliable dimensions exist for Segment-A rows.
+6. Add L/W ratio to the white S26 feature context once reliable dimensions exist for Segment-A rows.
 
 ---
 
-*Generated from `benchmark-all-models.mjs`, `train-s25-parametric.py`, and `color-diamond-model.test.mjs` on 2026-05-30.*
+*Generated from `benchmark-all-models.mjs`, `train-s25-parametric.py`, `train-s26-champion.mjs`, and `color-diamond-model.test.mjs` on 2026-05-30.*

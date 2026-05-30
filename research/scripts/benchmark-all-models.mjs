@@ -32,6 +32,8 @@ const s20 = loadJson('starsgem-ml-extra-trees-model-s20-specialty-tail.json');
 const s21 = loadJson('starsgem-ml-extra-trees-model-s21-monotone.json');
 const s23 = loadJson('starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json');
 const s25 = loadJson('starsgem-ml-model-s25-parametric.json');
+const s26 = loadJson('starsgem-ml-model-s26-champion.json');
+const starsgemIntel = loadJson('starsgem-pricing-intelligence.json');
 const colorS22 = loadJson('color-diamond-ml-model.json');
 const colorS23 = loadJson('color-diamond-ml-model-s23.json');
 
@@ -112,6 +114,38 @@ function s25Prediction(row, model) {
   };
 }
 
+function s26LookupPrediction(raw, intel) {
+  const carat = Number(raw.carat);
+  if (!carat || carat <= 0) return null;
+  const normalized = {
+    carat_bucket: starsgemCaratBucket(carat),
+    Shape: (raw.shape || '').toUpperCase(),
+    Color: (raw.color || '').toUpperCase(),
+    Clarity: (raw.clarity || '').toUpperCase(),
+    TypeName: starsgemNorm(raw.typeName || '-'),
+    Report: 'IGI',
+    Cut: starsgemNorm(raw.cut_raw || '-'),
+    Polish: starsgemNorm(raw.polish || 'EX'),
+    Symmetry: starsgemNorm(raw.symmetry || 'EX'),
+  };
+  for (const table of intel.lookup?.tables || []) {
+    const key = table.fields.map(field => normalized[field] ?? '-').join('||');
+    const hit = table.groups?.[key];
+    if (hit) {
+      const price = carat * hit.rate / 170;
+      return {
+        price,
+        upc: price / carat,
+        lookupLevel: table.level,
+        lookupCount: hit.count,
+        fields: table.fields,
+      };
+    }
+  }
+  const rate = Number(intel.lookup?.globalMedianInternalRatePerCt) / 170;
+  return rate > 0 ? { price: carat * rate, upc: rate, lookupLevel: 'GLOBAL', lookupCount: 0, fields: [] } : null;
+}
+
 // ─── Load test data ───────────────────────────────────────────────────────────
 const rawData   = JSON.parse(readFileSync(path.join(DATA, 'dataset-clean-training.json'), 'utf8'));
 const allRows   = Array.isArray(rawData) ? rawData : rawData.rows ?? rawData.data ?? [];
@@ -126,6 +160,7 @@ const totals = {
   s22: { n:0, sumApe:0, s21:0, global:0 },
   s23: { n:0, sumApe:0, s21:0, global:0 },
   s25: { n:0, sumApe:0, spec:0, gradient:0 },
+  s26: { n:0, sumApe:0, global:0 },
 };
 const byShape = {};
 
@@ -182,10 +217,20 @@ for (const raw of allRows) {
     else totals.s25.gradient++;
   }
 
+  // S26 champion policy benchmark: dense StarGem lookup surface. In the app,
+  // S26 also blends monotone-capped ML and comps for sparse/high-carat cases.
+  const p26 = s26LookupPrediction(raw, starsgemIntel);
+  if (p26?.price > 0) {
+    const ape = Math.abs(p26.price - actual) / actual * 100;
+    totals.s26.n++;
+    totals.s26.sumApe += ape;
+    if (p26.lookupLevel === 'GLOBAL') totals.s26.global++;
+  }
+
   // Per-shape
   if (!byShape[shape]) {
     byShape[shape] = {
-      s22: { n:0, sumApe:0 }, s23: { n:0, sumApe:0 }, s25: { n:0, sumApe:0 },
+      s22: { n:0, sumApe:0 }, s23: { n:0, sumApe:0 }, s25: { n:0, sumApe:0 }, s26: { n:0, sumApe:0 },
       n: 0,
     };
   }
@@ -194,6 +239,7 @@ for (const raw of allRows) {
   if (p22?.price > 0) { sh.s22.n++; sh.s22.sumApe += Math.abs(p22.price - actual) / actual * 100; }
   if (p23?.price > 0) { sh.s23.n++; sh.s23.sumApe += Math.abs(p23.price - actual) / actual * 100; }
   if (p25?.price > 0) { sh.s25.n++; sh.s25.sumApe += Math.abs(p25.price - actual) / actual * 100; }
+  if (p26?.price > 0) { sh.s26.n++; sh.s26.sumApe += Math.abs(p26.price - actual) / actual * 100; }
 
   processed++;
 }
@@ -218,13 +264,17 @@ console.log(`  S25 (Parametric, 100% coverage):   ${mape(totals.s25)}%`);
 console.log(`    └─ Spec-anchored rows:            ${totals.s25.spec} / ${totals.s25.n} rows (${pct(totals.s25.spec, totals.s25.n)})`);
 console.log(`    └─ Gradient-only rows:            ${totals.s25.gradient} / ${totals.s25.n} rows (${pct(totals.s25.gradient, totals.s25.n)})`);
 console.log();
+console.log(`  S26 (Champion hybrid policy):      ${mape(totals.s26)}%`);
+console.log(`    └─ Lookup benchmark artifact:     ${s26.modelVersion || s26.modelName}`);
+console.log(`    └─ Remaining global hits:         ${totals.s26.global} / ${totals.s26.n} rows (${pct(totals.s26.global, totals.s26.n)})`);
+console.log();
 console.log(`  Skipped: ${skipped} rows (missing carat or price)`);
 
 console.log('\n══════════════════════════════════════════════════════════════════');
 console.log('MAPE BY SHAPE');
 console.log('══════════════════════════════════════════════════════════════════');
-console.log(`${'Shape'.padEnd(12)} ${'n'.padStart(5)}  ${'S22'.padStart(8)}  ${'S23'.padStart(8)}  ${'S25'.padStart(8)}  Winner`);
-console.log('─'.repeat(65));
+console.log(`${'Shape'.padEnd(12)} ${'n'.padStart(5)}  ${'S22'.padStart(8)}  ${'S23'.padStart(8)}  ${'S25'.padStart(8)}  ${'S26'.padStart(8)}  Winner`);
+console.log('─'.repeat(76));
 
 // Sort by stone count descending
 const shapeEntries = Object.entries(byShape).sort((a, b) => b[1].n - a[1].n);
@@ -232,10 +282,11 @@ for (const [shape, sh] of shapeEntries) {
   const m22 = sh.s22.n > 0 ? sh.s22.sumApe / sh.s22.n : Infinity;
   const m23 = sh.s23.n > 0 ? sh.s23.sumApe / sh.s23.n : Infinity;
   const m25 = sh.s25.n > 0 ? sh.s25.sumApe / sh.s25.n : Infinity;
-  const best = Math.min(m22, m23, m25);
-  const winner = best === m22 ? 'S22' : best === m23 ? 'S23' : 'S25';
+  const m26 = sh.s26.n > 0 ? sh.s26.sumApe / sh.s26.n : Infinity;
+  const best = Math.min(m22, m23, m25, m26);
+  const winner = best === m22 ? 'S22' : best === m23 ? 'S23' : best === m25 ? 'S25' : 'S26';
   const fmt = v => isFinite(v) ? v.toFixed(2)+'%' : 'N/A';
-  console.log(`${shape.padEnd(12)} ${String(sh.n).padStart(5)}  ${fmt(m22).padStart(8)}  ${fmt(m23).padStart(8)}  ${fmt(m25).padStart(8)}  ${winner}`);
+  console.log(`${shape.padEnd(12)} ${String(sh.n).padStart(5)}  ${fmt(m22).padStart(8)}  ${fmt(m23).padStart(8)}  ${fmt(m25).padStart(8)}  ${fmt(m26).padStart(8)}  ${winner}`);
 }
 
 // ─── S25 Monotonicity Check ──────────────────────────────────────────────────
