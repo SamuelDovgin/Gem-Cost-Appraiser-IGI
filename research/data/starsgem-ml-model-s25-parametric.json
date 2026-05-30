@@ -1,6 +1,6 @@
 {
   "modelName": "S25 \u2014 Hierarchical Parametric Power-Law",
-  "modelVersion": "s25-parametric-v1",
+  "modelVersion": "s25-parametric-v1.1",
   "generatedDate": "2026-05-30",
   "targetType": "log_upc_parametric",
   "prediction": "exp(  shapeBaseline[shape]  + specEps[shape||color||clarity]  + betaGlobal * log(carat)  + deltaColor * colorRank[color]  + deltaClarity * clarityRank[clarity]  + cutAdj[cut]) * carat",
@@ -8,7 +8,7 @@
     "shrinkLambda": 20.0
   },
   "betaGlobal": -0.124622,
-  "deltaColor": 0.008912,
+  "deltaColor": 0.0,
   "deltaClarity": -0.059349,
   "shapeBaseline": {
     "ASSCHER": 4.925375,
@@ -296,5 +296,6 @@
       "\u03b3_cut data: only EX and ID have >10 round obs. VG/G use priors.",
       "Coverage: 100%. Every (shape,color,clarity,carat) has an answer."
     ]
-  }
+  },
+  "changeLog": "v1.1: deltaColor forced to 0.0 (was +0.0089). OLS estimate was spuriously positive due to 87% D-color dominance in training. specEps already encodes within-spec color differences. 0 gradient is safer than inverted gradient for extrapolation to unseen color combos."
 }
