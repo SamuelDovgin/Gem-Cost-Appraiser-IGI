@@ -181,6 +181,8 @@ S23_LOOKUP_LEVELS = [
 ]
 
 S23_MODEL_JSON = os.path.join(DATA_DIR, "starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json")
+S20_MODEL_JSON = os.path.join(DATA_DIR, "starsgem-ml-extra-trees-model-s20-specialty-tail.json")
+CLEAN_TRAINING_JSON = os.path.join(DATA_DIR, "dataset-clean-training.json")
 
 
 def load_monotone_axes_registry(path=MONOTONE_AXES_JSON):
@@ -1435,10 +1437,82 @@ def round_list(values, digits=8):
     return [round(float(v), digits) for v in values]
 
 
+def load_rows_from_clean_training():
+    """Load training rows from dataset-clean-training.json (Segment A only).
+
+    Maps the clean JSON format (lowercase keys, dataset-split-outliers.py schema)
+    to the uppercase key format expected by all training functions.  Joins with
+    the original XLS for the Report field (not stored in the clean JSON) and
+    parses the Measurement string into L/W/H dimensions.
+    """
+    with open(CLEAN_TRAINING_JSON, "r", encoding="utf-8") as f:
+        clean_rows = json.load(f)
+
+    # Build rowNo → Report lookup from XLS
+    report_by_rowno = {}
+    try:
+        wb = xlrd.open_workbook(XLS_FILE)
+        ws = wb.sheet_by_name("Table")
+        headers = [str(ws.cell_value(0, c)).strip() for c in range(ws.ncols)]
+        if "Report" in headers:
+            ri = headers.index("Report")
+            for r in range(1, ws.nrows):
+                rpt = str(ws.cell_value(r, ri)).strip().upper()
+                report_by_rowno[r] = "IGI" if "IGI" in rpt else (rpt or "IGI")
+    except Exception:
+        pass  # default to "IGI" if XLS unavailable
+
+    raw_rows = []
+    for cr in clean_rows:
+        carat = float(cr["carat"])
+        price = float(cr["price"])
+        cut   = str(cr.get("cut_raw") or "-").strip()
+        meas  = str(cr.get("measurement") or "").strip()
+        length, width, height, ratio = parse_measurement(meas)
+        lw_ratio = cr.get("lw_ratio") or ratio
+        row_no   = int(cr["rowNo"])
+        report   = report_by_rowno.get(row_no, "IGI")
+        internal_price = int(round(price * 170))
+
+        row = {
+            "rowNo":              row_no,
+            "Carat":              carat,
+            "Shape":              norm_cat(cr.get("shape",       "-")),
+            "Color":              norm_cat(cr.get("color",       "-")),
+            "Clarity":            norm_cat(cr.get("clarity",     "-")),
+            "Cut":                norm_cat(cut),
+            "Polish":             norm_cat(cr.get("polish",      "-")),
+            "Symmetry":           norm_cat(cr.get("symmetry",    "-")),
+            "Fluorescence":       norm_cat(cr.get("fluorescence","-")),
+            "Report":             report,
+            "TypeName":           norm_cat(cr.get("typeName",    "-")),
+            "Table_Scale":        cr.get("table_pct"),
+            "Depth_Scale":        cr.get("depth_pct"),
+            "Length":             length,
+            "Width":              width,
+            "Height":             height,
+            "LengthWidthRatio":   lw_ratio,
+            # IGI enrichment flags — clean set has no separate enrichment pass yet
+            "IGI_Enriched":       0.0,
+            "IGI_IsPortuguese":   0.0,
+            "IGI_IsTypeIIa":      0.0,
+            "SaleDollorPrice":    price,
+            "internal_price":     internal_price,
+            "usd_per_ct":         price / carat,
+            "internal_rate_per_ct": internal_price / carat,
+            "carat_bucket":       carat_bucket(carat),
+        }
+        add_cut_style_features(row)
+        raw_rows.append(row)
+
+    print(f"Loaded {len(raw_rows):,} rows from clean training dataset (Segment A)")
+    return raw_rows
+
+
 def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_type,
                  lookup_tables=None, lookup_global=None,
                  cat_tables=None, cat_global=None, cat_levels=None,
-                 large_carat_tail=None):
+                 large_carat_tail=None, output_path=None, all_rows=None):
     """Serialize the fitted ExtraTrees pipeline to JSON.
 
     target_type:
@@ -1508,14 +1582,17 @@ def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_
             "categoryLevels": cat_levels or [],
         },
         "largeCaratTail": large_carat_tail,
-        "hybridRouter": build_hybrid_anchor_table(load_rows_enriched() if "--enriched" in sys.argv else load_rows()),
+        "hybridRouter": build_hybrid_anchor_table(
+            all_rows or (load_rows_enriched() if "--enriched" in sys.argv else load_rows())
+        ),
         "treeCount": len(trees),
         "trees": trees,
     }
 
-    with open(ML_MODEL_JSON, "w", encoding="utf-8") as f:
+    dest = output_path or ML_MODEL_JSON
+    with open(dest, "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"))
-    print(f"    → Exported to {ML_MODEL_JSON}")
+    print(f"    → Exported to {dest}")
     return out
 
 
@@ -3025,6 +3102,23 @@ def strategy_s20_specialty_tail_selected_spec(train, test, all_rows=None):
         for group in sorted({cut_style_group(r.get("Cut")) for r in test})
     }
 
+    print(f"\n    Exporting S20 model…", end=" ", flush=True)
+    export_model(
+        pipe=pipe,
+        feature_names_numeric=feats_num,
+        model_name="S20 — Specialty cut + monotonic large-carat tail",
+        model_metrics=selected_metrics,
+        target_type="log_tail_lookup_residual",
+        lookup_tables=tables,
+        lookup_global=global_rate,
+        cat_tables=cat_tables,
+        cat_global=cat_global,
+        cat_levels=cat_levels,
+        large_carat_tail=tail_model,
+        output_path=S20_MODEL_JSON,
+        all_rows=all_rows,
+    )
+
     return {
         "name": "S20 — Specialty cut + monotonic large-carat tail",
         "strategy": "specialty_cut_tail_selected_spec",
@@ -3594,12 +3688,16 @@ def run():
 
     # Check for --enriched flag
     use_enriched = "--enriched" in sys.argv
+    use_clean    = "--clean"    in sys.argv
     only_s19 = "--only-s19" in sys.argv
     only_s20 = "--only-s20" in sys.argv
     only_s21 = "--only-s21" in sys.argv
     only_s23 = "--only-s23" in sys.argv
-    
-    if use_enriched:
+
+    if use_clean:
+        rows = load_rows_from_clean_training()
+        print("\n📊 Using clean training dataset (Segment A — 12,843 rows, cluster-quarantine applied)")
+    elif use_enriched:
         rows = load_rows_enriched()
         print("\n📊 Using IGI-enriched data (86.7% coverage)")
     else:

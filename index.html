@@ -184,7 +184,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .intel-compare-v.delta-down{color:var(--orange)}
 .intel-compare-v.delta-flat{color:var(--muted2)}
 @media(max-width:560px){.intel-compare-row{grid-template-columns:1fr}}
-.ml-model-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:.5px solid var(--border)}
+.ml-model-compare-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:.5px solid var(--border)}
 .ml-model-compare-col{padding:15px 22px 16px;min-width:0}
 .ml-model-compare-col:first-child{border-right:.5px solid var(--border)}
 .ml-model-compare-col--candidate{background:rgba(212,175,114,0.04)}
@@ -192,7 +192,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .ml-compare-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .ml-compare-delta{font-family:'DM Mono',monospace;font-size:11px;margin-top:6px;padding:3px 0;border-top:.5px solid var(--border);color:var(--muted2)}
 .ml-compare-delta.up{color:var(--green)}.ml-compare-delta.down{color:var(--orange)}
-@media(max-width:560px){.ml-model-compare-grid{grid-template-columns:1fr}.ml-model-compare-col:first-child{border-right:none;border-bottom:.5px solid var(--border)}}
+@media(max-width:700px){.ml-model-compare-grid{grid-template-columns:1fr}.ml-model-compare-col:first-child,.ml-model-compare-col:nth-child(2){border-right:none;border-bottom:.5px solid var(--border)}}
 .intel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .intel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
 .intel-pill{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25);border-radius:4px;padding:2px 6px;white-space:nowrap}
@@ -757,6 +757,14 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <div class="intel-formula" id="starsgem-s23-price">Loading…</div>
           <div class="intel-sub" id="starsgem-s23-note">Loading S23 model…</div>
         </div>
+        <div class="ml-model-compare-col ml-model-compare-col--s25">
+          <div class="ml-compare-head">
+            <div class="ml-compare-label">Parametric — extrapolation-safe</div>
+            <div class="intel-pill" id="starsgem-s25-model">S25</div>
+          </div>
+          <div class="intel-formula" id="starsgem-s25-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-s25-note">Loading S25 model…</div>
+        </div>
       </div>
     </div>
     <div class="pricing-intel-panel">
@@ -965,10 +973,16 @@ let _starsgemPricingIntel = null;
 let _starsgemPricingIntelPromise = null;
 let _starsgemMlModel = null;
 let _starsgemMlModelPromise = null;
+let _starsgemMlS21Model = null;
+let _starsgemMlS21ModelPromise = null;
+let _starsgemMlS25Model = null;
+let _starsgemMlS25ModelPromise = null;
 let _starsgemS23Model = null;
 let _starsgemS23ModelPromise = null;
 let _colorDiamondMlModel = null;
 let _colorDiamondMlModelPromise = null;
+let _colorS23Model = null;
+let _colorS23ModelPromise = null;
 let _v3engineReadyPromise = null;
 let _chartAxis = 'carat'; // 'carat' | 'clarity' | 'color'
 
@@ -1065,7 +1079,7 @@ async function loadStarsgemMlModel() {
   // regress to ~14.4% MAPE on the selected-spec test set (worst on 1.5–4ct commercial sizes),
   // and PAV already delivers 0 inversions on S20, so the S21 monotone constraints bought no
   // ladder benefit while costing point accuracy. See research/s22-and-color-monotonicity-plan.md.
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s20-specialty-tail.json?v=20260529-s22-s20base')
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s20-specialty-tail.json?v=20260531-s20-clean-dataset')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1082,10 +1096,111 @@ async function loadStarsgemMlModel() {
   return _starsgemMlModelPromise;
 }
 
+async function loadStarsgemS21Model() {
+  if (_starsgemMlS21Model) return _starsgemMlS21Model;
+  if (_starsgemMlS21ModelPromise) return _starsgemMlS21ModelPromise;
+  // S21 (LightGBM monotone) is used as a coverage fallback for S22 (ExtraTrees S20).
+  // S20 was trained on 198 samples and has sparse lookup coverage for large-carat specialty shapes
+  // (e.g. 5ct+ hearts). When S20 hits a global lookup fallback, S21 (792 samples, 242 5ct+ Level-A
+  // keys) is used instead so the ML output stays meaningful rather than ~11× below reality.
+  _starsgemMlS21ModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s21-monotone.json?v=20260531-s21-monotone')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _starsgemMlS21Model = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('StarGem S21 fallback model unavailable.', err);
+      return null;
+    });
+  return _starsgemMlS21ModelPromise;
+}
+
+async function loadStarsgemS25Model() {
+  if (_starsgemMlS25Model) return _starsgemMlS25Model;
+  if (_starsgemMlS25ModelPromise) return _starsgemMlS25ModelPromise;
+  // S25: Hierarchical Parametric Power-Law. Uses global β from rounds + per-spec
+  // intercepts with shrinkage. Extrapolation-safe: 100% coverage, no global sentinel.
+  _starsgemMlS25ModelPromise = fetch('research/data/starsgem-ml-model-s25-parametric.json?v=20260530-s25-v1')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _starsgemMlS25Model = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('StarGem S25 parametric model unavailable.', err);
+      return null;
+    });
+  return _starsgemMlS25ModelPromise;
+}
+
+function predictS25(row, model) {
+  if (!model) return null;
+  try {
+    const shape   = (row.Shape || '').toUpperCase();
+    const color   = (row.Color || '').toUpperCase();
+    const clarity = starsgemNorm(row.Clarity) || row.Clarity || '';
+    const carat   = parseFloat(row.Carat) || 0;
+    const cutRaw  = (row.Cut || '-').toUpperCase();
+    if (carat <= 0) return null;
+
+    // Ordinal encodings from model (fall back to defaults if missing).
+    const colorRankMap   = model.colorRank   || {D:0,E:1,F:2,G:3,H:4,I:5,J:6,K:7};
+    const clarityRankMap = model.clarityRank || {IF:0,VVS1:1,VVS:1.5,VVS2:2,VS1:3,VS:3.5,VS2:4,SI1:5,SI2:6};
+    const colorRank   = colorRankMap[color]   ?? 3;    // default G if unknown
+    const clarityRank = clarityRankMap[clarity] ?? 3.5; // default VS if unknown
+
+    // Normalize cut key.
+    let cutKey = '-';
+    if (/^(ID|IDEAL)$/.test(cutRaw)) cutKey = 'ID';
+    else if (/^(EX|EXCELLENT)$/.test(cutRaw)) cutKey = 'EX';
+    else if (/^(VG|VERY.GOOD)$/.test(cutRaw)) cutKey = 'VG';
+    else if (/^(G|GD|GOOD)$/.test(cutRaw)) cutKey = 'G';
+    else if (/^FAIR$/.test(cutRaw)) cutKey = 'FAIR';
+
+    const beta       = model.betaGlobal ?? -0.12;
+    const dColor     = model.deltaColor   ?? 0;
+    const dClarity   = model.deltaClarity ?? -0.06;
+    const specKey    = `${shape}||${color}||${clarity}`;
+    const shapeBl    = model.shapeBaseline?.[shape] ?? model.shapeBaseline?.['_global'] ?? 4.88;
+    const specEps    = model.specEps?.[specKey] ?? 0;
+    const cutAdj     = model.cutAdj?.[cutKey] ?? 0;
+    const specCount  = model.specCount?.[specKey] ?? 0;
+    const hasSpec    = specEps !== 0 || specCount > 0;
+
+    const logUpc  = shapeBl + specEps + beta * Math.log(carat)
+                    + dColor * colorRank + dClarity * clarityRank + cutAdj;
+    const upc     = Math.exp(logUpc);
+    const price   = upc * carat;
+
+    return {
+      price,
+      upc,
+      shapeBl,
+      specEps,
+      beta,
+      specKey,
+      specCount,
+      coverage: hasSpec ? 'spec' : 'gradient',
+    };
+  } catch (e) {
+    console.warn('predictS25 error', e);
+    return null;
+  }
+}
+
 async function loadStarsgemS23Model() {
   if (_starsgemS23Model) return _starsgemS23Model;
   if (_starsgemS23ModelPromise) return _starsgemS23ModelPromise;
-  _starsgemS23ModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json?v=20260530-s23-formally-monotone')
+  _starsgemS23ModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json?v=20260531-s23-clean-dataset')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1105,7 +1220,7 @@ async function loadStarsgemS23Model() {
 async function loadColorDiamondMlModel() {
   if (_colorDiamondMlModel) return _colorDiamondMlModel;
   if (_colorDiamondMlModelPromise) return _colorDiamondMlModelPromise;
-  _colorDiamondMlModelPromise = fetch('research/data/color-diamond-ml-model.json?v=20260527-color-source-adjusted')
+  _colorDiamondMlModelPromise = fetch('research/data/color-diamond-ml-model.json?v=20260531-color-v2')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1120,6 +1235,26 @@ async function loadColorDiamondMlModel() {
       return null;
     });
   return _colorDiamondMlModelPromise;
+}
+
+async function loadColorS23Model() {
+  if (_colorS23Model) return _colorS23Model;
+  if (_colorS23ModelPromise) return _colorS23ModelPromise;
+  _colorS23ModelPromise = fetch('research/data/color-diamond-ml-model-s23.json?v=20260531-s23-color-v2')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _colorS23Model = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('S23 color diamond model unavailable.', err);
+      return null;
+    });
+  return _colorS23ModelPromise;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2123,12 +2258,12 @@ function colorModelVector(row, model) {
   return vector;
 }
 
-function predictColorDiamondMl(row) {
-  const model = _colorDiamondMlModel;
-  if (!model || !Array.isArray(model.trees) || !model.trees.length) return null;
-  const vector = colorModelVector(row, model);
+function predictColorDiamondMl(row, model) {
+  const m = model || _colorDiamondMlModel;
+  if (!m || !Array.isArray(m.trees) || !m.trees.length) return null;
+  const vector = colorModelVector(row, m);
   let logSum = 0;
-  for (const tree of model.trees) {
+  for (const tree of m.trees) {
     let node = 0;
     while (tree.childrenLeft[node] !== -1) {
       const feature = tree.feature[node];
@@ -2138,10 +2273,11 @@ function predictColorDiamondMl(row) {
     }
     logSum += tree.value[node];
   }
-  const logRate = logSum / model.trees.length;
+  // LightGBM: prediction = sum(leaf values) + base score; ExtraTrees: mean of leaf values
+  const logRate = m.lgbmBaseScore != null ? logSum + m.lgbmBaseScore : logSum / m.trees.length;
   const carat = Number(row.carat);
   const price = Math.max(0.01, Math.exp(logRate) * carat);
-  return { price, method: 'color_ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount, sourceAdjustment: model.sourceAdjustment };
+  return { price, method: 'color_ml_model', modelName: m.modelName, metrics: m.metrics, treeCount: m.treeCount, sourceAdjustment: m.sourceAdjustment };
 }
 
 function parseMeasurementTriplet(measurements) {
@@ -2328,6 +2464,14 @@ function starsgemLargeCaratTailMultiplier(row, model) {
   return { multiplier: Math.exp(slope * x), level: 'GLOBAL', count: 0, slope };
 }
 
+// A lookup is considered "effectively global" (i.e. too sparse to trust) when:
+//   - the level sentinel is literally 'GLOBAL' (no table matched at all), OR
+//   - the matched lookup cell has count ≤ 3 (single-observation junk anchors like S20's 5ct+ G-level)
+function isEffectivelyGlobalLookup(pred) {
+  if (!pred) return true;
+  return pred.lookupLevel === 'GLOBAL' || (pred.lookupCount ?? 0) <= 3;
+}
+
 function starsgemModelLookupRate(row, model) {
   const featureLookups = model?.featureLookups || {};
   const tables = featureLookups.lookupTables || [];
@@ -2444,18 +2588,22 @@ function predictStarsgemMl(row, model) {
   const logVal = model.lgbmBaseScore != null ? logSum + model.lgbmBaseScore : logSum / model.trees.length;
   const carat = Number(row.Carat ?? row.carat);
   const isTailResidual = model.targetType === 'log_tail_lookup_residual';
-  const lookupRate = isTailResidual
-    ? starsgemModelTailBaseLookupRate(row, model).rate
-    : model.targetType === 'log_lookup_residual' ? starsgemModelLookupRate(row, model).rate : null;
+  const isLookupResidual = model.targetType === 'log_lookup_residual';
+  const lookupResult = isTailResidual
+    ? starsgemModelTailBaseLookupRate(row, model)
+    : isLookupResidual ? starsgemModelLookupRate(row, model) : null;
+  const lookupRate = lookupResult?.rate ?? null;
+  const lookupLevel = lookupResult?.level ?? null;
+  const lookupCount = lookupResult?.count ?? 0;
   const tail = isTailResidual ? starsgemLargeCaratTailMultiplier(row, model) : { multiplier: 1, level: 'NONE', count: 0, slope: 0 };
   const price = isTailResidual
     ? Math.max(0.01, Math.exp(logVal) * (Number.isFinite(lookupRate) && lookupRate > 0 ? lookupRate : 1) * tail.multiplier * carat)
-    : model.targetType === 'log_lookup_residual'
+    : isLookupResidual
     ? Math.max(0.01, Math.exp(logVal) * (Number.isFinite(lookupRate) && lookupRate > 0 ? lookupRate : 1) * carat)
     : model.targetType === 'log_rate'
     ? Math.max(0.01, Math.exp(logVal) * carat)
     : Math.max(0.01, Math.exp(logVal));
-  return { price, method: 'ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount, tail };
+  return { price, method: 'ml_model', modelName: model.modelName, metrics: model.metrics, treeCount: model.treeCount, tail, lookupLevel, lookupCount };
 }
 
 // S21 Layer-4: two-axis PAV projection guaranteeing strict grade ordering
@@ -2565,6 +2713,21 @@ function updateStarsgemPricingIntel() {
   // falls back to a global anchor (G·n≈2556) and the raw model inherits the sparse/wrong signal.
   // If raw IF < raw VVS1 (a monotonicity violation) clamp to VVS1 × getClarityMult(IF)/getClarityMult(VVS1).
   let mlPred = colorMlPred || predictStarsgemMl(row);
+  // S20 coverage gap: S20 was trained on 198 samples and has no lookup data for many large-carat
+  // specialty specs (e.g. 5ct+ hearts — only 5 heart keys, all 1–1.49ct). When S20 falls through
+  // to a global lookup (lookupLevel 'GLOBAL'), its prediction can be ~10× below reality.
+  // In those cases, substitute S21 (LightGBM monotone, 792 samples, 242 5ct+ Level-A keys) which
+  // correctly handles the missing specs.
+  let _s22UsedS21Fallback = false;
+  if (isWhite() && !colorMlPred && mlPred && isEffectivelyGlobalLookup(mlPred) && _starsgemMlS21Model) {
+    const s21Pred = predictStarsgemMl(row, _starsgemMlS21Model);
+    // Use S21 when it has more lookup support than S20 and produces a higher (more credible) price.
+    // We don't require S21 to be non-global — even a sparse S21 cell beats S20's global rate.
+    if (s21Pred && (s21Pred.lookupCount ?? 0) > (mlPred.lookupCount ?? 0) && s21Pred.price > mlPred.price) {
+      mlPred = s21Pred;
+      _s22UsedS21Fallback = true;
+    }
+  }
   if (isWhite() && !colorMlPred && mlPred && state.clarity === 'IF') {
     const vvs1Pred = predictStarsgemMl({ ...row, Clarity: 'VVS1' });
     if (vvs1Pred && vvs1Pred.price > mlPred.price) {
@@ -2590,7 +2753,10 @@ function updateStarsgemPricingIntel() {
         const ifFloorNote = mlPred._ifClampedFromVvs1
           ? ' IF has no StarGem stock at this carat range — raw model prediction was below VVS1; floored to VVS1 × clarity-mult ratio.'
           : '';
-        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ExtraTrees model prediction, S22 (${dims}).${tailNote}${ifFloorNote}`;
+        const s21FallbackNote = _s22UsedS21Fallback
+          ? ' S20 (ExtraTrees) had no lookup coverage at this spec — S21 (LightGBM, 792 samples) used as fallback base.'
+          : '';
+        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ExtraTrees model prediction, S22 (${dims}).${tailNote}${ifFloorNote}${s21FallbackNote}`;
       }
     }
   } else if (mlPriceEl) {
@@ -2637,7 +2803,16 @@ function updateStarsgemPricingIntel() {
   const deltaEl    = document.getElementById('ml-compare-delta');
 
   if (isWhite() && _starsgemS23Model) {
-    const s23Pred = predictStarsgemMl(row, _starsgemS23Model);
+    let s23Pred = predictStarsgemMl(row, _starsgemS23Model);
+    // S23 has the same large-carat specialty coverage gap as S20. Fall back to S21 when global.
+    let _s23UsedS21Fallback = false;
+    if (s23Pred && isEffectivelyGlobalLookup(s23Pred) && _starsgemMlS21Model) {
+      const s21Pred = predictStarsgemMl(row, _starsgemMlS21Model);
+      if (s21Pred && (s21Pred.lookupCount ?? 0) > (s23Pred.lookupCount ?? 0) && s21Pred.price > s23Pred.price) {
+        s23Pred = s21Pred;
+        _s23UsedS21Fallback = true;
+      }
+    }
     if (s23Pred && s23PriceEl) {
       s23PriceEl.textContent = `${fmt(s23Pred.price)} ML model`;
       if (s23ModelEl) s23ModelEl.textContent = 'S23 (LightGBM monotone)';
@@ -2646,7 +2821,10 @@ function updateStarsgemPricingIntel() {
         const tailNote = s23Pred.tail?.level && s23Pred.tail.level !== 'NONE'
           ? ` Tail: ${escapeHTML(s23Pred.tail.level)}, ${s23Pred.tail.multiplier.toFixed(2)}×.`
           : '';
-        s23NoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> grade-agnostic anchor + monotone LightGBM residual (${dims}). Formally monotone — 0 inversions on 1728-cell sweep.${tailNote}`;
+        const s23FallbackNote = _s23UsedS21Fallback
+          ? ' S23 had no anchor coverage at this spec — S21 (LightGBM, 792 samples) used as fallback base.'
+          : '';
+        s23NoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> grade-agnostic anchor + monotone LightGBM residual (${dims}). Formally monotone — 0 inversions on 1728-cell sweep.${tailNote}${s23FallbackNote}`;
       }
       // Delta vs S22
       if (deltaEl && mlPred && mlPred.price) {
@@ -2658,13 +2836,71 @@ function updateStarsgemPricingIntel() {
       }
     }
   } else if (!isWhite()) {
-    if (s23PriceEl) s23PriceEl.textContent = 'White diamonds only';
-    if (s23NoteEl) s23NoteEl.textContent = 'S23 is a white diamond model. Fancy colors use the source-adjusted color ML model.';
-    if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
+    const colorRow2 = colorDiamondModelRowFromState(state.carat);
+    if (_colorS23Model && colorRow2) {
+      const s23ColorPred = predictColorDiamondMl(colorRow2, _colorS23Model);
+      if (s23ColorPred && s23PriceEl) {
+        s23PriceEl.textContent = `${fmt(s23ColorPred.price)} ML model`;
+        if (s23ModelEl) s23ModelEl.textContent = 'S23 color (LightGBM monotone)';
+        if (s23NoteEl) {
+          const adj = s23ColorPred.sourceAdjustment?.messiColorToStarsgemLikeFactor || 1.25;
+          s23NoteEl.textContent = `LightGBM fancy-color model with monotone intensity constraint. Messi rows trained at ÷${adj}× source adjustment (StarGem-like factory pricing).`;
+        }
+        if (deltaEl && colorMlPred && colorMlPred.price) {
+          const delta = s23ColorPred.price - colorMlPred.price;
+          const deltaPct = (delta / colorMlPred.price) * 100;
+          const sign = delta >= 0 ? '+' : '';
+          deltaEl.textContent = `S23 vs S22: ${sign}${fmt(Math.round(delta))} (${sign}${deltaPct.toFixed(1)}%)`;
+          deltaEl.className = 'ml-compare-delta' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '');
+        } else if (deltaEl) {
+          deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta';
+        }
+      }
+    } else {
+      if (s23PriceEl) s23PriceEl.textContent = _colorS23Model ? 'Color row unavailable' : 'Loading S23 color…';
+      if (s23NoteEl) s23NoteEl.textContent = 'S23 color model (LightGBM + monotone intensity) is loading.';
+      if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
+    }
   } else {
     if (s23PriceEl) s23PriceEl.textContent = 'Loading S23…';
     if (s23NoteEl) s23NoteEl.textContent = 'S23 model is loading (grade-agnostic anchor + LightGBM).';
     if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
+  }
+
+  // ── S25 parametric panel ─────────────────────────────────────────────────
+  const s25PriceEl = document.getElementById('starsgem-s25-price');
+  const s25NoteEl  = document.getElementById('starsgem-s25-note');
+  const s25ModelEl = document.getElementById('starsgem-s25-model');
+
+  if (isWhite() && _starsgemMlS25Model) {
+    const s25Pred = predictS25(row, _starsgemMlS25Model);
+    if (s25Pred && s25PriceEl) {
+      s25PriceEl.textContent = `${fmt(s25Pred.price)} parametric`;
+      if (s25ModelEl) s25ModelEl.textContent = 'S25 (Parametric)';
+      if (s25NoteEl) {
+        const betaStr  = s25Pred.beta.toFixed(3);
+        const covStr   = s25Pred.coverage === 'spec'
+          ? `spec observed (n=${s25Pred.specCount})`
+          : 'gradient-only (no spec data — uses color/clarity gradients)';
+        const upcStr   = `$${Math.round(s25Pred.upc)}/ct`;
+        s25NoteEl.innerHTML = (
+          `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> `
+          + `hierarchical parametric: β=${betaStr} (global from rounds), `
+          + `coverage=${covStr}. `
+          + `${upcStr}. Extrapolation-safe — 100% coverage, no global sentinel.`
+        );
+      }
+    } else if (s25PriceEl) {
+      s25PriceEl.textContent = 'S25 unavailable';
+      if (s25NoteEl) s25NoteEl.textContent = 'S25 parametric model could not produce a prediction.';
+    }
+  } else if (!isWhite()) {
+    if (s25PriceEl) s25PriceEl.textContent = '—';
+    if (s25NoteEl)  s25NoteEl.textContent  = 'S25 parametric model is trained on white diamonds only.';
+    if (s25ModelEl) s25ModelEl.textContent  = 'S25';
+  } else {
+    if (s25PriceEl) s25PriceEl.textContent = 'Loading S25…';
+    if (s25NoteEl)  s25NoteEl.textContent  = 'S25 parametric model is loading.';
   }
 }
 
@@ -2765,14 +3001,26 @@ function getMlPredictionForReconciler(ct) {
   // P0 (S22): getMlPredictionForReconciler feeds the reconciler's ML anchor, which
   // is a ladder-context value. Keep predictStarsgemMlMonotone here to guarantee
   // 0 inversions on the clarity/color ladder. (Price card above uses raw predictStarsgemMl.)
-  const pred = predictStarsgemMlMonotone(row);
-  if (!pred) return null;
+  // If S20 has no lookup coverage (global fallback), substitute S21 for the monotone grid too.
+  let pred = predictStarsgemMlMonotone(row);
   const lookup = _starsgemMlModel ? starsgemModelLookupRate(row, _starsgemMlModel) : null;
+  const s20IsGlobal = !lookup || lookup.level === 'GLOBAL' || (lookup.count ?? 0) <= 3;
+  if (s20IsGlobal && _starsgemMlS21Model) {
+    // Re-run the monotone PAV grid using S21 trees + lookup tables
+    const s21Raw = predictStarsgemMl(row, _starsgemMlS21Model);
+    if (s21Raw && (s21Raw.lookupCount ?? 0) > (lookup?.count ?? 0) && s21Raw.price > (pred?.price ?? 0)) {
+      // Build a minimal monotone prediction using S21 directly (no PAV needed — S21 is inherently monotone)
+      pred = s21Raw;
+    }
+  }
+  if (!pred) return null;
+  const effectiveLookup = s20IsGlobal && _starsgemMlS21Model
+    ? starsgemModelLookupRate(row, _starsgemMlS21Model) : lookup;
   return {
     total: pred.price,
     perCt: pred.price / ct,
     sigmaLog: 0.30,
-    anchorHit: lookup ? lookup.level !== 'GLOBAL' && (lookup.count || 0) > 0 : null,
+    anchorHit: effectiveLookup ? effectiveLookup.level !== 'GLOBAL' && (effectiveLookup.count || 0) > 0 : null,
     modelName: pred.modelName || 'starsgem-ml',
     warnings: [],
   };
@@ -6157,8 +6405,11 @@ syncWhiteSection();
 loadAlibabaCompsIndex(); // async: triggers update() again once comps are ready
 loadStarsgemPricingIntel(); // async: exposes StarGem lookup/formula diagnostics
 loadStarsgemMlModel(); // async: loads compact browser ML price predictor (S22)
+loadStarsgemS21Model(); // async: S21 fallback for S22 when S20 hits global lookup gap
+loadStarsgemS25Model(); // async: S25 parametric power-law (extrapolation-safe, 100% coverage)
 loadStarsgemS23Model(); // async: loads S23 candidate (grade-agnostic anchor + monotone LightGBM)
-loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor
+loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor (ExtraTrees S22)
+loadColorS23Model();       // async: S23-style color model (LightGBM + monotone intensity)
 update();
 
 </script>

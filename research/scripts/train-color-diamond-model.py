@@ -444,5 +444,230 @@ def main():
     print(f"Report -> {RESULTS_MD}")
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# S23-style color model: LightGBM + monotone intensity constraint
+# ──────────────────────────────────────────────────────────────────────────────
+
+MODEL_S23_JSON = DATA_DIR / "color-diamond-ml-model-s23.json"
+
+
+def convert_lgbm_tree_to_flat(tree_struct):
+    """Convert LightGBM recursive tree dict → flat arrays (same shape as ExtraTrees export)."""
+    children_left, children_right, feature_arr, threshold_arr, value_arr = [], [], [], [], []
+
+    def visit(node):
+        idx = len(children_left)
+        children_left.append(-1)
+        children_right.append(-1)
+        feature_arr.append(-2)
+        threshold_arr.append(-2.0)
+        value_arr.append(0.0)
+        if "leaf_value" in node:
+            value_arr[idx] = float(node["leaf_value"])
+        else:
+            feature_arr[idx] = int(node["split_feature"])
+            threshold_arr[idx] = float(node["threshold"])
+            children_left[idx] = visit(node["left_child"])
+            children_right[idx] = visit(node["right_child"])
+        return idx
+
+    visit(tree_struct)
+    return {
+        "childrenLeft":  children_left,
+        "childrenRight": children_right,
+        "feature":       feature_arr,
+        "threshold":     [round(t, 8) for t in threshold_arr],
+        "value":         [round(v, 8) for v in value_arr],
+    }
+
+
+def build_color_monotone_vector(feat_names_out):
+    """Map feature names → monotone constraint direction for the color model.
+
+    colorIntensityRank: +1 (higher intensity = higher price)
+    carat / logCarat:   +1 (larger = more expensive)
+    All other features: 0 (unconstrained)
+    """
+    result = []
+    for name in feat_names_out:
+        clean = name.split("__", 1)[-1] if "__" in name else name
+        if clean == "colorIntensityRank":
+            result.append(1)
+        elif clean in ("carat", "logCarat"):
+            result.append(1)
+        else:
+            result.append(0)
+    return result
+
+
+def export_model_s23(lgbm_model, pre, metrics, X_train_sample):
+    """Serialize the fitted S23 color LightGBM model to JSON."""
+    from scipy.sparse import issparse
+    import numpy as np
+
+    booster = lgbm_model.booster_
+    dump    = booster.dump_model()
+    flat_trees = [convert_lgbm_tree_to_flat(ti["tree_structure"]) for ti in dump.get("tree_info", [])]
+
+    # Compute base score empirically from one already-transformed sample
+    sample_mat = X_train_sample[:1]
+    if issparse(sample_mat):
+        sample_mat = sample_mat.toarray()
+    sample_vec = np.asarray(sample_mat)[0]
+
+    y_raw = float(lgbm_model.predict(X_train_sample[:1])[0])
+
+    def walk_flat(flat_tree, rv):
+        node = 0
+        cl   = flat_tree["childrenLeft"]
+        while cl[node] != -1:
+            feat  = flat_tree["feature"][node]
+            thresh = flat_tree["threshold"][node]
+            val   = float(rv[feat]) if feat < len(rv) else 0.0
+            node  = cl[node] if val <= thresh else flat_tree["childrenRight"][node]
+        return flat_tree["value"][node]
+
+    raw_sum    = sum(walk_flat(t, sample_vec) for t in flat_trees)
+    base_score = float(y_raw - raw_sum)
+
+    encoder = pre.named_transformers_["cat"]
+    imputer = pre.named_transformers_["num"]
+    categories = {
+        feature: [str(v) for v in cats]
+        for feature, cats in zip(CATEGORICAL_FEATURES, encoder.categories_)
+    }
+    numeric_medians = {
+        feature: round(float(value), 8)
+        for feature, value in zip(NUMERIC_FEATURES, imputer.statistics_)
+    }
+
+    out = {
+        "generatedDate": str(date.today()),
+        "modelName":     "color-diamond-s23-lgbm-monotone-intensity",
+        "modelType":     "lgbm",
+        "lgbmBaseScore": round(base_score, 8),
+        "target":        "log(sourceAdjustedPricePerStone / carat)",
+        "prediction":    "exp(sum(tree_log_preds) + lgbmBaseScore) * carat",
+        "targetType":    "log_rate",
+        "sourceAdjustment": {
+            "messiColorToStarsgemLikeFactor": SOURCE_ADJUSTMENT_MESSI_TO_STARGEM,
+            "starsgemDirectFactor": 1.0,
+            "notes": (
+                "Messi color rows are divided by the source adjustment before training. "
+                "Predictions are StarGem-like factory prices. "
+                "Direct StarGem color anchors are used at face value (10× weight)."
+            ),
+        },
+        "features": {
+            "categorical":    CATEGORICAL_FEATURES,
+            "numeric":        NUMERIC_FEATURES,
+            "categories":     categories,
+            "numericMedians": numeric_medians,
+        },
+        "monotone": {
+            "colorIntensityRankConstraint": +1,
+            "caratConstraint":              +1,
+            "logCaratConstraint":           +1,
+            "note": "LightGBM advanced monotone constraints; all others unconstrained.",
+        },
+        "metrics":   metrics,
+        "treeCount": len(flat_trees),
+        "trees":     flat_trees,
+    }
+    with MODEL_S23_JSON.open("w", encoding="utf-8") as f:
+        json.dump(out, f, separators=(",", ":"))
+        f.write("\n")
+    sz = MODEL_S23_JSON.stat().st_size / 1024 / 1024
+    print(f"    → S23 color model exported to {MODEL_S23_JSON}  ({sz:.1f} MB, {len(flat_trees)} trees)")
+    return out
+
+
+def main_s23():
+    """Train S23-style fancy-color diamond model: LightGBM + monotone intensity constraint.
+
+    Keeps the same Messi ÷ 1.25 source adjustment as the ExtraTrees baseline.
+    Adds formal monotonicity: colorIntensityRank (+1), carat (+1).
+    StarGem direct anchors weighted 10× (same as baseline).
+    """
+    import lightgbm as lgb
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.metrics import mean_absolute_error, r2_score
+    from sklearn.preprocessing import OneHotEncoder
+
+    rows = load_rows()
+    train, test = split_train_test(rows)
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), CATEGORICAL_FEATURES),
+        ("num", SimpleImputer(strategy="median"),                           NUMERIC_FEATURES),
+    ])
+    x_train_df = frame(train)
+    y_train = [r["targetLogRate"] for r in train]
+    weights  = [10.0 if r["source"] == "starsgem_color" else 1.0 for r in train]
+
+    X_train = pre.fit_transform(x_train_df)
+    feat_names_out = list(pre.get_feature_names_out())
+    constraints    = build_color_monotone_vector(feat_names_out)
+
+    lgbm_model = lgb.LGBMRegressor(
+        n_estimators=300,
+        num_leaves=31,
+        max_depth=-1,
+        learning_rate=0.05,
+        min_child_samples=5,
+        monotone_constraints=constraints,
+        monotone_constraints_method="advanced",
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        verbose=-1,
+        n_jobs=-1,
+    )
+    lgbm_model.fit(X_train, y_train, sample_weight=weights, feature_name=feat_names_out)
+
+    def predict_price(eval_rows):
+        x = pre.transform(frame(eval_rows))
+        log_rates = lgbm_model.predict(x)
+        return [math.exp(lr) * row["carat"] for lr, row in zip(log_rates, eval_rows)]
+
+    test_preds = predict_price(test)
+    train_preds = predict_price(train)
+    anchor_rows = [r for r in rows if r["source"] == "starsgem_color"]
+    anchor_preds = predict_price(anchor_rows)
+
+    actual_test = [r["sourceAdjustedPricePerStone"] for r in test]
+    metrics = {
+        "sourceAdjustment": {
+            "messiColorToStarsgemLikeFactor": SOURCE_ADJUSTMENT_MESSI_TO_STARGEM,
+            "starsgemDirectFactor": 1.0,
+        },
+        "rowCounts": {
+            "all": len(rows),
+            "train": len(train),
+            "validation": len(test),
+            **{f"source_{k}": v for k, v in Counter(r["source"] for r in rows).items()},
+        },
+        "validation": {
+            **summarize_predictions(test, test_preds),
+            "mae": mean_absolute_error(actual_test, test_preds) if test else None,
+            "r2": r2_score(actual_test, test_preds) if len(test) > 1 else None,
+        },
+        "train": summarize_predictions(train, train_preds),
+        "directStarGemAnchorsInSample": summarize_predictions(anchor_rows, anchor_preds),
+    }
+
+    export_model_s23(lgbm_model, pre, metrics, X_train)
+    print(f"\nRows: {len(rows):,} ({Counter(r['source'] for r in rows)})")
+    print(f"Train: {len(train):,}; validation: {len(test):,}")
+    print(f"Validation MAPE:      {metrics['validation']['mape'] * 100:.2f}%")
+    print(f"Validation MdAPE:     {metrics['validation']['medianApe'] * 100:.2f}%")
+    print(f"Anchor in-sample MAPE:{metrics['directStarGemAnchorsInSample']['mape'] * 100:.2f}%")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--s23" in sys.argv:
+        main_s23()
+    else:
+        main()
