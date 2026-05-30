@@ -99,6 +99,16 @@ LARGE_CARAT_TAIL_LEVELS = [
     ("S", ["Shape"]),
     ("G", ["Cut_Style_Group"]),
 ]
+# S23-specific tail levels: grade-agnostic (no Color/Clarity).
+# The grade-aware LARGE_CARAT_TAIL_LEVELS would make Large_Carat_Tail_Multiplier
+# change with clarity, creating unconstrained grade signal in the prediction formula
+# that can invert the ladder at 7-10ct even with monotone GBDT constraints.
+S23_TAIL_LEVELS = [
+    ("SGT", ["Shape", "Cut_Style_Group", "TypeName"]),
+    ("SG",  ["Shape", "Cut_Style_Group"]),
+    ("S",   ["Shape"]),
+    ("G",   ["Cut_Style_Group"]),
+]
 LARGE_CARAT_TAIL_START_CT = 5.0
 LARGE_CARAT_TAIL_MIN_COUNT = 5
 LARGE_CARAT_TAIL_MAX_SLOPE = 1.25
@@ -144,6 +154,33 @@ MONOTONE_LOOKUP_MIN_SUPPORT = 15   # shrink cells with n < this toward parent
 MONOTONE_LOOKUP_SHRINK_K    = 10   # pseudo-count weight for shrinkage
 S21_MODEL_JSON = os.path.join(DATA_DIR, "starsgem-ml-extra-trees-model-s21-monotone.json")
 MONOTONE_AXES_JSON = os.path.join(DATA_DIR, "monotone-axes.json")
+
+# ──────────────────────────────────────────────────────────────────────────
+# S23 — Grade-agnostic anchor constants
+# ──────────────────────────────────────────────────────────────────────────
+# Color and Clarity are intentionally removed from the categorical features
+# and from every anchor lookup level.  Grade signal enters the model only
+# through ordinal rank features (Clarity_Rank, Color_Rank) with LightGBM
+# monotone constraints.  No explicit grade×carat interaction terms are used:
+# monotone constraints are per-feature/marginal, so an unconstrained
+# Log_Carat×GradeRank term weakens the formal ordering guarantee (identified
+# in deep-research-report (1)).  LightGBM learns size-dependent grade
+# effects internally through tree splits.
+S23_CATEGORICAL_FEATURES = [
+    "Shape", "Cut", "Polish", "Symmetry",
+    "Fluorescence", "Report", "TypeName", "carat_bucket", "Cut_Style_Group",
+]
+
+S23_LOOKUP_LEVELS = [
+    ("A", ["carat_bucket", "Shape", "TypeName", "Report", "Cut", "Polish", "Symmetry"]),
+    ("B", ["carat_bucket", "Shape", "TypeName", "Report", "Cut"]),
+    ("C", ["carat_bucket", "Shape", "TypeName", "Report"]),
+    ("D", ["carat_bucket", "Shape", "TypeName"]),
+    ("E", ["carat_bucket", "Shape"]),
+    ("F", ["carat_bucket"]),
+]
+
+S23_MODEL_JSON = os.path.join(DATA_DIR, "starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json")
 
 
 def load_monotone_axes_registry(path=MONOTONE_AXES_JSON):
@@ -789,7 +826,39 @@ def lookup_predict_rate(row, tables, global_rate):
     return global_rate / 170, "GLOBAL", 0
 
 
-def build_large_carat_tail_model(rows, lookup_tables, lookup_global_rate):
+def build_s23_lookup(rows):
+    """Build grade-agnostic lookup table using S23_LOOKUP_LEVELS.
+
+    Color and Clarity are NOT in any lookup key.  The anchor captures only
+    (carat_bucket, Shape, TypeName, etc.) price level.  Grade premiums are
+    learned entirely by the GBDT's ordinal rank features and their monotone
+    constraints, enabling the IF-premium learned from dense 1 ct cells to
+    transfer to sparse 3 ct+ cells that previously collapsed to the global
+    fallback anchor ($127/ct) and inverted the ladder.
+
+    No PAV step is applied here because there are no grade axes to isotonically
+    regularise — the isotonic defence moves fully to the GBDT constraint layer.
+    """
+    tables = []
+    for level, fields in S23_LOOKUP_LEVELS:
+        grouped = defaultdict(list)
+        for row in rows:
+            key = tuple(str(row.get(f, "-")) for f in fields)
+            grouped[key].append(row)
+        groups = {}
+        for key, recs in grouped.items():
+            usd_rates = [r["usd_per_ct"] for r in recs]
+            groups["||".join(key)] = {
+                "usdPerCt": round(median(usd_rates), 4),
+                "count": len(recs),
+            }
+        tables.append({"level": level, "fields": fields, "groups": groups})
+
+    global_rate = round(median(r["usd_per_ct"] for r in rows), 6)
+    return tables, global_rate
+
+
+def build_large_carat_tail_model(rows, lookup_tables, lookup_global_rate, levels=None):
     """Fit monotonic log-rate tail curves for large stones.
 
     The tail is multiplicative on top of the 5-9.99ct lookup surface:
@@ -797,7 +866,12 @@ def build_large_carat_tail_model(rows, lookup_tables, lookup_global_rate):
 
     Slopes are clipped non-negative so comparable specs never get cheaper per
     carat only because the browser is extrapolating past the dense buckets.
+
+    Pass `levels` to override LARGE_CARAT_TAIL_LEVELS (e.g. S23_TAIL_LEVELS,
+    which omits Color/Clarity to keep the multiplier grade-agnostic).
     """
+    if levels is None:
+        levels = LARGE_CARAT_TAIL_LEVELS
     rows_with_residuals = []
     for row in rows:
         carat = row.get("Carat")
@@ -819,7 +893,7 @@ def build_large_carat_tail_model(rows, lookup_tables, lookup_global_rate):
 
     global_slope = fit_slope(rows_with_residuals)
     tables = []
-    for name, fields in LARGE_CARAT_TAIL_LEVELS:
+    for name, fields in levels:
         grouped = defaultdict(list)
         for row, x, y in rows_with_residuals:
             key = tuple(str(row.get(f, "-")) for f in fields)
@@ -1227,6 +1301,132 @@ def s21_predict_prices(lgbm_model, pre, rows, lookup_tables, lookup_global_rate,
     return prices
 
 
+def as_model_frame_s23(rows, lookup_tables, lookup_global_rate,
+                        cat_tables, cat_global_prior, cat_levels, tail_model):
+    """S23 feature frame: grade-agnostic anchor + ordinal ranks.
+
+    Key differences from S21:
+    - Categorical features: S23_CATEGORICAL_FEATURES (Color and Clarity removed).
+      Grade signal enters only through ordinal rank numerics, not one-hot dummies.
+    - Lookup tables use S23_LOOKUP_LEVELS (grade-agnostic anchor).
+    - No explicit grade×carat interaction terms: monotone constraints are per-feature
+      (marginal), so Log_Carat_x_ClarityRank would be an UNCONSTRAINED feature that
+      moves whenever grade changes, weakening the formal ordering guarantee.  LightGBM
+      learns size-dependent grade effects internally via tree splits on Clarity_Rank at
+      different points of the Log_Carat axis — no manual interaction term needed.
+    """
+    import pandas as pd
+    data = []
+    for row in rows:
+        item = {}
+
+        # ── Categorical (Color and Clarity excluded — ordinal ranks instead) ──
+        for col in S23_CATEGORICAL_FEATURES:
+            item[col] = norm_cat(row.get(col))
+
+        # ── Numeric base ──────────────────────────────────────────────────────
+        for col in NUMERIC_FEATURES:
+            item[col] = row.get(col)
+        for col in SELECTED_SPEC_FLAGS:
+            item[col] = float(row.get(col, 0.0) or 0.0)
+
+        # ── Carat polynomial transforms ───────────────────────────────────────
+        c = item.get("Carat")
+        log_c = None
+        if c and c > 0:
+            log_c = math.log(c)
+            item["Carat_sq"] = c * c
+            item["Carat_cube"] = c * c * c
+            item["Log_Carat"] = log_c
+            item["Carat_bucket_pos"] = carat_bucket_position(c)
+            item["Dist_carat_threshold"] = abs(c - round(c * 2) / 2)
+
+        # ── Dimension features ────────────────────────────────────────────────
+        l, w, h = item.get("Length"), item.get("Width"), item.get("Height")
+        if l and w and h:
+            item["Dim_Volume"] = l * w * h
+            item["Dim_Surface"] = 2 * (l * w + w * h + l * h)
+        if l and w and min(l, w) > 0:
+            item["LW_Ratio_refined"] = max(l, w) / min(l, w)
+        t, d = item.get("Table_Scale"), item.get("Depth_Scale")
+        if t and d and d > 0:
+            item["Table_Depth_Ratio"] = t / d
+        for opt in ("Dim_Volume", "Dim_Surface", "LW_Ratio_refined", "Table_Depth_Ratio"):
+            item.setdefault(opt, None)
+
+        # ── Grade-agnostic lookup rate (no Color/Clarity in key) ─────────────
+        lookup_rate, lookup_level, lookup_count = lookup_predict_rate(
+            row, lookup_tables, lookup_global_rate
+        )
+        item["Lookup_RatePerCt"] = lookup_rate
+        item["Lookup_IsGlobal"] = 1.0 if lookup_level == "GLOBAL" else 0.0
+        item["Lookup_Count"] = float(lookup_count or 0)
+        item["Log_Lookup_Count"] = math.log1p(float(lookup_count or 0))
+        if lookup_rate and lookup_rate > 0:
+            item["Log_Lookup_RatePerCt"] = math.log(lookup_rate)
+
+        # ── Category prior omitted from S23 ────────────────────────────────
+        # Category_RatePerCt is grade-aware (uses Color+Clarity in its keys).
+        # When clarity changes in the monotonicity sweep, it changes too but
+        # is NOT in the monotone constraint vector, allowing it to overpower
+        # the Clarity_Rank constraint.  The grade-agnostic Lookup_RatePerCt
+        # already provides the dominant anchor signal — no grade-aware prior
+        # is needed in S23.
+
+        # ── Specialty cut flags ───────────────────────────────────────────────
+        add_cut_style_features(row)
+        item["Is_Specialty_Cut"] = float(row.get("Is_Specialty_Cut", 0.0) or 0.0)
+        item["Is_Traditional_Cut"] = float(row.get("Is_Traditional_Cut", 0.0) or 0.0)
+        item["Is_IceFlower_Cut"] = float(row.get("Is_IceFlower_Cut", 0.0) or 0.0)
+
+        # ── Large-carat tail features ─────────────────────────────────────────
+        for name, value in large_carat_tail_features(c).items():
+            item[name] = value
+        tail_base_rate, _, tail_base_count = lookup_predict_rate(
+            tail_anchor_lookup_row(row), lookup_tables, lookup_global_rate
+        )
+        tail_mult, _, tail_count, tail_slope = large_carat_tail_multiplier(row, tail_model)
+        item["Tail_Base_Lookup_RatePerCt"] = tail_base_rate
+        item["Log_Tail_Base_Lookup_RatePerCt"] = (
+            math.log(tail_base_rate) if tail_base_rate and tail_base_rate > 0 else None
+        )
+        item["Tail_Base_Lookup_Count"] = float(tail_base_count or 0)
+        item["Large_Carat_Tail_Multiplier"] = tail_mult
+        item["Log_Large_Carat_Tail_Multiplier"] = (
+            math.log(tail_mult) if tail_mult and tail_mult > 0 else 0.0
+        )
+        item["Large_Carat_Tail_Slope"] = tail_slope
+        item["Large_Carat_Tail_Count"] = float(tail_count or 0)
+
+        # ── Ordinal grade ranks ───────────────────────────────────────────────
+        # No interaction terms: see docstring for rationale.
+        clarity = norm_cat(row.get("Clarity", "-"))
+        color = norm_cat(row.get("Color", "-"))
+        item["Clarity_Rank"] = float(CLARITY_RANK.get(clarity, 7))
+        item["Color_Rank"] = float(COLOR_RANK.get(color, 7))
+
+        data.append(item)
+    return pd.DataFrame(data)
+
+
+def s23_predict_prices(lgbm_model, pre, rows, lookup_tables, lookup_global_rate,
+                        cat_tables, cat_global_prior, cat_levels, tail_model):
+    """Inference with the S23 LightGBM model (grade-agnostic anchor, raw prediction)."""
+    import numpy as np
+    x_df = as_model_frame_s23(rows, lookup_tables, lookup_global_rate,
+                               cat_tables, cat_global_prior, cat_levels, tail_model)
+    X = pre.transform(x_df)
+    residuals = lgbm_model.predict(X)
+    prices = []
+    for residual, row in zip(residuals, rows):
+        base_rate, _, _ = lookup_predict_rate(
+            tail_anchor_lookup_row(row), lookup_tables, lookup_global_rate
+        )
+        tail_mult, _, _, _ = large_carat_tail_multiplier(row, tail_model)
+        prices.append(max(0.01, base_rate * tail_mult * math.exp(residual) * row["Carat"]))
+    return prices
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MODEL EXPORT
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1369,16 +1569,24 @@ def export_model_lgbm(lgbm_model, pre, feat_names_numeric, model_name,
                       X_train_transformed, y_train,
                       lookup_tables=None, lookup_global=None,
                       cat_tables=None, cat_global=None, cat_levels=None,
-                      large_carat_tail=None, all_rows=None):
+                      large_carat_tail=None, all_rows=None,
+                      output_path=None, categorical_features=None):
     """Serialize a fitted LightGBM model to the same JSON schema as export_model().
 
     Key differences vs ExtraTrees:
       - modelType: 'lgbm'
       - lgbmBaseScore: base score (init_score); prediction = base + sum(tree values)
       - trees: same flat array format (childrenLeft/Right/feature/threshold/value)
+
+    output_path: override write destination (default: S21_MODEL_JSON).
+    categorical_features: list used in the ColumnTransformer (default: CATEGORICAL_FEATURES).
+        Pass S23_CATEGORICAL_FEATURES when exporting an S23 model.
     """
     from scipy.sparse import issparse
     import numpy as np
+
+    output_path = output_path or S21_MODEL_JSON
+    cat_feats   = categorical_features or CATEGORICAL_FEATURES
 
     booster = lgbm_model.booster_
     dump    = booster.dump_model()
@@ -1414,7 +1622,7 @@ def export_model_lgbm(lgbm_model, pre, feat_names_numeric, model_name,
     imputer = pre.named_transformers_["num"]
     categories = {
         feature: [str(v) for v in cats]
-        for feature, cats in zip(CATEGORICAL_FEATURES, encoder.categories_)
+        for feature, cats in zip(cat_feats, encoder.categories_)
     }
     numeric_medians = {
         feature: round(float(value), 8)
@@ -1433,7 +1641,7 @@ def export_model_lgbm(lgbm_model, pre, feat_names_numeric, model_name,
         "prediction":    "Lookup_RatePerCt * Large_Carat_Tail_Multiplier * exp(sum(tree_log_preds) + lgbmBaseScore) * Carat",
         "targetType":    target_type,
         "features": {
-            "categorical":    CATEGORICAL_FEATURES,
+            "categorical":    cat_feats,
             "numeric":        feat_names_numeric,
             "categories":     categories,
             "numericMedians": numeric_medians,
@@ -1465,11 +1673,11 @@ def export_model_lgbm(lgbm_model, pre, feat_names_numeric, model_name,
         },
     }
 
-    with open(S21_MODEL_JSON, "w", encoding="utf-8") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"))
-    sz = os.path.getsize(S21_MODEL_JSON) / 1024 / 1024
-    print(f"    → S21 model exported to {S21_MODEL_JSON}  ({sz:.1f} MB, {len(flat_trees)} trees)")
-    return S21_MODEL_JSON
+    sz = os.path.getsize(output_path) / 1024 / 1024
+    print(f"    → model exported to {output_path}  ({sz:.1f} MB, {len(flat_trees)} trees)")
+    return output_path
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3050,6 +3258,330 @@ def strategy_s21_monotone_grade_selected_spec(train, test, all_rows=None):
     }
 
 
+def strategy_s23_grade_agnostic_anchor(train, test, all_rows=None):
+    """S23 — Grade-agnostic anchor + monotone LightGBM residual.
+
+    Root cause of S20/S21 failures: sparse grade-specific lookup cells
+    (e.g. IF at 3ct+) collapse to the global fallback ($127/ct) while VVS1
+    at 3ct+ has 17 rows and anchors to $638/ct — producing 1,127 clarity
+    inversions.  S21's monotone LightGBM constraint fights the anchor rather
+    than fixing the sparsity, causing MAPE regression of +0.75 pp.
+
+    S23 fix:
+      - Remove Color/Clarity from ALL lookup levels (grade-agnostic anchor).
+        Now IF and VVS1 at 3ct+ share the same dense anchor.
+      - All grade premium is learned by the GBDT through ordinal rank features
+        (Clarity_Rank, Color_Rank) with monotone constraints.
+      - IF premium learned from dense 1 ct data transfers to sparse 3 ct cells
+        through shared numeric features — ExtraTrees cannot do this.
+      - NO explicit grade×carat interaction terms.  Deep-research report (1)
+        identifies that monotone constraints are per-feature/marginal: an
+        unconstrained Log_Carat×ClarityRank feature moves whenever grade
+        changes, weakening the formal ordering guarantee.  LightGBM learns
+        the size-dependent grade premium internally via tree splits.  The full
+        monotonicity sweep (8 shapes × 7 carats × 2 cuts) validates this.
+    """
+    import numpy as np
+    import lightgbm as lgb
+    from sklearn.compose import ColumnTransformer
+    from sklearn.impute import SimpleImputer
+    from sklearn.preprocessing import OneHotEncoder
+
+    # ── Grade-agnostic lookup anchor (no Color/Clarity in any level) ───────
+    tables, global_rate = build_s23_lookup(train)
+    cat_tables, cat_global, cat_levels = build_category_prior(train)
+    tail_model = build_large_carat_tail_model(train, tables, global_rate, levels=S23_TAIL_LEVELS)
+
+    augmented_train = s19_augmented_training_rows(train)
+    cert_test     = [cert_loaded_view(row) for row in test]
+    selected_test = [selected_spec_view(row, mask_cut=False) for row in test]
+
+    # ── Feature set (same as S21 + interaction terms, Color/Clarity removed
+    #    from categoricals, grade enters only via ordinal rank numerics) ───
+    feats_num = NUMERIC_FEATURES + SELECTED_SPEC_FLAGS + [
+        "Carat_sq", "Carat_cube", "Log_Carat",
+        "Carat_bucket_pos", "Dist_carat_threshold",
+        "Dim_Volume", "Dim_Surface", "LW_Ratio_refined", "Table_Depth_Ratio",
+        "Lookup_RatePerCt", "Lookup_IsGlobal", "Lookup_Count", "Log_Lookup_Count",
+        "Log_Lookup_RatePerCt",
+        # Category_RatePerCt omitted: grade-aware prior (uses Color+Clarity in keys).
+        # When clarity changes in the sweep, it changes too but is unconstrained,
+        # allowing it to overpower the Clarity_Rank monotone constraint.
+        "Is_Specialty_Cut", "Is_Traditional_Cut", "Is_IceFlower_Cut",
+        "Is_Large_Carat", "Is_10ct_Plus",
+        "Large_Carat_Tail_X", "Large_Carat_Tail_X_sq",
+        "Tail_Base_Lookup_RatePerCt", "Log_Tail_Base_Lookup_RatePerCt",
+        "Tail_Base_Lookup_Count",
+        "Large_Carat_Tail_Multiplier", "Log_Large_Carat_Tail_Multiplier",
+        "Large_Carat_Tail_Slope", "Large_Carat_Tail_Count",
+        "Clarity_Rank",  # ordinal 0=IF → 6=SI2 (monotone −1); no interaction term — see as_model_frame_s23 docstring
+        "Color_Rank",    # ordinal 0=D  → 6=J   (monotone −1)
+    ]
+
+    x_train_df = as_model_frame_s23(
+        augmented_train, tables, global_rate, cat_tables, cat_global, cat_levels, tail_model
+    )
+    y_train = []
+    for row in augmented_train:
+        base_rate, _, _ = lookup_predict_rate(tail_anchor_lookup_row(row), tables, global_rate)
+        tail_mult, _, _, _ = large_carat_tail_multiplier(row, tail_model)
+        y_train.append(math.log(max(row["usd_per_ct"], 0.01) / max(base_rate * tail_mult, 0.01)))
+    y_train = np.array(y_train)
+
+    pre = ColumnTransformer([
+        ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=True), S23_CATEGORICAL_FEATURES),
+        ("num", SimpleImputer(strategy="median"), feats_num),
+    ])
+    X_train = pre.fit_transform(x_train_df)
+
+    feat_names_out = list(pre.get_feature_names_out())
+    _axes_registry = load_monotone_axes_registry()
+    constraints = build_monotone_vector(feat_names_out, "white_diamond", _axes_registry)
+
+    lgbm = lgb.LGBMRegressor(
+        n_estimators=400,
+        num_leaves=63,
+        max_depth=-1,
+        learning_rate=0.04,
+        min_child_samples=20,
+        monotone_constraints=constraints,
+        monotone_constraints_method="advanced",
+        subsample=0.8,
+        colsample_bytree=0.8,
+        random_state=42,
+        verbose=-1,
+        n_jobs=-1,
+    )
+    lgbm.fit(X_train, y_train, feature_name=feat_names_out)
+
+    # ── Evaluate ────────────────────────────────────────────────────────────
+    selected_preds = s23_predict_prices(lgbm, pre, selected_test, tables, global_rate,
+                                        cat_tables, cat_global, cat_levels, tail_model)
+    cert_preds     = s23_predict_prices(lgbm, pre, cert_test,     tables, global_rate,
+                                        cat_tables, cat_global, cat_levels, tail_model)
+
+    # Pinned regression cases
+    pinned_cases = {}
+    for ct in (3.0, 8.0, 10.0, 12.0):
+        pinned = selected_spec_view({
+            "Carat": ct, "carat_bucket": carat_bucket(ct),
+            "Shape": "ROUND", "Color": "E", "Clarity": "VS1",
+            "Cut": "ID", "Polish": "EX", "Symmetry": "EX",
+            "Fluorescence": "-", "Report": "IGI", "TypeName": "-",
+            "SaleDollorPrice": 0, "usd_per_ct": 0,
+        })
+        price = s23_predict_prices(lgbm, pre, [pinned], tables, global_rate,
+                                   cat_tables, cat_global, cat_levels, tail_model)[0]
+        base_rate, base_level, base_count = lookup_predict_rate(tail_anchor_lookup_row(pinned), tables, global_rate)
+        tail_mult, tail_level, tail_count, tail_slope = large_carat_tail_multiplier(pinned, tail_model)
+        pinned_cases[f"{ct:g}ct_round_e_vs1_id_selected_spec"] = {
+            "price": round(price, 4), "rate": round(price / ct, 4),
+            "tailBaseRate": round(base_rate, 4), "tailBaseLevel": base_level,
+            "tailMultiplier": round(tail_mult, 6),
+        }
+
+    # ── Full monotonicity sweep over the actionable grid ─────────────────────
+    # The deep-research report warns that monotone constraints are per-feature
+    # (marginal), so the sweep must cover the full cross of shape × carat × color
+    # rather than a handful of handpicked examples.  Every cell must show
+    # clarity non-increasing and color non-increasing at the $/ct level.
+    SWEEP_SHAPES  = ["ROUND", "OVAL", "CUSHION", "EMERALD", "PEAR", "MARQUISE", "HEART", "RADIANT"]
+    SWEEP_CARATS  = [0.50, 1.00, 1.50, 2.00, 3.00, 4.08, 5.00, 7.00, 10.00]
+    SWEEP_COLORS  = ["D", "E", "F", "G", "H", "I", "J"]
+    SWEEP_CUTS    = ["-", "ID"]
+    sweep_total_clarity   = 0
+    sweep_total_color     = 0
+    sweep_violations_clarity = []
+    sweep_violations_color   = []
+
+    for sh in SWEEP_SHAPES:
+        for ct in SWEEP_CARATS:
+            for cut in SWEEP_CUTS:
+                cb = carat_bucket(ct)
+                # Clarity sweep (fix best color D)
+                clarity_prices = {}
+                for cl in CLARITY_ORDER_S21:
+                    r = selected_spec_view({
+                        "Carat": ct, "carat_bucket": cb,
+                        "Shape": sh, "Color": "D", "Clarity": cl,
+                        "Cut": cut, "Polish": "EX", "Symmetry": "EX",
+                        "Fluorescence": "-", "Report": "IGI", "TypeName": "-",
+                        "SaleDollorPrice": 0, "usd_per_ct": 0,
+                    })
+                    clarity_prices[cl] = s23_predict_prices(
+                        lgbm, pre, [r], tables, global_rate,
+                        cat_tables, cat_global, cat_levels, tail_model
+                    )[0] / ct
+                for i in range(len(CLARITY_ORDER_S21) - 1):
+                    c1, c2 = CLARITY_ORDER_S21[i], CLARITY_ORDER_S21[i + 1]
+                    sweep_total_clarity += 1
+                    if clarity_prices[c2] > clarity_prices[c1] * 1.001:
+                        sweep_violations_clarity.append(
+                            f"{sh} {ct}ct cut={cut}: {c1}→{c2} ({clarity_prices[c1]:.0f}→{clarity_prices[c2]:.0f}/ct)"
+                        )
+                # Color sweep (fix best clarity IF)
+                color_prices = {}
+                for co in SWEEP_COLORS:
+                    r = selected_spec_view({
+                        "Carat": ct, "carat_bucket": cb,
+                        "Shape": sh, "Color": co, "Clarity": "IF",
+                        "Cut": cut, "Polish": "EX", "Symmetry": "EX",
+                        "Fluorescence": "-", "Report": "IGI", "TypeName": "-",
+                        "SaleDollorPrice": 0, "usd_per_ct": 0,
+                    })
+                    color_prices[co] = s23_predict_prices(
+                        lgbm, pre, [r], tables, global_rate,
+                        cat_tables, cat_global, cat_levels, tail_model
+                    )[0] / ct
+                for i in range(len(SWEEP_COLORS) - 1):
+                    c1, c2 = SWEEP_COLORS[i], SWEEP_COLORS[i + 1]
+                    sweep_total_color += 1
+                    if color_prices[c2] > color_prices[c1] * 1.001:
+                        sweep_violations_color.append(
+                            f"{sh} {ct}ct cut={cut}: color {c1}→{c2} ({color_prices[c1]:.0f}→{color_prices[c2]:.0f}/ct)"
+                        )
+
+    total_sweep_checks = sweep_total_clarity + sweep_total_color
+    total_violations   = len(sweep_violations_clarity) + len(sweep_violations_color)
+    print(f"\n    [S23 monotonicity sweep] {total_sweep_checks} checks  "
+          f"clarity violations: {len(sweep_violations_clarity)}  "
+          f"color violations: {len(sweep_violations_color)}  "
+          f"{'✅ PASS' if total_violations == 0 else f'❌ {total_violations} VIOLATIONS'}")
+    if sweep_violations_clarity[:3]:
+        for v in sweep_violations_clarity[:3]:
+            print(f"      clarity: {v}")
+    if sweep_violations_color[:3]:
+        for v in sweep_violations_color[:3]:
+            print(f"      color:   {v}")
+
+    clarity_ladder_cases = {
+        "_sweepSummary": {
+            "totalChecks": total_sweep_checks,
+            "clarityViolations": len(sweep_violations_clarity),
+            "colorViolations": len(sweep_violations_color),
+            "pass": total_violations == 0,
+            "exampleViolations": (sweep_violations_clarity + sweep_violations_color)[:10],
+        }
+    }
+    # Keep a few representative ladders for human-readable auditing
+    for (shape, carat, color, cut) in [
+        ("MARQUISE", 4.08, "E", "-"),
+        ("HEART",    3.0,  "E", "-"),
+        ("ROUND",    2.0,  "E", "ID"),
+        ("ROUND",    3.0,  "E", "ID"),
+    ]:
+        ladder = []
+        for cl in CLARITY_ORDER_S21:
+            row = selected_spec_view({
+                "Carat": carat, "carat_bucket": carat_bucket(carat),
+                "Shape": shape.upper(), "Color": color, "Clarity": cl,
+                "Cut": cut, "Polish": "EX", "Symmetry": "EX",
+                "Fluorescence": "-", "Report": "IGI", "TypeName": "-",
+                "SaleDollorPrice": 0, "usd_per_ct": 0,
+            })
+            p = s23_predict_prices(lgbm, pre, [row], tables, global_rate,
+                                   cat_tables, cat_global, cat_levels, tail_model)[0]
+            ladder.append({"clarity": cl, "price": round(p, 2), "perCt": round(p / carat, 2)})
+        violations = [
+            f"{ladder[i]['clarity']}→{ladder[i+1]['clarity']} (−{((ladder[i]['perCt']-ladder[i+1]['perCt'])/ladder[i]['perCt']*100):.1f}%)"
+            for i in range(len(ladder) - 1)
+            if ladder[i+1]["perCt"] < ladder[i]["perCt"] * 0.999
+        ]
+        clarity_ladder_cases[f"{shape}_{carat}ct_{color}"] = {
+            "ladder": ladder,
+            "violations": violations,
+            "monotone": len(violations) == 0,
+        }
+
+    # S23 acceptance check: IF 3ct ROUND E > VVS1 3ct ROUND E (no floor hack)
+    if_3ct = s23_predict_prices(lgbm, pre, [selected_spec_view({
+        "Carat": 3.0, "carat_bucket": carat_bucket(3.0),
+        "Shape": "ROUND", "Color": "E", "Clarity": "IF",
+        "Cut": "ID", "Polish": "EX", "Symmetry": "EX",
+        "Fluorescence": "-", "Report": "IGI", "TypeName": "-",
+        "SaleDollorPrice": 0, "usd_per_ct": 0,
+    })], tables, global_rate, cat_tables, cat_global, cat_levels, tail_model)[0]
+    vvs1_3ct = s23_predict_prices(lgbm, pre, [selected_spec_view({
+        "Carat": 3.0, "carat_bucket": carat_bucket(3.0),
+        "Shape": "ROUND", "Color": "E", "Clarity": "VVS1",
+        "Cut": "ID", "Polish": "EX", "Symmetry": "EX",
+        "Fluorescence": "-", "Report": "IGI", "TypeName": "-",
+        "SaleDollorPrice": 0, "usd_per_ct": 0,
+    })], tables, global_rate, cat_tables, cat_global, cat_levels, tail_model)[0]
+    if_beats_vvs1 = if_3ct > vvs1_3ct
+    print(f"\n    [S23 acceptance] IF 3ct ROUND E: ${if_3ct:,.2f}  VVS1: ${vvs1_3ct:,.2f}  "
+          f"{'✅ IF > VVS1' if if_beats_vvs1 else '❌ INVERSION'}")
+
+    selected_metrics = metrics([r["SaleDollorPrice"] for r in test], selected_preds)
+    cert_metrics     = metrics([r["SaleDollorPrice"] for r in test], cert_preds)
+    bucket_metrics   = {
+        bucket: metrics_for_subset(test, selected_preds, lambda r, b=bucket: r.get("carat_bucket") == b)
+        for bucket in sorted({r.get("carat_bucket") for r in test})
+    }
+    cut_style_metrics = {
+        group: metrics_for_subset(test, selected_preds, lambda r, g=group: cut_style_group(r.get("Cut")) == g)
+        for group in sorted({cut_style_group(r.get("Cut")) for r in test})
+    }
+
+    # ── Export ───────────────────────────────────────────────────────────────
+    print(f"\n    Exporting S23 model…", end=" ", flush=True)
+    export_model_lgbm(
+        lgbm_model=lgbm,
+        pre=pre,
+        feat_names_numeric=feats_num,
+        model_name="S23 — Grade-agnostic anchor + monotone LightGBM residual",
+        model_metrics=selected_metrics,
+        target_type="log_tail_lookup_residual",
+        X_train_transformed=X_train,
+        y_train=y_train,
+        lookup_tables=tables,
+        lookup_global=global_rate,
+        cat_tables=cat_tables,
+        cat_global=cat_global,
+        cat_levels=cat_levels,
+        large_carat_tail=tail_model,
+        all_rows=all_rows,
+        output_path=S23_MODEL_JSON,
+        categorical_features=S23_CATEGORICAL_FEATURES,
+    )
+
+    return {
+        "name": "S23 — Grade-agnostic anchor + monotone LightGBM residual",
+        "strategy": "grade_agnostic_anchor_lgbm",
+        "target_type": "log_tail_lookup_residual",
+        "metrics": selected_metrics,
+        "certLoadedMetrics": cert_metrics,
+        "segmentMetrics": {
+            "byCaratBucket": bucket_metrics,
+            "byCutStyle": cut_style_metrics,
+            "selectedSpec10ctPlus": metrics_for_subset(test, selected_preds, lambda r: r.get("Carat", 0) >= 10.0),
+            "selectedSpec8ctPlus":  metrics_for_subset(test, selected_preds, lambda r: r.get("Carat", 0) >= 8.0),
+        },
+        "description": (
+            "Grade-agnostic anchor (no Color/Clarity in lookup) + "
+            "Clarity_Rank/Color_Rank ordinal features with LightGBM monotone constraints "
+            "(400 trees, num_leaves=63, lr=0.04). "
+            "No unconstrained grade×carat interaction terms. "
+            "Full monotonicity sweep: 8 shapes × 7 carats × 2 cuts."
+        ),
+        "pinnedCases": pinned_cases,
+        "clarityLadderCases": clarity_ladder_cases,
+        "if3ctBeatsVvs1": if_beats_vvs1,
+        "largeCaratTailSummary": {
+            "globalSlope": tail_model.get("globalSlope"),
+            "startCarat":  tail_model.get("startCarat"),
+        },
+        "_lgbm": lgbm,
+        "_pre": pre,
+        "_lookup_tables": tables,
+        "_lookup_global": global_rate,
+        "_cat_tables": cat_tables,
+        "_cat_global": cat_global,
+        "_cat_levels": cat_levels,
+        "_large_carat_tail": tail_model,
+    }
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # MAIN RUNNER
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3065,6 +3597,7 @@ def run():
     only_s19 = "--only-s19" in sys.argv
     only_s20 = "--only-s20" in sys.argv
     only_s21 = "--only-s21" in sys.argv
+    only_s23 = "--only-s23" in sys.argv
     
     if use_enriched:
         rows = load_rows_enriched()
@@ -3080,7 +3613,11 @@ def run():
     print(f"Price range: ${min(r['SaleDollorPrice'] for r in rows):.2f}–${max(r['SaleDollorPrice'] for r in rows):.2f}")
     print()
 
-    if only_s21:
+    if only_s23:
+        strategies_fns = [
+            ("S23 (grade-agnostic anchor + monotone LightGBM)", strategy_s23_grade_agnostic_anchor),
+        ]
+    elif only_s21:
         strategies_fns = [
             ("S21 (monotone grade LightGBM)", strategy_s21_monotone_grade_selected_spec),
         ]
@@ -3122,6 +3659,7 @@ def run():
             ("S19 (lookup residual selected-spec)", strategy_s19_lookup_residual_selected_spec),
             ("S20 (specialty cut + large-carat tail)", strategy_s20_specialty_tail_selected_spec),
             ("S21 (monotone grade LightGBM)",          strategy_s21_monotone_grade_selected_spec),
+            ("S23 (grade-agnostic anchor + monotone LightGBM)", strategy_s23_grade_agnostic_anchor),
         ])
 
     results = []
@@ -3204,14 +3742,14 @@ def run():
         "strategies": [
             {k: v for k, v in r.items() if k not in ("pipe", "feats_num",
              "_lookup_tables", "_lookup_global", "_cat_tables", "_cat_global", "_cat_levels",
-             "_large_carat_tail")}
+             "_large_carat_tail", "_lgbm", "_pre")}
             for r in results
         ],
         "bestStrategy": {k: v for k, v in best_result.items()
                          if k not in ("pipe", "feats_num",
                           "_lookup_tables", "_lookup_global",
                           "_cat_tables", "_cat_global", "_cat_levels",
-                          "_large_carat_tail")} if best_result else None,
+                          "_large_carat_tail", "_lgbm", "_pre")} if best_result else None,
     }
 
     with open(RESULTS_JSON, "w") as f:

@@ -1,5 +1,5 @@
 {
-  "generatedDate": "2026-05-29",
+  "generatedDate": "2026-05-30",
   "testSummary": {
     "totalRows": 28394,
     "trainRows": 27602,
@@ -15,234 +15,242 @@
     ]
   },
   "baselineMape": 4.38,
-  "bestMape": 6.7561,
-  "improvementPct": -54.25,
+  "bestMape": 7.5997,
+  "improvementPct": -73.51,
   "strategies": [
     {
-      "name": "S21 \u2014 Monotone grade model (LightGBM + isotonic lookup + rank features)",
-      "strategy": "monotone_grade_lgbm_selected_spec",
+      "name": "S23 \u2014 Grade-agnostic anchor + monotone LightGBM residual",
+      "strategy": "grade_agnostic_anchor_lgbm",
       "target_type": "log_tail_lookup_residual",
       "metrics": {
         "count": 792,
-        "mape": 6.7561,
-        "mae": 70.1924,
-        "rmse": 341.3531,
-        "r2": 0.966211
+        "mape": 7.5997,
+        "mae": 87.3687,
+        "rmse": 427.9076,
+        "r2": 0.946903
       },
       "certLoadedMetrics": {
         "count": 792,
-        "mape": 5.6111,
-        "mae": 62.6559,
-        "rmse": 296.6647,
-        "r2": 0.974479
+        "mape": 6.6426,
+        "mae": 71.9149,
+        "rmse": 356.4928,
+        "r2": 0.963147
       },
       "segmentMetrics": {
         "byCaratBucket": {
           "0.30-0.49": {
             "count": 13,
-            "mape": 5.2707,
-            "mae": 2.565,
-            "rmse": 2.8972,
-            "r2": 0.958858
+            "mape": 7.4239,
+            "mae": 3.5306,
+            "rmse": 3.9547,
+            "r2": 0.923341
           },
           "0.50-0.69": {
             "count": 46,
-            "mape": 4.6671,
-            "mae": 5.1776,
-            "rmse": 8.0848,
-            "r2": 0.952586
+            "mape": 6.2089,
+            "mae": 6.833,
+            "rmse": 9.4292,
+            "r2": 0.935506
           },
           "0.70-0.89": {
             "count": 38,
-            "mape": 3.638,
-            "mae": 5.0956,
-            "rmse": 6.9466,
-            "r2": 0.957097
+            "mape": 3.884,
+            "mae": 5.1186,
+            "rmse": 7.0275,
+            "r2": 0.956092
           },
           "0.90-0.99": {
             "count": 1,
-            "mape": 0.3748,
-            "mae": 0.5073,
-            "rmse": 0.5073,
+            "mape": 0.114,
+            "mae": 0.1543,
+            "rmse": 0.1543,
             "r2": null
           },
           "1.00-1.49": {
             "count": 151,
-            "mape": 4.0907,
-            "mae": 7.0118,
-            "rmse": 13.9357,
-            "r2": 0.894892
+            "mape": 4.9132,
+            "mae": 8.0482,
+            "rmse": 14.4688,
+            "r2": 0.886697
           },
           "1.50-1.99": {
             "count": 115,
-            "mape": 7.5028,
-            "mae": 17.7938,
-            "rmse": 29.9478,
-            "r2": 0.822632
+            "mape": 8.1764,
+            "mae": 19.0794,
+            "rmse": 31.5258,
+            "r2": 0.803448
           },
           "10.00+": {
             "count": 51,
-            "mape": 8.9991,
-            "mae": 614.2954,
-            "rmse": 1311.5878,
-            "r2": 0.93111
+            "mape": 10.9317,
+            "mae": 838.596,
+            "rmse": 1659.3775,
+            "r2": 0.889731
           },
           "2.00-2.99": {
             "count": 113,
-            "mape": 6.1175,
-            "mae": 21.7883,
-            "rmse": 33.511,
-            "r2": 0.921378
+            "mape": 7.0079,
+            "mae": 25.6134,
+            "rmse": 37.6287,
+            "r2": 0.90087
           },
           "3.00-3.99": {
             "count": 99,
-            "mape": 6.8739,
-            "mae": 36.6847,
-            "rmse": 66.8625,
-            "r2": 0.890058
+            "mape": 7.4764,
+            "mae": 42.204,
+            "rmse": 71.5706,
+            "r2": 0.87403
           },
           "4.00-4.99": {
             "count": 56,
-            "mape": 4.984,
-            "mae": 37.8816,
-            "rmse": 58.8513,
-            "r2": 0.870987
+            "mape": 5.2452,
+            "mae": 40.1125,
+            "rmse": 66.0558,
+            "r2": 0.837466
           },
           "5.00-9.99": {
             "count": 109,
-            "mape": 12.2813,
-            "mae": 114.4711,
-            "rmse": 183.021,
-            "r2": 0.905537
+            "mape": 13.0612,
+            "mae": 120.5917,
+            "rmse": 179.8401,
+            "r2": 0.908792
           }
         },
         "byCutStyle": {
           "elongated_cushion": {
             "count": 5,
-            "mape": 13.0922,
-            "mae": 291.7579,
-            "rmse": 344.3486,
-            "r2": 0.662082
+            "mape": 11.0745,
+            "mae": 217.7713,
+            "rmse": 240.5577,
+            "r2": 0.835088
           },
           "ice_flower": {
             "count": 32,
-            "mape": 9.2542,
-            "mae": 359.9128,
-            "rmse": 875.4107,
-            "r2": 0.956818
+            "mape": 10.647,
+            "mae": 430.2239,
+            "rmse": 1121.5706,
+            "r2": 0.929119
           },
           "standard_grade": {
             "count": 185,
-            "mape": 8.7634,
-            "mae": 52.5458,
-            "rmse": 303.5057,
-            "r2": 0.916756
+            "mape": 9.9752,
+            "mae": 59.5327,
+            "rmse": 310.7802,
+            "r2": 0.912718
           },
           "traditional": {
             "count": 33,
-            "mape": 8.0627,
-            "mae": 70.6171,
-            "rmse": 129.6121,
-            "r2": 0.996344
+            "mape": 7.8999,
+            "mae": 111.8422,
+            "rmse": 302.67,
+            "r2": 0.980065
           },
           "unknown": {
             "count": 537,
-            "mape": 5.7765,
-            "mae": 56.9181,
-            "rmse": 303.8355,
-            "r2": 0.970359
+            "mape": 6.5489,
+            "mae": 73.8094,
+            "rmse": 394.5275,
+            "r2": 0.950023
           }
         },
         "selectedSpec10ctPlus": {
           "count": 51,
-          "mape": 8.9991,
-          "mae": 614.2954,
-          "rmse": 1311.5878,
-          "r2": 0.93111
+          "mape": 10.9317,
+          "mae": 838.596,
+          "rmse": 1659.3775,
+          "r2": 0.889731
         },
         "selectedSpec8ctPlus": {
           "count": 70,
-          "mape": 8.4335,
-          "mae": 492.2929,
-          "rmse": 1127.5158,
-          "r2": 0.939161
+          "mape": 10.0081,
+          "mae": 657.3782,
+          "rmse": 1422.2077,
+          "r2": 0.903203
         }
       },
-      "description": "Layer-1 isotonic lookup PAV + Layer-2 Clarity_Rank/Color_Rank ordinal features + Layer-3 LightGBM monotone_constraints (400 trees, num_leaves=63, lr=0.04) + Layer-4 PAV projection at browser inference",
+      "description": "Grade-agnostic anchor (no Color/Clarity in lookup) + Clarity_Rank/Color_Rank ordinal features with LightGBM monotone constraints (400 trees, num_leaves=63, lr=0.04). No unconstrained grade\u00d7carat interaction terms. Full monotonicity sweep: 8 shapes \u00d7 7 carats \u00d7 2 cuts.",
       "pinnedCases": {
         "3ct_round_e_vs1_id_selected_spec": {
-          "price": 342.7299,
-          "rate": 114.2433,
-          "tailBaseRate": 113.4933,
+          "price": 350.0727,
+          "rate": 116.6909,
+          "tailBaseRate": 112.0531,
           "tailBaseLevel": "E",
           "tailMultiplier": 1.0
         },
         "8ct_round_e_vs1_id_selected_spec": {
-          "price": 1755.8828,
-          "rate": 219.4853,
-          "tailBaseRate": 127.4611,
+          "price": 1794.0793,
+          "rate": 224.2599,
+          "tailBaseRate": 127.2059,
           "tailBaseLevel": "E",
-          "tailMultiplier": 1.443606
+          "tailMultiplier": 1.77203
         },
         "10ct_round_e_vs1_id_selected_spec": {
-          "price": 3147.547,
-          "rate": 314.7547,
-          "tailBaseRate": 127.4611,
+          "price": 3146.953,
+          "rate": 314.6953,
+          "tailBaseRate": 127.2059,
           "tailBaseLevel": "E",
-          "tailMultiplier": 1.718502
+          "tailMultiplier": 2.325079
         },
         "12ct_round_e_vs1_id_selected_spec": {
-          "price": 3980.7673,
-          "rate": 331.7306,
-          "tailBaseRate": 127.4611,
+          "price": 3650.0203,
+          "rate": 304.1684,
+          "tailBaseRate": 127.2059,
           "tailBaseLevel": "E",
-          "tailMultiplier": 1.981539
+          "tailMultiplier": 2.902842
         }
       },
       "clarityLadderCases": {
+        "_sweepSummary": {
+          "totalChecks": 1728,
+          "clarityViolations": 0,
+          "colorViolations": 0,
+          "pass": true,
+          "exampleViolations": []
+        },
         "MARQUISE_4.08ct_E": {
           "ladder": [
             {
               "clarity": "IF",
-              "price": 718.33,
-              "perCt": 176.06
+              "price": 1351.78,
+              "perCt": 331.32
             },
             {
               "clarity": "VVS1",
-              "price": 852.81,
-              "perCt": 209.02
+              "price": 1113.97,
+              "perCt": 273.03
             },
             {
               "clarity": "VVS2",
-              "price": 808.31,
-              "perCt": 198.11
+              "price": 772.1,
+              "perCt": 189.24
             },
             {
               "clarity": "VS1",
-              "price": 634.35,
-              "perCt": 155.48
+              "price": 625.24,
+              "perCt": 153.25
             },
             {
               "clarity": "VS2",
-              "price": 521.64,
-              "perCt": 127.85
+              "price": 616.45,
+              "perCt": 151.09
             },
             {
               "clarity": "SI1",
-              "price": 711.83,
-              "perCt": 174.47
+              "price": 613.17,
+              "perCt": 150.29
             },
             {
               "clarity": "SI2",
-              "price": 560.84,
-              "perCt": 137.46
+              "price": 613.17,
+              "perCt": 150.29
             }
           ],
           "violations": [
-            "VVS1\u2192VVS2 (\u22125.2%)",
-            "VVS2\u2192VS1 (\u221221.5%)",
-            "VS1\u2192VS2 (\u221217.8%)",
-            "SI1\u2192SI2 (\u221221.2%)"
+            "IF\u2192VVS1 (\u221217.6%)",
+            "VVS1\u2192VVS2 (\u221230.7%)",
+            "VVS2\u2192VS1 (\u221219.0%)",
+            "VS1\u2192VS2 (\u22121.4%)",
+            "VS2\u2192SI1 (\u22120.5%)"
           ],
           "monotone": false
         },
@@ -250,44 +258,45 @@
           "ladder": [
             {
               "clarity": "IF",
-              "price": 461.42,
-              "perCt": 153.81
+              "price": 691.9,
+              "perCt": 230.63
             },
             {
               "clarity": "VVS1",
-              "price": 653.49,
-              "perCt": 217.83
+              "price": 632.32,
+              "perCt": 210.77
             },
             {
               "clarity": "VVS2",
-              "price": 348.37,
-              "perCt": 116.12
+              "price": 349.58,
+              "perCt": 116.53
             },
             {
               "clarity": "VS1",
-              "price": 340.14,
-              "perCt": 113.38
+              "price": 338.59,
+              "perCt": 112.86
             },
             {
               "clarity": "VS2",
-              "price": 374.43,
-              "perCt": 124.81
+              "price": 334.84,
+              "perCt": 111.61
             },
             {
               "clarity": "SI1",
-              "price": 396.08,
-              "perCt": 132.03
+              "price": 334.84,
+              "perCt": 111.61
             },
             {
               "clarity": "SI2",
-              "price": 373.35,
-              "perCt": 124.45
+              "price": 334.84,
+              "perCt": 111.61
             }
           ],
           "violations": [
-            "VVS1\u2192VVS2 (\u221246.7%)",
-            "VVS2\u2192VS1 (\u22122.4%)",
-            "SI1\u2192SI2 (\u22125.7%)"
+            "IF\u2192VVS1 (\u22128.6%)",
+            "VVS1\u2192VVS2 (\u221244.7%)",
+            "VVS2\u2192VS1 (\u22123.1%)",
+            "VS1\u2192VS2 (\u22121.1%)"
           ],
           "monotone": false
         },
@@ -295,279 +304,335 @@
           "ladder": [
             {
               "clarity": "IF",
-              "price": 292.27,
-              "perCt": 146.13
+              "price": 464.37,
+              "perCt": 232.19
             },
             {
               "clarity": "VVS1",
-              "price": 392.24,
-              "perCt": 196.12
+              "price": 431.35,
+              "perCt": 215.67
             },
             {
               "clarity": "VVS2",
-              "price": 248.49,
-              "perCt": 124.25
+              "price": 256.45,
+              "perCt": 128.22
             },
             {
               "clarity": "VS1",
-              "price": 239.79,
-              "perCt": 119.89
+              "price": 240.92,
+              "perCt": 120.46
             },
             {
               "clarity": "VS2",
-              "price": 238.11,
-              "perCt": 119.06
+              "price": 240.53,
+              "perCt": 120.26
             },
             {
               "clarity": "SI1",
-              "price": 245.52,
-              "perCt": 122.76
+              "price": 240.53,
+              "perCt": 120.26
             },
             {
               "clarity": "SI2",
-              "price": 248.17,
-              "perCt": 124.09
+              "price": 240.53,
+              "perCt": 120.26
             }
           ],
           "violations": [
-            "VVS1\u2192VVS2 (\u221236.6%)",
-            "VVS2\u2192VS1 (\u22123.5%)",
-            "VS1\u2192VS2 (\u22120.7%)"
+            "IF\u2192VVS1 (\u22127.1%)",
+            "VVS1\u2192VVS2 (\u221240.5%)",
+            "VVS2\u2192VS1 (\u22126.1%)",
+            "VS1\u2192VS2 (\u22120.2%)"
+          ],
+          "monotone": false
+        },
+        "ROUND_3.0ct_E": {
+          "ladder": [
+            {
+              "clarity": "IF",
+              "price": 675.29,
+              "perCt": 225.1
+            },
+            {
+              "clarity": "VVS1",
+              "price": 618.1,
+              "perCt": 206.03
+            },
+            {
+              "clarity": "VVS2",
+              "price": 355.81,
+              "perCt": 118.6
+            },
+            {
+              "clarity": "VS1",
+              "price": 350.07,
+              "perCt": 116.69
+            },
+            {
+              "clarity": "VS2",
+              "price": 341.64,
+              "perCt": 113.88
+            },
+            {
+              "clarity": "SI1",
+              "price": 341.64,
+              "perCt": 113.88
+            },
+            {
+              "clarity": "SI2",
+              "price": 341.64,
+              "perCt": 113.88
+            }
+          ],
+          "violations": [
+            "IF\u2192VVS1 (\u22128.5%)",
+            "VVS1\u2192VVS2 (\u221242.4%)",
+            "VVS2\u2192VS1 (\u22121.6%)",
+            "VS1\u2192VS2 (\u22122.4%)"
           ],
           "monotone": false
         }
       },
+      "if3ctBeatsVvs1": true,
       "largeCaratTailSummary": {
-        "globalSlope": 0.30200103,
+        "globalSlope": 0.47452528,
         "startCarat": 5.0
       }
     }
   ],
   "bestStrategy": {
-    "name": "S21 \u2014 Monotone grade model (LightGBM + isotonic lookup + rank features)",
-    "strategy": "monotone_grade_lgbm_selected_spec",
+    "name": "S23 \u2014 Grade-agnostic anchor + monotone LightGBM residual",
+    "strategy": "grade_agnostic_anchor_lgbm",
     "target_type": "log_tail_lookup_residual",
     "metrics": {
       "count": 792,
-      "mape": 6.7561,
-      "mae": 70.1924,
-      "rmse": 341.3531,
-      "r2": 0.966211
+      "mape": 7.5997,
+      "mae": 87.3687,
+      "rmse": 427.9076,
+      "r2": 0.946903
     },
     "certLoadedMetrics": {
       "count": 792,
-      "mape": 5.6111,
-      "mae": 62.6559,
-      "rmse": 296.6647,
-      "r2": 0.974479
+      "mape": 6.6426,
+      "mae": 71.9149,
+      "rmse": 356.4928,
+      "r2": 0.963147
     },
     "segmentMetrics": {
       "byCaratBucket": {
         "0.30-0.49": {
           "count": 13,
-          "mape": 5.2707,
-          "mae": 2.565,
-          "rmse": 2.8972,
-          "r2": 0.958858
+          "mape": 7.4239,
+          "mae": 3.5306,
+          "rmse": 3.9547,
+          "r2": 0.923341
         },
         "0.50-0.69": {
           "count": 46,
-          "mape": 4.6671,
-          "mae": 5.1776,
-          "rmse": 8.0848,
-          "r2": 0.952586
+          "mape": 6.2089,
+          "mae": 6.833,
+          "rmse": 9.4292,
+          "r2": 0.935506
         },
         "0.70-0.89": {
           "count": 38,
-          "mape": 3.638,
-          "mae": 5.0956,
-          "rmse": 6.9466,
-          "r2": 0.957097
+          "mape": 3.884,
+          "mae": 5.1186,
+          "rmse": 7.0275,
+          "r2": 0.956092
         },
         "0.90-0.99": {
           "count": 1,
-          "mape": 0.3748,
-          "mae": 0.5073,
-          "rmse": 0.5073,
+          "mape": 0.114,
+          "mae": 0.1543,
+          "rmse": 0.1543,
           "r2": null
         },
         "1.00-1.49": {
           "count": 151,
-          "mape": 4.0907,
-          "mae": 7.0118,
-          "rmse": 13.9357,
-          "r2": 0.894892
+          "mape": 4.9132,
+          "mae": 8.0482,
+          "rmse": 14.4688,
+          "r2": 0.886697
         },
         "1.50-1.99": {
           "count": 115,
-          "mape": 7.5028,
-          "mae": 17.7938,
-          "rmse": 29.9478,
-          "r2": 0.822632
+          "mape": 8.1764,
+          "mae": 19.0794,
+          "rmse": 31.5258,
+          "r2": 0.803448
         },
         "10.00+": {
           "count": 51,
-          "mape": 8.9991,
-          "mae": 614.2954,
-          "rmse": 1311.5878,
-          "r2": 0.93111
+          "mape": 10.9317,
+          "mae": 838.596,
+          "rmse": 1659.3775,
+          "r2": 0.889731
         },
         "2.00-2.99": {
           "count": 113,
-          "mape": 6.1175,
-          "mae": 21.7883,
-          "rmse": 33.511,
-          "r2": 0.921378
+          "mape": 7.0079,
+          "mae": 25.6134,
+          "rmse": 37.6287,
+          "r2": 0.90087
         },
         "3.00-3.99": {
           "count": 99,
-          "mape": 6.8739,
-          "mae": 36.6847,
-          "rmse": 66.8625,
-          "r2": 0.890058
+          "mape": 7.4764,
+          "mae": 42.204,
+          "rmse": 71.5706,
+          "r2": 0.87403
         },
         "4.00-4.99": {
           "count": 56,
-          "mape": 4.984,
-          "mae": 37.8816,
-          "rmse": 58.8513,
-          "r2": 0.870987
+          "mape": 5.2452,
+          "mae": 40.1125,
+          "rmse": 66.0558,
+          "r2": 0.837466
         },
         "5.00-9.99": {
           "count": 109,
-          "mape": 12.2813,
-          "mae": 114.4711,
-          "rmse": 183.021,
-          "r2": 0.905537
+          "mape": 13.0612,
+          "mae": 120.5917,
+          "rmse": 179.8401,
+          "r2": 0.908792
         }
       },
       "byCutStyle": {
         "elongated_cushion": {
           "count": 5,
-          "mape": 13.0922,
-          "mae": 291.7579,
-          "rmse": 344.3486,
-          "r2": 0.662082
+          "mape": 11.0745,
+          "mae": 217.7713,
+          "rmse": 240.5577,
+          "r2": 0.835088
         },
         "ice_flower": {
           "count": 32,
-          "mape": 9.2542,
-          "mae": 359.9128,
-          "rmse": 875.4107,
-          "r2": 0.956818
+          "mape": 10.647,
+          "mae": 430.2239,
+          "rmse": 1121.5706,
+          "r2": 0.929119
         },
         "standard_grade": {
           "count": 185,
-          "mape": 8.7634,
-          "mae": 52.5458,
-          "rmse": 303.5057,
-          "r2": 0.916756
+          "mape": 9.9752,
+          "mae": 59.5327,
+          "rmse": 310.7802,
+          "r2": 0.912718
         },
         "traditional": {
           "count": 33,
-          "mape": 8.0627,
-          "mae": 70.6171,
-          "rmse": 129.6121,
-          "r2": 0.996344
+          "mape": 7.8999,
+          "mae": 111.8422,
+          "rmse": 302.67,
+          "r2": 0.980065
         },
         "unknown": {
           "count": 537,
-          "mape": 5.7765,
-          "mae": 56.9181,
-          "rmse": 303.8355,
-          "r2": 0.970359
+          "mape": 6.5489,
+          "mae": 73.8094,
+          "rmse": 394.5275,
+          "r2": 0.950023
         }
       },
       "selectedSpec10ctPlus": {
         "count": 51,
-        "mape": 8.9991,
-        "mae": 614.2954,
-        "rmse": 1311.5878,
-        "r2": 0.93111
+        "mape": 10.9317,
+        "mae": 838.596,
+        "rmse": 1659.3775,
+        "r2": 0.889731
       },
       "selectedSpec8ctPlus": {
         "count": 70,
-        "mape": 8.4335,
-        "mae": 492.2929,
-        "rmse": 1127.5158,
-        "r2": 0.939161
+        "mape": 10.0081,
+        "mae": 657.3782,
+        "rmse": 1422.2077,
+        "r2": 0.903203
       }
     },
-    "description": "Layer-1 isotonic lookup PAV + Layer-2 Clarity_Rank/Color_Rank ordinal features + Layer-3 LightGBM monotone_constraints (400 trees, num_leaves=63, lr=0.04) + Layer-4 PAV projection at browser inference",
+    "description": "Grade-agnostic anchor (no Color/Clarity in lookup) + Clarity_Rank/Color_Rank ordinal features with LightGBM monotone constraints (400 trees, num_leaves=63, lr=0.04). No unconstrained grade\u00d7carat interaction terms. Full monotonicity sweep: 8 shapes \u00d7 7 carats \u00d7 2 cuts.",
     "pinnedCases": {
       "3ct_round_e_vs1_id_selected_spec": {
-        "price": 342.7299,
-        "rate": 114.2433,
-        "tailBaseRate": 113.4933,
+        "price": 350.0727,
+        "rate": 116.6909,
+        "tailBaseRate": 112.0531,
         "tailBaseLevel": "E",
         "tailMultiplier": 1.0
       },
       "8ct_round_e_vs1_id_selected_spec": {
-        "price": 1755.8828,
-        "rate": 219.4853,
-        "tailBaseRate": 127.4611,
+        "price": 1794.0793,
+        "rate": 224.2599,
+        "tailBaseRate": 127.2059,
         "tailBaseLevel": "E",
-        "tailMultiplier": 1.443606
+        "tailMultiplier": 1.77203
       },
       "10ct_round_e_vs1_id_selected_spec": {
-        "price": 3147.547,
-        "rate": 314.7547,
-        "tailBaseRate": 127.4611,
+        "price": 3146.953,
+        "rate": 314.6953,
+        "tailBaseRate": 127.2059,
         "tailBaseLevel": "E",
-        "tailMultiplier": 1.718502
+        "tailMultiplier": 2.325079
       },
       "12ct_round_e_vs1_id_selected_spec": {
-        "price": 3980.7673,
-        "rate": 331.7306,
-        "tailBaseRate": 127.4611,
+        "price": 3650.0203,
+        "rate": 304.1684,
+        "tailBaseRate": 127.2059,
         "tailBaseLevel": "E",
-        "tailMultiplier": 1.981539
+        "tailMultiplier": 2.902842
       }
     },
     "clarityLadderCases": {
+      "_sweepSummary": {
+        "totalChecks": 1728,
+        "clarityViolations": 0,
+        "colorViolations": 0,
+        "pass": true,
+        "exampleViolations": []
+      },
       "MARQUISE_4.08ct_E": {
         "ladder": [
           {
             "clarity": "IF",
-            "price": 718.33,
-            "perCt": 176.06
+            "price": 1351.78,
+            "perCt": 331.32
           },
           {
             "clarity": "VVS1",
-            "price": 852.81,
-            "perCt": 209.02
+            "price": 1113.97,
+            "perCt": 273.03
           },
           {
             "clarity": "VVS2",
-            "price": 808.31,
-            "perCt": 198.11
+            "price": 772.1,
+            "perCt": 189.24
           },
           {
             "clarity": "VS1",
-            "price": 634.35,
-            "perCt": 155.48
+            "price": 625.24,
+            "perCt": 153.25
           },
           {
             "clarity": "VS2",
-            "price": 521.64,
-            "perCt": 127.85
+            "price": 616.45,
+            "perCt": 151.09
           },
           {
             "clarity": "SI1",
-            "price": 711.83,
-            "perCt": 174.47
+            "price": 613.17,
+            "perCt": 150.29
           },
           {
             "clarity": "SI2",
-            "price": 560.84,
-            "perCt": 137.46
+            "price": 613.17,
+            "perCt": 150.29
           }
         ],
         "violations": [
-          "VVS1\u2192VVS2 (\u22125.2%)",
-          "VVS2\u2192VS1 (\u221221.5%)",
-          "VS1\u2192VS2 (\u221217.8%)",
-          "SI1\u2192SI2 (\u221221.2%)"
+          "IF\u2192VVS1 (\u221217.6%)",
+          "VVS1\u2192VVS2 (\u221230.7%)",
+          "VVS2\u2192VS1 (\u221219.0%)",
+          "VS1\u2192VS2 (\u22121.4%)",
+          "VS2\u2192SI1 (\u22120.5%)"
         ],
         "monotone": false
       },
@@ -575,44 +640,45 @@
         "ladder": [
           {
             "clarity": "IF",
-            "price": 461.42,
-            "perCt": 153.81
+            "price": 691.9,
+            "perCt": 230.63
           },
           {
             "clarity": "VVS1",
-            "price": 653.49,
-            "perCt": 217.83
+            "price": 632.32,
+            "perCt": 210.77
           },
           {
             "clarity": "VVS2",
-            "price": 348.37,
-            "perCt": 116.12
+            "price": 349.58,
+            "perCt": 116.53
           },
           {
             "clarity": "VS1",
-            "price": 340.14,
-            "perCt": 113.38
+            "price": 338.59,
+            "perCt": 112.86
           },
           {
             "clarity": "VS2",
-            "price": 374.43,
-            "perCt": 124.81
+            "price": 334.84,
+            "perCt": 111.61
           },
           {
             "clarity": "SI1",
-            "price": 396.08,
-            "perCt": 132.03
+            "price": 334.84,
+            "perCt": 111.61
           },
           {
             "clarity": "SI2",
-            "price": 373.35,
-            "perCt": 124.45
+            "price": 334.84,
+            "perCt": 111.61
           }
         ],
         "violations": [
-          "VVS1\u2192VVS2 (\u221246.7%)",
-          "VVS2\u2192VS1 (\u22122.4%)",
-          "SI1\u2192SI2 (\u22125.7%)"
+          "IF\u2192VVS1 (\u22128.6%)",
+          "VVS1\u2192VVS2 (\u221244.7%)",
+          "VVS2\u2192VS1 (\u22123.1%)",
+          "VS1\u2192VS2 (\u22121.1%)"
         ],
         "monotone": false
       },
@@ -620,50 +686,98 @@
         "ladder": [
           {
             "clarity": "IF",
-            "price": 292.27,
-            "perCt": 146.13
+            "price": 464.37,
+            "perCt": 232.19
           },
           {
             "clarity": "VVS1",
-            "price": 392.24,
-            "perCt": 196.12
+            "price": 431.35,
+            "perCt": 215.67
           },
           {
             "clarity": "VVS2",
-            "price": 248.49,
-            "perCt": 124.25
+            "price": 256.45,
+            "perCt": 128.22
           },
           {
             "clarity": "VS1",
-            "price": 239.79,
-            "perCt": 119.89
+            "price": 240.92,
+            "perCt": 120.46
           },
           {
             "clarity": "VS2",
-            "price": 238.11,
-            "perCt": 119.06
+            "price": 240.53,
+            "perCt": 120.26
           },
           {
             "clarity": "SI1",
-            "price": 245.52,
-            "perCt": 122.76
+            "price": 240.53,
+            "perCt": 120.26
           },
           {
             "clarity": "SI2",
-            "price": 248.17,
-            "perCt": 124.09
+            "price": 240.53,
+            "perCt": 120.26
           }
         ],
         "violations": [
-          "VVS1\u2192VVS2 (\u221236.6%)",
-          "VVS2\u2192VS1 (\u22123.5%)",
-          "VS1\u2192VS2 (\u22120.7%)"
+          "IF\u2192VVS1 (\u22127.1%)",
+          "VVS1\u2192VVS2 (\u221240.5%)",
+          "VVS2\u2192VS1 (\u22126.1%)",
+          "VS1\u2192VS2 (\u22120.2%)"
+        ],
+        "monotone": false
+      },
+      "ROUND_3.0ct_E": {
+        "ladder": [
+          {
+            "clarity": "IF",
+            "price": 675.29,
+            "perCt": 225.1
+          },
+          {
+            "clarity": "VVS1",
+            "price": 618.1,
+            "perCt": 206.03
+          },
+          {
+            "clarity": "VVS2",
+            "price": 355.81,
+            "perCt": 118.6
+          },
+          {
+            "clarity": "VS1",
+            "price": 350.07,
+            "perCt": 116.69
+          },
+          {
+            "clarity": "VS2",
+            "price": 341.64,
+            "perCt": 113.88
+          },
+          {
+            "clarity": "SI1",
+            "price": 341.64,
+            "perCt": 113.88
+          },
+          {
+            "clarity": "SI2",
+            "price": 341.64,
+            "perCt": 113.88
+          }
+        ],
+        "violations": [
+          "IF\u2192VVS1 (\u22128.5%)",
+          "VVS1\u2192VVS2 (\u221242.4%)",
+          "VVS2\u2192VS1 (\u22121.6%)",
+          "VS1\u2192VS2 (\u22122.4%)"
         ],
         "monotone": false
       }
     },
+    "if3ctBeatsVvs1": true,
     "largeCaratTailSummary": {
-      "globalSlope": 0.30200103,
+      "globalSlope": 0.47452528,
       "startCarat": 5.0
     }
   }

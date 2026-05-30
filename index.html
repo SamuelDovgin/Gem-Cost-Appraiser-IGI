@@ -184,6 +184,15 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .intel-compare-v.delta-down{color:var(--orange)}
 .intel-compare-v.delta-flat{color:var(--muted2)}
 @media(max-width:560px){.intel-compare-row{grid-template-columns:1fr}}
+.ml-model-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:.5px solid var(--border)}
+.ml-model-compare-col{padding:15px 22px 16px;min-width:0}
+.ml-model-compare-col:first-child{border-right:.5px solid var(--border)}
+.ml-model-compare-col--candidate{background:rgba(212,175,114,0.04)}
+.ml-compare-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.ml-compare-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.ml-compare-delta{font-family:'DM Mono',monospace;font-size:11px;margin-top:6px;padding:3px 0;border-top:.5px solid var(--border);color:var(--muted2)}
+.ml-compare-delta.up{color:var(--green)}.ml-compare-delta.down{color:var(--orange)}
+@media(max-width:560px){.ml-model-compare-grid{grid-template-columns:1fr}.ml-model-compare-col:first-child{border-right:none;border-bottom:.5px solid var(--border)}}
 .intel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .intel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
 .intel-pill{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25);border-radius:4px;padding:2px 6px;white-space:nowrap}
@@ -726,13 +735,29 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   <div class="r0-source-summary" id="r0-source-summary"></div>
 
   <div class="pricing-intel">
-    <div class="pricing-intel-panel">
-      <div class="intel-head">
-        <div class="intel-title">Best ML price guess</div>
-        <div class="intel-pill" id="starsgem-ml-model">Extra Trees</div>
+    <div class="pricing-intel-panel" style="padding:0">
+      <div style="padding:12px 22px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div class="intel-title">ML price estimate — model comparison</div>
+        <div class="ml-compare-delta" id="ml-compare-delta" style="margin-top:0;padding:2px 8px;border:.5px solid var(--border);border-radius:4px">—</div>
       </div>
-      <div class="intel-formula" id="starsgem-ml-price">Loading ML model…</div>
-      <div class="intel-sub" id="starsgem-ml-note">Uses the best StarGem browser model when it has loaded.</div>
+      <div class="ml-model-compare-grid">
+        <div class="ml-model-compare-col">
+          <div class="ml-compare-head">
+            <div class="ml-compare-label">Production</div>
+            <div class="intel-pill" id="starsgem-ml-model">S22</div>
+          </div>
+          <div class="intel-formula" id="starsgem-ml-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-ml-note">Loading model…</div>
+        </div>
+        <div class="ml-model-compare-col ml-model-compare-col--candidate">
+          <div class="ml-compare-head">
+            <div class="ml-compare-label">Candidate — formally monotone</div>
+            <div class="intel-pill" id="starsgem-s23-model">S23</div>
+          </div>
+          <div class="intel-formula" id="starsgem-s23-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-s23-note">Loading S23 model…</div>
+        </div>
+      </div>
     </div>
     <div class="pricing-intel-panel">
       <div class="intel-head">
@@ -940,6 +965,8 @@ let _starsgemPricingIntel = null;
 let _starsgemPricingIntelPromise = null;
 let _starsgemMlModel = null;
 let _starsgemMlModelPromise = null;
+let _starsgemS23Model = null;
+let _starsgemS23ModelPromise = null;
 let _colorDiamondMlModel = null;
 let _colorDiamondMlModelPromise = null;
 let _v3engineReadyPromise = null;
@@ -1053,6 +1080,26 @@ async function loadStarsgemMlModel() {
       return null;
     });
   return _starsgemMlModelPromise;
+}
+
+async function loadStarsgemS23Model() {
+  if (_starsgemS23Model) return _starsgemS23Model;
+  if (_starsgemS23ModelPromise) return _starsgemS23ModelPromise;
+  _starsgemS23ModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json?v=20260530-s23-formally-monotone')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _starsgemS23Model = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('StarGem S23 model unavailable.', err);
+      return null;
+    });
+  return _starsgemS23ModelPromise;
 }
 
 async function loadColorDiamondMlModel() {
@@ -2379,8 +2426,8 @@ function predictStarsgemAnchor(row, model) {
   return null;
 }
 
-function predictStarsgemMl(row) {
-  const model = _starsgemMlModel;
+function predictStarsgemMl(row, model) {
+  model = model || _starsgemMlModel;
   if (!model || !Array.isArray(model.trees) || !model.trees.length) return null;
   const vector = starsgemModelVector(row, model);
   let logSum = 0;
@@ -2514,7 +2561,18 @@ function updateStarsgemPricingIntel() {
   // PAV projection is intentionally limited to the clarity/color ladder display (getMlPredictionForReconciler).
   // Using the monotone path here costs ~+5 pp MAPE because PAV averages adjacent cells,
   // which systematically biases a single high-clarity stone toward lower-clarity neighbours.
-  const mlPred = colorMlPred || predictStarsgemMl(row);
+  // Exception: IF clarity gets a targeted floor — StarGem stocks almost no IF stones so the raw lookup
+  // falls back to a global anchor (G·n≈2556) and the raw model inherits the sparse/wrong signal.
+  // If raw IF < raw VVS1 (a monotonicity violation) clamp to VVS1 × getClarityMult(IF)/getClarityMult(VVS1).
+  let mlPred = colorMlPred || predictStarsgemMl(row);
+  if (isWhite() && !colorMlPred && mlPred && state.clarity === 'IF') {
+    const vvs1Pred = predictStarsgemMl({ ...row, Clarity: 'VVS1' });
+    if (vvs1Pred && vvs1Pred.price > mlPred.price) {
+      const ct = Number(state.carat);
+      const flooredPrice = Math.round(vvs1Pred.price * getClarityMult('IF', ct) / getClarityMult('VVS1', ct));
+      mlPred = { ...mlPred, price: flooredPrice, _ifClampedFromVvs1: true };
+    }
+  }
   if (mlPred && mlPriceEl) {
     const methodLabel = colorMlPred ? 'color ML model' : 'ML model';
     mlPriceEl.textContent = `${fmt(mlPred.price)} ${methodLabel}`;
@@ -2529,7 +2587,10 @@ function updateStarsgemPricingIntel() {
         const tailNote = mlPred.tail?.level && mlPred.tail.level !== 'NONE'
           ? ` Large-stone tail: ${escapeHTML(mlPred.tail.level)}${mlPred.tail.count ? `, n=${mlPred.tail.count}` : ''}, ${mlPred.tail.multiplier.toFixed(2)}×.`
           : '';
-        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ExtraTrees model prediction, S22 (${dims}).${tailNote}`;
+        const ifFloorNote = mlPred._ifClampedFromVvs1
+          ? ' IF has no StarGem stock at this carat range — raw model prediction was below VVS1; floored to VVS1 × clarity-mult ratio.'
+          : '';
+        mlNoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> ExtraTrees model prediction, S22 (${dims}).${tailNote}${ifFloorNote}`;
       }
     }
   } else if (mlPriceEl) {
@@ -2554,7 +2615,12 @@ function updateStarsgemPricingIntel() {
     priceEl.textContent = `${fmt(pred.price)} StarGem sheet formula`;
     const fields = pred.fields?.length ? pred.fields.join(' + ') : 'global median';
     const isFallback = pred.level === 'GLOBAL' || !pred.fields?.includes('Shape');
-    noteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> uses ${escapeHTML(fields)}. ${isFallback ? 'Future IGI-only shape labels will fall back until the supplier sheet has matching rows.' : 'Price = round(carat × internal rate) / 170.'}`;
+    const clarityDropped = !pred.fields?.includes('Clarity');
+    const clarityIsIF = starsgemNorm(row.Clarity) === 'IF';
+    const fallbackNote = clarityDropped && clarityIsIF
+      ? 'IF has no direct lookup data in StarGem\'s inventory at this carat range — clarity was dropped in the fallback. Use the Alibaba comp and ML estimates instead.'
+      : 'Future IGI-only shape labels will fall back until the supplier sheet has matching rows.';
+    noteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> uses ${escapeHTML(fields)}. ${isFallback ? fallbackNote : 'Price = round(carat × internal rate) / 170.'}`;
     levelEl.textContent = pred.level + (pred.count ? ` · n=${pred.count}` : '');
     rateEl.textContent = Math.round(pred.rate).toLocaleString() + ' int/ct';
   } else {
@@ -2564,8 +2630,42 @@ function updateStarsgemPricingIntel() {
     rateEl.textContent = '—';
   }
 
+  // ── S23 candidate panel ──────────────────────────────────────────────────
+  const s23PriceEl = document.getElementById('starsgem-s23-price');
+  const s23NoteEl  = document.getElementById('starsgem-s23-note');
+  const s23ModelEl = document.getElementById('starsgem-s23-model');
+  const deltaEl    = document.getElementById('ml-compare-delta');
 
-
+  if (isWhite() && _starsgemS23Model) {
+    const s23Pred = predictStarsgemMl(row, _starsgemS23Model);
+    if (s23Pred && s23PriceEl) {
+      s23PriceEl.textContent = `${fmt(s23Pred.price)} ML model`;
+      if (s23ModelEl) s23ModelEl.textContent = 'S23 (LightGBM monotone)';
+      if (s23NoteEl) {
+        const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth' : 'using selected specs';
+        const tailNote = s23Pred.tail?.level && s23Pred.tail.level !== 'NONE'
+          ? ` Tail: ${escapeHTML(s23Pred.tail.level)}, ${s23Pred.tail.multiplier.toFixed(2)}×.`
+          : '';
+        s23NoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> grade-agnostic anchor + monotone LightGBM residual (${dims}). Formally monotone — 0 inversions on 1728-cell sweep.${tailNote}`;
+      }
+      // Delta vs S22
+      if (deltaEl && mlPred && mlPred.price) {
+        const delta = s23Pred.price - mlPred.price;
+        const deltaPct = (delta / mlPred.price) * 100;
+        const sign = delta >= 0 ? '+' : '';
+        deltaEl.textContent = `S23 vs S22: ${sign}${fmt(Math.round(delta))} (${sign}${deltaPct.toFixed(1)}%)`;
+        deltaEl.className = 'ml-compare-delta' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '');
+      }
+    }
+  } else if (!isWhite()) {
+    if (s23PriceEl) s23PriceEl.textContent = 'White diamonds only';
+    if (s23NoteEl) s23NoteEl.textContent = 'S23 is a white diamond model. Fancy colors use the source-adjusted color ML model.';
+    if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
+  } else {
+    if (s23PriceEl) s23PriceEl.textContent = 'Loading S23…';
+    if (s23NoteEl) s23NoteEl.textContent = 'S23 model is loading (grade-agnostic anchor + LightGBM).';
+    if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
+  }
 }
 
 const shapeNames = {
@@ -6056,7 +6156,8 @@ document.getElementById('igi-apply-btn').addEventListener('click', applyIGIRepor
 syncWhiteSection();
 loadAlibabaCompsIndex(); // async: triggers update() again once comps are ready
 loadStarsgemPricingIntel(); // async: exposes StarGem lookup/formula diagnostics
-loadStarsgemMlModel(); // async: loads compact browser ML price predictor
+loadStarsgemMlModel(); // async: loads compact browser ML price predictor (S22)
+loadStarsgemS23Model(); // async: loads S23 candidate (grade-agnostic anchor + monotone LightGBM)
 loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor
 update();
 

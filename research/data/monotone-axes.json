@@ -29,6 +29,20 @@
       "order":     null,
       "direction": 1,
       "note":      "continuous — constraint only; no ladder sweep needed"
+    },
+    {
+      "feature":   "Log_Carat",
+      "rowField":  null,
+      "order":     null,
+      "direction": 1,
+      "note":      "log(Carat) — monotone +1; S23 uses this instead of raw Carat in the LightGBM constraint vector so both the raw and log transforms are constrained"
+    },
+    {
+      "feature":   "Lookup_RatePerCt",
+      "rowField":  null,
+      "order":     null,
+      "direction": 1,
+      "note":      "grade-agnostic anchor rate per carat — higher anchor implies higher final price; S23 monotone +1 constraint"
     }
   ],
 
