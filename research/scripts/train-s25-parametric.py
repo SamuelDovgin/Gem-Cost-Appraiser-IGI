@@ -7,7 +7,7 @@ Train the S25 Hierarchical Parametric Power-Law pricing model.
 Architecture:
   log($/ct) = β_global × log(carat)           (global carat power-law from rounds)
             + shapeBaseline[shape]              (per-shape intercept)
-            + δ_color × color_rank             (global color gradient)
+            + δ_color × color_rank             (global color gradient, constrained ≤ 0)
             + δ_clarity × clarity_rank         (global clarity gradient)
             + ε_spec                            (per-spec residual, shrunk)
             + γ_cut                             (cut adjustment, fitted from rounds)
@@ -47,6 +47,7 @@ DATA_DIR     = PROJECT_ROOT / "data"
 
 TRAINING_JSON = DATA_DIR / "dataset-clean-training.json"
 OUTPUT_JSON   = DATA_DIR / "starsgem-ml-model-s25-parametric.json"
+MODEL_VERSION = "s25-parametric-v1.2"
 
 # ── Hyperparameters ───────────────────────────────────────────────────────────
 
@@ -152,12 +153,18 @@ def main():
     y_r = np.array([r["log_upc"] for r in round_rows])
     coeffs_r = ols(X_r, y_r)
     beta_global  = float(coeffs_r[1])
-    delta_color  = float(coeffs_r[2])
+    delta_color_raw = float(coeffs_r[2])
+    # D/E/F/G are weakly separated in the StarGem lab-diamond sheet and the
+    # unconstrained round OLS can invert the market order. Keep observed spec
+    # cells differentiated through specEps, but never let gradient-only
+    # extrapolation make lower colors more expensive than D.
+    delta_color  = min(0.0, delta_color_raw)
     delta_clarity = float(coeffs_r[3])
     round_intercept = float(coeffs_r[0])
 
     print(f"  β_global (carat)  = {beta_global:+.4f}")
-    print(f"  δ_color  (per rank) = {delta_color:+.4f}  (D=0 → G=3)")
+    print(f"  δ_color raw (per rank) = {delta_color_raw:+.4f}  (D=0 → G=3)")
+    print(f"  δ_color final         = {delta_color:+.4f}  (constrained ≤ 0)")
     print(f"  δ_clarity (per rank) = {delta_clarity:+.4f}  (IF=0 → VS1=3)")
     print(f"  round intercept @ log_carat=0 (1ct avg grade) = {round_intercept:.4f}")
     print(f"  Note: fitted from {len(round_rows)} round rows spanning "
@@ -220,6 +227,20 @@ def main():
         shape_baseline[shape] = mean(vals) if vals else 0.0
 
     shape_baseline["_global"] = mean(r["resid_nocut"] for r in rows)
+
+    shape_support: dict[str, dict[str, float | int]] = {}
+    for shape in shapes:
+        shape_rows = [r for r in rows if r["shape"] == shape]
+        carats = [r["carat"] for r in shape_rows]
+        shape_support[shape] = {
+            "n": len(shape_rows),
+            "minCarat": round(min(carats), 4),
+            "maxCarat": round(max(carats), 4),
+            "uniqueSpecs": len({
+                f"{r['shape']}||{r['color']}||{r['clarity']}"
+                for r in shape_rows
+            }),
+        }
 
     print("  Per-shape baseline (log_upc at 1ct, avg color/clarity, after β/γ):")
     for shape in sorted(shape_baseline):
@@ -346,7 +367,7 @@ def main():
 
     model = {
         "modelName":    "S25 — Hierarchical Parametric Power-Law",
-        "modelVersion": "s25-parametric-v1",
+        "modelVersion": MODEL_VERSION,
         "generatedDate": str(date.today()),
         "targetType":   "log_upc_parametric",
         "prediction": (
@@ -361,11 +382,13 @@ def main():
         ),
         "hyperparameters": {
             "shrinkLambda": SHRINK_LAMBDA,
+            "colorGradientConstraint": "deltaColor <= 0",
         },
         # Global carat exponent (fitted from round data, applied to all shapes).
         "betaGlobal":   round(beta_global,   6),
         # Global color/clarity gradients (fitted from round data).
         "deltaColor":   round(delta_color,   6),
+        "deltaColorRaw": round(delta_color_raw, 6),
         "deltaClarity": round(delta_clarity, 6),
         # Per-shape pricing baseline (log_upc at 1ct, avg grade, avg cut).
         "shapeBaseline": {
@@ -376,6 +399,7 @@ def main():
             k: round(v, 6) for k, v in spec_eps.items()
         },
         "specCount": spec_count,
+        "shapeSupport": shape_support,
         # Cut grade log-space adjustments.
         "cutAdj": {
             k: round(v, 6) for k, v in sorted(cut_adj.items())
@@ -400,8 +424,11 @@ def main():
                 "β_global from rounds. Fancy shapes (Pear, Oval, Heart…) only "
                 "span 0.5–1.8ct in training data — not enough range to identify "
                 "their own β. Using β_round as a principled prior.",
-                "δ_color and δ_clarity are global gradients for interpolating "
-                "unseen (color, clarity) combos within a shape.",
+                "δ_color is constrained ≤ 0 so gradient-only extrapolation does "
+                "not invert D/E/F/G ordering. Observed cells still carry "
+                "within-spec color signal via specEps.",
+                "δ_clarity is a global gradient for interpolating unseen clarity "
+                "combos within a shape.",
                 "specEps[key] is shrunk toward 0 with λ=20. A spec with 1 obs "
                 "has ε ≈ 5% of the observed excess; with 20 obs, ε ≈ 50%.",
                 "γ_cut data: only EX and ID have >10 round obs. VG/G use priors.",

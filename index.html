@@ -1125,7 +1125,7 @@ async function loadStarsgemS25Model() {
   if (_starsgemMlS25ModelPromise) return _starsgemMlS25ModelPromise;
   // S25: Hierarchical Parametric Power-Law. Uses global β from rounds + per-spec
   // intercepts with shrinkage. Extrapolation-safe: 100% coverage, no global sentinel.
-  _starsgemMlS25ModelPromise = fetch('research/data/starsgem-ml-model-s25-parametric.json?v=20260530-s25-v1.1')
+  _starsgemMlS25ModelPromise = fetch('research/data/starsgem-ml-model-s25-parametric.json?v=20260530-s25-v1.2')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();

@@ -1,177 +1,231 @@
 # S25 — Hierarchical Parametric Power-Law Model
 
-**Status:** Research → Implementation  
+**Status:** Implemented as `s25-parametric-v1.2`  
 **Date:** 2026-05-30  
-**Motivation:** S20/S22's catastrophic failure on rare-spec × large-carat combinations (5.21ct Heart D VS1 → $96 total vs correct ~$1,090).
+**Scope:** White / colorless lab-grown diamonds only. Fancy-color diamonds use the separate Color S22 / Color S23 model family.
 
 ---
 
-## 1. The Core Problem
+## 1. Core Problem
 
-S20 (and S23) are **interpolation engines**. They build a lookup table over `(carat_bucket × shape × color × clarity × cut)` cells and train trees to predict a multiplier on top of the lookup rate. This works extremely well where training coverage exists (MAPE 2.46% on the 198 training stones), but collapses at coverage gaps:
+S20/S22 and S23 are mostly interpolation engines. They work well where lookup coverage is dense, but rare-spec or large-carat cells can fall through to weak global anchors.
 
-- 5ct+ Heart D VS1: Level-G fallback, `count=1`, `usdPerCt=$18.87` → $96 total (11× below reality)
-- 2ct+ Round shapes: `GLOBAL` sentinel → similar collapse
+Original motivating failure:
 
-The root cause: **the models cannot extrapolate across the carat dimension**. If you've only seen Hearts at 1–1.35ct, you have no principled way to price a 5ct Heart.
+- 5ct+ HEART D VS1 could fall to a low-support/global lookup around `$18/ct`.
+- That produced a total price near `$96` when the correct large-heart reference was closer to `$1,000+`.
 
-### The S21 Fallback Patch
-
-We deployed S21 as a coverage fallback (substitutes when S20 hits `count≤3` lookups). This is a bandaid — S21 has better coverage but the same extrapolation limitation.
+S21 patched this with broader lookup coverage. S25 adds a different tool: a compact parametric baseline that can always price a white-diamond spec without using a global sentinel.
 
 ---
 
-## 2. The Parametric Insight
+## 2. Model Formula
 
-Diamond pricing follows an approximate **power law in carat**:
+S25 predicts log price per carat:
 
-$$\frac{\text{price}}{\text{ct}} = A_{\text{spec}} \cdot \text{carat}^{\beta_{\text{shape}}} \cdot e^{\gamma_{\text{cut}}}$$
+```text
+log($/ct) =
+  shapeBaseline[shape]
+  + specEps[shape||color||clarity]
+  + betaGlobal * log(carat)
+  + deltaColor * colorRank[color]
+  + deltaClarity * clarityRank[clarity]
+  + cutAdj[cut]
+```
 
-Or equivalently in log space:
+Then:
 
-$$\log\!\left(\frac{\text{price}}{\text{ct}}\right) = \underbrace{\alpha_{\text{spec}}}_{\text{intercept at 1ct}} + \underbrace{\beta_{\text{shape}} \cdot \log(\text{carat})}_{\text{carat scaling}} + \underbrace{\gamma_{\text{cut}}}_{\text{cut adj}}$$
+```text
+price = exp(log($/ct)) * carat
+```
 
-**The key insight:** $\beta_{\text{shape}}$ — the carat scaling exponent — is **transferable across color and clarity grades within a shape**. If we know that Rounds scale as $\text{carat}^{0.31}$, then a D VS1 Round and an H SI1 Round follow the same carat curve; only their intercept $\alpha_{\text{spec}}$ differs.
+Key implementation details:
 
-This means: **a spec with 5 observations at 1ct can price a 5ct stone** by applying $\beta_{\text{round}} \times \log(5)$ to scale the 1ct price up.
+- `betaGlobal` is fitted from ROUND rows only and applied globally.
+- `shapeBaseline` pools the average level for each shape after removing carat, clarity, color, and cut effects.
+- `specEps` captures observed `(shape, color, clarity)` excess after shrinkage toward zero.
+- `deltaColor` is constrained to `<= 0` so gradient-only extrapolation cannot make lower color grades more expensive than D.
+- `deltaClarity` is fitted from ROUND rows and remains negative, so clarity is monotone.
+- `cutAdj` is fitted from ROUND residuals where possible and falls back to priors for sparse cut grades.
 
 ---
 
 ## 3. Data Reality Check
 
-From StarGem segment A (12,843 standard stones, rows 15001–28394):
+Training data: `research/data/dataset-clean-training.json`, Segment A only, 12,843 rows.
 
-| Shape | n | Carat Range | β estimable? |
-|---|---|---|---|
-| ROUND | 9,701 | 0.30–5.06ct | ✅ Very precise (>8 octaves) |
-| PEAR | 768 | 0.50–1.38ct | ⚠️ Narrow, ~1.5 octave |
-| OVAL | 746 | 0.50–1.18ct | ⚠️ Very narrow |
-| MARQUISE | 420 | 0.51–1.29ct | ⚠️ Very narrow |
-| RADIANT | 370 | 0.50–1.63ct | ⚠️ Narrow |
-| PRINCESS | 352 | 0.51–1.59ct | ⚠️ Narrow |
-| EMERALD | 258 | 0.50–1.83ct | ⚠️ Narrow |
-| CUSHION | 137 | 0.56–1.55ct | ⚠️ Narrow |
-| HEART | 13 | 1.01–1.35ct | ❌ Unidentifiable from data alone |
+| Shape | n | Carat Range | S25 support note |
+|---|---:|---|---|
+| ROUND | 9,701 | 0.30-5.06ct | Strong beta source |
+| PEAR | 768 | 0.50-1.38ct | Good intercept support, narrow carat range |
+| OVAL | 746 | 0.50-1.18ct | Good intercept support, narrow carat range |
+| MARQUISE | 420 | 0.51-1.29ct | Moderate support |
+| RADIANT | 370 | 0.50-1.63ct | Moderate support, high residual error |
+| PRINCESS | 352 | 0.51-1.59ct | Moderate support |
+| EMERALD | 258 | 0.50-1.83ct | Moderate support |
+| CUSHION | 137 | 0.56-1.55ct | Sparse but S25 performs well in-sample |
+| ASSCHER | 47 | 1.00-1.03ct | Very sparse, benefits from pooling |
+| SQUARE | 31 | 1.00-1.01ct | Very sparse |
+| HEART | 13 | 1.01-1.35ct | Too sparse for large-carat extrapolation |
 
-**Critical finding:** Every fancy shape tops out below 2ct. StarGem's current stock doesn't include >2ct fancy shapes (or has almost none). This means β for fancy shapes cannot be identified from this data — it **must** be borrowed from rounds or from market priors.
-
-This actually validates the parametric approach: it's not just nice to have — it's necessary. There is no other principled way to price a 5ct Pear or 5ct Heart from this dataset.
-
----
-
-## 4. Model Architecture
-
-### 4.1 Fitting β_shape (Carat Exponents)
-
-**Step 1:** Fit a within-shape OLS for each shape with sufficient carat range:
-
-```
-log($/ct) ~ β_shape × log(carat) + δ_color × color_rank + δ_clarity × clarity_rank
-```
-
-Extract $\hat{\beta}_{\text{shape}}$ from the log(carat) coefficient.
-
-**Step 2:** For shapes with narrow carat range or few observations, shrink toward $\hat{\beta}_{\text{round}}$:
-
-$$\hat{\beta}_{\text{shape}}^{\text{final}} = w \cdot \hat{\beta}_{\text{shape}}^{\text{raw}} + (1-w) \cdot \hat{\beta}_{\text{round}}$$
-
-where $w = \min(1, \text{carat\_range\_log} / 1.5)$. If carat range is only 0.5 log units (e.g., 0.5–1.5ct, i.e., $\log(1.5/0.5)=1.1$), weight $\approx 73\%$ toward round.
-
-For HEART (carat range log = $\log(1.35/1.01) = 0.29$): $w = 0.19$ → almost entirely borrowing from rounds.
-
-### 4.2 Fitting α_spec (Spec Intercepts)
-
-**Step 3:** After extracting $\hat{\beta}_{\text{shape}}$, compute residuals for each row:
-
-$$r_i = \log\!\left(\frac{p_i}{\text{ct}_i}\right) - \hat{\beta}_{\text{shape}} \cdot \log(\text{ct}_i)$$
-
-**Step 4:** For each `(shape, color, clarity)` group, compute the shrunk mean:
-
-$$\hat{\alpha}_{\text{spec}} = \frac{n_{\text{spec}} \cdot \bar{r}_{\text{spec}} + \lambda \cdot \bar{r}_{\text{shape}}}{n_{\text{spec}} + \lambda}$$
-
-where $\lambda = 20$ (shrinkage strength). With $n=1$, weight $\approx 5\%$ toward observed, $95\%$ toward shape baseline. With $n=50$, weight $\approx 71\%$ toward observed.
-
-### 4.3 Fitting γ_cut (Cut Adjustments)
-
-Estimated from Round data only (rounds have EX/ID cut grades with large n). Fancy shapes mostly use `'-'` (no cut grade).
-
-Since the dataset has almost exclusively ID/EX rounds (9,701 round rows: 7,931 ID + 1,769 EX, 1 VG), meaningful cut variation is minimal. γ_cut will be set conservatively based on industry priors: EX/ID ≈ 0.0, VG ≈ −0.05, G ≈ −0.10.
-
-### 4.4 Prediction Function
-
-```js
-function predictS25(shape, color, clarity, carat, cut, model) {
-  const key = `${shape}||${color}||${clarity}`;
-  const beta  = model.shapeBeta[shape]    ?? model.shapeBeta._global;
-  const alpha = model.specAlpha[key]      ?? model.shapeBaseline[shape]
-                                          ?? model.shapeBaseline._global;
-  const gamma = model.cutAdj[cut ?? '-']  ?? 0;
-  const logUpc = alpha + beta * Math.log(carat) + gamma;
-  const upc   = Math.exp(logUpc);
-  return {
-    price: upc * carat,
-    upc,
-    specCoverage: key in model.specAlpha ? 'spec' : 'shape_baseline',
-  };
-}
-```
-
-**Coverage: 100%.** Every (shape, color, clarity, carat) combination returns a principled estimate.
+Critical limitation: every non-round shape tops out below 2ct in Segment A. S25 can extrapolate, but it cannot learn large-fancy-shape scarcity premiums that are absent from the training sheet.
 
 ---
 
-## 5. Expected Properties
+## 4. v1.2 Training Changes
 
-### What this model does well
-- **Extrapolates correctly to unseen carat ranges** — the entire point
-- **No global sentinel fallback** — every spec has at least a shape baseline
-- **Tiny footprint** — ~400 spec alphas + 9 beta values; browser JSON < 50KB
-- **Interpretable** — β_round ≈ 0.3 means "$/ct increases by 30% per doubling of carat"
-- **Monotone in carat** by construction (β > 0 → $/ct always increases with carat)
+The old script could regenerate an inverted color gradient. v1.2 fixes that drift.
 
-### Where it will underperform vs S20
-- **MAPE on well-covered specs will be higher than S20's 2.46%** — S20 essentially memorizes its 198 training stones via the lookup table. S25 uses a global power law which will miss within-spec nonlinearity.
-- **Expected S25 MAPE: 10–18%** on standard spec × carat combinations that S20 handles well.
+Current fitted values:
 
-### The right framing
-S25 is not meant to replace S22 (S20's production deployment) — it's meant to replace the **global sentinel fallback**. The dispatch logic should be:
-
-```
-if (S22 hits GLOBAL or count ≤ 3):
-  use S25 (parametric extrapolation)
-else:
-  use S22 (memorized lookup)
+```text
+betaGlobal     = -0.124622
+deltaColorRaw  = +0.0089
+deltaColor     = 0.0000
+deltaClarity   = -0.059349
+spec cells     = 105
+training MAPE  = 8.26%
 ```
 
-This is better than the current S21 fallback because S25 genuinely extrapolates rather than just having more lookup cells.
+Why clamp `deltaColor`?
+
+- The round sheet is heavily D-weighted and color differences are weak in current lab-grown wholesale data.
+- Raw OLS estimated a positive color coefficient, which would make D cheaper than G for unseen specs.
+- Observed cells still carry empirical color differences through `specEps`.
+- Gradient-only fallback is now neutral rather than inverted.
+
+The exported JSON also now includes:
+
+- `deltaColorRaw`
+- `shapeSupport`
+- `hyperparameters.colorGradientConstraint`
 
 ---
 
-## 6. Model Card
+## 5. Benchmark Results
 
-| Property | Value |
-|---|---|
-| Model ID | S25 |
-| Architecture | Hierarchical OLS power law |
-| Parameters | ~450 (9 β values + ~430 α values + ~4 γ values) |
-| Training data | StarGem segment A, 12,843 rows |
-| Carat range | 0.30–5.06ct (round) |
-| Extrapolation | Yes — via shared β |
-| Coverage | 100% (no global sentinel) |
-| Monotone in carat | Yes (β > 0 by construction) |
-| Target MAPE | ~12% (vs S20's 2.46% on 198 samples) |
-| Replacement for | S21 fallback in S22/S23 coverage gaps |
+In-sample on the 12,843 Segment-A white rows:
+
+```text
+S22 + S21 fallback: 11.36% MAPE
+S23 + S21 fallback: 13.56% MAPE
+S25 v1.2:            8.26% MAPE
+```
+
+By shape:
+
+```text
+ROUND       7.77%
+PEAR       10.07%
+OVAL        7.98%
+MARQUISE    6.86%
+RADIANT    18.53%
+PRINCESS    8.21%
+EMERALD    14.29%
+CUSHION     3.28%
+ASSCHER     2.29%
+SQUARE      2.53%
+HEART       4.38%
+```
+
+S25 wins ROUND, CUSHION, ASSCHER, and SQUARE in the current comparison. S22 remains better for dense common fancy shapes, and S23 remains better for PRINCESS, EMERALD, and HEART.
 
 ---
 
-## 7. Limitations and Future Work
+## 6. Monotonicity
 
-1. **β is round-dominated.** With 9,701 rounds vs 13 hearts, β is essentially estimated from rounds and imposed on all shapes. This is reasonable (carat scarcity premium is a market-wide force) but worth monitoring.
+Clarity is monotone:
 
-2. **Color/clarity coverage.** Only D/E/F/G colors and IF through SI1 clarity in training. Estimating prices for H, I, J color or SI2 requires extrapolating the color/clarity gradients.
+```text
+1ct ROUND D:
+IF    $163.00/ct
+VVS1  $150.09/ct
+VVS2  $125.89/ct
+VS1   $122.69/ct
+VS2   $116.11/ct
+SI1   $109.05/ct
+SI2   $101.93/ct
+```
 
-3. **No source (CVD/HPHT) distinction.** All training data is from StarGem stock which is mixed CVD/HPHT. Currently not modeled as a feature.
+Color handling:
 
-4. **Cut data is almost all ID/EX.** γ_cut is nearly unidentifiable; set from priors.
+- Observed specs can be non-monotone because `specEps` preserves sheet-specific residuals.
+- Unseen specs are color-neutral from D through J because `deltaColor = 0`.
+- This intentionally avoids the worse error of making lower color grades more expensive in extrapolated cells.
 
-5. **Future: add Messi data.** Messi color diamonds are a separate source but white prices could supplement training for non-round shapes at larger carats.
+Carat:
+
+- `betaGlobal` is negative in this sheet, so `$ / ct` gently decreases with carat.
+- This reflects the observed 2025-2026 lab-grown supplier data more than a traditional natural-diamond scarcity curve.
+- Total price still increases with carat.
+
+---
+
+## 7. Large-Carat Specialty Caveat
+
+S25 still underprices large specialty hearts:
+
+```text
+Heart D VS1:
+1ct      S25 $141    S21 $159
+3ct      S25 $370    S21 $359
+5.21ct   S25 $600    S21 $1,410
+8ct      S25 $873    S21 $2,310
+```
+
+Interpretation:
+
+- S25 is reasonable at 1-3ct.
+- At 4ct+, S25 misses the specialty-heart premium because Segment A has only 13 hearts and none above 1.35ct.
+- S21 remains the better fallback for 4ct+ specialty hearts when its lookup support is available.
+
+---
+
+## 8. Colored Gems Boundary
+
+S25 is **not** a colored-gem model.
+
+Fancy-color diamonds are handled by:
+
+- `research/data/color-diamond-ml-model.json` — Color S22 ExtraTrees.
+- `research/data/color-diamond-ml-model-s23.json` — Color S23 LightGBM with monotone intensity constraints.
+
+Current colored-gem checkpoint:
+
+```text
+Rows: 1,657 fancy-color stones
+Validation rows: 161
+Direct StarGem anchors: 5
+
+Color S22 validation MAPE: 3.12%
+Color S23 validation MAPE: 3.86%
+```
+
+The app should keep hiding S25 for colored stones and use the color model family instead.
+
+---
+
+## 9. Recommended Use
+
+Use S25 as:
+
+- a 100%-coverage white-diamond audit baseline;
+- the best current white ROUND estimator in this benchmark;
+- a sparse-shape baseline for ASSCHER, CUSHION, and SQUARE;
+- an explainable fallback when S22/S23 provide weak/global coverage.
+
+Do not use S25 as:
+
+- the primary dense fancy-shape model where S22 is clearly better;
+- the large-specialty 4ct+ fallback when S21 has support;
+- any colored-gem pricing model.
+
+---
+
+## 10. Future Work
+
+1. Add held-out white validation so S25 can be measured out-of-sample.
+2. Use `shapeSupport.maxCarat` in the UI to warn on extreme extrapolation.
+3. Add L/W ratio once dimensions are reliably available for Segment-A rows.
+4. Collect more 3ct+ non-round white stones, especially HEART and ASSCHER.
+5. Expand direct StarGem colored anchors and keep them in the separate color model family.

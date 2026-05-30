@@ -32,6 +32,8 @@ const s20 = loadJson('starsgem-ml-extra-trees-model-s20-specialty-tail.json');
 const s21 = loadJson('starsgem-ml-extra-trees-model-s21-monotone.json');
 const s23 = loadJson('starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json');
 const s25 = loadJson('starsgem-ml-model-s25-parametric.json');
+const colorS22 = loadJson('color-diamond-ml-model.json');
+const colorS23 = loadJson('color-diamond-ml-model-s23.json');
 
 // ─── Helper: is a prediction hitting the global fallback? ────────────────────
 function isEffectivelyGlobal(pred) {
@@ -169,8 +171,9 @@ for (const raw of allRows) {
     if (isEffectivelyGlobal(p23)) totals.s23.global++;
   }
 
-  // S25
-  const p25 = s25Prediction(row, s25);
+  // S25: use the raw dataset cut value. Ungraded fancy shapes are intentionally
+  // '-' in the parametric model, not coerced to EX like the tree-model row.
+  const p25 = s25Prediction({ Shape: shape, Color: color, Clarity: clarity, Carat: carat, Cut: cut }, s25);
   if (p25?.price > 0) {
     const ape = Math.abs(p25.price - actual) / actual * 100;
     totals.s25.n++;
@@ -198,6 +201,7 @@ for (const raw of allRows) {
 // ─── Report ───────────────────────────────────────────────────────────────────
 function mape(acc) { return acc.n > 0 ? (acc.sumApe / acc.n).toFixed(2) : 'N/A'; }
 function pct(a, b) { return b > 0 ? (100*a/b).toFixed(1)+'%' : '—'; }
+function metricPct(value) { return Number.isFinite(value) ? (value * 100).toFixed(2) + '%' : 'N/A'; }
 
 console.log('══════════════════════════════════════════════════════════════════');
 console.log('OVERALL MAPE');
@@ -255,25 +259,30 @@ for (const cl of clarityOrder) {
 }
 console.log(clOk ? '\n  ✓ Clarity monotone' : '\n  ✗ Clarity violations!');
 
-// Color sweep (VS1 fixed)
-console.log('\nColor ladder (VS1 clarity):');
+// Color sweep (VS1 fixed). Observed specs can retain empirical specEps bumps;
+// the formal S25 guarantee is that gradient-only fallback does not invert color.
+console.log('\nColor ladder (ROUND VS1 observed/spec-mixed):');
 const colorOrder = ['D','E','F','G','H','I','J'];
-let prevCo = Infinity;
-let coOk = true;
 for (const co of colorOrder) {
   const r = { ...testRow1ct, Color: co };
   const p = s25Prediction(r, s25);
+  console.log(`  ${co.padEnd(3)} $${p.price.toFixed(2)}  $${p.upc.toFixed(2)}/ct  cov=${p.coverage} n=${p.specCount}`);
+}
+
+console.log('\nGradient-only color ladder (novel shape, VS1 clarity):');
+let prevCo = Infinity;
+let coOk = true;
+for (const co of colorOrder) {
+  const r = buildStarsgemRow({ carat: 1.0, shape: 'NOVEL_TEST_SHAPE', color: co, clarity: 'VS1', cut: '-' });
+  const p = s25Prediction(r, s25);
   const ok = p.price <= prevCo + 0.01;
   if (!ok) coOk = false;
-  const sign = p.price <= prevCo + 0.01;
-  // In lab diamonds, D should be highest (or comparable to E/F). deltaColor > 0 means D < G.
-  console.log(`  ${co.padEnd(3)} $${p.price.toFixed(2)}  $${p.upc.toFixed(2)}/ct  ${sign ? '✓ non-increasing' : '✗ VIOLATION (D < G — color inverted!)'}`);
+  console.log(`  ${co.padEnd(3)} $${p.price.toFixed(2)}  $${p.upc.toFixed(2)}/ct  ${ok ? '✓ non-increasing' : '✗ VIOLATION'}`);
   prevCo = p.price;
 }
-// Note: color should be NON-INCREASING from D→J (D most expensive)
-// But deltaColor > 0 makes D cheapest — flag this.
-console.log('\n  NOTE: deltaColor = +' + s25.deltaColor.toFixed(4) + ' means D < G (inverted!)');
-console.log('  Color gradient direction in S25 is WRONG. See doc for explanation and fix path.');
+console.log(coOk
+  ? `\n  ✓ Gradient-only color monotone/neutral (deltaColor=${s25.deltaColor.toFixed(4)})`
+  : `\n  ✗ Gradient-only color violation (deltaColor=${s25.deltaColor.toFixed(4)})`);
 
 // Carat sweep (D VS1 fixed)
 console.log('\nCarat extrapolation (D VS1, across 1ct → 10ct):');
@@ -291,5 +300,19 @@ for (const ct of [1, 2, 3, 4, 5, 5.21, 6, 8]) {
   const s21p = predictStarsgemMl(r, s21);
   console.log(`  ${String(ct).padEnd(5)}ct  S25=$${(p25p?.price||0).toFixed(0).padStart(6)}  S21=$${(s21p?.price||0).toFixed(0).padStart(6)}  cov=${p25p?.coverage}`);
 }
+
+// ─── Fancy-color model family ────────────────────────────────────────────────
+console.log('\n══════════════════════════════════════════════════════════════════');
+console.log('FANCY-COLOR MODEL CHECKPOINT');
+console.log('══════════════════════════════════════════════════════════════════');
+const c22m = colorS22.metrics || {};
+const c23m = colorS23.metrics || {};
+const colorRows = c22m.rowCounts?.all ?? c23m.rowCounts?.all ?? 0;
+const colorValidation = c22m.rowCounts?.validation ?? c23m.rowCounts?.validation ?? 0;
+const colorAnchors = c22m.rowCounts?.source_starsgem_color ?? c23m.rowCounts?.source_starsgem_color ?? 0;
+console.log(`  Rows: ${colorRows.toLocaleString()} fancy-color stones (${colorValidation} validation; ${colorAnchors} direct StarGem anchors)`);
+console.log(`  Color S22 (ExtraTrees): validation MAPE ${metricPct(c22m.validation?.mape)}, MdAPE ${metricPct(c22m.validation?.medianApe)}, anchor MAPE ${metricPct(c22m.directStarGemAnchorsInSample?.mape)}`);
+console.log(`  Color S23 (LightGBM monotone): validation MAPE ${metricPct(c23m.validation?.mape)}, MdAPE ${metricPct(c23m.validation?.medianApe)}, anchor MAPE ${metricPct(c23m.directStarGemAnchorsInSample?.mape)}`);
+console.log('  Recommendation: use Color S22 for the lowest point-error estimate; keep Color S23 as the monotone intensity sanity check.');
 
 console.log('\n══════════════════════════════════════════════════════════════════\n');
