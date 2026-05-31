@@ -1128,7 +1128,7 @@ async function loadStarsgemS26Model() {
   // S26: champion hybrid policy. Dense StarGem lookup is the primary anchor;
   // monotone-capped ML and live comps are blended when support is sparse or
   // carat is far outside the local sheet surface.
-  _starsgemMlS26ModelPromise = fetch('research/data/starsgem-ml-model-s26-champion.json?v=20260530-s26-v1')
+  _starsgemMlS26ModelPromise = fetch('research/data/starsgem-ml-model-s26-champion.json?v=20260531-s26-v1-2')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1172,6 +1172,36 @@ function s26CompSigma(model, compResult) {
     sigma = Math.max(sigma, p.extrapolated ?? 0.48);
   }
   return sigma;
+}
+
+function s26ApplyMlAnchorDisagreementGuard(sources, model) {
+  const p = model?.policy?.mlAnchorDisagreement || {};
+  const minAnchors = Number(p.minStrongAnchors ?? 2);
+  const maxAnchorSigma = Number(p.maxAnchorSigma ?? 0.18);
+  const maxAnchorSpread = Number(p.maxAnchorSpread ?? 1.45);
+  const lowRatio = Number(p.lowRatio ?? 0.55);
+  const highRatio = Number(p.highRatio ?? 1.80);
+  const outlierSigma = Number(p.outlierSigma ?? 1.50);
+  const anchors = sources.filter(s => s.kind !== 'ml' && s.sigma <= maxAnchorSigma);
+  if (anchors.length < minAnchors) return;
+
+  const prices = anchors.map(s => s.price).filter(price => Number.isFinite(price) && price > 0);
+  if (prices.length < minAnchors) return;
+  const anchorMin = Math.min(...prices);
+  const anchorMax = Math.max(...prices);
+  if (anchorMin <= 0 || anchorMax / anchorMin > maxAnchorSpread) return;
+
+  const anchorLogMedian = prices.reduce((sum, price) => sum + Math.log(price), 0) / prices.length;
+  const anchorCenter = Math.exp(anchorLogMedian);
+  for (const source of sources) {
+    if (source.kind !== 'ml' || !Number.isFinite(source.price) || source.price <= 0) continue;
+    const ratio = source.price / anchorCenter;
+    if (ratio < lowRatio || ratio > highRatio) {
+      source.anchorDisagreement = { ratio, anchorCenter, anchorSpread: anchorMax / anchorMin };
+      source.sigma = Math.max(source.sigma, outlierSigma);
+      source.rawWeight = 1 / (source.sigma * source.sigma);
+    }
+  }
 }
 
 function s26CappedWeights(sources, caps) {
@@ -1248,6 +1278,7 @@ function predictS26(row, model, context = {}) {
   }
 
   if (!sources.length) return null;
+  s26ApplyMlAnchorDisagreementGuard(sources, model);
   const weights = s26CappedWeights(sources, model.policy?.sourceCaps || {});
   let logPrice = 0;
   let variance = 0;
@@ -3070,11 +3101,15 @@ function updateStarsgemPricingIntel() {
         const globalWarn = globalMlSources.length
           ? ` ML global-fallback downweighted (no spec coverage at this carat range — lookup and comp dominate).`
           : '';
+        const anchorOutliers = s26Pred.sources.filter(s => s.kind === 'ml' && s.anchorDisagreement);
+        const anchorWarn = anchorOutliers.length
+          ? ` ML anchor-disagreement guard applied; strong lookup/comp anchors dominate.`
+          : '';
         s26NoteEl.innerHTML = (
           `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> `
           + `S26 blends dense StarGem lookup, monotone-capped ML, and live comps in log space. `
           + `${upcStr}; confidence ${escapeHTML(s26Pred.confidence)}.${lookupStr} `
-          + `Weights: ${weights || '—'}.${compWarn}${globalWarn}`
+          + `Weights: ${weights || '—'}.${compWarn}${globalWarn}${anchorWarn}`
         );
       }
     } else if (s26PriceEl) {

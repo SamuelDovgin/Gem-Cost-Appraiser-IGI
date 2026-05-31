@@ -50,6 +50,10 @@ comp cap:   70%
 
 This prevents any one source from dominating when it is known to be brittle.
 
+S26 also has an ML/anchor disagreement guard. When at least two strong non-ML anchors agree
+with each other, but S22/S23 is far outside that anchor center, the ML source sigma is widened
+to 1.5 so the lookup and comp anchors dominate the point estimate.
+
 ---
 
 ## Benchmark

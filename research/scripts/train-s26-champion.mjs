@@ -127,7 +127,7 @@ const now = new Date().toISOString().slice(0, 10);
 const model = {
   generatedDate: now,
   modelName: 'S26 — Champion hybrid lookup/ML/comp policy',
-  modelVersion: 's26-champion-v1',
+  modelVersion: 's26-champion-v1.2',
   targetType: 'hybrid_policy',
   prediction: 'Dense StarGem lookup anchor; browser blends lookup + monotone-capped ML + live comp evidence when available.',
   scope: {
@@ -163,6 +163,14 @@ const model = {
       lookup: 0.65,
       ml: 0.35,
       comp: 0.70,
+    },
+    mlAnchorDisagreement: {
+      minStrongAnchors: 2,
+      maxAnchorSigma: 0.18,
+      maxAnchorSpread: 1.45,
+      lowRatio: 0.55,
+      highRatio: 1.80,
+      outlierSigma: 1.50,
     },
     monotonicity: [
       'S26 consumes monotone-capped S22/S23 display predictions.',

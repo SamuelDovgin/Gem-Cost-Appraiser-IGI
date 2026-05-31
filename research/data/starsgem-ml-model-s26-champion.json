@@ -1,7 +1,7 @@
 {
   "generatedDate": "2026-05-30",
   "modelName": "S26 \u2014 Champion hybrid lookup/ML/comp policy",
-  "modelVersion": "s26-champion-v1.1",
+  "modelVersion": "s26-champion-v1.2",
   "targetType": "hybrid_policy",
   "prediction": "Dense StarGem lookup anchor; browser blends lookup + monotone-capped ML + live comp evidence when available.",
   "scope": {
@@ -37,6 +37,14 @@
       "lookup": 0.65,
       "ml": 0.35,
       "comp": 0.7
+    },
+    "mlAnchorDisagreement": {
+      "minStrongAnchors": 2,
+      "maxAnchorSigma": 0.18,
+      "maxAnchorSpread": 1.45,
+      "lowRatio": 0.55,
+      "highRatio": 1.8,
+      "outlierSigma": 1.5
     },
     "monotonicity": [
       "S26 consumes monotone-capped S22/S23 display predictions.",
@@ -144,5 +152,5 @@
       "expectedBehavior": "S26 display obeys clarity ordering after fallback."
     }
   },
-  "changeLog": "v1.1: Added mlGlobalFallbackSigma=1.5. When an ML source (S22/S23) falls back to a GLOBAL large-stone tail (no spec-specific coverage), it is now given sigma=1.5 instead of the normal mlSigma=0.22. This reduces its blend weight from ~20% to ~1%, allowing the StarGem lookup and comp engine to dominate when ML has no coverage. Fixes extreme underpricing for near-10ct D-VVS1 stones where GLOBAL fallback returned $177-$215 and was corrupting the geometric mean. "
+  "changeLog": "v1.2: Added mlAnchorDisagreement guard. When at least two strong non-ML anchors agree and ML is far outside that anchor center, S26 inflates ML sigma to 1.5 so lookup/comp anchors dominate. v1.1: Added mlGlobalFallbackSigma=1.5. When an ML source (S22/S23) falls back to a GLOBAL large-stone tail (no spec-specific coverage), it is now given sigma=1.5 instead of the normal mlSigma=0.22. This reduces its blend weight from ~20% to ~1%, allowing the StarGem lookup and comp engine to dominate when ML has no coverage. Fixes extreme underpricing for near-10ct D-VVS1 stones where GLOBAL fallback returned $177-$215 and was corrupting the geometric mean. "
 }
