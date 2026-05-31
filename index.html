@@ -1220,11 +1220,22 @@ function predictS26(row, model, context = {}) {
 
   const mlSigma = model.policy?.mlSigma ?? 0.22;
   const cappedMlSigma = model.policy?.mlClarityCappedSigma ?? 0.26;
+  // When an ML model falls back to a GLOBAL large-stone tail it has no spec-specific coverage
+  // at this carat range. Its prediction is unreliable extrapolation and should not anchor the blend.
+  // mlGlobalFallbackSigma (default 1.5) reduces the GLOBAL ML weight from ~20% to ~1%, letting
+  // the StarGem lookup and comp engine dominate — which is the right behaviour for sparse high-carat.
+  const globalFallbackSigma = model.policy?.mlGlobalFallbackSigma ?? 1.5;
+  const isMlGlobal  = context.mlPred?.tail?.level === 'GLOBAL';
+  const isS23Global = context.s23Pred?.tail?.level === 'GLOBAL';
   if (context.mlPred?.price > 0) {
-    addSource('ml', 'S22 monotone-capped ML', context.mlPred.price, context.mlPred._clarityCeilingApplied ? cappedMlSigma : mlSigma);
+    const sigma = isMlGlobal ? globalFallbackSigma
+      : context.mlPred._clarityCeilingApplied ? cappedMlSigma : mlSigma;
+    addSource('ml', 'S22 monotone-capped ML', context.mlPred.price, sigma, { globalFallback: isMlGlobal });
   }
   if (context.s23Pred?.price > 0) {
-    addSource('ml', 'S23 monotone-capped ML', context.s23Pred.price, context.s23Pred._clarityCeilingApplied ? cappedMlSigma : mlSigma);
+    const sigma = isS23Global ? globalFallbackSigma
+      : context.s23Pred._clarityCeilingApplied ? cappedMlSigma : mlSigma;
+    addSource('ml', 'S23 monotone-capped ML', context.s23Pred.price, sigma, { globalFallback: isS23Global });
   }
 
   const compResult = context.compResult;
@@ -3055,11 +3066,15 @@ function updateStarsgemPricingIntel() {
         const compWarn = (s26CompResult?.warnings || []).some(w => /extrapolation uncertainty is high/i.test(w))
           ? ' Comp support is extrapolated; S26 widens its source sigma instead of trusting it blindly.'
           : '';
+        const globalMlSources = s26Pred.sources.filter(s => s.kind === 'ml' && s.globalFallback);
+        const globalWarn = globalMlSources.length
+          ? ` ML global-fallback downweighted (no spec coverage at this carat range — lookup and comp dominate).`
+          : '';
         s26NoteEl.innerHTML = (
           `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> `
           + `S26 blends dense StarGem lookup, monotone-capped ML, and live comps in log space. `
           + `${upcStr}; confidence ${escapeHTML(s26Pred.confidence)}.${lookupStr} `
-          + `Weights: ${weights || '—'}.${compWarn}`
+          + `Weights: ${weights || '—'}.${compWarn}${globalWarn}`
         );
       }
     } else if (s26PriceEl) {

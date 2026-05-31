@@ -1,7 +1,7 @@
 {
   "generatedDate": "2026-05-30",
-  "modelName": "S26 — Champion hybrid lookup/ML/comp policy",
-  "modelVersion": "s26-champion-v1",
+  "modelName": "S26 \u2014 Champion hybrid lookup/ML/comp policy",
+  "modelVersion": "s26-champion-v1.1",
   "targetType": "hybrid_policy",
   "prediction": "Dense StarGem lookup anchor; browser blends lookup + monotone-capped ML + live comp evidence when available.",
   "scope": {
@@ -41,7 +41,8 @@
     "monotonicity": [
       "S26 consumes monotone-capped S22/S23 display predictions.",
       "Final UI comparison keeps lower clarity from exceeding better clarity for same carat/color/shape."
-    ]
+    ],
+    "mlGlobalFallbackSigma": 1.5
   },
   "metrics": {
     "dataset": "research/data/dataset-clean-training.json",
@@ -142,5 +143,6 @@
       "policy": "Use comp/lookup/monotone-capped ML; SI1 must not exceed VS2.",
       "expectedBehavior": "S26 display obeys clarity ordering after fallback."
     }
-  }
+  },
+  "changeLog": "v1.1: Added mlGlobalFallbackSigma=1.5. When an ML source (S22/S23) falls back to a GLOBAL large-stone tail (no spec-specific coverage), it is now given sigma=1.5 instead of the normal mlSigma=0.22. This reduces its blend weight from ~20% to ~1%, allowing the StarGem lookup and comp engine to dominate when ML has no coverage. Fixes extreme underpricing for near-10ct D-VVS1 stones where GLOBAL fallback returned $177-$215 and was corrupting the geometric mean. "
 }
