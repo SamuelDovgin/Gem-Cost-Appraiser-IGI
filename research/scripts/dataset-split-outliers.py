@@ -2,18 +2,13 @@
 """
 dataset-split-outliers.py
 ═══════════════════════════════════════════════════════════════════════════════
-Classifies every row in the StarGem XLS into one of six segments and writes
-a comprehensive JSON report + clean CSV suitable for ML training.
+Classifies every IGI-enriched StarGem white row into training/holdout segments
+and writes a comprehensive JSON report + clean JSON suitable for ML training.
 
 Segments:
-  A_standard_recent     → recommended ML training set
-  B_trad_cut            → 传统切 (Traditional Brilliant) — data-entry artifact
-  C_ice_flower          → 冰花切 (Ice Flower) — genuine specialty cut, needs own model
-  D_elongated_cushion   → 长垫形 (Elongated Cushion) — shape variant, already classified
-  E_old_rate_card       → rows ≤ OLD_ROW_CUTOFF with no specialty label (temporal contamination)
-  F_extreme_outlier     → lone point ≥40% above the BASE spec cluster (stale/mispriced single)
-  G_other_specialty     → 老矿切 / 老欧切 — rare historical cuts
-  H_high_price_cluster  → a CLUSTER priced ≥30% above the base/low cluster of the same spec
+  A_standard_recent     → recommended ML training set after style-aware clustering
+  F_extreme_outlier     → lone point ≥40% above the BASE style/spec cluster
+  H_high_price_cluster  → a CLUSTER priced ≥30% above the base/low style/spec cluster
                           (keep the lower base set, quarantine the high mode). Guardrailed so
                           the base cluster is always the majority → never removes >½ a group.
 
@@ -43,15 +38,16 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 DATA_DIR     = os.path.join(PROJECT_ROOT, "data")
 
 XLS_FILE           = os.path.join(DATA_DIR, "STARS Diamonds Stock2026.5.20.xls")
+STARSGEM_INDEX     = os.path.join(DATA_DIR, "starsgem-index.json")
 IGI_ENRICHMENT     = os.path.join(DATA_DIR, "igi-report-enrichment.json")
 OUT_REPORT         = os.path.join(DATA_DIR, "dataset-split-report.json")
 OUT_SUMMARY        = os.path.join(DATA_DIR, "dataset-split-summary.json")
 OUT_CLEAN_TRAINING = os.path.join(DATA_DIR, "dataset-clean-training.json")
 
 # ── PARAMETERS ───────────────────────────────────────────────────────────────
-# Row number below which stones are considered "old rate card era".
-# Empirically: price rate cards shifted between rows 13,000–16,000.
-# We use 15,000 as the conservative boundary (all 传统切 stones are below this).
+# Row number cutoff is retained only as a diagnostic for legacy comparisons.
+# It is no longer a deletion rule: large IGI-recent stones can appear early in
+# the supplier sheet and must be preserved if their style/spec cluster is valid.
 OLD_ROW_CUTOFF = 15_000
 
 # Price premium threshold above the BASE (low) spec cluster to flag a single
@@ -157,6 +153,51 @@ def load_xls(path: str) -> list[dict]:
     return records
 
 
+def load_enriched_index(path: str) -> list[dict]:
+    """Load IGI-enriched StarGem records into the training split schema."""
+    with open(path) as f:
+        payload = json.load(f)
+    source = payload.get("records", payload if isinstance(payload, list) else [])
+    records = []
+    for raw in source:
+        if raw.get("colorFamily") != "white":
+            continue
+        carat = raw.get("carat")
+        upc = raw.get("pricePerCarat")
+        if not carat or not upc or carat <= 0 or upc <= 0:
+            continue
+        igi = raw.get("igi") if isinstance(raw.get("igi"), dict) else {}
+        price = raw.get("pricePerStone") or (float(carat) * float(upc))
+        canonical_shape = raw.get("shape") or igi.get("shapeMapped") or raw.get("rawShapeCode")
+        row = {
+            "rowNo":       int(raw.get("rowNo") or 0),
+            "reportno":    str(raw.get("reportNo") or "").strip(),
+            "carat":       round(float(carat), 4),
+            "price":       round(float(price), 2),
+            "upc":         round(float(upc), 4),
+            "shape":       str(canonical_shape or "").strip().upper(),
+            "raw_shape_code": str(raw.get("rawShapeCode") or "").strip().upper(),
+            "color":       str(raw.get("color") or "").strip().upper(),
+            "clarity":     str(raw.get("clarity") or "").strip().upper(),
+            "cut_raw":     str(raw.get("rawCutCode") or raw.get("cut") or "").strip(),
+            "polish":      str(raw.get("polish") or "").strip().upper(),
+            "symmetry":    str(raw.get("symmetry") or "").strip().upper(),
+            "fluorescence":str(raw.get("fluorescence") or "").strip().upper(),
+            "typeName":    str(raw.get("growthMethod") or "").strip().upper(),
+            "measurement": str(raw.get("measurement") or igi.get("measurements") or "").strip(),
+            "lw_ratio":    raw.get("lwRatio") or igi.get("lwRatio"),
+            "table_pct":   raw.get("tablePct") or igi.get("tablePct"),
+            "depth_pct":   raw.get("depthPct") or igi.get("depthPct"),
+            "igi_shape_raw": igi.get("shapeRaw") or raw.get("igiShapeRaw"),
+            "igi_shape_mapped": igi.get("shapeMapped") or raw.get("shape"),
+            "igi_report_date": igi.get("reportDate"),
+        }
+        row["shape_style"] = shape_style_bucket(row)
+        records.append(row)
+    print(f"Loaded {len(records):,} valid white rows from enriched StarGem index")
+    return records
+
+
 def load_enrichment(path: str) -> dict:
     if not os.path.exists(path):
         print("WARNING: IGI enrichment file not found — skipping IGI shape cross-reference")
@@ -170,24 +211,41 @@ def load_enrichment(path: str) -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 SEGMENT_LABELS = {
-    "A_standard_recent":   "Standard (current rate card, no specialty cut)",
-    "B_trad_cut":          "传统切 — Traditional Brilliant label (data artifact, old rate card)",
-    "C_ice_flower":        "冰花切 — Ice Flower specialty cut (genuine premium, needs own model)",
-    "D_elongated_cushion": "长垫形 — Elongated Cushion shape variant (already classified)",
-    "E_old_rate_card":     "Old rate card era (row ≤ {:,}, no specialty label) — temporal contamination".format(OLD_ROW_CUTOFF),
-    "F_extreme_outlier":   f"Lone point outlier in recent window (price ≥{int(OUTLIER_PREMIUM_THRESHOLD*100)+100}% of base spec cluster)",
-    "G_other_specialty":   "Other specialty cut (老矿切/老欧切) — historical novelty, negligible count",
-    "H_high_price_cluster": f"Random high price cluster (≥{int((CLUSTER_GAP_THRESHOLD-1)*100)}% above the base/low cluster of the same spec) — quarantined, keep the lower base set",
+    "A_standard_recent":   "Clean style/spec cluster member — recommended ML training set",
+    "F_extreme_outlier":   f"Lone point outlier (price ≥{int(OUTLIER_PREMIUM_THRESHOLD*100)+100}% of base style/spec cluster)",
+    "H_high_price_cluster": f"High price cluster (≥{int((CLUSTER_GAP_THRESHOLD-1)*100)}% above the base/low cluster of the same style/spec) — quarantined, keep the lower base set",
 }
 
-EXCLUDE_FROM_ML = {"B_trad_cut", "C_ice_flower", "D_elongated_cushion",
-                   "E_old_rate_card", "F_extreme_outlier", "G_other_specialty",
-                   "H_high_price_cluster"}
+EXCLUDE_FROM_ML = {"F_extreme_outlier", "H_high_price_cluster"}
+
+
+def shape_style_bucket(row: dict) -> str:
+    """Return the physical/style bucket used for clustering and training."""
+    base = str(row.get("shape") or "").strip().upper() or "UNKNOWN"
+    cut = str(row.get("cut_raw") or "").strip()
+    igi_raw = str(row.get("igi_shape_raw") or "").strip().lower()
+    if base == "ELONGATED_CUSHION":
+        return "CUSHION_ELONGATED"
+    if base in ("OLD_MINE", "OLD_EUROPEAN", "PORTUGUESE"):
+        return base
+    if ICE_FLOWER_LABEL in cut:
+        return f"{base}_ICE_FLOWER"
+    if ELONG_CUSHION_LABEL in cut:
+        return "CUSHION_ELONGATED"
+    if OLD_MINE_LABEL in cut:
+        return "OLD_MINE"
+    if OLD_EUR_LABEL in cut:
+        return "OLD_EUROPEAN"
+    if "portuguese" in igi_raw:
+        return "PORTUGUESE"
+    if "modified" in igi_raw:
+        return f"{base}_MODIFIED"
+    return f"{base}_STANDARD"
 
 
 def build_spec_key(r: dict, carat_round: int = CARAT_ROUND) -> tuple:
     """Coarse spec key for grouping (carat rounded, shape, color, clarity)."""
-    return (round(r["carat"], carat_round), r["shape"], r["color"], r["clarity"])
+    return (round(r["carat"], carat_round), r.get("shape_style") or r["shape"], r["color"], r["clarity"])
 
 
 def detect_high_cluster(sorted_recs: list[dict],
@@ -241,50 +299,19 @@ def classify(records: list[dict],
     """
     Two-pass classification.
 
-    Pass 1 — label/temporal routing (B, C, D, G, E).  Everything else (recent,
-             non-specialty) becomes an A-candidate and is bucketed by spec key.
-    Pass 2 — per spec group: split off any random HIGH price cluster (Segment H),
+    Pass 1 — preserve every row in a physical/style-aware candidate bucket.
+             Row number and specialty labels are no longer deletion rules by
+             themselves.
+    Pass 2 — per style-aware spec group: split off any random HIGH price cluster (Segment H),
              then flag lone point outliers vs the BASE cluster median (Segment F),
              leaving the clean base set as Segment A.
     """
     a_candidates = defaultdict(list)   # spec_key -> [records]
 
     for r in records:
-        cut = r["cut_raw"]
-
-        if TRAD_CUT_LABEL in cut:
-            r["segment"] = "B_trad_cut"
-            r["segment_reason"] = (
-                "传统切 label: IGI certificates confirm standard Brilliant cuts (Oval/Pear/Heart Brilliant). "
-                "Label is a data-entry artifact from earlier inventory operator; all stones are in old "
-                f"rate card era (rows ≤ {old_row_cutoff:,})."
-            )
-        elif ICE_FLOWER_LABEL in cut:
-            r["segment"] = "C_ice_flower"
-            r["segment_reason"] = (
-                "冰花切 (Ice Flower) specialty cut: IGI reports describe these as Modified Brilliant. "
-                "They command a genuine +100–150% price premium vs standard cuts of same spec. "
-                "All inventory is in early rows (old rate card era). Needs a dedicated price model."
-            )
-        elif ELONG_CUSHION_LABEL in cut:
-            r["segment"] = "D_elongated_cushion"
-            r["segment_reason"] = (
-                "长垫形 (Elongated Cushion) shape flag: already routed to elongated_cushion in the "
-                "comp engine via shape_buckets. Kept separate to avoid contaminating standard Cushion stats."
-            )
-        elif cut in (OLD_MINE_LABEL, OLD_EUR_LABEL):
-            r["segment"] = "G_other_specialty"
-            r["segment_reason"] = f"Rare historical specialty cut: {cut}. Too few stones for a dedicated model."
-        elif r["rowNo"] <= old_row_cutoff:
-            r["segment"] = "E_old_rate_card"
-            r["segment_reason"] = (
-                f"Row {r['rowNo']:,} ≤ cutoff {old_row_cutoff:,}: belongs to old rate card era "
-                "where supplier priced stones significantly higher than current market. "
-                "Including these inflates MAPE by ~26.8% average drift."
-            )
-        else:
-            r["segment"] = None  # decided in pass 2
-            a_candidates[build_spec_key(r)].append(r)
+        r["shape_style"] = r.get("shape_style") or shape_style_bucket(r)
+        r["segment"] = None  # decided in pass 2
+        a_candidates[build_spec_key(r)].append(r)
 
     # ── Pass 2: per spec group cluster + point-outlier detection ──────────────
     n_groups_with_cluster = 0
@@ -325,12 +352,12 @@ def classify(records: list[dict],
                     )
                 else:
                     r["segment"] = "A_standard_recent"
-                    r["segment_reason"] = "Standard stone in current rate card window, no specialty label."
+                    r["segment_reason"] = f"Included in style-aware training bucket {r.get('shape_style') or r['shape']}."
         else:
             for r in base_recs:
                 r["segment"] = "A_standard_recent"
                 r["segment_reason"] = (
-                    "Standard stone in current rate card window; spec group too small "
+                    f"Included in style-aware training bucket {r.get('shape_style') or r['shape']}; spec group too small "
                     f"(<{MIN_GROUP_SIZE_FOR_OUTLIER}) for outlier detection."
                 )
 
@@ -497,7 +524,7 @@ def build_sensitivity(records: list[dict]) -> list[dict]:
     classify() afterwards to restore the chosen configuration.
     """
     configs = [
-        ("row-cutoff only (no F, no H)", dict(outlier_premium=10.0, enable_cluster=False)),
+        ("style buckets only (no F, no H)", dict(outlier_premium=10.0, enable_cluster=False)),
         ("F only (point outliers, no H)", dict(outlier_premium=0.40, enable_cluster=False)),
         ("F + H gap 1.40 (conservative)", dict(outlier_premium=0.40, cluster_gap=1.40, enable_cluster=True)),
         ("F + H gap 1.30 (recommended)",  dict(outlier_premium=0.40, cluster_gap=1.30, enable_cluster=True)),
@@ -529,7 +556,7 @@ def main():
     print("=" * 70)
 
     # Load
-    records    = load_xls(XLS_FILE)
+    records    = load_enriched_index(STARSGEM_INDEX)
     enrichment = load_enrichment(IGI_ENRICHMENT)
 
     # Sensitivity sweep FIRST (mutates segments under various configs)
@@ -557,8 +584,8 @@ def main():
     seg_a = [r for r in records if r["segment"] == "A_standard_recent"]
     all_recent = [r for r in records if r["rowNo"] > OLD_ROW_CUTOFF]
 
-    nf_full    = compute_noise_floor_mape(records,    "all 28,394 rows")
-    nf_recent  = compute_noise_floor_mape(all_recent, "recent rows (> {:,})".format(OLD_ROW_CUTOFF))
+    nf_full    = compute_noise_floor_mape(records,    "all enriched white rows")
+    nf_recent  = compute_noise_floor_mape(all_recent, "legacy row> {:,} diagnostic only".format(OLD_ROW_CUTOFF))
     nf_seg_a   = compute_noise_floor_mape(seg_a,      "segment A (clean training)")
 
     # IGI enrichment cross-reference
@@ -569,6 +596,14 @@ def main():
 
     # Summary
     summary = summarize_segments(records)
+    summary["_metadata"] = {
+        "canonicalTrainingSource": True,
+        "source": "research/data/starsgem-index.json",
+        "sourceRequiresIgiEnrichment": "research/data/igi-report-enrichment.json",
+        "trainingOutput": "research/data/dataset-clean-training.json",
+        "policy": "research/master-dataset-construction.md",
+        "rule": "Keep physically identifiable style buckets; quarantine only unexplained same-style/spec high price clusters and point outliers.",
+    }
     summary["noise_floors"] = {
         "all":      nf_full,
         "recent":   nf_recent,
@@ -584,8 +619,12 @@ def main():
     # Full classified report
     report_payload = {
         "generated":    __import__("datetime").date.today().isoformat(),
+        "canonicalTrainingSource": True,
+        "source": "research/data/starsgem-index.json",
+        "trainingOutput": "research/data/dataset-clean-training.json",
+        "policy": "research/master-dataset-construction.md",
         "parameters": {
-            "old_row_cutoff":             OLD_ROW_CUTOFF,
+            "legacy_row_cutoff_diagnostic": OLD_ROW_CUTOFF,
             "outlier_premium_threshold":  OUTLIER_PREMIUM_THRESHOLD,
             "min_group_size_for_outlier": MIN_GROUP_SIZE_FOR_OUTLIER,
             "carat_round":                CARAT_ROUND,
@@ -620,9 +659,9 @@ def main():
     print(f"  Noise floor — seg A:     {nf_seg_a['mape_pct']:.4f}%")
     print()
     print("  Key findings:")
-    print("  • 传统切 (Traditional Brilliant): IGI certs confirm standard cuts — purely a rate-card artifact")
-    print("  • 冰花切 (Ice Flower): genuine specialty cut commanding +100–150% premium")
-    print("  • Row cutoff {:,} cleanly separates old vs current rate card eras".format(OLD_ROW_CUTOFF))
+    print("  • 传统切 (Traditional Brilliant): IGI certs confirm standard cuts — not a standalone deletion rule")
+    print("  • 冰花切 (Ice Flower): kept in its own style bucket when IGI/source labels identify it")
+    print("  • Legacy row cutoff {:,} is diagnostic only; style/spec clustering is the cleanup rule".format(OLD_ROW_CUTOFF))
     print(f"  • {seg_counter['F_extreme_outlier']} lone point outliers (Seg F, ≥{int(OUTLIER_PREMIUM_THRESHOLD*100)+100}% of base spec median)")
     print(f"  • {seg_counter['H_high_price_cluster']} stones in random high price clusters (Seg H, ≥{int((CLUSTER_GAP_THRESHOLD-1)*100)}% above base cluster) quarantined")
     suff = summary["data_sufficiency"]

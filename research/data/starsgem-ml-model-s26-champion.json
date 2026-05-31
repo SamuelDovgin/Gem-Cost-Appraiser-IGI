@@ -1,6 +1,6 @@
 {
-  "generatedDate": "2026-05-30",
-  "modelName": "S26 \u2014 Champion hybrid lookup/ML/comp policy",
+  "generatedDate": "2026-05-31",
+  "modelName": "S26 — Champion hybrid lookup/ML/comp policy",
   "modelVersion": "s26-champion-v1.2",
   "targetType": "hybrid_policy",
   "prediction": "Dense StarGem lookup anchor; browser blends lookup + monotone-capped ML + live comp evidence when available.",
@@ -49,96 +49,111 @@
     "monotonicity": [
       "S26 consumes monotone-capped S22/S23 display predictions.",
       "Final UI comparison keeps lower clarity from exceeding better clarity for same carat/color/shape."
-    ],
-    "mlGlobalFallbackSigma": 1.5
+    ]
   },
   "metrics": {
     "dataset": "research/data/dataset-clean-training.json",
-    "n": 12843,
-    "mape": 4.794,
+    "n": 21982,
+    "mape": 5.0108,
     "caveat": "White benchmark is in-sample against the StarGem lookup reconstruction; use as production policy comparison, not academic holdout.",
     "levelCounts": {
-      "A": 12827,
-      "E": 11,
-      "B": 1,
-      "F": 2,
-      "G": 1,
-      "C": 1
+      "A": 21879,
+      "C": 26,
+      "F": 25,
+      "E": 33,
+      "B": 14,
+      "G": 5
     },
     "perShapeMape": {
       "ASSCHER": {
-        "n": 47,
-        "mape": 1.5768
+        "n": 543,
+        "mape": 6.3827
       },
       "CUSHION": {
-        "n": 137,
-        "mape": 2.0189
+        "n": 28,
+        "mape": 3.7995
+      },
+      "ELONGATED_CUSHION": {
+        "n": 75,
+        "mape": 5.2327
       },
       "EMERALD": {
-        "n": 258,
-        "mape": 2.5509
+        "n": 1429,
+        "mape": 5.4846
+      },
+      "FLOWER": {
+        "n": 219,
+        "mape": 5.1963
       },
       "HEART": {
-        "n": 13,
-        "mape": 5.5305
+        "n": 784,
+        "mape": 4.8763
       },
       "MARQUISE": {
-        "n": 420,
-        "mape": 2.53
+        "n": 1070,
+        "mape": 4.5239
       },
       "OVAL": {
-        "n": 746,
-        "mape": 1.6029
+        "n": 3503,
+        "mape": 3.7046
       },
       "PEAR": {
-        "n": 768,
-        "mape": 1.8578
+        "n": 2065,
+        "mape": 4.009
+      },
+      "PORTUGUESE": {
+        "n": 1,
+        "mape": 0.0006
       },
       "PRINCESS": {
-        "n": 352,
-        "mape": 6.6717
+        "n": 1158,
+        "mape": 13.6163
       },
       "RADIANT": {
-        "n": 370,
-        "mape": 2.6679
+        "n": 738,
+        "mape": 3.5851
       },
       "ROUND": {
-        "n": 9701,
-        "mape": 5.5076
+        "n": 9810,
+        "mape": 4.7914
       },
-      "SQUARE": {
-        "n": 31,
-        "mape": 1.2401
+      "SQUARE_CUSHION": {
+        "n": 550,
+        "mape": 3.355
+      },
+      "SQ_RADIANT": {
+        "n": 9,
+        "mape": 2.8804
       }
     },
     "perCaratBucketMape": {
-      "0.30-0.49": {
-        "n": 929,
-        "mape": 7.1032
-      },
-      "0.50-0.69": {
-        "n": 3567,
-        "mape": 5.8779
-      },
-      "0.70-0.89": {
-        "n": 608,
-        "mape": 4.1812
-      },
-      "0.90-0.99": {
-        "n": 5,
-        "mape": 0.0099
-      },
       "1.00-1.49": {
-        "n": 7580,
-        "mape": 4.0268
+        "n": 8242,
+        "mape": 4.2639
       },
       "1.50-1.99": {
-        "n": 153,
-        "mape": 2.313
+        "n": 2757,
+        "mape": 5.1633
+      },
+      "10.00+": {
+        "n": 441,
+        "mape": 12.9762
+      },
+      "2.00-2.99": {
+        "n": 4918,
+        "mape": 4.882
+      },
+      "3.00-3.99": {
+        "n": 3100,
+        "mape": 3.7988
+      },
+      "4.00-4.99": {
+        "n": 552,
+        "mape": 2.6582
       },
       "5.00-9.99": {
-        "n": 1,
-        "mape": 584.6032
+        "n": 1972,
+        "mape": 9.0236
       }
     }
   },
@@ -151,6 +166,5 @@
       "policy": "Use comp/lookup/monotone-capped ML; SI1 must not exceed VS2.",
       "expectedBehavior": "S26 display obeys clarity ordering after fallback."
     }
-  },
-  "changeLog": "v1.2: Added mlAnchorDisagreement guard. When at least two strong non-ML anchors agree and ML is far outside that anchor center, S26 inflates ML sigma to 1.5 so lookup/comp anchors dominate. v1.1: Added mlGlobalFallbackSigma=1.5. When an ML source (S22/S23) falls back to a GLOBAL large-stone tail (no spec-specific coverage), it is now given sigma=1.5 instead of the normal mlSigma=0.22. This reduces its blend weight from ~20% to ~1%, allowing the StarGem lookup and comp engine to dominate when ML has no coverage. Fixes extreme underpricing for near-10ct D-VVS1 stones where GLOBAL fallback returned $177-$215 and was corrupting the geometric mean. "
+  }
 }

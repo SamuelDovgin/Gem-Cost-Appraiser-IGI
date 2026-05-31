@@ -1,9 +1,9 @@
 {
-  "generatedDate": "2026-05-30",
+  "generatedDate": "2026-05-31",
   "testSummary": {
-    "totalRows": 12843,
-    "trainRows": 12645,
-    "testRows": 198,
+    "totalRows": 21982,
+    "trainRows": 21305,
+    "testRows": 677,
     "strategiesTested": 1,
     "split": "one_holdout_per_bucket",
     "bucketFields": [
@@ -15,664 +15,372 @@
     ]
   },
   "baselineMape": 4.38,
-  "bestMape": 2.7602,
-  "improvementPct": 36.98,
+  "bestMape": 5.1959,
+  "improvementPct": -18.63,
   "strategies": [
     {
-      "name": "S23 \u2014 Grade-agnostic anchor + monotone LightGBM residual",
-      "strategy": "grade_agnostic_anchor_lgbm",
+      "name": "S20 \u2014 Specialty cut + monotonic large-carat tail",
+      "strategy": "specialty_cut_tail_selected_spec",
       "target_type": "log_tail_lookup_residual",
       "metrics": {
-        "count": 198,
-        "mape": 2.7602,
-        "mae": 3.0088,
-        "rmse": 4.2762,
-        "r2": 0.975027
+        "count": 677,
+        "mape": 5.1959,
+        "mae": 57.1614,
+        "rmse": 212.6574,
+        "r2": 0.985881
       },
       "certLoadedMetrics": {
-        "count": 198,
-        "mape": 2.7085,
-        "mae": 2.9492,
-        "rmse": 4.1142,
-        "r2": 0.976883
+        "count": 677,
+        "mape": 4.94,
+        "mae": 53.8197,
+        "rmse": 192.6508,
+        "r2": 0.988413
       },
       "segmentMetrics": {
         "byCaratBucket": {
-          "0.30-0.49": {
-            "count": 13,
-            "mape": 3.3532,
-            "mae": 1.9018,
-            "rmse": 2.9718,
-            "r2": 0.959084
-          },
-          "0.50-0.69": {
-            "count": 37,
-            "mape": 3.4452,
-            "mae": 2.9264,
-            "rmse": 4.3003,
-            "r2": 0.982191
-          },
-          "0.70-0.89": {
-            "count": 21,
-            "mape": 3.308,
-            "mae": 3.7129,
-            "rmse": 4.9687,
-            "r2": 0.943385
-          },
-          "0.90-0.99": {
-            "count": 1,
-            "mape": 1.8246,
-            "mae": 2.55,
-            "rmse": 2.55,
-            "r2": null
-          },
           "1.00-1.49": {
-            "count": 117,
-            "mape": 2.4348,
-            "mae": 3.0338,
-            "rmse": 4.329,
-            "r2": 0.869053
+            "count": 141,
+            "mape": 4.253,
+            "mae": 7.6479,
+            "rmse": 18.9849,
+            "r2": 0.805118
           },
           "1.50-1.99": {
-            "count": 9,
-            "mape": 2.1447,
-            "mae": 3.0302,
-            "rmse": 3.4004,
-            "r2": 0.815198
+            "count": 114,
+            "mape": 4.4598,
+            "mae": 10.2276,
+            "rmse": 21.0085,
+            "r2": 0.907928
+          },
+          "10.00+": {
+            "count": 51,
+            "mape": 6.5246,
+            "mae": 381.5968,
+            "rmse": 728.8953,
+            "r2": 0.973391
+          },
+          "2.00-2.99": {
+            "count": 111,
+            "mape": 5.7484,
+            "mae": 20.7006,
+            "rmse": 37.786,
+            "r2": 0.89671
+          },
+          "3.00-3.99": {
+            "count": 97,
+            "mape": 5.2029,
+            "mae": 24.283,
+            "rmse": 43.797,
+            "r2": 0.951873
+          },
+          "4.00-4.99": {
+            "count": 55,
+            "mape": 5.0534,
+            "mae": 43.4931,
+            "rmse": 92.8608,
+            "r2": 0.75022
+          },
+          "5.00-9.99": {
+            "count": 108,
+            "mape": 6.0748,
+            "mae": 92.1034,
+            "rmse": 155.1711,
+            "r2": 0.92656
           }
         },
         "byCutStyle": {
+          "elongated_cushion": {
+            "count": 5,
+            "mape": 10.2184,
+            "mae": 195.7608,
+            "rmse": 253.4253,
+            "r2": 0.888244
+          },
+          "ice_flower": {
+            "count": 32,
+            "mape": 8.7857,
+            "mae": 230.4816,
+            "rmse": 644.0495,
+            "r2": 0.967187
+          },
           "standard_grade": {
-            "count": 86,
-            "mape": 3.8367,
-            "mae": 3.6779,
-            "rmse": 5.325,
-            "r2": 0.969379
+            "count": 140,
+            "mape": 3.4836,
+            "mae": 26.3991,
+            "rmse": 108.2911,
+            "r2": 0.989729
+          },
+          "traditional": {
+            "count": 21,
+            "mape": 9.748,
+            "mae": 171.0767,
+            "rmse": 434.5773,
+            "r2": 0.973311
           },
           "unknown": {
-            "count": 112,
-            "mape": 1.9337,
-            "mae": 2.4951,
-            "rmse": 3.2487,
-            "r2": 0.924309
+            "count": 479,
+            "mape": 5.2045,
+            "mae": 48.1327,
+            "rmse": 154.3631,
+            "r2": 0.991536
           }
         },
         "selectedSpec10ctPlus": {
-          "count": 0,
-          "mape": null,
-          "mae": null,
-          "rmse": null,
-          "r2": null
+          "count": 51,
+          "mape": 6.5246,
+          "mae": 381.5968,
+          "rmse": 728.8953,
+          "r2": 0.973391
         },
         "selectedSpec8ctPlus": {
-          "count": 0,
-          "mape": null,
-          "mae": null,
-          "rmse": null,
-          "r2": null
+          "count": 76,
+          "mape": 6.5783,
+          "mae": 299.9553,
+          "rmse": 607.635,
+          "r2": 0.976528
         }
       },
-      "description": "Grade-agnostic anchor (no Color/Clarity in lookup) + Clarity_Rank/Color_Rank ordinal features with LightGBM monotone constraints (400 trees, num_leaves=63, lr=0.04). No unconstrained grade\u00d7carat interaction terms. Full monotonicity sweep: 8 shapes \u00d7 7 carats \u00d7 2 cuts.",
+      "description": "S19 residual model plus explicit Chinese specialty-cut features and a monotonic parametric 5ct+ tail, 160 trees, depth=20",
       "pinnedCases": {
         "3ct_round_e_vs1_id_selected_spec": {
-          "price": 2.3333,
-          "rate": 0.7778,
-          "tailBaseRate": 0.7083,
-          "tailBaseLevel": "GLOBAL",
-          "tailMultiplier": 1.0
+          "price": 328.0322,
+          "rate": 109.3441,
+          "tailBaseRate": 108.814,
+          "tailBaseLevel": "E",
+          "tailBaseCount": 215,
+          "tailMultiplier": 1.0,
+          "tailLevel": "NONE",
+          "tailCount": 0,
+          "tailSlope": 0.0
         },
         "8ct_round_e_vs1_id_selected_spec": {
-          "price": 165.8086,
-          "rate": 20.7261,
-          "tailBaseRate": 18.8676,
+          "price": 1754.3027,
+          "rate": 219.2878,
+          "tailBaseRate": 127.7924,
           "tailBaseLevel": "E",
-          "tailMultiplier": 1.0
+          "tailBaseCount": 68,
+          "tailMultiplier": 1.450097,
+          "tailLevel": "SCCG",
+          "tailCount": 59,
+          "tailSlope": 0.79069671
         },
         "10ct_round_e_vs1_id_selected_spec": {
-          "price": 207.0794,
-          "rate": 20.7079,
-          "tailBaseRate": 18.8676,
+          "price": 3127.9904,
+          "rate": 312.799,
+          "tailBaseRate": 127.7924,
           "tailBaseLevel": "E",
-          "tailMultiplier": 1.0
+          "tailBaseCount": 68,
+          "tailMultiplier": 1.72991,
+          "tailLevel": "SCCG",
+          "tailCount": 59,
+          "tailSlope": 0.79069671
         },
         "12ct_round_e_vs1_id_selected_spec": {
-          "price": 248.4953,
-          "rate": 20.7079,
-          "tailBaseRate": 18.8676,
+          "price": 4099.0423,
+          "rate": 341.5869,
+          "tailBaseRate": 127.7924,
           "tailBaseLevel": "E",
-          "tailMultiplier": 1.0
+          "tailBaseCount": 68,
+          "tailMultiplier": 1.998167,
+          "tailLevel": "SCCG",
+          "tailCount": 59,
+          "tailSlope": 0.79069671
         }
       },
-      "clarityLadderCases": {
-        "_sweepSummary": {
-          "totalChecks": 1728,
-          "clarityViolations": 0,
-          "colorViolations": 0,
-          "pass": true,
-          "exampleViolations": []
-        },
-        "MARQUISE_4.08ct_E": {
-          "ladder": [
-            {
-              "clarity": "IF",
-              "price": 3.31,
-              "perCt": 0.81
-            },
-            {
-              "clarity": "VVS1",
-              "price": 3.27,
-              "perCt": 0.8
-            },
-            {
-              "clarity": "VVS2",
-              "price": 3.18,
-              "perCt": 0.78
-            },
-            {
-              "clarity": "VS1",
-              "price": 3.08,
-              "perCt": 0.76
-            },
-            {
-              "clarity": "VS2",
-              "price": 2.97,
-              "perCt": 0.73
-            },
-            {
-              "clarity": "SI1",
-              "price": 2.9,
-              "perCt": 0.71
-            },
-            {
-              "clarity": "SI2",
-              "price": 2.9,
-              "perCt": 0.71
-            }
-          ],
-          "violations": [
-            "IF\u2192VVS1 (\u22121.2%)",
-            "VVS1\u2192VVS2 (\u22122.5%)",
-            "VVS2\u2192VS1 (\u22122.6%)",
-            "VS1\u2192VS2 (\u22123.9%)",
-            "VS2\u2192SI1 (\u22122.7%)"
-          ],
-          "monotone": false
-        },
-        "HEART_3.0ct_E": {
-          "ladder": [
-            {
-              "clarity": "IF",
-              "price": 2.48,
-              "perCt": 0.83
-            },
-            {
-              "clarity": "VVS1",
-              "price": 2.45,
-              "perCt": 0.82
-            },
-            {
-              "clarity": "VVS2",
-              "price": 2.38,
-              "perCt": 0.79
-            },
-            {
-              "clarity": "VS1",
-              "price": 2.3,
-              "perCt": 0.77
-            },
-            {
-              "clarity": "VS2",
-              "price": 2.22,
-              "perCt": 0.74
-            },
-            {
-              "clarity": "SI1",
-              "price": 2.18,
-              "perCt": 0.73
-            },
-            {
-              "clarity": "SI2",
-              "price": 2.18,
-              "perCt": 0.73
-            }
-          ],
-          "violations": [
-            "IF\u2192VVS1 (\u22121.2%)",
-            "VVS1\u2192VVS2 (\u22123.7%)",
-            "VVS2\u2192VS1 (\u22122.5%)",
-            "VS1\u2192VS2 (\u22123.9%)",
-            "VS2\u2192SI1 (\u22121.4%)"
-          ],
-          "monotone": false
-        },
-        "ROUND_2.0ct_E": {
-          "ladder": [
-            {
-              "clarity": "IF",
-              "price": 1.67,
-              "perCt": 0.84
-            },
-            {
-              "clarity": "VVS1",
-              "price": 1.65,
-              "perCt": 0.83
-            },
-            {
-              "clarity": "VVS2",
-              "price": 1.61,
-              "perCt": 0.8
-            },
-            {
-              "clarity": "VS1",
-              "price": 1.56,
-              "perCt": 0.78
-            },
-            {
-              "clarity": "VS2",
-              "price": 1.49,
-              "perCt": 0.74
-            },
-            {
-              "clarity": "SI1",
-              "price": 1.46,
-              "perCt": 0.73
-            },
-            {
-              "clarity": "SI2",
-              "price": 1.46,
-              "perCt": 0.73
-            }
-          ],
-          "violations": [
-            "IF\u2192VVS1 (\u22121.2%)",
-            "VVS1\u2192VVS2 (\u22123.6%)",
-            "VVS2\u2192VS1 (\u22122.5%)",
-            "VS1\u2192VS2 (\u22125.1%)",
-            "VS2\u2192SI1 (\u22121.4%)"
-          ],
-          "monotone": false
-        },
-        "ROUND_3.0ct_E": {
-          "ladder": [
-            {
-              "clarity": "IF",
-              "price": 2.51,
-              "perCt": 0.84
-            },
-            {
-              "clarity": "VVS1",
-              "price": 2.48,
-              "perCt": 0.83
-            },
-            {
-              "clarity": "VVS2",
-              "price": 2.41,
-              "perCt": 0.8
-            },
-            {
-              "clarity": "VS1",
-              "price": 2.33,
-              "perCt": 0.78
-            },
-            {
-              "clarity": "VS2",
-              "price": 2.23,
-              "perCt": 0.74
-            },
-            {
-              "clarity": "SI1",
-              "price": 2.2,
-              "perCt": 0.73
-            },
-            {
-              "clarity": "SI2",
-              "price": 2.2,
-              "perCt": 0.73
-            }
-          ],
-          "violations": [
-            "IF\u2192VVS1 (\u22121.2%)",
-            "VVS1\u2192VVS2 (\u22123.6%)",
-            "VVS2\u2192VS1 (\u22122.5%)",
-            "VS1\u2192VS2 (\u22125.1%)",
-            "VS2\u2192SI1 (\u22121.4%)"
-          ],
-          "monotone": false
-        }
-      },
-      "if3ctBeatsVvs1": true,
       "largeCaratTailSummary": {
-        "globalSlope": 0.0,
-        "startCarat": 5.0
+        "globalSlope": 0.30502093,
+        "startCarat": 5.0,
+        "levelCounts": {
+          "SCCT": 70,
+          "SCCG": 68,
+          "SCC": 60,
+          "SG": 19,
+          "S": 13,
+          "G": 5
+        }
       }
     }
   ],
   "bestStrategy": {
-    "name": "S23 \u2014 Grade-agnostic anchor + monotone LightGBM residual",
-    "strategy": "grade_agnostic_anchor_lgbm",
+    "name": "S20 \u2014 Specialty cut + monotonic large-carat tail",
+    "strategy": "specialty_cut_tail_selected_spec",
     "target_type": "log_tail_lookup_residual",
     "metrics": {
-      "count": 198,
-      "mape": 2.7602,
-      "mae": 3.0088,
-      "rmse": 4.2762,
-      "r2": 0.975027
+      "count": 677,
+      "mape": 5.1959,
+      "mae": 57.1614,
+      "rmse": 212.6574,
+      "r2": 0.985881
     },
     "certLoadedMetrics": {
-      "count": 198,
-      "mape": 2.7085,
-      "mae": 2.9492,
-      "rmse": 4.1142,
-      "r2": 0.976883
+      "count": 677,
+      "mape": 4.94,
+      "mae": 53.8197,
+      "rmse": 192.6508,
+      "r2": 0.988413
     },
     "segmentMetrics": {
       "byCaratBucket": {
-        "0.30-0.49": {
-          "count": 13,
-          "mape": 3.3532,
-          "mae": 1.9018,
-          "rmse": 2.9718,
-          "r2": 0.959084
-        },
-        "0.50-0.69": {
-          "count": 37,
-          "mape": 3.4452,
-          "mae": 2.9264,
-          "rmse": 4.3003,
-          "r2": 0.982191
-        },
-        "0.70-0.89": {
-          "count": 21,
-          "mape": 3.308,
-          "mae": 3.7129,
-          "rmse": 4.9687,
-          "r2": 0.943385
-        },
-        "0.90-0.99": {
-          "count": 1,
-          "mape": 1.8246,
-          "mae": 2.55,
-          "rmse": 2.55,
-          "r2": null
-        },
         "1.00-1.49": {
-          "count": 117,
-          "mape": 2.4348,
-          "mae": 3.0338,
-          "rmse": 4.329,
-          "r2": 0.869053
+          "count": 141,
+          "mape": 4.253,
+          "mae": 7.6479,
+          "rmse": 18.9849,
+          "r2": 0.805118
         },
         "1.50-1.99": {
-          "count": 9,
-          "mape": 2.1447,
-          "mae": 3.0302,
-          "rmse": 3.4004,
-          "r2": 0.815198
+          "count": 114,
+          "mape": 4.4598,
+          "mae": 10.2276,
+          "rmse": 21.0085,
+          "r2": 0.907928
+        },
+        "10.00+": {
+          "count": 51,
+          "mape": 6.5246,
+          "mae": 381.5968,
+          "rmse": 728.8953,
+          "r2": 0.973391
+        },
+        "2.00-2.99": {
+          "count": 111,
+          "mape": 5.7484,
+          "mae": 20.7006,
+          "rmse": 37.786,
+          "r2": 0.89671
+        },
+        "3.00-3.99": {
+          "count": 97,
+          "mape": 5.2029,
+          "mae": 24.283,
+          "rmse": 43.797,
+          "r2": 0.951873
+        },
+        "4.00-4.99": {
+          "count": 55,
+          "mape": 5.0534,
+          "mae": 43.4931,
+          "rmse": 92.8608,
+          "r2": 0.75022
+        },
+        "5.00-9.99": {
+          "count": 108,
+          "mape": 6.0748,
+          "mae": 92.1034,
+          "rmse": 155.1711,
+          "r2": 0.92656
         }
       },
       "byCutStyle": {
+        "elongated_cushion": {
+          "count": 5,
+          "mape": 10.2184,
+          "mae": 195.7608,
+          "rmse": 253.4253,
+          "r2": 0.888244
+        },
+        "ice_flower": {
+          "count": 32,
+          "mape": 8.7857,
+          "mae": 230.4816,
+          "rmse": 644.0495,
+          "r2": 0.967187
+        },
         "standard_grade": {
-          "count": 86,
-          "mape": 3.8367,
-          "mae": 3.6779,
-          "rmse": 5.325,
-          "r2": 0.969379
+          "count": 140,
+          "mape": 3.4836,
+          "mae": 26.3991,
+          "rmse": 108.2911,
+          "r2": 0.989729
+        },
+        "traditional": {
+          "count": 21,
+          "mape": 9.748,
+          "mae": 171.0767,
+          "rmse": 434.5773,
+          "r2": 0.973311
         },
         "unknown": {
-          "count": 112,
-          "mape": 1.9337,
-          "mae": 2.4951,
-          "rmse": 3.2487,
-          "r2": 0.924309
+          "count": 479,
+          "mape": 5.2045,
+          "mae": 48.1327,
+          "rmse": 154.3631,
+          "r2": 0.991536
         }
       },
       "selectedSpec10ctPlus": {
-        "count": 0,
-        "mape": null,
-        "mae": null,
-        "rmse": null,
-        "r2": null
+        "count": 51,
+        "mape": 6.5246,
+        "mae": 381.5968,
+        "rmse": 728.8953,
+        "r2": 0.973391
       },
       "selectedSpec8ctPlus": {
-        "count": 0,
-        "mape": null,
-        "mae": null,
-        "rmse": null,
-        "r2": null
+        "count": 76,
+        "mape": 6.5783,
+        "mae": 299.9553,
+        "rmse": 607.635,
+        "r2": 0.976528
       }
     },
-    "description": "Grade-agnostic anchor (no Color/Clarity in lookup) + Clarity_Rank/Color_Rank ordinal features with LightGBM monotone constraints (400 trees, num_leaves=63, lr=0.04). No unconstrained grade\u00d7carat interaction terms. Full monotonicity sweep: 8 shapes \u00d7 7 carats \u00d7 2 cuts.",
+    "description": "S19 residual model plus explicit Chinese specialty-cut features and a monotonic parametric 5ct+ tail, 160 trees, depth=20",
     "pinnedCases": {
       "3ct_round_e_vs1_id_selected_spec": {
-        "price": 2.3333,
-        "rate": 0.7778,
-        "tailBaseRate": 0.7083,
-        "tailBaseLevel": "GLOBAL",
-        "tailMultiplier": 1.0
+        "price": 328.0322,
+        "rate": 109.3441,
+        "tailBaseRate": 108.814,
+        "tailBaseLevel": "E",
+        "tailBaseCount": 215,
+        "tailMultiplier": 1.0,
+        "tailLevel": "NONE",
+        "tailCount": 0,
+        "tailSlope": 0.0
       },
       "8ct_round_e_vs1_id_selected_spec": {
-        "price": 165.8086,
-        "rate": 20.7261,
-        "tailBaseRate": 18.8676,
+        "price": 1754.3027,
+        "rate": 219.2878,
+        "tailBaseRate": 127.7924,
         "tailBaseLevel": "E",
-        "tailMultiplier": 1.0
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.450097,
+        "tailLevel": "SCCG",
+        "tailCount": 59,
+        "tailSlope": 0.79069671
       },
       "10ct_round_e_vs1_id_selected_spec": {
-        "price": 207.0794,
-        "rate": 20.7079,
-        "tailBaseRate": 18.8676,
+        "price": 3127.9904,
+        "rate": 312.799,
+        "tailBaseRate": 127.7924,
         "tailBaseLevel": "E",
-        "tailMultiplier": 1.0
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.72991,
+        "tailLevel": "SCCG",
+        "tailCount": 59,
+        "tailSlope": 0.79069671
       },
       "12ct_round_e_vs1_id_selected_spec": {
-        "price": 248.4953,
-        "rate": 20.7079,
-        "tailBaseRate": 18.8676,
+        "price": 4099.0423,
+        "rate": 341.5869,
+        "tailBaseRate": 127.7924,
         "tailBaseLevel": "E",
-        "tailMultiplier": 1.0
+        "tailBaseCount": 68,
+        "tailMultiplier": 1.998167,
+        "tailLevel": "SCCG",
+        "tailCount": 59,
+        "tailSlope": 0.79069671
       }
     },
-    "clarityLadderCases": {
-      "_sweepSummary": {
-        "totalChecks": 1728,
-        "clarityViolations": 0,
-        "colorViolations": 0,
-        "pass": true,
-        "exampleViolations": []
-      },
-      "MARQUISE_4.08ct_E": {
-        "ladder": [
-          {
-            "clarity": "IF",
-            "price": 3.31,
-            "perCt": 0.81
-          },
-          {
-            "clarity": "VVS1",
-            "price": 3.27,
-            "perCt": 0.8
-          },
-          {
-            "clarity": "VVS2",
-            "price": 3.18,
-            "perCt": 0.78
-          },
-          {
-            "clarity": "VS1",
-            "price": 3.08,
-            "perCt": 0.76
-          },
-          {
-            "clarity": "VS2",
-            "price": 2.97,
-            "perCt": 0.73
-          },
-          {
-            "clarity": "SI1",
-            "price": 2.9,
-            "perCt": 0.71
-          },
-          {
-            "clarity": "SI2",
-            "price": 2.9,
-            "perCt": 0.71
-          }
-        ],
-        "violations": [
-          "IF\u2192VVS1 (\u22121.2%)",
-          "VVS1\u2192VVS2 (\u22122.5%)",
-          "VVS2\u2192VS1 (\u22122.6%)",
-          "VS1\u2192VS2 (\u22123.9%)",
-          "VS2\u2192SI1 (\u22122.7%)"
-        ],
-        "monotone": false
-      },
-      "HEART_3.0ct_E": {
-        "ladder": [
-          {
-            "clarity": "IF",
-            "price": 2.48,
-            "perCt": 0.83
-          },
-          {
-            "clarity": "VVS1",
-            "price": 2.45,
-            "perCt": 0.82
-          },
-          {
-            "clarity": "VVS2",
-            "price": 2.38,
-            "perCt": 0.79
-          },
-          {
-            "clarity": "VS1",
-            "price": 2.3,
-            "perCt": 0.77
-          },
-          {
-            "clarity": "VS2",
-            "price": 2.22,
-            "perCt": 0.74
-          },
-          {
-            "clarity": "SI1",
-            "price": 2.18,
-            "perCt": 0.73
-          },
-          {
-            "clarity": "SI2",
-            "price": 2.18,
-            "perCt": 0.73
-          }
-        ],
-        "violations": [
-          "IF\u2192VVS1 (\u22121.2%)",
-          "VVS1\u2192VVS2 (\u22123.7%)",
-          "VVS2\u2192VS1 (\u22122.5%)",
-          "VS1\u2192VS2 (\u22123.9%)",
-          "VS2\u2192SI1 (\u22121.4%)"
-        ],
-        "monotone": false
-      },
-      "ROUND_2.0ct_E": {
-        "ladder": [
-          {
-            "clarity": "IF",
-            "price": 1.67,
-            "perCt": 0.84
-          },
-          {
-            "clarity": "VVS1",
-            "price": 1.65,
-            "perCt": 0.83
-          },
-          {
-            "clarity": "VVS2",
-            "price": 1.61,
-            "perCt": 0.8
-          },
-          {
-            "clarity": "VS1",
-            "price": 1.56,
-            "perCt": 0.78
-          },
-          {
-            "clarity": "VS2",
-            "price": 1.49,
-            "perCt": 0.74
-          },
-          {
-            "clarity": "SI1",
-            "price": 1.46,
-            "perCt": 0.73
-          },
-          {
-            "clarity": "SI2",
-            "price": 1.46,
-            "perCt": 0.73
-          }
-        ],
-        "violations": [
-          "IF\u2192VVS1 (\u22121.2%)",
-          "VVS1\u2192VVS2 (\u22123.6%)",
-          "VVS2\u2192VS1 (\u22122.5%)",
-          "VS1\u2192VS2 (\u22125.1%)",
-          "VS2\u2192SI1 (\u22121.4%)"
-        ],
-        "monotone": false
-      },
-      "ROUND_3.0ct_E": {
-        "ladder": [
-          {
-            "clarity": "IF",
-            "price": 2.51,
-            "perCt": 0.84
-          },
-          {
-            "clarity": "VVS1",
-            "price": 2.48,
-            "perCt": 0.83
-          },
-          {
-            "clarity": "VVS2",
-            "price": 2.41,
-            "perCt": 0.8
-          },
-          {
-            "clarity": "VS1",
-            "price": 2.33,
-            "perCt": 0.78
-          },
-          {
-            "clarity": "VS2",
-            "price": 2.23,
-            "perCt": 0.74
-          },
-          {
-            "clarity": "SI1",
-            "price": 2.2,
-            "perCt": 0.73
-          },
-          {
-            "clarity": "SI2",
-            "price": 2.2,
-            "perCt": 0.73
-          }
-        ],
-        "violations": [
-          "IF\u2192VVS1 (\u22121.2%)",
-          "VVS1\u2192VVS2 (\u22123.6%)",
-          "VVS2\u2192VS1 (\u22122.5%)",
-          "VS1\u2192VS2 (\u22125.1%)",
-          "VS2\u2192SI1 (\u22121.4%)"
-        ],
-        "monotone": false
-      }
-    },
-    "if3ctBeatsVvs1": true,
     "largeCaratTailSummary": {
-      "globalSlope": 0.0,
-      "startCarat": 5.0
+      "globalSlope": 0.30502093,
+      "startCarat": 5.0,
+      "levelCounts": {
+        "SCCT": 70,
+        "SCCG": 68,
+        "SCC": 60,
+        "SG": 19,
+        "S": 13,
+        "G": 5
+      }
     }
   }
 }

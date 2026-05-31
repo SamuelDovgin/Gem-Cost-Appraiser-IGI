@@ -1,567 +1,503 @@
 {
   "A_standard_recent": {
-    "label": "Standard (current rate card, no specialty cut)",
-    "count": 12843,
-    "pct_of_total": 45.23,
+    "label": "Clean style/spec cluster member — recommended ML training set",
+    "count": 21982,
+    "pct_of_total": 97.52,
     "upc_min": 18.87,
-    "upc_max": 304.34,
-    "upc_mean": 126.61,
-    "upc_median": 120.42,
+    "upc_max": 1219.5,
+    "upc_mean": 142.13,
+    "upc_median": 124.89,
     "excluded_from_ml": false,
     "row_range": [
-      15001,
-      28394
+      2,
+      23436
     ],
     "shapes": {
-      "ROUND": 9701,
-      "PEAR": 768,
-      "OVAL": 746,
-      "MARQUISE": 420,
-      "RADIANT": 370,
-      "PRINCESS": 352,
-      "EMERALD": 258,
-      "CUSHION": 137,
-      "ASSCHER": 47,
-      "SQUARE": 31,
-      "HEART": 13
-    }
-  },
-  "B_trad_cut": {
-    "label": "传统切 — Traditional Brilliant label (data artifact, old rate card)",
-    "count": 301,
-    "pct_of_total": 1.06,
-    "upc_min": 142.25,
-    "upc_max": 786.28,
-    "upc_mean": 242.01,
-    "upc_median": 232.94,
-    "excluded_from_ml": true,
-    "row_range": [
-      34,
-      14969
-    ],
-    "shapes": {
-      "OVAL": 143,
-      "PEAR": 85,
-      "HEART": 73
-    }
-  },
-  "C_ice_flower": {
-    "label": "冰花切 — Ice Flower specialty cut (genuine premium, needs own model)",
-    "count": 265,
-    "pct_of_total": 0.93,
-    "upc_min": 117.36,
-    "upc_max": 926.41,
-    "upc_mean": 324.0,
-    "upc_median": 286.67,
-    "excluded_from_ml": true,
-    "row_range": [
-      5,
-      12979
-    ],
-    "shapes": {
-      "OVAL": 124,
-      "PEAR": 115,
-      "HEART": 26
-    }
-  },
-  "D_elongated_cushion": {
-    "label": "长垫形 — Elongated Cushion shape variant (already classified)",
-    "count": 20,
-    "pct_of_total": 0.07,
-    "upc_min": 191.19,
-    "upc_max": 339.84,
-    "upc_mean": 273.95,
-    "upc_median": 270.63,
-    "excluded_from_ml": true,
-    "row_range": [
-      236,
-      3175
-    ],
-    "shapes": {
-      "CUSHION": 20
-    }
-  },
-  "E_old_rate_card": {
-    "label": "Old rate card era (row ≤ 15,000, no specialty label) — temporal contamination",
-    "count": 14412,
-    "pct_of_total": 50.76,
-    "upc_min": 88.17,
-    "upc_max": 1219.5,
-    "upc_mean": 152.37,
-    "upc_median": 130.94,
-    "excluded_from_ml": true,
-    "row_range": [
-      1,
-      15000
-    ],
-    "shapes": {
-      "ROUND": 5218,
-      "OVAL": 2693,
-      "EMERALD": 1259,
-      "PEAR": 1220,
-      "PRINCESS": 921,
-      "HEART": 750,
-      "MARQUISE": 725,
-      "CUSHION": 507,
-      "RADIANT": 431,
-      "SQUARE": 361,
-      "": 219,
-      "ASSCHER": 105,
-      "ASHOKA": 3
+      "ROUND": 9810,
+      "OVAL": 3503,
+      "PEAR": 2065,
+      "EMERALD": 1429,
+      "PRINCESS": 1158,
+      "MARQUISE": 1070,
+      "HEART": 784,
+      "RADIANT": 738,
+      "SQUARE_CUSHION": 550,
+      "ASSCHER": 543,
+      "FLOWER": 219,
+      "ELONGATED_CUSHION": 75,
+      "CUSHION": 28,
+      "SQ_RADIANT": 9,
+      "PORTUGUESE": 1
     }
   },
   "F_extreme_outlier": {
-    "label": "Lone point outlier in recent window (price ≥140% of base spec cluster)",
-    "count": 501,
-    "pct_of_total": 1.76,
-    "upc_min": 164.82,
-    "upc_max": 213.76,
-    "upc_mean": 174.3,
-    "upc_median": 174.71,
+    "label": "Lone point outlier (price ≥140% of base style/spec cluster)",
+    "count": 179,
+    "pct_of_total": 0.79,
+    "upc_min": 145.81,
+    "upc_max": 902.42,
+    "upc_mean": 208.65,
+    "upc_median": 197.48,
     "excluded_from_ml": true,
     "row_range": [
-      22247,
-      27674
+      72,
+      13115
     ],
     "shapes": {
-      "ROUND": 501
-    }
-  },
-  "G_other_specialty": {
-    "label": "Other specialty cut (老矿切/老欧切) — historical novelty, negligible count",
-    "count": 2,
-    "pct_of_total": 0.01,
-    "upc_min": 176.64,
-    "upc_max": 313.28,
-    "upc_mean": 244.96,
-    "upc_median": 244.96,
-    "excluded_from_ml": true,
-    "row_range": [
-      278,
-      6007
-    ],
-    "shapes": {
-      "CUSHION": 1,
-      "ROUND": 1
+      "ROUND": 84,
+      "EMERALD": 27,
+      "PRINCESS": 17,
+      "HEART": 14,
+      "OVAL": 13,
+      "PEAR": 13,
+      "RADIANT": 4,
+      "SQUARE_CUSHION": 4,
+      "MARQUISE": 2,
+      "ASSCHER": 1
     }
   },
   "H_high_price_cluster": {
-    "label": "Random high price cluster (≥30% above the base/low cluster of the same spec) — quarantined, keep the lower base set",
-    "count": 50,
-    "pct_of_total": 0.18,
-    "upc_min": 179.68,
-    "upc_max": 200.74,
-    "upc_mean": 189.33,
-    "upc_median": 189.15,
+    "label": "High price cluster (≥30% above the base/low cluster of the same style/spec) — quarantined, keep the lower base set",
+    "count": 380,
+    "pct_of_total": 1.69,
+    "upc_min": 145.24,
+    "upc_max": 349.89,
+    "upc_mean": 200.43,
+    "upc_median": 202.13,
     "excluded_from_ml": true,
     "row_range": [
-      25172,
-      27683
+      1591,
+      13008
     ],
     "shapes": {
-      "ROUND": 50
+      "ROUND": 212,
+      "OVAL": 73,
+      "PRINCESS": 61,
+      "HEART": 22,
+      "EMERALD": 6,
+      "RADIANT": 2,
+      "SQUARE_CUSHION": 2,
+      "PEAR": 2
     }
   },
   "_totals": {
-    "total_rows": 28394,
-    "ml_training_rows": 12843,
-    "ml_training_pct": 45.23,
-    "excluded_rows": 15551,
+    "total_rows": 22541,
+    "ml_training_rows": 21982,
+    "ml_training_pct": 97.52,
+    "excluded_rows": 559,
     "old_row_cutoff": 15000,
     "outlier_threshold": 0.4,
     "cluster_gap_threshold": 1.3
   },
+  "_metadata": {
+    "canonicalTrainingSource": true,
+    "source": "research/data/starsgem-index.json",
+    "sourceRequiresIgiEnrichment": "research/data/igi-report-enrichment.json",
+    "trainingOutput": "research/data/dataset-clean-training.json",
+    "policy": "research/master-dataset-construction.md",
+    "rule": "Keep physically identifiable style buckets; quarantine only unexplained same-style/spec high price clusters and point outliers."
+  },
   "noise_floors": {
     "all": {
-      "label": "all 28,394 rows",
-      "mape_pct": 4.4022,
-      "n_groups": 2551,
-      "n_stones": 25333
+      "label": "all enriched white rows",
+      "mape_pct": 3.7947,
+      "n_groups": 2244,
+      "n_stones": 19541
     },
     "recent": {
-      "label": "recent rows (> 15,000)",
-      "mape_pct": 4.5222,
-      "n_groups": 694,
-      "n_stones": 12978
+      "label": "legacy row> 15,000 diagnostic only",
+      "mape_pct": 3.3279,
+      "n_groups": 452,
+      "n_stones": 7471
     },
     "seg_a": {
       "label": "segment A (clean training)",
-      "mape_pct": 3.3544,
-      "n_groups": 694,
-      "n_stones": 12427
+      "mape_pct": 2.7676,
+      "n_groups": 2244,
+      "n_stones": 18982
     }
   },
   "data_sufficiency": {
     "min_shape_training_rows": 50,
     "by_shape": {
       "ROUND": {
-        "total": 15471,
-        "kept_in_A": 9701,
-        "kept_pct": 62.7,
+        "total": 10106,
+        "kept_in_A": 9810,
+        "kept_pct": 97.1,
         "below_floor": false
       },
       "OVAL": {
-        "total": 3706,
-        "kept_in_A": 746,
-        "kept_pct": 20.1,
+        "total": 3589,
+        "kept_in_A": 3503,
+        "kept_pct": 97.6,
         "below_floor": false
       },
       "PEAR": {
-        "total": 2188,
-        "kept_in_A": 768,
-        "kept_pct": 35.1,
+        "total": 2080,
+        "kept_in_A": 2065,
+        "kept_pct": 99.3,
         "below_floor": false
       },
       "EMERALD": {
-        "total": 1517,
-        "kept_in_A": 258,
-        "kept_pct": 17.0,
+        "total": 1462,
+        "kept_in_A": 1429,
+        "kept_pct": 97.7,
         "below_floor": false
       },
       "PRINCESS": {
-        "total": 1273,
-        "kept_in_A": 352,
-        "kept_pct": 27.7,
+        "total": 1236,
+        "kept_in_A": 1158,
+        "kept_pct": 93.7,
         "below_floor": false
       },
       "MARQUISE": {
-        "total": 1145,
-        "kept_in_A": 420,
-        "kept_pct": 36.7,
+        "total": 1072,
+        "kept_in_A": 1070,
+        "kept_pct": 99.8,
         "below_floor": false
       },
       "HEART": {
-        "total": 862,
-        "kept_in_A": 13,
-        "kept_pct": 1.5,
-        "below_floor": true
+        "total": 820,
+        "kept_in_A": 784,
+        "kept_pct": 95.6,
+        "below_floor": false
       },
       "RADIANT": {
-        "total": 801,
-        "kept_in_A": 370,
-        "kept_pct": 46.2,
+        "total": 744,
+        "kept_in_A": 738,
+        "kept_pct": 99.2,
+        "below_floor": false
+      },
+      "SQUARE_CUSHION": {
+        "total": 556,
+        "kept_in_A": 550,
+        "kept_pct": 98.9,
+        "below_floor": false
+      },
+      "ASSCHER": {
+        "total": 544,
+        "kept_in_A": 543,
+        "kept_pct": 99.8,
+        "below_floor": false
+      },
+      "FLOWER": {
+        "total": 219,
+        "kept_in_A": 219,
+        "kept_pct": 100.0,
+        "below_floor": false
+      },
+      "ELONGATED_CUSHION": {
+        "total": 75,
+        "kept_in_A": 75,
+        "kept_pct": 100.0,
         "below_floor": false
       },
       "CUSHION": {
-        "total": 665,
-        "kept_in_A": 137,
-        "kept_pct": 20.6,
-        "below_floor": false
-      },
-      "SQUARE": {
-        "total": 392,
-        "kept_in_A": 31,
-        "kept_pct": 7.9,
+        "total": 28,
+        "kept_in_A": 28,
+        "kept_pct": 100.0,
         "below_floor": true
       },
-      "(blank)": {
-        "total": 219,
-        "kept_in_A": 0,
-        "kept_pct": 0.0,
+      "SQ_RADIANT": {
+        "total": 9,
+        "kept_in_A": 9,
+        "kept_pct": 100.0,
         "below_floor": true
       },
-      "ASSCHER": {
-        "total": 152,
-        "kept_in_A": 47,
-        "kept_pct": 30.9,
-        "below_floor": true
-      },
-      "ASHOKA": {
-        "total": 3,
-        "kept_in_A": 0,
-        "kept_pct": 0.0,
+      "PORTUGUESE": {
+        "total": 1,
+        "kept_in_A": 1,
+        "kept_pct": 100.0,
         "below_floor": true
       }
     },
     "shapes_below_floor": [
-      "HEART",
-      "SQUARE",
-      "(blank)",
-      "ASSCHER",
-      "ASHOKA"
+      "CUSHION",
+      "SQ_RADIANT",
+      "PORTUGUESE"
     ]
   },
   "sensitivity": [
     {
-      "config": "row-cutoff only (no F, no H)",
-      "A_rows": 13394,
-      "A_pct": 47.17,
+      "config": "style buckets only (no F, no H)",
+      "A_rows": 22541,
+      "A_pct": 100.0,
       "F_rows": 0,
       "H_rows": 0,
-      "segA_noise_floor": 4.5222
+      "segA_noise_floor": 3.7947
     },
     {
       "config": "F only (point outliers, no H)",
-      "A_rows": 12843,
-      "A_pct": 45.23,
-      "F_rows": 551,
+      "A_rows": 22027,
+      "A_pct": 97.72,
+      "F_rows": 514,
       "H_rows": 0,
-      "segA_noise_floor": 3.3544
+      "segA_noise_floor": 2.824
     },
     {
       "config": "F + H gap 1.40 (conservative)",
-      "A_rows": 12843,
-      "A_pct": 45.23,
-      "F_rows": 501,
-      "H_rows": 50,
-      "segA_noise_floor": 3.3544
+      "A_rows": 22025,
+      "A_pct": 97.71,
+      "F_rows": 241,
+      "H_rows": 275,
+      "segA_noise_floor": 2.8191
     },
     {
       "config": "F + H gap 1.30 (recommended)",
-      "A_rows": 12843,
-      "A_pct": 45.23,
-      "F_rows": 501,
-      "H_rows": 50,
-      "segA_noise_floor": 3.3544
+      "A_rows": 21982,
+      "A_pct": 97.52,
+      "F_rows": 179,
+      "H_rows": 380,
+      "segA_noise_floor": 2.7676
     },
     {
       "config": "F + H gap 1.25 (aggressive)",
-      "A_rows": 12827,
-      "A_pct": 45.18,
-      "F_rows": 451,
-      "H_rows": 116,
-      "segA_noise_floor": 3.327
+      "A_rows": 21968,
+      "A_pct": 97.46,
+      "F_rows": 172,
+      "H_rows": 401,
+      "segA_noise_floor": 2.7521
     }
   ],
   "igi_cross_reference_sample": {
     "trad_cut": [
       {
         "reportno": "780660964",
-        "rowNo": 34,
+        "rowNo": 35,
         "shape": "HEART",
-        "upc": 786.2804,
+        "upc": 786.28,
         "shapeRaw": "Heart Brilliant",
         "lwRatio": 1.1535
       },
       {
         "reportno": "746504860",
-        "rowNo": 52,
+        "rowNo": 53,
         "shape": "OVAL",
-        "upc": 537.3951,
+        "upc": 537.4,
         "shapeRaw": "Oval Brilliant",
         "lwRatio": 1.4233
       },
       {
         "reportno": "782613550",
-        "rowNo": 55,
+        "rowNo": 56,
         "shape": "OVAL",
-        "upc": 589.6159,
+        "upc": 589.62,
         "shapeRaw": "Oval Brilliant",
         "lwRatio": 1.4793
       },
       {
         "reportno": "766672546",
-        "rowNo": 139,
+        "rowNo": 140,
         "shape": "PEAR",
-        "upc": 453.9098,
+        "upc": 453.91,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.587
       },
       {
         "reportno": "773659518",
-        "rowNo": 155,
+        "rowNo": 156,
         "shape": "PEAR",
-        "upc": 383.013,
+        "upc": 383.01,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.6042
       },
       {
         "reportno": "756598844",
-        "rowNo": 158,
+        "rowNo": 159,
         "shape": "PEAR",
-        "upc": 354.9774,
+        "upc": 354.98,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5985
       },
       {
         "reportno": "770692503",
-        "rowNo": 192,
+        "rowNo": 193,
         "shape": "PEAR",
-        "upc": 302.6705,
+        "upc": 302.67,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.6943
       },
       {
         "reportno": "770692505",
-        "rowNo": 231,
+        "rowNo": 232,
         "shape": "OVAL",
-        "upc": 286.1393,
+        "upc": 286.14,
         "shapeRaw": "Oval Brilliant",
         "lwRatio": 1.4937
       },
       {
         "reportno": "752532720",
-        "rowNo": 250,
+        "rowNo": 251,
         "shape": "PEAR",
-        "upc": 329.4186,
+        "upc": 329.42,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5723
       },
       {
         "reportno": "745505635",
-        "rowNo": 280,
+        "rowNo": 281,
         "shape": "PEAR",
-        "upc": 423.7937,
+        "upc": 423.79,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5825
       },
       {
         "reportno": "754558870",
-        "rowNo": 299,
+        "rowNo": 300,
         "shape": "PEAR",
-        "upc": 349.8743,
+        "upc": 349.87,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5817
       },
       {
         "reportno": "745514724",
-        "rowNo": 307,
+        "rowNo": 308,
         "shape": "PEAR",
-        "upc": 390.9188,
+        "upc": 390.92,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5784
       },
       {
         "reportno": "788667259",
-        "rowNo": 353,
+        "rowNo": 354,
         "shape": "HEART",
-        "upc": 428.9033,
+        "upc": 428.9,
         "shapeRaw": "Heart Brilliant",
         "lwRatio": 1.1273
       },
       {
         "reportno": "750503755",
-        "rowNo": 374,
+        "rowNo": 375,
         "shape": "PEAR",
-        "upc": 260.8772,
+        "upc": 260.88,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.6438
       },
       {
         "reportno": "749508256",
-        "rowNo": 411,
+        "rowNo": 412,
         "shape": "PEAR",
-        "upc": 324.8663,
+        "upc": 324.87,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5929
       },
       {
         "reportno": "746538749",
-        "rowNo": 459,
+        "rowNo": 460,
         "shape": "PEAR",
-        "upc": 314.1931,
+        "upc": 314.19,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.603
       },
       {
         "reportno": "747567391",
-        "rowNo": 460,
+        "rowNo": 461,
         "shape": "OVAL",
-        "upc": 313.6772,
+        "upc": 313.68,
         "shapeRaw": "Oval Brilliant",
         "lwRatio": 1.4697
       },
       {
         "reportno": "754542064",
-        "rowNo": 464,
+        "rowNo": 465,
         "shape": "PEAR",
-        "upc": 317.8526,
+        "upc": 317.85,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5316
       },
       {
         "reportno": "797627041",
-        "rowNo": 471,
+        "rowNo": 472,
         "shape": "PEAR",
-        "upc": 317.8232,
+        "upc": 317.82,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.6186
       },
       {
         "reportno": "797627042",
-        "rowNo": 472,
+        "rowNo": 473,
         "shape": "PEAR",
-        "upc": 298.9229,
+        "upc": 298.92,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.653
       },
       {
         "reportno": "786630479",
-        "rowNo": 488,
+        "rowNo": 489,
         "shape": "HEART",
-        "upc": 356.1928,
+        "upc": 356.19,
         "shapeRaw": "Heart Brilliant",
         "lwRatio": 1.026
       },
       {
         "reportno": "749515827",
-        "rowNo": 549,
+        "rowNo": 550,
         "shape": "PEAR",
-        "upc": 289.429,
+        "upc": 289.43,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5647
       },
       {
         "reportno": "786630466",
-        "rowNo": 560,
+        "rowNo": 561,
         "shape": "PEAR",
-        "upc": 297.1471,
+        "upc": 297.15,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5954
       },
       {
         "reportno": "749504946",
-        "rowNo": 599,
+        "rowNo": 600,
         "shape": "PEAR",
-        "upc": 271.7536,
+        "upc": 271.75,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5965
       },
       {
         "reportno": "747538140",
-        "rowNo": 616,
+        "rowNo": 617,
         "shape": "HEART",
-        "upc": 335.7143,
+        "upc": 335.71,
         "shapeRaw": "Heart Brilliant",
         "lwRatio": 1.0474
       },
       {
         "reportno": "745514790",
-        "rowNo": 622,
+        "rowNo": 623,
         "shape": "HEART",
-        "upc": 278.0438,
+        "upc": 278.04,
         "shapeRaw": "Heart Brilliant",
         "lwRatio": 1.0068
       },
       {
         "reportno": "750531673",
-        "rowNo": 627,
+        "rowNo": 628,
         "shape": "OVAL",
-        "upc": 255.7062,
+        "upc": 255.71,
         "shapeRaw": "Oval Brilliant",
         "lwRatio": 1.4821
       },
       {
         "reportno": "780661047",
-        "rowNo": 661,
+        "rowNo": 662,
         "shape": "PEAR",
-        "upc": 269.4039,
+        "upc": 269.4,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5587
       },
       {
         "reportno": "745514723",
-        "rowNo": 662,
+        "rowNo": 663,
         "shape": "PEAR",
-        "upc": 268.0658,
+        "upc": 268.07,
         "shapeRaw": "Pear Brilliant",
         "lwRatio": 1.5618
       },
       {
         "reportno": "754593413",
-        "rowNo": 742,
+        "rowNo": 743,
         "shape": "OVAL",
-        "upc": 245.0452,
+        "upc": 245.05,
         "shapeRaw": "Oval Brilliant",
         "lwRatio": 1.4511
       }
@@ -569,241 +505,241 @@
     "ice_flower": [
       {
         "reportno": "773658486",
-        "rowNo": 5,
+        "rowNo": 6,
         "shape": "PEAR",
-        "upc": 926.4086,
+        "upc": 926.41,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.5767
       },
       {
         "reportno": "786630468",
-        "rowNo": 6,
+        "rowNo": 7,
         "shape": "PEAR",
-        "upc": 913.2938,
+        "upc": 913.29,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.5952
       },
       {
         "reportno": "769638922",
-        "rowNo": 12,
+        "rowNo": 13,
         "shape": "OVAL",
-        "upc": 706.082,
+        "upc": 706.08,
         "shapeRaw": "Oval Modified Brilliant",
         "lwRatio": 1.4476
       },
       {
         "reportno": "790684312",
-        "rowNo": 13,
+        "rowNo": 14,
         "shape": "PEAR",
-        "upc": 687.3324,
+        "upc": 687.33,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.5783
       },
       {
         "reportno": "746504858",
-        "rowNo": 24,
+        "rowNo": 25,
         "shape": "PEAR",
-        "upc": 731.5584,
+        "upc": 731.56,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6103
       },
       {
         "reportno": "745505497",
-        "rowNo": 25,
+        "rowNo": 26,
         "shape": "PEAR",
-        "upc": 736.0192,
+        "upc": 736.02,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.5772
       },
       {
         "reportno": "790684316",
-        "rowNo": 32,
+        "rowNo": 33,
         "shape": "OVAL",
-        "upc": 542.1324,
+        "upc": 542.13,
         "shapeRaw": "Oval Modified Brilliant",
         "lwRatio": 1.3927
       },
       {
         "reportno": "788667255",
-        "rowNo": 36,
+        "rowNo": 37,
         "shape": "PEAR",
-        "upc": 784.8154,
+        "upc": 784.82,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6089
       },
       {
         "reportno": "797626321",
-        "rowNo": 38,
+        "rowNo": 39,
         "shape": "PEAR",
-        "upc": 773.6478,
+        "upc": 773.65,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6171
       },
       {
         "reportno": "746504861",
-        "rowNo": 39,
+        "rowNo": 40,
         "shape": "OVAL",
-        "upc": 603.4038,
+        "upc": 603.4,
         "shapeRaw": "Oval Modified Brilliant",
         "lwRatio": 1.4327
       },
       {
         "reportno": "750526259",
-        "rowNo": 40,
+        "rowNo": 41,
         "shape": "PEAR",
-        "upc": 767.9952,
+        "upc": 768.0,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6066
       },
       {
         "reportno": "770692500",
-        "rowNo": 42,
+        "rowNo": 43,
         "shape": "PEAR",
-        "upc": 773.2683,
+        "upc": 773.27,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6179
       },
       {
         "reportno": "773656369",
-        "rowNo": 44,
+        "rowNo": 45,
         "shape": "OVAL",
-        "upc": 627.4151,
+        "upc": 627.42,
         "shapeRaw": "Oval Modified Brilliant",
         "lwRatio": 1.5515
       },
       {
         "reportno": "786630467",
-        "rowNo": 45,
+        "rowNo": 46,
         "shape": "PEAR",
-        "upc": 787.5595,
+        "upc": 787.56,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6493
       },
       {
         "reportno": "764658064",
-        "rowNo": 54,
+        "rowNo": 55,
         "shape": "OVAL",
-        "upc": 611.2371,
+        "upc": 611.24,
         "shapeRaw": "Oval Modified Brilliant",
         "lwRatio": 1.5206
       },
       {
         "reportno": "790637827",
-        "rowNo": 57,
+        "rowNo": 58,
         "shape": "PEAR",
-        "upc": 569.2098,
+        "upc": 569.21,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.5837
       },
       {
         "reportno": "773656368",
-        "rowNo": 58,
+        "rowNo": 59,
         "shape": "PEAR",
-        "upc": 494.858,
+        "upc": 494.86,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6113
       },
       {
         "reportno": "761562617",
-        "rowNo": 60,
+        "rowNo": 61,
         "shape": "HEART",
-        "upc": 597.7626,
+        "upc": 597.76,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.0012
       },
       {
         "reportno": "795635613",
-        "rowNo": 61,
+        "rowNo": 62,
         "shape": "HEART",
-        "upc": 656.9693,
+        "upc": 656.97,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.0769
       },
       {
         "reportno": "790684313",
-        "rowNo": 62,
+        "rowNo": 63,
         "shape": "PEAR",
-        "upc": 636.5952,
+        "upc": 636.6,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6042
       },
       {
         "reportno": "792639644",
-        "rowNo": 64,
+        "rowNo": 65,
         "shape": "PEAR",
-        "upc": 642.1051,
+        "upc": 642.11,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6154
       },
       {
         "reportno": "762535421",
-        "rowNo": 65,
+        "rowNo": 66,
         "shape": "PEAR",
-        "upc": 687.9886,
+        "upc": 687.99,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6519
       },
       {
         "reportno": "795635603",
-        "rowNo": 66,
+        "rowNo": 67,
         "shape": "PEAR",
-        "upc": 676.282,
+        "upc": 676.28,
         "shapeRaw": "Pear Modified Brilliant",
         "lwRatio": 1.6866
       },
       {
         "reportno": "750514054",
-        "rowNo": 67,
+        "rowNo": 68,
         "shape": "HEART",
-        "upc": 784.5689,
+        "upc": 784.57,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.0845
       },
       {
         "reportno": "792639652",
-        "rowNo": 70,
+        "rowNo": 71,
         "shape": "HEART",
-        "upc": 692.2643,
+        "upc": 692.26,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.1079
       },
       {
         "reportno": "792639653",
-        "rowNo": 73,
+        "rowNo": 74,
         "shape": "HEART",
-        "upc": 692.2643,
+        "upc": 692.26,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.0677
       },
       {
         "reportno": "797627053",
-        "rowNo": 74,
+        "rowNo": 75,
         "shape": "HEART",
-        "upc": 692.2643,
+        "upc": 692.26,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.0972
       },
       {
         "reportno": "797627052",
-        "rowNo": 75,
+        "rowNo": 76,
         "shape": "HEART",
-        "upc": 692.2643,
+        "upc": 692.26,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.1042
       },
       {
         "reportno": "766662554",
-        "rowNo": 82,
+        "rowNo": 83,
         "shape": "HEART",
-        "upc": 526.1214,
+        "upc": 526.12,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.1156
       },
       {
         "reportno": "752540603",
-        "rowNo": 83,
+        "rowNo": 84,
         "shape": "HEART",
-        "upc": 526.1214,
+        "upc": 526.12,
         "shapeRaw": "Heart Modified Brilliant",
         "lwRatio": 1.0256
       }

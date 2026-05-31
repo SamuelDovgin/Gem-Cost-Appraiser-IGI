@@ -1,5 +1,5 @@
 {
-  "generatedDate": "2026-05-29",
+  "generatedDate": "2026-05-31",
   "modelFile": "starsgem-ml-extra-trees-model-s21-monotone.json",
   "tolerancePct": 0.5,
   "note": "Golden values from S22 fixed JS inference. Gate 6 checks stability across code changes. Gate 2 verifies cert-loaded != selected-spec (proves 4 dim features active).",
@@ -19,8 +19,8 @@
         "width": 6.45,
         "height": 3.95
       },
-      "jsPriceUsd": 124.72,
-      "jsPerCtUsd": 124.72
+      "jsPriceUsd": 171.95,
+      "jsPerCtUsd": 171.95
     },
     {
       "id": "oval-2ct-D-VS1-cert",
@@ -37,8 +37,8 @@
         "width": 7.1,
         "height": 4.5
       },
-      "jsPriceUsd": 261.59,
-      "jsPerCtUsd": 130.79
+      "jsPriceUsd": 326.05,
+      "jsPerCtUsd": 163.03
     },
     {
       "id": "oval-2ct-D-VS1-selected-spec",
@@ -55,8 +55,8 @@
         "width": null,
         "height": null
       },
-      "jsPriceUsd": 260.07,
-      "jsPerCtUsd": 130.03
+      "jsPriceUsd": 314.83,
+      "jsPerCtUsd": 157.41
     },
     {
       "id": "round-3ct-E-VVS1-cert",
@@ -73,8 +73,8 @@
         "width": 9.38,
         "height": 5.71
       },
-      "jsPriceUsd": 616.99,
-      "jsPerCtUsd": 205.66
+      "jsPriceUsd": 870.52,
+      "jsPerCtUsd": 290.17
     },
     {
       "id": "cushion-1pt5ct-F-VS2-cert",
@@ -91,8 +91,8 @@
         "width": 6.55,
         "height": 4.25
       },
-      "jsPriceUsd": 175.6,
-      "jsPerCtUsd": 117.07
+      "jsPriceUsd": 204.04,
+      "jsPerCtUsd": 136.03
     }
   ]
 }

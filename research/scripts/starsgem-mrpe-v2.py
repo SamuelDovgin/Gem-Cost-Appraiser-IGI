@@ -46,6 +46,17 @@ import xlrd
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+
+def sanitize_for_json(obj):
+    """Recursively replace NaN/Inf with None so JSON.parse() works in JavaScript."""
+    if isinstance(obj, float):
+        return None if (math.isnan(obj) or math.isinf(obj)) else obj
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_for_json(v) for v in obj]
+    return obj
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 XLS_FILE = os.path.join(DATA_DIR, "STARS Diamonds Stock2026.5.20.xls")
 ML_MODEL_JSON = os.path.join(DATA_DIR, "starsgem-ml-extra-trees-model.json")
@@ -1591,7 +1602,7 @@ def export_model(pipe, feature_names_numeric, model_name, model_metrics, target_
 
     dest = output_path or ML_MODEL_JSON
     with open(dest, "w", encoding="utf-8") as f:
-        json.dump(out, f, separators=(",", ":"))
+        json.dump(sanitize_for_json(out), f, separators=(",", ":"))
     print(f"    → Exported to {dest}")
     return out
 
@@ -1751,7 +1762,7 @@ def export_model_lgbm(lgbm_model, pre, feat_names_numeric, model_name,
     }
 
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, separators=(",", ":"))
+        json.dump(sanitize_for_json(out), f, separators=(",", ":"))
     sz = os.path.getsize(output_path) / 1024 / 1024
     print(f"    → model exported to {output_path}  ({sz:.1f} MB, {len(flat_trees)} trees)")
     return output_path

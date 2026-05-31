@@ -184,15 +184,16 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .intel-compare-v.delta-down{color:var(--orange)}
 .intel-compare-v.delta-flat{color:var(--muted2)}
 @media(max-width:560px){.intel-compare-row{grid-template-columns:1fr}}
-.ml-model-compare-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:.5px solid var(--border)}
+.ml-model-compare-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:.5px solid var(--border)}
 .ml-model-compare-col{padding:15px 22px 16px;min-width:0}
-.ml-model-compare-col:first-child{border-right:.5px solid var(--border)}
+.ml-model-compare-col:not(:last-child){border-right:.5px solid var(--border)}
 .ml-model-compare-col--candidate{background:rgba(212,175,114,0.04)}
 .ml-compare-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .ml-compare-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .ml-compare-delta{font-family:'DM Mono',monospace;font-size:11px;margin-top:6px;padding:3px 0;border-top:.5px solid var(--border);color:var(--muted2)}
 .ml-compare-delta.up{color:var(--green)}.ml-compare-delta.down{color:var(--orange)}
-@media(max-width:700px){.ml-model-compare-grid{grid-template-columns:1fr}.ml-model-compare-col:first-child,.ml-model-compare-col:nth-child(2){border-right:none;border-bottom:.5px solid var(--border)}}
+@media(max-width:900px){.ml-model-compare-grid{grid-template-columns:1fr 1fr}.ml-model-compare-col{border-bottom:.5px solid var(--border)}.ml-model-compare-col:nth-child(even){border-right:none}.ml-model-compare-col:nth-last-child(-n+2){border-bottom:none}}
+@media(max-width:700px){.ml-model-compare-grid{grid-template-columns:1fr}.ml-model-compare-col:not(:last-child){border-right:none;border-bottom:.5px solid var(--border)}}
 .intel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .intel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
 .intel-pill{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--accent);background:var(--accent-dim);border:.5px solid rgba(212,175,114,.25);border-radius:4px;padding:2px 6px;white-space:nowrap}
@@ -765,6 +766,14 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <div class="intel-formula" id="starsgem-s26-price">Loading…</div>
           <div class="intel-sub" id="starsgem-s26-note">Loading S26 model…</div>
         </div>
+        <div class="ml-model-compare-col">
+          <div class="ml-compare-head">
+            <div class="ml-compare-label">Single monotone surface</div>
+            <div class="intel-pill" id="starsgem-s28-model">S28</div>
+          </div>
+          <div class="intel-formula" id="starsgem-s28-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-s28-note">Loading S28 model…</div>
+        </div>
       </div>
     </div>
     <div class="pricing-intel-panel">
@@ -977,6 +986,8 @@ let _starsgemMlS21Model = null;
 let _starsgemMlS21ModelPromise = null;
 let _starsgemMlS26Model = null;
 let _starsgemMlS26ModelPromise = null;
+let _starsgemS28Model = null;
+let _starsgemS28ModelPromise = null;
 let _starsgemS23Model = null;
 let _starsgemS23ModelPromise = null;
 let _colorDiamondMlModel = null;
@@ -1081,7 +1092,7 @@ async function loadStarsgemMlModel() {
   // regress to ~14.4% MAPE on the selected-spec test set (worst on 1.5–4ct commercial sizes),
   // and PAV already delivers 0 inversions on S20, so the S21 monotone constraints bought no
   // ladder benefit while costing point accuracy. See research/s22-and-color-monotonicity-plan.md.
-  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s20-specialty-tail.json?v=20260531-s20-clean-dataset')
+  _starsgemMlModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s20-specialty-tail.json?v=20260601-s20-clean-v2')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1105,7 +1116,7 @@ async function loadStarsgemS21Model() {
   // S20 was trained on 198 samples and has sparse lookup coverage for large-carat specialty shapes
   // (e.g. 5ct+ hearts). When S20 hits a global lookup fallback, S21 (792 samples, 242 5ct+ Level-A
   // keys) is used instead so the ML output stays meaningful rather than ~11× below reality.
-  _starsgemMlS21ModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s21-monotone.json?v=20260531-s21-monotone')
+  _starsgemMlS21ModelPromise = fetch('research/data/starsgem-ml-extra-trees-model-s21-monotone.json?v=20260601-s21-clean-v2')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1128,7 +1139,7 @@ async function loadStarsgemS26Model() {
   // S26: champion hybrid policy. Dense StarGem lookup is the primary anchor;
   // monotone-capped ML and live comps are blended when support is sparse or
   // carat is far outside the local sheet surface.
-  _starsgemMlS26ModelPromise = fetch('research/data/starsgem-ml-model-s26-champion.json?v=20260531-s26-v1-2')
+  _starsgemMlS26ModelPromise = fetch('research/data/starsgem-ml-model-s26-champion.json?v=20260601-s26-clean-v2')
     .then(res => {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
@@ -1143,6 +1154,172 @@ async function loadStarsgemS26Model() {
       return null;
     });
   return _starsgemMlS26ModelPromise;
+}
+
+async function loadStarsgemS28Model() {
+  if (_starsgemS28Model) return _starsgemS28Model;
+  if (_starsgemS28ModelPromise) return _starsgemS28ModelPromise;
+  // S28: single constrained parametric surface trained only on clean Segment-A
+  // rows. It is rendered as an audit challenger, not a champion blend.
+  _starsgemS28ModelPromise = fetch('research/data/starsgem-ml-model-s28-monotone-parametric.json?v=20260601-s28-clean-v2')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _starsgemS28Model = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('StarGem S28 monotone surface unavailable.', err);
+      return null;
+    });
+  return _starsgemS28ModelPromise;
+}
+
+const S28_COLOR_RANK = { D:0, E:1, F:2, G:3, H:4, I:5, J:6, K:7 };
+const S28_CLARITY_RANK = { IF:0, VVS1:1, VVS:1.5, VVS2:2, VS1:3, VS:3.5, VS2:4, SI1:5, SI2:6 };
+const S28_MAGIC_THRESHOLDS = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0];
+const S28_VINTAGE_KNOTS = [0.2, 0.4, 0.6, 0.8];
+
+function s28Shape(row) {
+  return String(row?.Shape_Style ?? row?.shape_style ?? row?.Shape ?? row?.shape ?? 'round').trim().toLowerCase() || 'round';
+}
+
+function s28Cut(row) {
+  const text = starsgemNorm(row?.Cut ?? row?.cut ?? '-');
+  if (text === 'ID' || text === 'IDEAL') return 'ID';
+  if (text === 'EX' || text === 'EXCELLENT') return 'EX';
+  if (text === 'VG' || text === 'VERY GOOD') return 'VG';
+  if (text === 'G' || text === 'GD' || text === 'GOOD') return 'G';
+  return '-';
+}
+
+function s28FeatureKey(value) {
+  return String(value).replace(/-/g, 'minus').replace(/\./g, '_');
+}
+
+function s28CaratBasis(carat) {
+  const logCt = Math.log(carat);
+  return {
+    carat_log: logCt,
+    carat_hinge_1ct: Math.max(0, Math.log(carat / 1.0)),
+    carat_hinge_2ct: Math.max(0, Math.log(carat / 2.0)),
+    carat_hinge_5ct: Math.max(0, Math.log(carat / 5.0)),
+    carat_hinge_10ct: Math.max(0, Math.log(carat / 10.0)),
+  };
+}
+
+function s28MagicBasis(carat) {
+  const out = {};
+  for (const threshold of S28_MAGIC_THRESHOLDS) {
+    const label = String(threshold).replace('.', '_');
+    const window = Math.min(0.25, threshold * 0.12);
+    const rampStart = Math.max(0, threshold - window);
+    let approach = 0;
+    if (carat > rampStart && carat < threshold) {
+      approach = (carat - rampStart) / Math.max(1e-9, threshold - rampStart);
+    } else if (carat >= threshold) {
+      approach = 1;
+    }
+    out[`magic_approach_${label}ct`] = approach;
+    out[`magic_step_${label}ct`] = carat >= threshold ? 1 : 0;
+  }
+  return out;
+}
+
+function s28FeatureValue(name, row, model) {
+  if (name === 'intercept') return 1;
+  const carat = Number(row?.Carat ?? row?.carat);
+  if (!Number.isFinite(carat) || carat <= 0) return 0;
+  const shape = s28Shape(row);
+  const cut = s28Cut(row);
+  const color = starsgemNorm(row?.Color ?? row?.color);
+  const clarity = starsgemNorm(row?.Clarity ?? row?.clarity);
+  const gradeSize = Math.log1p(carat);
+  const colorRank = S28_COLOR_RANK[color] ?? 3;
+  const clarityRank = S28_CLARITY_RANK[clarity] ?? 3.5;
+  const caratBasis = s28CaratBasis(carat);
+  const magicBasis = s28MagicBasis(carat);
+  const baseValue = caratBasis[name] ?? magicBasis[name];
+  if (Number.isFinite(baseValue)) return baseValue;
+  if (name === 'colorRank') return colorRank;
+  if (name === 'clarityRank') return clarityRank;
+  if (name === 'colorRank_size') return colorRank * gradeSize;
+  if (name === 'clarityRank_size') return clarityRank * gradeSize;
+  if (name === 'isHpht') return starsgemNorm(row?.TypeName ?? row?.typeName) === 'HPHT' ? 1 : 0;
+  if (name.startsWith('shape_') && !name.includes('_carat_') && !name.includes('_magic_')) {
+    return name === `shape_${shape}` ? 1 : 0;
+  }
+  if (name.startsWith('cut_') && !name.includes('_carat_') && !name.includes('_magic_')) {
+    return name === `cut_${cut}` ? 1 : 0;
+  }
+  for (const featureName of Object.keys(caratBasis)) {
+    if (name.endsWith(`_${featureName}`)) {
+      if (name.startsWith(`shape_${shape}_`)) return caratBasis[featureName];
+      if (name.startsWith(`cut_${s28FeatureKey(cut)}_`)) return caratBasis[featureName];
+      return 0;
+    }
+  }
+  for (const featureName of Object.keys(magicBasis)) {
+    if (name.endsWith(`_${featureName}`)) {
+      if (name.startsWith(`shape_${shape}_`)) return magicBasis[featureName];
+      if (name.startsWith(`cut_${s28FeatureKey(cut)}_`)) return magicBasis[featureName];
+      return 0;
+    }
+  }
+  if (name === 'lwDev' || name === 'tableDev' || name === 'depthDev') {
+    const norms = model?.shapeNorms || {};
+    const shapeNorm = norms[shape] || norms._global || {};
+    if (name === 'lwDev') {
+      const ratio = Number(row?.LengthWidthRatio ?? row?.lwRatio);
+      const ref = Number(shapeNorm.lwRatio ?? norms._global?.lwRatio);
+      return Number.isFinite(ratio) && ratio > 0 && Number.isFinite(ref) && ref > 0 ? Math.abs(Math.log(ratio / ref)) : 0;
+    }
+    if (name === 'tableDev') {
+      const table = Number(row?.Table_Scale ?? row?.tablePct);
+      const ref = Number(shapeNorm.tablePct ?? norms._global?.tablePct);
+      return Number.isFinite(table) && Number.isFinite(ref) ? Math.abs(table - ref) / 10 : 0;
+    }
+    const depth = Number(row?.Depth_Scale ?? row?.depthPct);
+    const ref = Number(shapeNorm.depthPct ?? norms._global?.depthPct);
+    return Number.isFinite(depth) && Number.isFinite(ref) ? Math.abs(depth - ref) / 10 : 0;
+  }
+  if (name === 'vintage01') return 1;
+  for (const knot of S28_VINTAGE_KNOTS) {
+    if (name === `vintage_hinge_${String(knot).replace('.', '_')}`) return Math.max(0, 1 - knot);
+  }
+  return 0;
+}
+
+function predictS28(row, model) {
+  if (!model?.featureNames || !model?.coefficients || !model?.featureMeans || !model?.featureStds) return null;
+  const carat = Number(row?.Carat ?? row?.carat);
+  if (!Number.isFinite(carat) || carat <= 0) return null;
+  let logUpc = 0;
+  for (let i = 0; i < model.featureNames.length; i++) {
+    const name = model.featureNames[i];
+    const coeff = Number(model.coefficients[name]);
+    if (!Number.isFinite(coeff)) continue;
+    const mean = Number(model.featureMeans[i] ?? 0);
+    const std = Number(model.featureStds[i] ?? 1) || 1;
+    const raw = s28FeatureValue(name, row, model);
+    logUpc += coeff * ((raw - mean) / std);
+  }
+  const upc = Math.exp(logUpc);
+  if (!Number.isFinite(upc) || upc <= 0) return null;
+  const maxCarat = Number(model.trainingData?.caratMax);
+  const minCarat = Number(model.trainingData?.caratMin);
+  const extrapolated = (Number.isFinite(maxCarat) && carat > maxCarat) || (Number.isFinite(minCarat) && carat < minCarat);
+  return {
+    price: upc * carat,
+    upc,
+    extrapolated,
+    maxCarat,
+    source: model.trainingData?.source || 'unknown',
+    holdoutMape: model.metrics?.holdout?.mape,
+  };
 }
 
 function s26LookupSigma(model, lookupPred) {
@@ -2257,6 +2434,22 @@ function starsgemSpecialtyCutForState() {
   return map[state.shape] || null;
 }
 
+function s28ShapeStyleFromState() {
+  const base = starsgemShapeForLookup(state.shape).toLowerCase();
+  const raw = String(state.reportShapeRaw || '').toLowerCase();
+  if (raw.includes('portuguese')) return 'portuguese';
+  if (state.shape === 'elongated_cushion') return 'cushion_elongated';
+  if (state.shape === 'old_mine') return 'old_mine';
+  if (state.shape === 'old_european') return 'old_european';
+  if (state.shape === 'cushion_brilliant') return 'cushion_standard';
+  if (state.shape === 'cushion') return 'cushion_modified';
+  if (state.shape === 'square_cushion') return 'square_cushion_modified';
+  if (state.shape === 'radiant') return 'radiant_modified';
+  if (state.shape === 'sq_radiant') return 'sq_radiant_modified';
+  if (raw.includes('modified')) return `${base}_modified`;
+  return `${base}_standard`;
+}
+
 function starsgemCutStyleGroup(cut) {
   const value = String(cut ?? '-').trim();
   const map = {
@@ -2280,6 +2473,7 @@ function starsgemLookupRowFromState(ct = state.carat) {
     Carat: ct,
     carat_bucket: starsgemCaratBucket(ct),
     Shape: starsgemShapeForLookup(state.shape),
+    Shape_Style: s28ShapeStyleFromState(),
     Color: isWhite() ? starsgemNorm(state.whiteGrade) : starsgemNorm(colorLabel()),
     Clarity: starsgemNorm(state.clarity),
     TypeName: starsgemTypeNameForState(),
@@ -3149,6 +3343,44 @@ function updateStarsgemPricingIntel() {
   } else {
     if (s26PriceEl) s26PriceEl.textContent = 'Loading S26…';
     if (s26NoteEl)  s26NoteEl.textContent  = 'S26 champion hybrid is loading.';
+  }
+
+  // ── S28 single monotone surface panel ────────────────────────────────────
+  const s28PriceEl = document.getElementById('starsgem-s28-price');
+  const s28NoteEl  = document.getElementById('starsgem-s28-note');
+  const s28ModelEl = document.getElementById('starsgem-s28-model');
+
+  if (isWhite() && _starsgemS28Model) {
+    const s28Pred = predictS28(row, _starsgemS28Model);
+    if (s28Pred && s28PriceEl) {
+      s28PriceEl.textContent = `${fmt(s28Pred.price)} monotone surface`;
+      if (s28ModelEl) s28ModelEl.textContent = 'S28';
+      if (s28NoteEl) {
+        const source = s28Pred.source.replace(/^research\/data\//, '');
+        const mape = Number.isFinite(Number(s28Pred.holdoutMape)) ? `${Number(s28Pred.holdoutMape).toFixed(2)}% holdout MAPE` : 'holdout metric unavailable';
+        const maxCaratText = Number.isFinite(s28Pred.maxCarat) ? `${s28Pred.maxCarat.toFixed(2)}ct` : 'training max';
+        const extrapolation = s28Pred.extrapolated
+          ? ` Above clean training support (${maxCaratText}); shown as monotone extrapolation, not learned large-stone pricing.`
+          : '';
+        s28NoteEl.innerHTML = (
+          `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> `
+          + `single constrained parametric model trained on ${escapeHTML(source)}. `
+          + `$${Math.round(s28Pred.upc)}/ct; ${escapeHTML(mape)}. `
+          + `Carat, color, clarity, HPHT/CVD, and supported cut/shape interactions are constrained to obey direction.${extrapolation}`
+        );
+      }
+    } else if (s28PriceEl) {
+      s28PriceEl.textContent = 'S28 unavailable';
+      if (s28NoteEl) s28NoteEl.textContent = 'S28 could not produce a monotone-surface prediction for this row.';
+    }
+  } else if (!isWhite()) {
+    if (s28PriceEl) s28PriceEl.textContent = 'White model only';
+    if (s28NoteEl) s28NoteEl.textContent = 'S28 is currently trained only on the clean white-diamond Segment-A dataset.';
+    if (s28ModelEl) s28ModelEl.textContent = 'S28';
+  } else {
+    if (s28PriceEl) s28PriceEl.textContent = 'Loading S28…';
+    if (s28NoteEl) s28NoteEl.textContent = 'S28 monotone parametric surface is loading.';
+    if (s28ModelEl) s28ModelEl.textContent = 'S28';
   }
 }
 
@@ -6656,6 +6888,7 @@ loadStarsgemMlModel(); // async: loads compact browser ML price predictor (S22)
 loadStarsgemS21Model(); // async: S21 fallback for S22 when S20 hits global lookup gap
 loadStarsgemS26Model(); // async: S26 champion hybrid replacing the old S25 audit panel
 loadStarsgemS23Model(); // async: loads S23 candidate (grade-agnostic anchor + monotone LightGBM)
+loadStarsgemS28Model(); // async: loads S28 single monotone parametric audit surface
 loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor (ExtraTrees S22)
 loadColorS23Model();       // async: S23-style color model (LightGBM + monotone intensity)
 loadColorS27Model();       // async: S27 color champion (S22-led + S23/comp guardrails)

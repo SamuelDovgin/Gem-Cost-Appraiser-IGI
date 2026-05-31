@@ -52,7 +52,7 @@ function predictLookup(row, intel) {
   if (!Number.isFinite(carat) || carat <= 0) return null;
   const normalized = {
     carat_bucket: caratBucket(carat),
-    Shape: norm(row.shape ?? row.Shape),
+    Shape: norm(row.raw_shape_code ?? row.shape ?? row.Shape),
     Color: norm(row.color ?? row.Color),
     Clarity: norm(row.clarity ?? row.Clarity),
     TypeName: norm(row.typeName ?? row.TypeName),
