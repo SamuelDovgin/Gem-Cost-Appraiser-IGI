@@ -2,6 +2,12 @@
 
 This folder keeps supporting research and capture tooling out of the published app root.
 
+## Start here (white-diamond ML)
+
+- **[`white-diamond-ml-pricing-research-report.md`](white-diamond-ml-pricing-research-report.md)** — consolidated report: cleaned dataset (schema, quarantine, target estimand), full model history (S7–S28), constraints, chart evidence, and candidate “something better” architectures.
+- **[`white-diamond-ml-pricing-improvement-plan.md`](white-diamond-ml-pricing-improvement-plan.md)** — highest-value implementation order for the anchor + fixed S28 surface + shrunk residual direction.
+- Charts: `npm run research:ml-explainer` → [`ml-model-explainer.html`](ml-model-explainer.html) (after `npm run serve`).
+
 ## Contents
 
 - `alibaba-capture.html` - bookmarklet capture page for quick Alibaba listing notes.

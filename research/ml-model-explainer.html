@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ML Model Explainer — StarGem Pricing</title>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #5c6b7a;
+      --line: #d8dee8;
+      --surface: #fff;
+      --bg: #f0f3f7;
+      --accent: #176c7d;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+    header {
+      padding: 22px 28px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+      position: sticky; top: 0; z-index: 5;
+    }
+    header h1 { margin: 0 0 8px; font-size: 24px; font-weight: 750; }
+    header p { margin: 0; color: var(--muted); font-size: 14px; max-width: 960px; line-height: 1.55; }
+    header code { font-size: 12px; background: #eef2f6; padding: 2px 6px; border-radius: 4px; }
+    nav.toc {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 14px 28px; background: #e8edf3; border-bottom: 1px solid var(--line);
+      position: sticky; top: 88px; z-index: 4;
+    }
+    nav.toc a {
+      font-size: 12px; padding: 5px 11px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--line);
+      color: var(--ink); text-decoration: none;
+    }
+    nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+    main { padding: 24px 28px 56px; max-width: 1320px; margin: 0 auto; }
+    section.panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 18px 20px 22px;
+      margin-bottom: 22px;
+    }
+    section.panel h2 { margin: 0 0 6px; font-size: 18px; }
+    section.panel .sub { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .intro-list { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+    .intro-list li { margin-bottom: 8px; }
+    .intro-list strong { color: var(--accent); }
+    .counts { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .chart-wrap { overflow-x: auto; min-height: 120px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; font-size: 11px; color: var(--muted); }
+    .key { display: inline-flex; align-items: center; gap: 5px; }
+    .sw-line { width: 20px; height: 3px; border-radius: 2px; }
+    .sw-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.15); }
+    table.data {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    table.data th, table.data td {
+      border: 1px solid var(--line); padding: 8px 10px; text-align: right;
+    }
+    table.data th { background: #f6f8fa; text-align: center; }
+    table.data td:first-child { text-align: left; font-weight: 600; }
+    .status { text-align: center; padding: 48px; color: var(--muted); }
+    .model-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .model-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+    .model-card .name { font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .model-card .bar { width: 16px; height: 4px; border-radius: 2px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>How the white-diamond ML models price stones</h1>
+    <p>
+      Interactive charts: <strong>$/ct</strong> and <strong>total $</strong> vs carat, clarity/color ladders, and shape comparisons.
+      Regenerate with <code>npm run research:ml-explainer</code>, then
+      <code>npm run serve</code> →
+      <code>/research/ml-model-explainer.html</code>.
+      See also <code>continuous-pricing-surface-principles.md</code>.
+    </p>
+  </header>
+  <nav class="toc" id="toc" hidden></nav>
+  <main id="main">
+    <p class="status" id="status">Loading explainer data…</p>
+  </main>
+  <script>
+    const DATA_URL = 'data/ml-model-explainer-data.json';
+
+    const DEFAULT_STYLES = {
+      s26: { color: '#176c7d', width: 2.5, dash: null },
+      s26Lookup: { color: '#2f855a', width: 2, dash: '6 4' },
+      s28: { color: '#6d5bd0', width: 2.4, dash: null },
+      s22: { color: '#b45309', width: 1.6, dash: '4 3' },
+      s23: { color: '#c2410c', width: 1.5, dash: '2 4' },
+      cleanSmooth: { color: '#be123c', width: 2, dash: null },
+      clean: { color: '#e11d48', width: 1.5, dash: '2 2' },
+      starsgem: { color: '#94a3b8', width: 1.2, dash: '1 3' },
+    };
+
+    function renderSvg(host, config) {
+      const {
+        series = [],
+        vlines = [],
+        width = 1160,
+        height = 440,
+        xLabel = '',
+        yLabel = '$/ct',
+        xCategories = null,
+      } = config;
+
+      const lineSeries = series.filter(s => s.kind !== 'scatter');
+      const scatterSeries = series.filter(s => s.kind === 'scatter');
+      const allPts = [...lineSeries, ...scatterSeries].flatMap(s => s.points || []);
+      if (!allPts.length) {
+        host.innerHTML = '<p style="color:#697586;padding:12px">No data</p>';
+        return;
+      }
+
+      const pad = { l: 64, r: 28, t: 22, b: 52 };
+      const numericX = !xCategories;
+      let minX, maxX, maxY, minY = 0;
+
+      if (numericX) {
+        minX = config.xMin ?? Math.min(...allPts.map(p => p.x));
+        maxX = config.xMax ?? Math.max(...allPts.map(p => p.x));
+      } else {
+        minX = -0.5;
+        maxX = xCategories.length - 0.5;
+      }
+      maxY = Math.max(...allPts.map(p => p.y)) * 1.08;
+      if (maxY < 10) maxY = 100;
+
+      const sx = x => pad.l + ((x - minX) / (maxX - minX || 1)) * (width - pad.l - pad.r);
+      const sy = y => height - pad.b - ((y - minY) / (maxY - minY)) * (height - pad.t - pad.b);
+
+      let grid = '';
+      for (let i = 0; i <= 5; i++) {
+        const y = minY + (maxY - minY) * i / 5;
+        grid += `<line x1="${pad.l}" x2="${width-pad.r}" y1="${sy(y)}" y2="${sy(y)}" stroke="#e8edf3"/>`;
+        grid += `<text x="${pad.l-8}" y="${sy(y)+4}" text-anchor="end" font-size="11" fill="#697586">$${Math.round(y).toLocaleString()}</text>`;
+      }
+
+      if (numericX) {
+        const step = (maxX - minX) > 15 ? 2 : (maxX - minX) > 5 ? 1 : 0.5;
+        for (let x = Math.ceil(minX / step) * step; x <= maxX; x += step) {
+          grid += `<line x1="${sx(x)}" x2="${sx(x)}" y1="${pad.t}" y2="${height-pad.b}" stroke="#f4f6f8"/>`;
+          grid += `<text x="${sx(x)}" y="${height-20}" text-anchor="middle" font-size="11" fill="#697586">${x}ct</text>`;
+        }
+      } else {
+        xCategories.forEach((lab, i) => {
+          grid += `<text x="${sx(i)}" y="${height-16}" text-anchor="middle" font-size="10" fill="#697586">${lab}</text>`;
+        });
+      }
+
+      for (const vl of vlines) {
+        if (!numericX) continue;
+        const stroke = vl.kind === 'bucket' ? '#dc2626' : vl.kind === 'magic' ? '#7c3aed' : '#94a3b8';
+        const dash = vl.kind === 'bucket' ? '4 4' : '2 3';
+        grid += `<line x1="${sx(vl.x)}" x2="${sx(vl.x)}" y1="${pad.t}" y2="${height-pad.b}" stroke="${stroke}" stroke-width="1.2" stroke-dasharray="${dash}" opacity="0.85"/>`;
+        grid += `<text x="${sx(vl.x)}" y="${pad.t+12}" text-anchor="middle" font-size="10" fill="${stroke}">${vl.label || ''}</text>`;
+      }
+
+      let body = '';
+      for (const s of lineSeries) {
+        if (!s.points?.length) continue;
+        const d = s.points.map((p, j) => `${j ? 'L' : 'M'}${sx(p.x).toFixed(2)},${sy(p.y).toFixed(2)}`).join(' ');
+        body += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width||2}" stroke-linejoin="round"${s.dash ? ` stroke-dasharray="${s.dash}"` : ''}/>`;
+      }
+      for (const s of scatterSeries) {
+        const r = s.radius ?? 5;
+        const fillOp = s.opacity ?? 0.5;
+        const stroke = s.stroke || s.color;
+        const sw = s.strokeWidth ?? 1.2;
+        for (const p of s.points) {
+          body += `<circle cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="${r}" fill="${s.color}" fill-opacity="${fillOp}" stroke="${stroke}" stroke-opacity="0.65" stroke-width="${sw}"/>`;
+        }
+      }
+
+      host.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" role="img">
+          ${grid}
+          <text x="${pad.l}" y="${14}" font-size="11" fill="#697586">${yLabel}</text>
+          ${body}
+        </svg>`;
+    }
+
+    function legendFrom(legend, keys) {
+      return keys.map(k => {
+        const L = legend[k] || {};
+        const st = DEFAULT_STYLES[k] || {};
+        const isScatter = k.includes('Scatter');
+        const sw = isScatter
+          ? `<span class="sw-dot" style="background:${L.color||st.color}"></span>`
+          : `<span class="sw-line" style="background:${L.color||st.color}"></span>`;
+        return `<span class="key">${sw}${L.label || k}</span>`;
+      }).join('');
+    }
+
+    function renderCaratSection(sec, legend) {
+      const el = document.createElement('section');
+      el.className = 'panel';
+      el.id = sec.id;
+      const counts = sec.counts
+        ? `<p class="counts">Clean training: <strong>${sec.counts.clean}</strong> rows · StarGem index: <strong>${sec.counts.starsgem}</strong> rows</p>`
+        : '';
+      el.innerHTML = `<h2>${sec.title}</h2><p class="sub">${sec.subtitle || ''}</p>${counts}<div class="chart-wrap"></div><div class="legend"></div>`;
+
+      const curves = sec.curves || {};
+      const series = [
+        { kind: 'scatter', color: '#e11d48', stroke: '#9f1239', radius: 6, opacity: 0.52, strokeWidth: 1.4, points: sec.scatter?.clean || [] },
+        { kind: 'scatter', color: '#64748b', stroke: '#334155', radius: 5.5, opacity: 0.42, strokeWidth: 1.2, points: sec.scatter?.starsgem || [] },
+        { kind: 'line', ...DEFAULT_STYLES.cleanSmooth, points: sec.medianCurves?.cleanSmooth || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s26Lookup, points: curves.s26Lookup || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s28, points: curves.s28 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s26, points: curves.s26 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s22, points: curves.s22 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s23, points: curves.s23 || [] },
+      ];
+
+      renderSvg(el.querySelector('.chart-wrap'), {
+        series,
+        vlines: sec.vlines || [],
+        xMin: sec.xMin,
+        xMax: sec.xMax,
+        yLabel: sec.yLabel || '$/ct',
+      });
+
+      el.querySelector('.legend').innerHTML = legendFrom(legend, [
+        'cleanScatter', 'starsgemScatter', 'cleanSmooth', 's26Lookup', 's28', 's26', 's22', 's23',
+      ]);
+      return el;
+    }
+
+    function renderLadderSection(sec, legend) {
+      const el = document.createElement('section');
+      el.className = 'panel';
+      el.id = sec.id;
+      el.innerHTML = `<h2>${sec.title}</h2><p class="sub">${sec.subtitle || ''}</p><div class="chart-wrap"></div><div class="legend"></div>`;
+      const curves = sec.curves || {};
+      const series = [
+        { kind: 'line', ...DEFAULT_STYLES.s26Lookup, points: curves.s26Lookup || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s28, points: curves.s28 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s26, points: curves.s26 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s22, points: curves.s22 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s23, points: curves.s23 || [] },
+      ];
+      renderSvg(el.querySelector('.chart-wrap'), {
+        series,
+        xCategories: sec.labels,
+        yLabel: sec.yLabel || '$/ct',
+      });
+      el.querySelector('.legend').innerHTML = legendFrom(legend, ['s26Lookup', 's28', 's26', 's22', 's23']);
+      return el;
+    }
+
+    function renderTableSection(sec) {
+      const el = document.createElement('section');
+      el.className = 'panel';
+      el.id = sec.id;
+      let html = `<h2>${sec.title}</h2><p class="sub">${sec.subtitle || ''}</p><table class="data"><thead><tr>
+        <th>carat</th><th>carat_bucket</th><th>lookup $/ct</th><th>S28 $/ct</th><th>S26 hybrid $/ct</th>
+      </tr></thead><tbody>`;
+      for (const r of sec.rows || []) {
+        html += `<tr><td>${r.carat}</td><td>${r.bucket}</td><td>${r.lookupUpc ?? '—'}</td><td>${r.s28Upc ?? '—'}</td><td>${r.s26Upc ?? '—'}</td></tr>`;
+      }
+      html += '</tbody></table>';
+      el.innerHTML = html;
+      return el;
+    }
+
+    function renderIntro(sec, legend) {
+      const el = document.createElement('section');
+      el.className = 'panel';
+      el.id = sec.id;
+      let cards = '';
+      for (const [k, v] of Object.entries(legend)) {
+        if (k.includes('Scatter')) continue;
+        cards += `<div class="model-card"><div class="name"><span class="bar" style="background:${v.color}"></span>${v.label}</div>${v.desc || ''}</div>`;
+      }
+      el.innerHTML = `
+        <h2>${sec.title}</h2>
+        <div class="model-grid">${cards}</div>
+        <ul class="intro-list">${(sec.body || []).map(b => `<li>${b}</li>`).join('')}</ul>`;
+      return el;
+    }
+
+    function renderAll(data) {
+      document.getElementById('status').remove();
+      const toc = document.getElementById('toc');
+      toc.hidden = false;
+      toc.innerHTML = data.sections
+        .filter(s => s.type !== 'intro')
+        .map(s => `<a href="#${s.id}">${s.title.replace(/ —.*/, '').slice(0, 40)}</a>`)
+        .join('');
+
+      const main = document.getElementById('main');
+      main.innerHTML = '';
+      const legend = { ...data.modelLegend };
+      legend.cleanScatter = { label: 'Clean training (scatter)', color: '#9f1239' };
+      legend.starsgemScatter = { label: 'StarGem index (scatter)', color: '#94a3b8' };
+      legend.cleanSmooth = { label: 'Clean actual (smooth median)', color: '#be123c', desc: 'Rolling median of training rows' };
+
+      for (const sec of data.sections) {
+        if (sec.type === 'intro') main.appendChild(renderIntro(sec, legend));
+        else if (sec.type === 'carat') main.appendChild(renderCaratSection(sec, legend));
+        else if (sec.type === 'ladder') main.appendChild(renderLadderSection(sec, legend));
+        else if (sec.type === 'table') main.appendChild(renderTableSection(sec));
+      }
+    }
+
+    fetch(DATA_URL)
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status} — run: npm run research:ml-explainer`); return r.json(); })
+      .then(renderAll)
+      .catch(err => { document.getElementById('status').textContent = err.message; });
+  </script>
+</body>
+</html>
