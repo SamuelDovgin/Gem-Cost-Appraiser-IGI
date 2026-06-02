@@ -1195,23 +1195,33 @@ async function loadStarsgemS31Model() {
   _starsgemS31ModelFailed = false;
   // S31: guarded monotone anchor over the S28 surface, used as the strongest
   // white-model audit challenger in the app.
-  _starsgemS31ModelPromise = fetch('research/data/starsgem-ml-model-s31-guarded-anchor.json?v=20260601-s31-guarded-anchor')
-    .then(res => {
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    })
-    .then(data => {
-      _starsgemS31Model = data;
-      _starsgemS31ModelFailed = false;
-      updateStarsgemPricingIntel();
-      return data;
-    })
-    .catch(err => {
-      _starsgemS31ModelFailed = true;
-      console.warn('StarGem S31 guarded anchor unavailable.', err);
-      updateStarsgemPricingIntel();
-      return null;
-    });
+  _starsgemS31ModelPromise = (async () => {
+    const urls = [
+      'research/data/starsgem-ml-model-s31-guarded-anchor.json?v=20260601-s31-guarded-anchor',
+      'https://raw.githubusercontent.com/SamuelDovgin/Gem-Cost-Appraiser-IGI/main/research/data/starsgem-ml-model-s31-guarded-anchor.json',
+    ];
+    let lastError = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${url} HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data?.surfaceModel || !data?.anchorLogUpcGrids) {
+          throw new Error(`${url} returned an invalid S31 model artifact`);
+        }
+        _starsgemS31Model = data;
+        _starsgemS31ModelFailed = false;
+        updateStarsgemPricingIntel();
+        return data;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    _starsgemS31ModelFailed = true;
+    console.warn('StarGem S31 guarded anchor unavailable.', lastError);
+    updateStarsgemPricingIntel();
+    return null;
+  })();
   return _starsgemS31ModelPromise;
 }
 
