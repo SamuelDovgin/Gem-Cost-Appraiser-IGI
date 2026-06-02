@@ -998,6 +998,7 @@ let _starsgemS28Model = null;
 let _starsgemS28ModelPromise = null;
 let _starsgemS31Model = null;
 let _starsgemS31ModelPromise = null;
+let _starsgemS31ModelFailed = false;
 let _starsgemS23Model = null;
 let _starsgemS23ModelPromise = null;
 let _colorDiamondMlModel = null;
@@ -1191,6 +1192,7 @@ async function loadStarsgemS28Model() {
 async function loadStarsgemS31Model() {
   if (_starsgemS31Model) return _starsgemS31Model;
   if (_starsgemS31ModelPromise) return _starsgemS31ModelPromise;
+  _starsgemS31ModelFailed = false;
   // S31: guarded monotone anchor over the S28 surface, used as the strongest
   // white-model audit challenger in the app.
   _starsgemS31ModelPromise = fetch('research/data/starsgem-ml-model-s31-guarded-anchor.json?v=20260601-s31-guarded-anchor')
@@ -1200,11 +1202,14 @@ async function loadStarsgemS31Model() {
     })
     .then(data => {
       _starsgemS31Model = data;
+      _starsgemS31ModelFailed = false;
       updateStarsgemPricingIntel();
       return data;
     })
     .catch(err => {
+      _starsgemS31ModelFailed = true;
       console.warn('StarGem S31 guarded anchor unavailable.', err);
+      updateStarsgemPricingIntel();
       return null;
     });
   return _starsgemS31ModelPromise;
@@ -3577,6 +3582,10 @@ function updateStarsgemPricingIntel() {
   } else if (!isWhite()) {
     if (s31PriceEl) s31PriceEl.textContent = 'White model only';
     if (s31NoteEl) s31NoteEl.textContent = 'S31 is currently trained only on the clean white-diamond surface and anchor grids.';
+    if (s31ModelEl) s31ModelEl.textContent = 'S31';
+  } else if (_starsgemS31ModelFailed) {
+    if (s31PriceEl) s31PriceEl.textContent = 'S31 unavailable';
+    if (s31NoteEl) s31NoteEl.textContent = 'S31 model could not be loaded from research/data/starsgem-ml-model-s31-guarded-anchor.json.';
     if (s31ModelEl) s31ModelEl.textContent = 'S31';
   } else {
     if (s31PriceEl) s31PriceEl.textContent = 'Loading S31…';
