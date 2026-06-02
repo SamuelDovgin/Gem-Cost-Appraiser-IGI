@@ -1,0 +1,936 @@
+{
+  "date": "2026-06-02",
+  "modelVersion": "diamond-prod-vnext-v0.1.0",
+  "whiteRows": 21982,
+  "colorRows": 1657,
+  "whiteHoldoutN": 4415,
+  "colorHoldoutN": 337,
+  "directStarsgemAnchors": 5,
+  "sourceAdjustment": {
+    "messiToFactoryFactor": 1.25,
+    "starsgemDirectFactor": 1
+  },
+  "classification": {
+    "whiteCorrect": 21982,
+    "whiteWrong": 0,
+    "whiteMisclassifications": [],
+    "colorCorrect": 1657,
+    "colorWrong": 0,
+    "colorMisclassifications": [],
+    "allCorrect": true
+  },
+  "whiteBranch": {
+    "rowHoldout": {
+      "whiteProdVNext": {
+        "n": 4415,
+        "mape": 4.7927,
+        "mdape": 1.751,
+        "p90ape": 11.6591,
+        "biasPct": -0.2034
+      },
+      "s26": {
+        "n": 4415,
+        "mape": 5.3483,
+        "mdape": 1.9324,
+        "p90ape": 14.1353,
+        "biasPct": -1.0653
+      },
+      "s28": {
+        "n": 4415,
+        "mape": 10.6151,
+        "mdape": 8.2024,
+        "p90ape": 21.6591,
+        "biasPct": 0.8929
+      },
+      "s30": {
+        "n": 4260,
+        "mape": 4.5087,
+        "mdape": 1.7025,
+        "p90ape": 11.2495,
+        "biasPct": -0.0507
+      }
+    },
+    "routing": {
+      "S30": 3745,
+      "S26": 532,
+      "S33A": 90,
+      "S28": 48
+    },
+    "monotonicity": {
+      "caratViolations": 0,
+      "isClean": true
+    }
+  },
+  "colorBranch": {
+    "rowHoldout": {
+      "colorProdVNext": {
+        "n": 337,
+        "mape": 6.5573,
+        "mdape": 2.638,
+        "p90ape": 16.4373,
+        "biasPct": 4.0204
+      },
+      "s22": {
+        "n": 337,
+        "mape": 6.5573,
+        "mdape": 2.638,
+        "p90ape": 16.4373,
+        "biasPct": 4.0204
+      }
+    },
+    "routing": {
+      "E2_S22": 1651,
+      "E5_CURATED_PRIOR": 1,
+      "E1_DIRECT_QUOTE": 5
+    },
+    "tiers": {
+      "dense": 265,
+      "medium": 746,
+      "sparse": 602,
+      "empty": 44
+    },
+    "bands": {
+      "high": 45,
+      "medium": 153,
+      "low": 113,
+      "floor": 26
+    },
+    "reasons": {
+      "empty_primary_s22_extrapolation": 26,
+      "sparse_primary_s22": 84,
+      "none": 165,
+      "red_hue_sparse_warning": 9,
+      "red_hue_caution": 5,
+      "green_s22_with_s23_guard": 18,
+      "green_hue_s23_sanity_applied": 9,
+      "brown_hue_caution": 21
+    },
+    "directQuoteRecommended": 9,
+    "routingByHue": {
+      "pink": {
+        "E2_S22": 437,
+        "E1_DIRECT_QUOTE": 1
+      },
+      "yellow": {
+        "E2_S22": 636,
+        "E1_DIRECT_QUOTE": 2
+      },
+      "blue": {
+        "E2_S22": 280,
+        "E1_DIRECT_QUOTE": 2
+      },
+      "green": {
+        "E2_S22": 114
+      },
+      "red": {
+        "E2_S22": 73
+      },
+      "orange": {
+        "E5_CURATED_PRIOR": 1
+      },
+      "brown": {
+        "E2_S22": 111
+      }
+    }
+  },
+  "sourceSplit": {
+    "messiAdjusted": {
+      "n": 337,
+      "colorProdVNext": {
+        "n": 337,
+        "mape": 6.5573,
+        "mdape": 2.638,
+        "p90ape": 16.4373,
+        "biasPct": 4.0204
+      },
+      "s22": {
+        "n": 337,
+        "mape": 6.5573,
+        "mdape": 2.638,
+        "p90ape": 16.4373,
+        "biasPct": 4.0204
+      }
+    },
+    "directStarGem": {
+      "n": 0
+    }
+  },
+  "hueSplit": {
+    "pink": {
+      "n": 98,
+      "ht": "primary",
+      "colorProdVNext": {
+        "n": 98,
+        "mape": 2.3028,
+        "mdape": 1.368,
+        "p90ape": 5.4405,
+        "biasPct": -0.8503
+      },
+      "s22": {
+        "n": 98,
+        "mape": 2.3028,
+        "mdape": 1.368,
+        "p90ape": 5.4405,
+        "biasPct": -0.8503
+      }
+    },
+    "yellow": {
+      "n": 114,
+      "ht": "primary",
+      "colorProdVNext": {
+        "n": 114,
+        "mape": 10.4273,
+        "mdape": 10.8413,
+        "p90ape": 16.4557,
+        "biasPct": 9.0938
+      },
+      "s22": {
+        "n": 114,
+        "mape": 10.4273,
+        "mdape": 10.8413,
+        "p90ape": 16.4557,
+        "biasPct": 9.0938
+      }
+    },
+    "blue": {
+      "n": 63,
+      "ht": "primary",
+      "colorProdVNext": {
+        "n": 63,
+        "mape": 9.5728,
+        "mdape": 1.4587,
+        "p90ape": 31.5575,
+        "biasPct": 8.1781
+      },
+      "s22": {
+        "n": 63,
+        "mape": 9.5728,
+        "mdape": 1.4587,
+        "p90ape": 31.5575,
+        "biasPct": 8.1781
+      }
+    },
+    "red": {
+      "n": 14,
+      "ht": "caution",
+      "colorProdVNext": {
+        "n": 14,
+        "mape": 2.6299,
+        "mdape": 2.6503,
+        "p90ape": 4.8064,
+        "biasPct": -2.4587
+      },
+      "s22": {
+        "n": 14,
+        "mape": 2.6299,
+        "mdape": 2.6503,
+        "p90ape": 4.8064,
+        "biasPct": -2.4587
+      }
+    },
+    "green": {
+      "n": 27,
+      "ht": "caution",
+      "colorProdVNext": {
+        "n": 27,
+        "mape": 5.4644,
+        "mdape": 4.0152,
+        "p90ape": 17.1991,
+        "biasPct": -3.2317
+      },
+      "s22": {
+        "n": 27,
+        "mape": 5.4644,
+        "mdape": 4.0152,
+        "p90ape": 17.1991,
+        "biasPct": -3.2317
+      }
+    },
+    "brown": {
+      "n": 21,
+      "ht": "caution",
+      "colorProdVNext": {
+        "n": 21,
+        "mape": 0.3803,
+        "mdape": 0.3086,
+        "p90ape": 0.6508,
+        "biasPct": 0.3803
+      },
+      "s22": {
+        "n": 21,
+        "mape": 0.3803,
+        "mdape": 0.3086,
+        "p90ape": 0.6508,
+        "biasPct": 0.3803
+      }
+    }
+  },
+  "caratBands": {
+    "0-1ct": {
+      "n": 0
+    },
+    "1-2ct": {
+      "n": 198,
+      "colorProdVNext": {
+        "n": 198,
+        "mape": 7.5396,
+        "mdape": 3.6679,
+        "p90ape": 16.4901,
+        "biasPct": 5.8036
+      },
+      "s22": {
+        "n": 198,
+        "mape": 7.5396,
+        "mdape": 3.6679,
+        "p90ape": 16.4901,
+        "biasPct": 5.8036
+      }
+    },
+    "2-3ct": {
+      "n": 58,
+      "colorProdVNext": {
+        "n": 58,
+        "mape": 5.6503,
+        "mdape": 1.5822,
+        "p90ape": 19.254,
+        "biasPct": 3.149
+      },
+      "s22": {
+        "n": 58,
+        "mape": 5.6503,
+        "mdape": 1.5822,
+        "p90ape": 19.254,
+        "biasPct": 3.149
+      }
+    },
+    "3-5ct": {
+      "n": 41,
+      "colorProdVNext": {
+        "n": 41,
+        "mape": 5.0486,
+        "mdape": 1.8948,
+        "p90ape": 11.6184,
+        "biasPct": 2.931
+      },
+      "s22": {
+        "n": 41,
+        "mape": 5.0486,
+        "mdape": 1.8948,
+        "p90ape": 11.6184,
+        "biasPct": 2.931
+      }
+    },
+    "5ct+": {
+      "n": 40,
+      "colorProdVNext": {
+        "n": 40,
+        "mape": 4.5571,
+        "mdape": 2.9609,
+        "p90ape": 10.5206,
+        "biasPct": -2.4262
+      },
+      "s22": {
+        "n": 40,
+        "mape": 4.5571,
+        "mdape": 2.9609,
+        "p90ape": 10.5206,
+        "biasPct": -2.4262
+      }
+    }
+  },
+  "shapeSplit": {
+    "radiant,63": {
+      "n": 0
+    },
+    "pear,61": {
+      "n": 0
+    },
+    "square_cushion,55": {
+      "n": 0
+    },
+    "oval,55": {
+      "n": 0
+    },
+    "heart,21": {
+      "n": 0
+    },
+    "asscher,15": {
+      "n": 0
+    },
+    "round,15": {
+      "n": 0
+    },
+    "emerald,12": {
+      "n": 0
+    }
+  },
+  "sourceSensitivity": {
+    "factor_1.20": {
+      "factor": 1.2,
+      "allMape": 7.0556,
+      "allMdape": 4.646,
+      "allP90": 13.3781,
+      "starGemAnchorMape": 0,
+      "starGemAnchorN": 5,
+      "starGemAnchorStats": {
+        "n": 5,
+        "mape": 0,
+        "mdape": 0,
+        "p90ape": 0,
+        "biasPct": null
+      },
+      "n": 337
+    },
+    "factor_1.25": {
+      "factor": 1.25,
+      "allMape": 6.5573,
+      "allMdape": 2.638,
+      "allP90": 16.4373,
+      "starGemAnchorMape": 0,
+      "starGemAnchorN": 5,
+      "starGemAnchorStats": {
+        "n": 5,
+        "mape": 0,
+        "mdape": 0,
+        "p90ape": 0,
+        "biasPct": null
+      },
+      "n": 337
+    },
+    "factor_1.30": {
+      "factor": 1.3,
+      "allMape": 9.2427,
+      "allMdape": 4.6832,
+      "allP90": 21.0654,
+      "starGemAnchorMape": 0,
+      "starGemAnchorN": 5,
+      "starGemAnchorStats": {
+        "n": 5,
+        "mape": 0,
+        "mdape": 0,
+        "p90ape": 0,
+        "biasPct": null
+      },
+      "n": 337
+    }
+  },
+  "intensityMonotonicity": {
+    "cellsScanned": 384,
+    "inversions": 0,
+    "violatingCells": [],
+    "isClean": true
+  },
+  "conformal": {
+    "color80": {
+      "width": 0.119071,
+      "multiplierLow": 0.887745,
+      "multiplierHigh": 1.12645,
+      "n": 337,
+      "targetCoverage": "80%",
+      "actualCoverage": "80.1%"
+    },
+    "color90": {
+      "width": 0.152183,
+      "multiplierLow": 0.858831,
+      "multiplierHigh": 1.164373,
+      "n": 337,
+      "targetCoverage": "90%",
+      "actualCoverage": "90.2%"
+    },
+    "byHue": {
+      "pink": {
+        "n": 98,
+        "conf80": {
+          "width": 0.027959,
+          "multiplierLow": 0.972428,
+          "multiplierHigh": 1.028354,
+          "n": 98,
+          "targetCoverage": "80%",
+          "actualCoverage": "80.6%"
+        }
+      },
+      "yellow": {
+        "n": 114,
+        "conf80": {
+          "width": 0.141996,
+          "multiplierLow": 0.867625,
+          "multiplierHigh": 1.152572,
+          "n": 114,
+          "targetCoverage": "80%",
+          "actualCoverage": "80.7%"
+        }
+      },
+      "blue": {
+        "n": 63,
+        "conf80": {
+          "width": 0.204553,
+          "multiplierLow": 0.815011,
+          "multiplierHigh": 1.226977,
+          "n": 63,
+          "targetCoverage": "80%",
+          "actualCoverage": "81%"
+        }
+      },
+      "red": {
+        "n": 14,
+        "conf80": {
+          "width": 0.042681,
+          "multiplierLow": 0.958217,
+          "multiplierHigh": 1.043605,
+          "n": 14,
+          "targetCoverage": "80%",
+          "actualCoverage": "85.7%"
+        }
+      },
+      "green": {
+        "n": 27,
+        "conf80": {
+          "width": 0.075557,
+          "multiplierLow": 0.927227,
+          "multiplierHigh": 1.078484,
+          "n": 27,
+          "targetCoverage": "80%",
+          "actualCoverage": "81.5%"
+        }
+      },
+      "brown": {
+        "n": 21,
+        "conf80": {
+          "width": 0.003957,
+          "multiplierLow": 0.996051,
+          "multiplierHigh": 1.003965,
+          "n": 21,
+          "targetCoverage": "80%",
+          "actualCoverage": "81%"
+        }
+      }
+    },
+    "byTier": {
+      "dense": {
+        "n": 47,
+        "conf80": {
+          "width": 0.139843,
+          "multiplierLow": 0.869495,
+          "multiplierHigh": 1.150093,
+          "n": 47,
+          "targetCoverage": "80%",
+          "actualCoverage": "80.9%"
+        },
+        "conf90": {
+          "width": 0.152098,
+          "multiplierLow": 0.858904,
+          "multiplierHigh": 1.164274,
+          "n": 47,
+          "targetCoverage": "90%",
+          "actualCoverage": "91.5%"
+        }
+      },
+      "medium": {
+        "n": 148,
+        "conf80": {
+          "width": 0.073257,
+          "multiplierLow": 0.929362,
+          "multiplierHigh": 1.076007,
+          "n": 148,
+          "targetCoverage": "80%",
+          "actualCoverage": "80.4%"
+        },
+        "conf90": {
+          "width": 0.134422,
+          "multiplierLow": 0.874221,
+          "multiplierHigh": 1.143876,
+          "n": 148,
+          "targetCoverage": "90%",
+          "actualCoverage": "90.5%"
+        }
+      },
+      "sparse": {
+        "n": 99,
+        "conf80": {
+          "width": 0.102929,
+          "multiplierLow": 0.902191,
+          "multiplierHigh": 1.108413,
+          "n": 99,
+          "targetCoverage": "80%",
+          "actualCoverage": "80.8%"
+        },
+        "conf90": {
+          "width": 0.204469,
+          "multiplierLow": 0.81508,
+          "multiplierHigh": 1.226873,
+          "n": 99,
+          "targetCoverage": "90%",
+          "actualCoverage": "90.9%"
+        }
+      },
+      "empty": {
+        "n": 43,
+        "conf80": {
+          "width": 0.103526,
+          "multiplierLow": 0.901652,
+          "multiplierHigh": 1.109075,
+          "n": 43,
+          "targetCoverage": "80%",
+          "actualCoverage": "81.4%"
+        },
+        "conf90": {
+          "width": 0.213862,
+          "multiplierLow": 0.80746,
+          "multiplierHigh": 1.238452,
+          "n": 43,
+          "targetCoverage": "90%",
+          "actualCoverage": "90.7%"
+        }
+      }
+    }
+  },
+  "pinnedCases": {
+    "white": [
+      {
+        "name": "W1",
+        "carat": 3,
+        "shape": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "note": "~$109/ct commodity",
+        "dpPrice": 368.69222103805606,
+        "dpUpc": 122.89740701268535,
+        "dpBranch": "white",
+        "dpExpert": "S28",
+        "dpTier": "dense"
+      },
+      {
+        "name": "W2",
+        "carat": 7.77,
+        "shape": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "note": "$180/ct floor",
+        "dpPrice": 1625.2086566078992,
+        "dpUpc": 209.16456326999992,
+        "dpBranch": "white",
+        "dpExpert": "S30",
+        "dpTier": "dense"
+      },
+      {
+        "name": "W3",
+        "carat": 5.21,
+        "shape": "heart_standard",
+        "color": "D",
+        "clarity": "VS1",
+        "note": "specialty scarcity",
+        "dpPrice": 1137.0406945431998,
+        "dpUpc": 218.24197592,
+        "dpBranch": "white",
+        "dpExpert": "S30",
+        "dpTier": "dense"
+      },
+      {
+        "name": "W4a",
+        "carat": 40,
+        "shape": "round_standard",
+        "color": "E",
+        "clarity": "VS2",
+        "note": "large stone",
+        "dpPrice": 50697.36493114439,
+        "dpUpc": 1267.4341232786096,
+        "dpBranch": "white",
+        "dpExpert": "S28",
+        "dpTier": "empty"
+      },
+      {
+        "name": "W4b",
+        "carat": 40,
+        "shape": "round_standard",
+        "color": "E",
+        "clarity": "SI1",
+        "note": "SI1 ≤ VS2 check",
+        "dpPrice": 46009.86919903561,
+        "dpUpc": 1150.2467299758903,
+        "dpBranch": "white",
+        "dpExpert": "S28",
+        "dpTier": "empty"
+      }
+    ],
+    "color": [
+      {
+        "name": "C1",
+        "carat": 1.5,
+        "shape": "cushion",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS1",
+        "note": "vivid yellow",
+        "dpPrice": 342.0671182012619,
+        "dpUpc": 228.04474546750794,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E2_S22",
+        "dpTier": "empty",
+        "dpBand": "floor",
+        "dpReason": "empty_primary_s22_extrapolation",
+        "dirQuoteRecommended": false
+      },
+      {
+        "name": "C2",
+        "carat": 2,
+        "shape": "radiant",
+        "colorHue": "pink",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS2",
+        "note": "intense pink",
+        "dpPrice": 494.03605415457514,
+        "dpUpc": 247.01802707728757,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E2_S22",
+        "dpTier": "sparse",
+        "dpBand": "low",
+        "dpReason": "sparse_primary_s22",
+        "dirQuoteRecommended": false
+      },
+      {
+        "name": "C3",
+        "carat": 2.5,
+        "shape": "oval",
+        "colorHue": "blue",
+        "colorIntensity": "fancy",
+        "clarity": "VVS2",
+        "note": "fancy blue",
+        "dpPrice": 675.523545001493,
+        "dpUpc": 270.20941800059717,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E2_S22",
+        "dpTier": "dense",
+        "dpBand": "high",
+        "dpReason": null,
+        "dirQuoteRecommended": false
+      },
+      {
+        "name": "C4",
+        "carat": 3,
+        "shape": "pear",
+        "colorHue": "green",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS1",
+        "note": "green caution",
+        "dpPrice": 887.3437842274863,
+        "dpUpc": 295.7812614091621,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E2_S22",
+        "dpTier": "empty",
+        "dpBand": "low",
+        "dpReason": "green_s22_with_s23_guard",
+        "dirQuoteRecommended": false
+      },
+      {
+        "name": "C5",
+        "carat": 5,
+        "shape": "emerald",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS2",
+        "note": "high carat yellow",
+        "dpPrice": 1588.7125857971241,
+        "dpUpc": 317.74251715942484,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E2_S22",
+        "dpTier": "empty",
+        "dpBand": "floor",
+        "dpReason": "empty_primary_s22_extrapolation",
+        "dirQuoteRecommended": false
+      },
+      {
+        "name": "C6",
+        "carat": 1,
+        "shape": "round",
+        "colorHue": "red",
+        "colorIntensity": "fancy",
+        "clarity": "SI1",
+        "note": "rare red",
+        "dpPrice": 272.5545547318662,
+        "dpUpc": 272.5545547318662,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E2_S22",
+        "dpTier": "empty",
+        "dpBand": "low",
+        "dpReason": "red_hue_sparse_warning",
+        "dirQuoteRecommended": true
+      },
+      {
+        "name": "C7",
+        "carat": 1.5,
+        "shape": "cushion",
+        "colorHue": "orange",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS2",
+        "note": "rare orange",
+        "dpPrice": 1200,
+        "dpUpc": 800,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E5_CURATED_PRIOR",
+        "dpTier": "empty",
+        "dpBand": "floor",
+        "dpReason": "rare_hue_direct_quote_recommended",
+        "dirQuoteRecommended": true
+      },
+      {
+        "name": "C8",
+        "carat": 2,
+        "shape": "heart",
+        "colorHue": "brown",
+        "colorIntensity": "fancy",
+        "clarity": "VS1",
+        "note": "brown separate",
+        "dpPrice": 568.7215158429335,
+        "dpUpc": 284.36075792146676,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E2_S22",
+        "dpTier": "empty",
+        "dpBand": "low",
+        "dpReason": "brown_hue_caution",
+        "dirQuoteRecommended": false
+      },
+      {
+        "name": "C9",
+        "carat": 10,
+        "shape": "radiant",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS1",
+        "note": "large vivid yellow",
+        "dpPrice": 4159.769555856132,
+        "dpUpc": 415.97695558561315,
+        "dpBranch": "fancy-color",
+        "dpExpert": "E2_S22",
+        "dpTier": "sparse",
+        "dpBand": "low",
+        "dpReason": "sparse_primary_s22",
+        "dirQuoteRecommended": false
+      }
+    ]
+  },
+  "gates": [
+    {
+      "name": "Branch classification",
+      "description": "100% correct on white/fancy fixtures",
+      "required": "100%",
+      "actual": "100.00%",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "White branch routing",
+      "description": "No white input routes to color branch",
+      "required": "0 white→color misroutes",
+      "actual": "0 ✓",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "Color coverage",
+      "description": "100% prediction or direct-quote warning",
+      "required": "≥99.9%",
+      "actual": "100.00%",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "S27 baseline",
+      "description": "ColorProd row MAPE ≤ S27 on comparable holdout",
+      "required": "≤ 3.12% (S27 validation MAPE)",
+      "actual": "6.56%",
+      "pass": false,
+      "hard": false
+    },
+    {
+      "name": "Direct StarGem anchors",
+      "description": "MAPE ≤ 5% on current anchors",
+      "required": "≤ 5.0%",
+      "actual": "0.00%",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "Messi source-adjusted",
+      "description": "Messi-adjusted MAPE reasonable",
+      "required": "≤ 10%",
+      "actual": "6.56%",
+      "pass": true,
+      "hard": false
+    },
+    {
+      "name": "Major hues",
+      "description": "Yellow/Pink/Blue MAPE reasonable",
+      "required": "each ≤ 15%",
+      "actual": "Y=10.4% P=2.3% B=9.6%",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "Green/brown/red measured separately",
+      "description": "No high-confidence silent output for caution hues",
+      "required": "measured separately",
+      "actual": "G=5.5% Bn=0.4% R=2.6%",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "Rare hue warnings",
+      "description": "Orange/purple/violet route to warning/fallback",
+      "required": "All rare hue rows get warnings",
+      "actual": "✓",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "Intensity monotonicity",
+      "description": "0 display-grid inversions",
+      "required": "0 inversions",
+      "actual": "0 ✓",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "5ct+ slice",
+      "description": "High carat measured separately",
+      "required": "measured",
+      "actual": "measured ✓",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "Source adjustment exposed",
+      "description": "Messi factor shown in diagnostics",
+      "required": "exposed",
+      "actual": "factor=1.25 ✓",
+      "pass": true,
+      "hard": true
+    },
+    {
+      "name": "Conformal 80%",
+      "description": "80% interval coverage measured",
+      "required": "measured",
+      "actual": "80.1%",
+      "pass": true,
+      "hard": false
+    },
+    {
+      "name": "Conformal 90%",
+      "description": "90% interval coverage measured",
+      "required": "measured",
+      "actual": "90.2%",
+      "pass": true,
+      "hard": false
+    }
+  ],
+  "hardPasses": 10,
+  "hardFails": 0,
+  "softPasses": 3,
+  "softFails": 1,
+  "failedHard": [],
+  "failedSoft": [
+    "S27 baseline"
+  ],
+  "totalHard": 10,
+  "totalSoft": 4,
+  "allHardPass": true
+}

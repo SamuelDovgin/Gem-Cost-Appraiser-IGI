@@ -1,0 +1,1147 @@
+{
+  "date": "2026-06-02",
+  "modelVersion": "diamond-prod-vnext-v0.1.0",
+  "sourceAdjustment": {
+    "messiToFactoryFactor": 1.25,
+    "starsgemDirectFactor": 1
+  },
+  "whiteTotalRows": 4415,
+  "colorTotalRows": 337,
+  "whiteBranch": {
+    "routing": {
+      "S30": 3803,
+      "S26": 480,
+      "S33A": 88,
+      "S28": 44
+    },
+    "tiers": {
+      "dense": 4085,
+      "medium": 192,
+      "sparse": 138,
+      "empty": 0
+    },
+    "bands": {
+      "floor": 44,
+      "medium": 407,
+      "high": 3892,
+      "low": 72
+    },
+    "reasons": {
+      "s33a_weak_anchor_high_carat_n9": 2,
+      "none": 4230,
+      "s33a_weak_anchor_high_carat_n3": 5,
+      "s33a_weak_anchor_high_carat_n1": 10,
+      "s33a_weak_anchor_high_carat_n8": 3,
+      "s33a_weak_anchor_high_carat_n4": 8,
+      "s33a_weak_anchor_high_carat_n7": 3,
+      "s33a_weak_anchor_high_carat_n5": 8,
+      "s33a_weak_anchor_high_carat_n2": 3,
+      "s33a_weak_anchor_high_carat_n6": 2,
+      "sparse_cell_s26": 94,
+      "s30_bounded_extrapolation": 5,
+      "s33a_weak_anchor_n4": 9,
+      "s33a_weak_anchor_n5": 10,
+      "s33a_weak_anchor_n7": 11,
+      "s33a_weak_anchor_n3": 4,
+      "s33a_weak_anchor_n9": 2,
+      "s33a_weak_anchor_n6": 2,
+      "s33a_weak_anchor_n8": 1,
+      "s33a_weak_anchor_n2": 3
+    },
+    "largeDeltas": 204
+  },
+  "colorBranch": {
+    "routing": {
+      "E2_S22": 337
+    },
+    "tiers": {
+      "dense": 47,
+      "medium": 148,
+      "sparse": 99,
+      "empty": 43
+    },
+    "bands": {
+      "floor": 26,
+      "low": 113,
+      "medium": 153,
+      "high": 45
+    },
+    "reasons": {
+      "empty_primary_s22_extrapolation": 26,
+      "sparse_primary_s22": 84,
+      "none": 165,
+      "red_hue_sparse_warning": 9,
+      "red_hue_caution": 5,
+      "green_s22_with_s23_guard": 18,
+      "green_hue_s23_sanity_applied": 9,
+      "brown_hue_caution": 21
+    },
+    "directQuoteRecommended": 9,
+    "rareHueCount": 0,
+    "largeDeltas": 0
+  },
+  "hueSummary": {
+    "pink": {
+      "count": 98,
+      "routing": {
+        "E2_S22": 98
+      },
+      "largeDeltas": 0,
+      "warnings": 0
+    },
+    "yellow": {
+      "count": 114,
+      "routing": {
+        "E2_S22": 114
+      },
+      "largeDeltas": 0,
+      "warnings": 0
+    },
+    "blue": {
+      "count": 63,
+      "routing": {
+        "E2_S22": 63
+      },
+      "largeDeltas": 0,
+      "warnings": 0
+    },
+    "red": {
+      "count": 14,
+      "routing": {
+        "E2_S22": 14
+      },
+      "largeDeltas": 0,
+      "warnings": 9
+    },
+    "green": {
+      "count": 27,
+      "routing": {
+        "E2_S22": 27
+      },
+      "largeDeltas": 0,
+      "warnings": 0
+    },
+    "brown": {
+      "count": 21,
+      "routing": {
+        "E2_S22": 21
+      },
+      "largeDeltas": 0,
+      "warnings": 0
+    }
+  },
+  "starGemAnchors": [],
+  "largeDeltas": [
+    {
+      "branch": "white",
+      "spec": "20.13ct heart_standard D/VVS1 传统切 CVD",
+      "reportNo": "780660964",
+      "actualPrice": 15827.82,
+      "baselinePrice": 11907.80806589453,
+      "dpPrice": 128004.03293197972,
+      "dpUpc": 6358.868998111263,
+      "dpExpert": "S28",
+      "dpTier": "sparse",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n1",
+      "deltaAbs": 116096.22,
+      "deltaPct": 974.96,
+      "flags": {
+        "highCarat": true,
+        "sparse": true,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "40.11ct oval_modified D/VVS1  CVD",
+      "reportNo": "786630477",
+      "actualPrice": 48914.29,
+      "baselinePrice": 23492.273796079942,
+      "dpPrice": 38097.89896689527,
+      "dpUpc": 949.8354267488224,
+      "dpExpert": "S28",
+      "dpTier": "medium",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n9",
+      "deltaAbs": 14605.63,
+      "deltaPct": 62.17,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "30.05ct emerald_standard D/VVS1  CVD",
+      "reportNo": "794691603",
+      "actualPrice": 21831.35,
+      "baselinePrice": 7381.635644235883,
+      "dpPrice": 21126.352,
+      "dpUpc": 703.04,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 13744.72,
+      "deltaPct": 186.2,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "30.88ct pear_ice_flower D/VVS2 冰花切 CVD",
+      "reportNo": "790684312",
+      "actualPrice": 21224.82,
+      "baselinePrice": 13614.95867067106,
+      "dpPrice": 24527.137056257387,
+      "dpUpc": 794.2725730653299,
+      "dpExpert": "S28",
+      "dpTier": "sparse",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n3",
+      "deltaAbs": 10912.18,
+      "deltaPct": 80.15,
+      "flags": {
+        "highCarat": true,
+        "sparse": true,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "33.2ct pear_ice_flower D/VVS1 冰花切 CVD",
+      "reportNo": "786630468",
+      "actualPrice": 30321.35,
+      "baselinePrice": 24435.836236988238,
+      "dpPrice": 35291.181728934505,
+      "dpUpc": 1062.9874014739307,
+      "dpExpert": "S33A",
+      "dpTier": "medium",
+      "dpBand": "medium",
+      "dpReason": null,
+      "deltaAbs": 10855.35,
+      "deltaPct": 44.42,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "32.73ct pear_ice_flower D/VVS1 冰花切 CVD",
+      "reportNo": "773658486",
+      "actualPrice": 30321.35,
+      "baselinePrice": 24089.90723001882,
+      "dpPrice": 34446.31688370454,
+      "dpUpc": 1052.4386460038052,
+      "dpExpert": "S33A",
+      "dpTier": "medium",
+      "dpBand": "medium",
+      "dpReason": null,
+      "deltaAbs": 10356.41,
+      "deltaPct": 42.99,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "25.13ct oval_ice_flower D/VVS1 冰花切 CVD",
+      "reportNo": "773656369",
+      "actualPrice": 15766.94,
+      "baselinePrice": 8933.96481141706,
+      "dpPrice": 15240.091635501514,
+      "dpUpc": 606.4501247712501,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 6306.13,
+      "deltaPct": 70.59,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "30.31ct oval_modified D/VVS1  CVD",
+      "reportNo": "733558886",
+      "actualPrice": 30321.35,
+      "baselinePrice": 17752.451228102294,
+      "dpPrice": 23666.22505195113,
+      "dpUpc": 780.805841370872,
+      "dpExpert": "S28",
+      "dpTier": "medium",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n9",
+      "deltaAbs": 5913.77,
+      "deltaPct": 33.31,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "20.51ct radiant_modified D/VVS1  CVD",
+      "reportNo": "773663789",
+      "actualPrice": 10879.41,
+      "baselinePrice": 4592.128676470589,
+      "dpPrice": 9711.044981232311,
+      "dpUpc": 473.47854613516876,
+      "dpExpert": "S28",
+      "dpTier": "medium",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n4",
+      "deltaAbs": 5118.92,
+      "deltaPct": 111.47,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "10.09ct pear_ice_flower D/VVS1 冰花切 CVD",
+      "reportNo": "745504201",
+      "actualPrice": 3502.06,
+      "baselinePrice": 7426.433362385883,
+      "dpPrice": 3581.30076676975,
+      "dpUpc": 354.93565577500004,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": -3845.13,
+      "deltaPct": -51.78,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "10.03ct pear_ice_flower D/VVS1 冰花切 CVD",
+      "reportNo": "768648479",
+      "actualPrice": 4366.24,
+      "baselinePrice": 7382.272212559999,
+      "dpPrice": 3566.782696309749,
+      "dpUpc": 355.61143532499995,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": -3815.49,
+      "deltaPct": -51.68,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "25.85ct emerald_standard D/VVS1  CVD",
+      "reportNo": "786630481",
+      "actualPrice": 9945.35,
+      "baselinePrice": 6349.92616983353,
+      "dpPrice": 9828.131665871748,
+      "dpUpc": 380.1985170549999,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 3478.21,
+      "deltaPct": 54.78,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "20.23ct emerald_standard D/VVS1  CVD",
+      "reportNo": "795635618",
+      "actualPrice": 8241.35,
+      "baselinePrice": 4969.400635038,
+      "dpPrice": 7719.852422322308,
+      "dpUpc": 381.60417312517586,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 2750.45,
+      "deltaPct": 55.35,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "15.21ct round_standard E/VVS2 ID CVD",
+      "reportNo": "794663544",
+      "actualPrice": 6876.88,
+      "baselinePrice": 5426.561030208883,
+      "dpPrice": 7469.668349580253,
+      "dpUpc": 491.1024555937049,
+      "dpExpert": "S28",
+      "dpTier": "medium",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n3",
+      "deltaAbs": 2043.11,
+      "deltaPct": 37.65,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "10.1ct pear_standard D/VVS1  CVD",
+      "reportNo": "752540602",
+      "actualPrice": 3502.06,
+      "baselinePrice": 3530.0193730382352,
+      "dpPrice": 4571.465282500001,
+      "dpUpc": 452.6203250000001,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 1041.45,
+      "deltaPct": 29.5,
+      "flags": {
+        "highCarat": true,
+        "sparse": true,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "7.66ct cushion_elongated E/VVS2  CVD",
+      "reportNo": "758524496",
+      "actualPrice": 2547,
+      "baselinePrice": 2575.9158191352944,
+      "dpPrice": 1561.7433366447194,
+      "dpUpc": 203.88294212072054,
+      "dpExpert": "S28",
+      "dpTier": "medium",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n6",
+      "deltaAbs": -1014.17,
+      "deltaPct": -39.37,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "8.29ct cushion_elongated E/VS1 - CVD",
+      "reportNo": "769674146",
+      "actualPrice": 1379.29,
+      "baselinePrice": 1298.1281823588822,
+      "dpPrice": 2305.460019052083,
+      "dpUpc": 278.10132919808,
+      "dpExpert": "S30",
+      "dpTier": "medium",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 1007.33,
+      "deltaPct": 77.6,
+      "flags": {
+        "highCarat": true,
+        "sparse": true,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "6.08ct flower_modified D/VVS1  CVD",
+      "reportNo": "746541463",
+      "actualPrice": 2547,
+      "baselinePrice": 2050.922416922353,
+      "dpPrice": 2949.1573163609833,
+      "dpUpc": 485.05876913831963,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 898.23,
+      "deltaPct": 43.8,
+      "flags": {
+        "highCarat": true,
+        "sparse": true,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "8.07ct round_standard E/VVS2 ID CVD",
+      "reportNo": "770626979",
+      "actualPrice": 1818.35,
+      "baselinePrice": 1025.8441118276473,
+      "dpPrice": 1858.256099607075,
+      "dpUpc": 230.26717467249998,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 832.41,
+      "deltaPct": 81.14,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "8.01ct round_standard E/VVS2 EX CVD",
+      "reportNo": "797657065",
+      "actualPrice": 1818.35,
+      "baselinePrice": 1015.8966127032353,
+      "dpPrice": 1819.999338634575,
+      "dpUpc": 227.2158974575,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 804.1,
+      "deltaPct": 79.15,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "8.03ct round_standard E/VS1 EX CVD",
+      "reportNo": "797657056",
+      "actualPrice": 1801.06,
+      "baselinePrice": 1027.1917167968825,
+      "dpPrice": 1825.957482237281,
+      "dpUpc": 227.391965409375,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 798.77,
+      "deltaPct": 77.76,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "8.01ct round_standard E/VS1 EX CVD",
+      "reportNo": "798612817",
+      "actualPrice": 1801.06,
+      "baselinePrice": 1024.6333314499411,
+      "dpPrice": 1815.1772447072813,
+      "dpUpc": 226.613888228125,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 790.54,
+      "deltaPct": 77.15,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "15.69ct emerald_standard E/VVS1  CVD",
+      "reportNo": "744508521",
+      "actualPrice": 4457.29,
+      "baselinePrice": 3445.7950275832945,
+      "dpPrice": 4202.767857018902,
+      "dpUpc": 267.86283346200776,
+      "dpExpert": "S28",
+      "dpTier": "sparse",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n1",
+      "deltaAbs": 756.97,
+      "deltaPct": 21.97,
+      "flags": {
+        "highCarat": true,
+        "sparse": true,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.08ct flower_modified D/VVS2  CVD",
+      "reportNo": "743516083",
+      "actualPrice": 1237.06,
+      "baselinePrice": 555.5684997124706,
+      "dpPrice": 1254.3428128,
+      "dpUpc": 407.25416,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 698.77,
+      "deltaPct": 125.78,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.08ct flower_modified D/VVS2  CVD",
+      "reportNo": "735521826",
+      "actualPrice": 1237.06,
+      "baselinePrice": 555.5684997124706,
+      "dpPrice": 1254.3428128,
+      "dpUpc": 407.25416,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 698.77,
+      "deltaPct": 125.78,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.08ct flower_modified D/VVS2  CVD",
+      "reportNo": "744508774",
+      "actualPrice": 1087.94,
+      "baselinePrice": 555.5684997124706,
+      "dpPrice": 1254.3428128,
+      "dpUpc": 407.25416,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 698.77,
+      "deltaPct": 125.78,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "8.06ct round_standard F/VVS2 ID CVD",
+      "reportNo": "773658387",
+      "actualPrice": 1710.18,
+      "baselinePrice": 993.6597393289412,
+      "dpPrice": 1689.1544698730966,
+      "dpUpc": 209.57251487259262,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 695.49,
+      "deltaPct": 69.99,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "8.07ct cushion_elongated D/VVS1 长垫形 CVD",
+      "reportNo": "797626320",
+      "actualPrice": 2728.94,
+      "baselinePrice": 2720.500829664353,
+      "dpPrice": 2028.068548434702,
+      "dpUpc": 251.30960947146244,
+      "dpExpert": "S28",
+      "dpTier": "medium",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n5",
+      "deltaAbs": -692.43,
+      "deltaPct": -25.45,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.09ct flower_modified D/VVS2  CVD",
+      "reportNo": "750521921",
+      "actualPrice": 1237.06,
+      "baselinePrice": 557.3722935427058,
+      "dpPrice": 1247.5694853,
+      "dpUpc": 403.74417000000005,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 690.2,
+      "deltaPct": 123.83,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.09ct flower_modified D/VVS2  CVD",
+      "reportNo": "746541585",
+      "actualPrice": 1237.06,
+      "baselinePrice": 557.3722935427058,
+      "dpPrice": 1247.5694853,
+      "dpUpc": 403.74417000000005,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 690.2,
+      "deltaPct": 123.83,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.02ct flower_modified D/VVS2  CVD",
+      "reportNo": "739509766",
+      "actualPrice": 1237.06,
+      "baselinePrice": 544.7457367310589,
+      "dpPrice": 1232.9754,
+      "dpUpc": 408.27,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 688.23,
+      "deltaPct": 126.34,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.12ct flower_modified D/VVS2  CVD",
+      "reportNo": "737504403",
+      "actualPrice": 1237.06,
+      "baselinePrice": 562.7836750334119,
+      "dpPrice": 1245.3297948,
+      "dpUpc": 399.144165,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 682.55,
+      "deltaPct": 121.28,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.25ct flower_modified D/VVS2  CVD",
+      "reportNo": "739509775",
+      "actualPrice": 1237.06,
+      "baselinePrice": 586.2329948264705,
+      "dpPrice": 1258.22302734375,
+      "dpUpc": 387.145546875,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 671.99,
+      "deltaPct": 114.63,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "7.07ct oval_standard D/VS1  CVD",
+      "reportNo": "777621364",
+      "actualPrice": 1814.12,
+      "baselinePrice": 1163.14506679,
+      "dpPrice": 1827.0294000000001,
+      "dpUpc": 258.42,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "medium",
+      "dpReason": "s30_bounded_extrapolation",
+      "deltaAbs": 663.88,
+      "deltaPct": 57.08,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "6.03ct pear_ice_flower D/VVS2 冰花切 CVD",
+      "reportNo": "747544770",
+      "actualPrice": 1619.12,
+      "baselinePrice": 1698.7723893624707,
+      "dpPrice": 2350.2077168255996,
+      "dpUpc": 389.75252351999995,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 651.44,
+      "deltaPct": 38.35,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.03ct flower_modified E/VVS2  CVD",
+      "reportNo": "735576706",
+      "actualPrice": 1091.65,
+      "baselinePrice": 346.4041430553529,
+      "dpPrice": 993.9303924415917,
+      "dpUpc": 328.0298324889742,
+      "dpExpert": "S33A",
+      "dpTier": "medium",
+      "dpBand": "medium",
+      "dpReason": null,
+      "deltaAbs": 647.53,
+      "deltaPct": 186.93,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.02ct flower_modified E/VVS2  CVD",
+      "reportNo": "737539860",
+      "actualPrice": 1091.65,
+      "baselinePrice": 345.2608950584706,
+      "dpPrice": 990.5845986827884,
+      "dpUpc": 328.00814525920146,
+      "dpExpert": "S33A",
+      "dpTier": "medium",
+      "dpBand": "medium",
+      "dpReason": null,
+      "deltaAbs": 645.32,
+      "deltaPct": 186.91,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.89ct heart_standard D/VVS2  CVD",
+      "reportNo": "723515609",
+      "actualPrice": 622.76,
+      "baselinePrice": 501.9955930212353,
+      "dpPrice": 1133.9973061673525,
+      "dpUpc": 291.51601700960214,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 632,
+      "deltaPct": 125.9,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "6.16ct pear_standard D/VVS2 传统切 CVD",
+      "reportNo": "749508256",
+      "actualPrice": 2001.18,
+      "baselinePrice": 1782.8823529440003,
+      "dpPrice": 2408.0672,
+      "dpUpc": 390.92,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 625.18,
+      "deltaPct": 35.07,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.5ct flower_modified D/VVS2  CVD",
+      "reportNo": "737539865",
+      "actualPrice": 1109.82,
+      "baselinePrice": 631.327840582353,
+      "dpPrice": 1247.9794444444447,
+      "dpUpc": 356.5655555555556,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 616.65,
+      "deltaPct": 97.68,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.06ct flower_modified D/VS1  CVD",
+      "reportNo": "739509770",
+      "actualPrice": 1036.94,
+      "baselinePrice": 467.38609271999997,
+      "dpPrice": 1080.8405425243948,
+      "dpUpc": 353.2158635700637,
+      "dpExpert": "S33A",
+      "dpTier": "medium",
+      "dpBand": "medium",
+      "dpReason": null,
+      "deltaAbs": 613.45,
+      "deltaPct": 131.25,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "3.03ct flower_modified D/VS1  CVD",
+      "reportNo": "743516939",
+      "actualPrice": 1091.65,
+      "baselinePrice": 462.8038761247058,
+      "dpPrice": 1070.0332001165614,
+      "dpUpc": 353.14627066553186,
+      "dpExpert": "S33A",
+      "dpTier": "medium",
+      "dpBand": "medium",
+      "dpReason": null,
+      "deltaAbs": 607.23,
+      "deltaPct": 131.21,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "9.01ct oval_standard E/VVS2  CVD",
+      "reportNo": "795676393",
+      "actualPrice": 1711.76,
+      "baselinePrice": 1196.4356435779998,
+      "dpPrice": 1714.61466754455,
+      "dpUpc": 190.301294955,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 518.18,
+      "deltaPct": 43.31,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "9.07ct oval_standard E/VVS2  CVD",
+      "reportNo": "729515235",
+      "actualPrice": 1676.47,
+      "baselinePrice": 1204.4030285518825,
+      "dpPrice": 1720.76752507455,
+      "dpUpc": 189.72078556499997,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 516.36,
+      "deltaPct": 42.87,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "6.52ct oval_standard D/VS1  CVD",
+      "reportNo": "777610725",
+      "actualPrice": 1341.18,
+      "baselinePrice": 1072.6599484399999,
+      "dpPrice": 1565.5262925312,
+      "dpUpc": 240.11139456,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 492.87,
+      "deltaPct": 45.95,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "7.27ct cushion_elongated E/VS1  CVD",
+      "reportNo": "784623240",
+      "actualPrice": 1323.53,
+      "baselinePrice": 1138.4067413448824,
+      "dpPrice": 1626.3587744471547,
+      "dpUpc": 223.70822206975996,
+      "dpExpert": "S30",
+      "dpTier": "medium",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 487.95,
+      "deltaPct": 42.86,
+      "flags": {
+        "highCarat": true,
+        "sparse": true,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "10.22ct oval_modified E/VVS2  CVD",
+      "reportNo": "708553053",
+      "actualPrice": 2637.88,
+      "baselinePrice": 2092.7953903005887,
+      "dpPrice": 2579.799285757367,
+      "dpUpc": 252.42654459465433,
+      "dpExpert": "S28",
+      "dpTier": "medium",
+      "dpBand": "floor",
+      "dpReason": "s33a_weak_anchor_high_carat_n5",
+      "deltaAbs": 487,
+      "deltaPct": 23.27,
+      "flags": {
+        "highCarat": true,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "2.24ct flower_modified D/VVS2  CVD",
+      "reportNo": "750531655",
+      "actualPrice": 727.76,
+      "baselinePrice": 313.285338016,
+      "dpPrice": 786.2545152000001,
+      "dpUpc": 351.00648,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 472.97,
+      "deltaPct": 150.97,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "2.05ct flower_modified D/VVS2  CVD",
+      "reportNo": "752533200",
+      "actualPrice": 727.76,
+      "baselinePrice": 286.712028095,
+      "dpPrice": 725.0414374999999,
+      "dpUpc": 353.67875,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 438.33,
+      "deltaPct": 152.88,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    },
+    {
+      "branch": "white",
+      "spec": "2.06ct flower_modified D/VVS2  CVD",
+      "reportNo": "746504862",
+      "actualPrice": 727.76,
+      "baselinePrice": 288.110623354,
+      "dpPrice": 725.9645999999998,
+      "dpUpc": 352.4099999999999,
+      "dpExpert": "S30",
+      "dpTier": "dense",
+      "dpBand": "high",
+      "dpReason": null,
+      "deltaAbs": 437.85,
+      "deltaPct": 151.97,
+      "flags": {
+        "highCarat": false,
+        "sparse": false,
+        "princess": false
+      }
+    }
+  ],
+  "reviewChecklist": {
+    "whiteLargeDeltasReviewed": false,
+    "colorLargeDeltasReviewed": false,
+    "rareHueWarningsReviewed": false,
+    "starGemAnchorsReviewed": false,
+    "highCaratReviewed": false,
+    "sparseReviewed": false,
+    "princessReviewed": false,
+    "rollbackVerified": false,
+    "featureFlagImplemented": false
+  }
+}

@@ -35,7 +35,12 @@
     "research:ml-explainer": "node research/scripts/generate-ml-model-explainer.mjs",
     "research:train-s27-color": "node research/scripts/train-s27-color-champion.mjs",
     "research:ml-gate": "node research/scripts/ml-regression-gate.mjs",
-    "test": "npm run test:r0-contracts && npm run test:r0-reconciler && npm run test:r0-waterfall && npm run test:r0-calibration && npm run test:r0-reconciled-calibration && npm run test:r0-backtest-reconciler && npm run test:igi-browser-parser && npm run test:engine && npm run test:color-model && npm run test:white-ml-display && npm run test:s26 && npm run test:s27-color && npm run test:parity && npm run research:ml-gate",
+    "benchmark:diamond-prod-vnext": "node research/scripts/benchmark-diamond-prod-vnext.mjs",
+    "test:color-prod-vnext": "node research/scripts/test-color-prod-vnext.mjs",
+    "test:diamond-prod-vnext": "node research/scripts/test-diamond-prod-vnext.mjs",
+    "test:diamond-prod-vnext-golden": "node research/scripts/test-diamond-prod-vnext-golden-fixtures.mjs",
+    "shadow:diamond-prod-vnext": "node research/scripts/shadow-release-diamond-prod-vnext.mjs",
+    "test": "npm run test:r0-contracts && npm run test:r0-reconciler && npm run test:r0-waterfall && npm run test:r0-calibration && npm run test:r0-reconciled-calibration && npm run test:r0-backtest-reconciler && npm run test:igi-browser-parser && npm run test:engine && npm run test:color-model && npm run test:white-ml-display && npm run test:s26 && npm run test:s27-color && npm run test:parity && npm run research:ml-gate && npm run test:color-prod-vnext && npm run test:diamond-prod-vnext",
     "serve": "python3 -m http.server 8765"
   },
   "engines": {

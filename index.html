@@ -184,7 +184,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .intel-compare-v.delta-down{color:var(--orange)}
 .intel-compare-v.delta-flat{color:var(--muted2)}
 @media(max-width:560px){.intel-compare-row{grid-template-columns:1fr}}
-.ml-model-compare-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;border-top:.5px solid var(--border)}
+.ml-model-compare-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:.5px solid var(--border)}
 .ml-model-compare-col{padding:15px 22px 16px;min-width:0}
 .ml-model-compare-col:not(:last-child){border-right:.5px solid var(--border)}
 .ml-model-compare-col--candidate{background:rgba(212,175,114,0.04)}
@@ -192,7 +192,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .ml-compare-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .ml-compare-delta{font-family:'DM Mono',monospace;font-size:11px;margin-top:6px;padding:3px 0;border-top:.5px solid var(--border);color:var(--muted2)}
 .ml-compare-delta.up{color:var(--green)}.ml-compare-delta.down{color:var(--orange)}
-@media(max-width:1180px){.ml-model-compare-grid{grid-template-columns:1fr 1fr}.ml-model-compare-col{border-bottom:.5px solid var(--border)}.ml-model-compare-col:nth-child(even){border-right:none}.ml-model-compare-col:nth-last-child(-n+2){border-bottom:none}}
+@media(max-width:1180px){.ml-model-compare-grid{grid-template-columns:1fr 1fr}.ml-model-compare-col{border-bottom:.5px solid var(--border)}.ml-model-compare-col:nth-child(even){border-right:none}.ml-model-compare-col:last-child{border-bottom:none}}
 @media(max-width:700px){.ml-model-compare-grid{grid-template-columns:1fr}.ml-model-compare-col:not(:last-child){border-right:none;border-bottom:.5px solid var(--border)}}
 .intel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .intel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
@@ -738,29 +738,21 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
   <div class="pricing-intel">
     <div class="pricing-intel-panel" style="padding:0">
       <div style="padding:12px 22px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px">
-        <div class="intel-title">ML price estimate — model comparison</div>
-        <div class="ml-compare-delta" id="ml-compare-delta" style="margin-top:0;padding:2px 8px;border:.5px solid var(--border);border-radius:4px">—</div>
+        <div class="intel-title">Production model set — 3 kept live</div>
+        <div class="ml-compare-delta" id="ml-compare-delta" style="margin-top:0;padding:2px 8px;border:.5px solid var(--border);border-radius:4px">Primary + rollbacks</div>
       </div>
       <div class="ml-model-compare-grid">
-        <div class="ml-model-compare-col">
+        <div class="ml-model-compare-col ml-model-compare-col--candidate" id="diamondprod-col">
           <div class="ml-compare-head">
-            <div class="ml-compare-label">Production</div>
-            <div class="intel-pill" id="starsgem-ml-model">S22</div>
+            <div class="ml-compare-label">Primary unified</div>
+            <div class="intel-pill" id="diamondprod-model">DiamondProd vNext</div>
           </div>
-          <div class="intel-formula" id="starsgem-ml-price">Loading…</div>
-          <div class="intel-sub" id="starsgem-ml-note">Loading model…</div>
-        </div>
-        <div class="ml-model-compare-col ml-model-compare-col--candidate">
-          <div class="ml-compare-head">
-            <div class="ml-compare-label">Production winner</div>
-            <div class="intel-pill" id="starsgem-vnext-model">WhiteProd vNext</div>
-          </div>
-          <div class="intel-formula" id="starsgem-vnext-price">Loading…</div>
-          <div class="intel-sub" id="starsgem-vnext-note">Loading WhiteProd vNext…</div>
+          <div class="intel-formula" id="diamondprod-price">Loading…</div>
+          <div class="intel-sub" id="diamondprod-note">Loading DiamondProd vNext…</div>
         </div>
         <div class="ml-model-compare-col ml-model-compare-col--s25">
           <div class="ml-compare-head">
-            <div class="ml-compare-label">Champion hybrid</div>
+            <div class="ml-compare-label">White rollback</div>
             <div class="intel-pill" id="starsgem-s26-model">S26</div>
           </div>
           <div class="intel-formula" id="starsgem-s26-price">Loading…</div>
@@ -768,19 +760,11 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         </div>
         <div class="ml-model-compare-col">
           <div class="ml-compare-head">
-            <div class="ml-compare-label">Single monotone surface</div>
-            <div class="intel-pill" id="starsgem-s28-model">S28</div>
+            <div class="ml-compare-label">Color rollback</div>
+            <div class="intel-pill" id="starsgem-vnext-model">S27</div>
           </div>
-          <div class="intel-formula" id="starsgem-s28-price">Loading…</div>
-          <div class="intel-sub" id="starsgem-s28-note">Loading S28 model…</div>
-        </div>
-        <div class="ml-model-compare-col ml-model-compare-col--candidate">
-          <div class="ml-compare-head">
-            <div class="ml-compare-label">Supported curve expert</div>
-            <div class="intel-pill" id="starsgem-s30-model">S30</div>
-          </div>
-          <div class="intel-formula" id="starsgem-s30-price">Loading…</div>
-          <div class="intel-sub" id="starsgem-s30-note">Loading S30 model…</div>
+          <div class="intel-formula" id="starsgem-vnext-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-vnext-note">Loading S27 color model…</div>
         </div>
       </div>
     </div>
@@ -1005,6 +989,18 @@ let _whiteProdVNextPredict = null;
 let _starsgemS31Model = null;
 let _starsgemS31ModelPromise = null;
 let _starsgemS31ModelFailed = false;
+
+// ─── DiamondProd vNext feature flags ────────────────────────────────────────
+const FEATURE_FLAGS = {
+  // 'diamond_current': current split white/color pricing (default)
+  // 'diamond_prod_vnext_shadow': DiamondProd runs alongside current, logs deltas
+  // 'diamond_prod_vnext_display': DiamondProd replaces current pricing display
+  diamondMode: 'diamond_current', // 'diamond_current' | 'diamond_prod_vnext_shadow' | 'diamond_prod_vnext_display'
+};
+
+let _diamondProdVNextCtx = null;
+let _diamondProdVNextPromise = null;
+let _diamondProdVNextPredict = null;
 let _starsgemS23Model = null;
 let _starsgemS23ModelPromise = null;
 let _colorDiamondMlModel = null;
@@ -1556,6 +1552,132 @@ async function loadWhiteProdVNextModel() {
       return null;
     });
   return _whiteProdVNextPromise;
+}
+
+// ─── DiamondProd vNext unified predictor (white + fancy-color) ──────────────
+
+// Color branch classification (inline, browser-compatible)
+const DP_WHITE_COLOR_GRADES = new Set(['D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N']);
+const DP_FANCY_KEYWORDS = ['fancy', 'vivid', 'intense', 'deep', 'dark', 'light'];
+
+function dpClassifyColorFamily(row) {
+  const hue = (row.colorHue ?? row.hue ?? '').toString().trim();
+  const intensity = (row.colorIntensity ?? row.intensity ?? '').toString().trim();
+  const colorLabel = (row.color ?? row.Color ?? '').toString().trim();
+  const colorFamily = (row.colorFamily ?? '').toString().trim().toLowerCase();
+
+  if (colorFamily === 'fancy' || colorFamily === 'fancy_color' || colorFamily === 'fancy-color') return 'fancy-color';
+  if (hue || intensity) return 'fancy-color';
+
+  const lowerColor = colorLabel.toLowerCase();
+  for (const kw of DP_FANCY_KEYWORDS) { if (lowerColor.includes(kw)) return 'fancy-color'; }
+
+  const grade = colorLabel.toUpperCase().trim();
+  if (DP_WHITE_COLOR_GRADES.has(grade)) return 'white';
+  if (!grade || grade === '-' || grade === 'UNKNOWN') return 'white';
+  return 'fancy-color';
+}
+
+async function loadDiamondProdVNextModel() {
+  if (_diamondProdVNextCtx) return _diamondProdVNextCtx;
+  if (_diamondProdVNextPromise) return _diamondProdVNextPromise;
+  _diamondProdVNextPromise = (async () => {
+    try {
+      // Load white branch (via existing WhiteProd loader)
+      const whiteCtx = await loadWhiteProdVNextModel();
+      if (!whiteCtx) throw new Error('WhiteProd not available');
+
+      // Load color branch artifacts
+      const [s22, s23] = await Promise.all([
+        fetch('research/data/color-diamond-ml-model.json?v=20260602-diamondprod').then(r => r.ok ? r.json() : null),
+        fetch('research/data/color-diamond-ml-model-s23.json?v=20260602-diamondprod').then(r => r.ok ? r.json() : null),
+      ]);
+
+      const messiFactor = s22?.sourceAdjustment?.messiColorToStarsgemLikeFactor ?? 1.25;
+
+      const ctx = {
+        modelVersion: 'diamond-prod-vnext-v0.1.0',
+        white: whiteCtx,
+        color: { s22, s23, sourceAdjustment: { messiToFactoryFactor: messiFactor, starsgemDirectFactor: 1.0 } },
+        sourceAdjustment: { messiToFactoryFactor: messiFactor, starsgemDirectFactor: 1.0 },
+      };
+
+      _diamondProdVNextPredict = predictDiamondProdVNextLocal;
+      _diamondProdVNextCtx = ctx;
+      updateStarsgemPricingIntel();
+      return ctx;
+    } catch (err) {
+      console.warn('DiamondProd vNext model unavailable.', err);
+      return null;
+    }
+  })();
+  return _diamondProdVNextPromise;
+}
+
+function predictDiamondProdVNextLocal(row, ctx) {
+  const colorFamily = dpClassifyColorFamily(row);
+
+  if (colorFamily === 'white') {
+    const wpRow = whiteProdVNextRowFromStarsgemRow(row);
+    const result = predictWhiteProdVNextLocal(wpRow, ctx.white);
+    const wck = whiteProdCellKey(wpRow);
+    const whiteSupportCount = ctx.white.cellSupport?.get(wck) ?? 0;
+    return {
+      ...result, modelVersion: ctx.modelVersion, branch: 'white', colorFamily: 'white',
+      sourceAdjustment: ctx.sourceAdjustment, supportCount: whiteSupportCount,
+      diagnostics: { ...result.diagnostics, classifierColorFamily: colorFamily },
+    };
+  }
+
+  if (colorFamily === 'fancy-color') {
+    const colorRow = typeof colorDiamondModelRowFromState === 'function' ? colorDiamondModelRowFromState(state.carat) : null;
+    if (!colorRow) {
+      return {
+        price: null, pricePerCarat: null, modelVersion: ctx.modelVersion,
+        branch: 'fancy-color', colorFamily: 'fancy-color',
+        selectedExpert: null, supportTier: 'empty', supportCount: 0,
+        sourceAdjustment: ctx.sourceAdjustment,
+        confidenceBand: null, fallbackReason: 'invalid_color_row',
+        diagnostics: { error: 'Could not build color row', classifierColorFamily: colorFamily },
+      };
+    }
+
+    const s22Pred = ctx.color?.s22 && colorRow ? predictColorDiamondMl(colorRow) : null;
+
+    if (s22Pred?.price > 0) {
+      const carat = Number(state.carat);
+      return {
+        price: s22Pred.price, pricePerCarat: carat > 0 ? s22Pred.price / carat : null,
+        modelVersion: ctx.modelVersion, branch: 'fancy-color', colorFamily: 'fancy-color',
+        selectedExpert: 'E2_S22', supportTier: 'medium', supportCount: 0,
+        sourceAdjustment: ctx.sourceAdjustment,
+        confidenceBand: 'medium', fallbackReason: null,
+        diagnostics: {
+          classifierColorFamily: colorFamily,
+          s22ModelName: s22Pred.modelName || 'S22',
+          sourceAdjustment: ctx.sourceAdjustment,
+        },
+      };
+    }
+
+    return {
+      price: null, pricePerCarat: null, modelVersion: ctx.modelVersion,
+      branch: 'fancy-color', colorFamily: 'fancy-color',
+      selectedExpert: null, supportTier: 'empty', supportCount: 0,
+      sourceAdjustment: ctx.sourceAdjustment,
+      confidenceBand: null, fallbackReason: 'no_color_prediction',
+      diagnostics: { error: 'S22 returned null', classifierColorFamily: colorFamily },
+    };
+  }
+
+  return {
+    price: null, pricePerCarat: null, modelVersion: ctx.modelVersion,
+    branch: null, colorFamily: 'unknown',
+    selectedExpert: null, supportTier: 'empty', supportCount: 0,
+    sourceAdjustment: ctx.sourceAdjustment,
+    confidenceBand: null, fallbackReason: 'needs_manual_color_classification',
+    diagnostics: { error: 'Could not classify', classifierColorFamily: colorFamily },
+  };
 }
 
 async function loadStarsgemS31Model() {
@@ -3713,37 +3835,37 @@ function updateStarsgemPricingIntel() {
       : 'The source-adjusted color model is loading from the enriched Messi/StarGem color artifact.';
   }
 
+  let pred = null;
   if (!isWhite()) {
     bucketEl.textContent = 'color model';
     priceEl.textContent = 'No StarGem color lookup table yet';
     noteEl.textContent = 'Fancy colors now use the source-adjusted color ML model plus exact/direct color comps. The white StarGem /170 sheet reconstruction is intentionally hidden for colored stones.';
     levelEl.textContent = '—';
     rateEl.textContent = '—';
-    return;
-  }
-
-  const pred = predictStarsgemLookup(row);
-  bucketEl.textContent = row.carat_bucket;
-  if (pred) {
-    priceEl.textContent = `${fmt(pred.price)} StarGem sheet formula`;
-    const fields = pred.fields?.length ? pred.fields.join(' + ') : 'global median';
-    const isFallback = pred.level === 'GLOBAL' || !pred.fields?.includes('Shape');
-    const clarityDropped = !pred.fields?.includes('Clarity');
-    const clarityIsIF = starsgemNorm(row.Clarity) === 'IF';
-    const fallbackNote = clarityDropped && clarityIsIF
-      ? 'IF has no direct lookup data in StarGem\'s inventory at this carat range — clarity was dropped in the fallback. Use the Alibaba comp and ML estimates instead.'
-      : 'Future IGI-only shape labels will fall back until the supplier sheet has matching rows.';
-    noteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> uses ${escapeHTML(fields)}. ${isFallback ? fallbackNote : 'Price = round(carat × internal rate) / 170.'}`;
-    levelEl.textContent = pred.level + (pred.count ? ` · n=${pred.count}` : '');
-    rateEl.textContent = Math.round(pred.rate).toLocaleString() + ' int/ct';
   } else {
-    priceEl.textContent = 'No StarGem lookup hit';
-    noteEl.textContent = 'This combo needs a new supplier row or a residual model fallback.';
-    levelEl.textContent = '—';
-    rateEl.textContent = '—';
+    pred = predictStarsgemLookup(row);
+    bucketEl.textContent = row.carat_bucket;
+    if (pred) {
+      priceEl.textContent = `${fmt(pred.price)} StarGem sheet formula`;
+      const fields = pred.fields?.length ? pred.fields.join(' + ') : 'global median';
+      const isFallback = pred.level === 'GLOBAL' || !pred.fields?.includes('Shape');
+      const clarityDropped = !pred.fields?.includes('Clarity');
+      const clarityIsIF = starsgemNorm(row.Clarity) === 'IF';
+      const fallbackNote = clarityDropped && clarityIsIF
+        ? 'IF has no direct lookup data in StarGem\'s inventory at this carat range — clarity was dropped in the fallback. Use the Alibaba comp and ML estimates instead.'
+        : 'Future IGI-only shape labels will fall back until the supplier sheet has matching rows.';
+      noteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> uses ${escapeHTML(fields)}. ${isFallback ? fallbackNote : 'Price = round(carat × internal rate) / 170.'}`;
+      levelEl.textContent = pred.level + (pred.count ? ` · n=${pred.count}` : '');
+      rateEl.textContent = Math.round(pred.rate).toLocaleString() + ' int/ct';
+    } else {
+      priceEl.textContent = 'No StarGem lookup hit';
+      noteEl.textContent = 'This combo needs a new supplier row or a residual model fallback.';
+      levelEl.textContent = '—';
+      rateEl.textContent = '—';
+    }
   }
 
-  // ── WhiteProd vNext routed production predictor panel ───────────────────
+  // ── S27 color rollback panel ────────────────────────────────────────────
   const vNextPriceEl = document.getElementById('starsgem-vnext-price');
   const vNextNoteEl  = document.getElementById('starsgem-vnext-note');
   const vNextModelEl = document.getElementById('starsgem-vnext-model');
@@ -3755,57 +3877,53 @@ function updateStarsgemPricingIntel() {
     s23PredForS26 = applyClarityMonotoneCeiling(row, _starsgemS23Model, s23WithFallback.pred);
   }
 
-  if (isWhite() && _whiteProdVNextCtx && _whiteProdVNextPredict) {
-    const vNextPred = _whiteProdVNextPredict(whiteProdVNextRowFromStarsgemRow(row), _whiteProdVNextCtx);
-    if (vNextPred?.price > 0 && vNextPriceEl) {
-      vNextPriceEl.textContent = `${fmt(vNextPred.price)} routed production`;
-      if (vNextModelEl) vNextModelEl.textContent = vNextPred.modelVersion || 'WhiteProd vNext';
+  if (!isWhite()) {
+    const colorRowS27 = colorDiamondModelRowFromState(state.carat);
+    const s23ColorForS27 = _colorS23Model && colorRowS27 ? predictColorDiamondMl(colorRowS27, _colorS23Model) : null;
+    const colorCompForS27 = resolveAlibabaComp(state.carat);
+    const s27Pred = _colorS27Model && colorRowS27
+      ? predictColorS27(colorRowS27, _colorS27Model, {
+          s22Pred: colorMlPred,
+          s23Pred: s23ColorForS27,
+          compResult: colorCompForS27,
+        })
+      : null;
+    if (s27Pred && vNextPriceEl) {
+      vNextPriceEl.textContent = `${fmt(s27Pred.price)} color production`;
+      if (vNextModelEl) vNextModelEl.textContent = 'ColorProd vNext / S27';
       if (vNextNoteEl) {
-        const diag = vNextPred.diagnostics || {};
-        const expert = vNextPred.selectedExpert || 'routed';
-        const support = vNextPred.supportTier || 'unknown';
-        const confidence = vNextPred.confidenceBand || 'unrated';
-        const supportDetail = diag.curveSupport
-          ? ` Curve support n=${diag.curveSupport}.`
-          : diag.lookupCount
-            ? ` Lookup ${escapeHTML(diag.lookupLevel || '—')}, n=${diag.lookupCount}.`
-            : diag.anchorN
-              ? ` S33-A anchor n=${diag.anchorN}.`
-              : diag.cellSupport != null
-                ? ` Cell support n=${diag.cellSupport}.`
-                : '';
-        const fallback = vNextPred.fallbackReason ? ` Route note: ${escapeHTML(String(vNextPred.fallbackReason).replace(/_/g, ' '))}.` : '';
+        const adj = s27Pred.sourceAdjustment?.messiColorToStarsgemLikeFactor || 1.25;
+        const primary = s27Pred.primarySource || 'Color S22 ExtraTrees';
+        const compText = colorCompForS27?.estimate
+          ? ` Comp support: ${escapeHTML(colorCompForS27.matchType || 'support')} ${fmt(colorCompForS27.estimate)}.`
+          : ' No exact color comp support for this hue/spec yet.';
         vNextNoteEl.innerHTML = (
-          `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> `
-          + `WhiteProd vNext selected ${escapeHTML(expert)}; ${escapeHTML(support)} support, ${escapeHTML(confidence)} confidence.`
-          + `${supportDetail}${fallback}`
+          `<strong>${escapeHTML(colorRowS27.shape)} ${escapeHTML(colorRowS27.color)} ${escapeHTML(colorRowS27.clarity)}</strong> `
+          + `ColorProd uses S27 as the fancy-color production branch; primary source ${escapeHTML(primary)}. `
+          + `Messi rows/comps normalize by ÷${Number(adj).toFixed(2)} to StarGem-like factory pricing.${compText}`
         );
       }
-      if (deltaEl && mlPred?.price) {
-        const delta = vNextPred.price - mlPred.price;
-        const deltaPct = (delta / mlPred.price) * 100;
+      if (deltaEl && colorMlPred?.price) {
+        const delta = s27Pred.price - colorMlPred.price;
+        const deltaPct = (delta / colorMlPred.price) * 100;
         const sign = delta >= 0 ? '+' : '';
-        deltaEl.textContent = `vNext vs S22: ${sign}${fmt(Math.round(delta))} (${sign}${deltaPct.toFixed(1)}%)`;
+        deltaEl.textContent = `ColorProd vs Color S22: ${sign}${fmt(Math.round(delta))} (${sign}${deltaPct.toFixed(1)}%)`;
         deltaEl.className = 'ml-compare-delta' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '');
       } else if (deltaEl) {
         deltaEl.textContent = '—';
         deltaEl.className = 'ml-compare-delta';
       }
-    } else if (vNextPriceEl) {
-      vNextPriceEl.textContent = 'vNext unavailable';
-      if (vNextNoteEl) vNextNoteEl.textContent = 'WhiteProd vNext could not produce a routed white-diamond prediction for this row.';
+    } else {
+      if (vNextPriceEl) vNextPriceEl.textContent = _colorS27Model ? 'Color row unavailable' : 'Loading ColorProd…';
+      if (vNextNoteEl) vNextNoteEl.textContent = 'ColorProd vNext / S27 color champion is loading for fancy-color diamonds.';
+      if (vNextModelEl) vNextModelEl.textContent = 'ColorProd vNext / S27';
       if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
     }
-  } else if (!isWhite()) {
-    if (vNextPriceEl) vNextPriceEl.textContent = 'White model only';
-    if (vNextNoteEl) vNextNoteEl.textContent = 'WhiteProd vNext is the production routed predictor for white diamonds; fancy colors use S27 color champion.';
-    if (vNextModelEl) vNextModelEl.textContent = 'WhiteProd vNext';
-    if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
   } else {
-    if (vNextPriceEl) vNextPriceEl.textContent = 'Loading vNext…';
-    if (vNextNoteEl) vNextNoteEl.textContent = 'WhiteProd vNext is loading S30, S26 lookup, S33-A, S28, and support counts.';
-    if (vNextModelEl) vNextModelEl.textContent = 'WhiteProd vNext';
-    if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
+    if (vNextPriceEl) vNextPriceEl.textContent = 'Color model only';
+    if (vNextNoteEl) vNextNoteEl.textContent = 'S27 stays live as the fancy-color rollback. White diamonds use S26 as rollback; DiamondProd vNext is the unified primary.';
+    if (vNextModelEl) vNextModelEl.textContent = 'S27';
+    if (deltaEl) { deltaEl.textContent = 'Primary + rollbacks'; deltaEl.className = 'ml-compare-delta'; }
   }
 
   // ── S26 champion hybrid panel ────────────────────────────────────────────
@@ -3858,35 +3976,9 @@ function updateStarsgemPricingIntel() {
       if (s26NoteEl) s26NoteEl.textContent = 'S26 champion hybrid could not produce a prediction.';
     }
   } else if (!isWhite()) {
-    const colorRowS27 = colorDiamondModelRowFromState(state.carat);
-    const s23ColorForS27 = _colorS23Model && colorRowS27 ? predictColorDiamondMl(colorRowS27, _colorS23Model) : null;
-    const colorCompForS27 = resolveAlibabaComp(state.carat);
-    const s27Pred = _colorS27Model && colorRowS27
-      ? predictColorS27(colorRowS27, _colorS27Model, {
-          s22Pred: colorMlPred,
-          s23Pred: s23ColorForS27,
-          compResult: colorCompForS27,
-        })
-      : null;
-    if (s27Pred && s26PriceEl) {
-      s26PriceEl.textContent = `${fmt(s27Pred.price)} color champion`;
-      if (s26ModelEl) s26ModelEl.textContent = 'S27 (Color)';
-      if (s26NoteEl) {
-        const adj = s27Pred.sourceAdjustment?.messiColorToStarsgemLikeFactor || 1.25;
-        const compText = colorCompForS27?.estimate
-          ? ` Color comp ${escapeHTML(colorCompForS27.matchType || 'support')} ${fmt(colorCompForS27.estimate)}.`
-          : ' No color comp support for this exact hue/spec.';
-        s26NoteEl.innerHTML = (
-          `<strong>${escapeHTML(colorRowS27.shape)} ${escapeHTML(colorRowS27.color)} ${escapeHTML(colorRowS27.clarity)}</strong> `
-          + `S27 uses Color S22 as the point surface, Color S23 as the monotone intensity guardrail, and source-adjusted comps as support. `
-          + `Messi color rows/comps are normalized by ÷${Number(adj).toFixed(2)} to StarGem-like factory pricing.${compText}`
-        );
-      }
-    } else {
-      if (s26PriceEl) s26PriceEl.textContent = _colorS27Model ? 'Color row unavailable' : 'Loading S27 color…';
-      if (s26NoteEl)  s26NoteEl.textContent  = 'S27 color champion model is loading.';
-      if (s26ModelEl) s26ModelEl.textContent  = 'S27';
-    }
+    if (s26PriceEl) s26PriceEl.textContent = 'White model only';
+    if (s26NoteEl) s26NoteEl.textContent = 'S26 stays live as the white-diamond rollback. Fancy-color rollback uses the S27 color champion card.';
+    if (s26ModelEl) s26ModelEl.textContent = 'S26';
   } else {
     if (s26PriceEl) s26PriceEl.textContent = 'Loading S26…';
     if (s26NoteEl)  s26NoteEl.textContent  = 'S26 champion hybrid is loading.';
@@ -3969,6 +4061,53 @@ function updateStarsgemPricingIntel() {
     if (s30PriceEl) s30PriceEl.textContent = 'Loading S30…';
     if (s30NoteEl) s30NoteEl.textContent = 'S30 supported curve model is loading.';
     if (s30ModelEl) s30ModelEl.textContent = 'S30';
+  }
+
+  // ── DiamondProd vNext unified predictor panel ────────────────────────────
+  const dpPriceEl = document.getElementById('diamondprod-price');
+  const dpNoteEl  = document.getElementById('diamondprod-note');
+  const dpModelEl = document.getElementById('diamondprod-model');
+  const dpCol      = document.getElementById('diamondprod-col');
+
+  // The card is always visible; the feature flag only controls whether DiamondProd replaces the main price display.
+  if (dpCol) {
+    dpCol.style.display = '';
+  }
+
+  if (_diamondProdVNextCtx && _diamondProdVNextPredict) {
+    // Build a row for DiamondProd from the current state
+    const dpRow = isWhite()
+      ? starsgemLookupRowFromState(state.carat)
+      : { carat: state.carat, colorHue: state.hue, colorIntensity: state.intensity,
+          shape: state.shape, clarity: state.clarity,
+          color: `Fancy ${state.intensity ? state.intensity.charAt(0).toUpperCase() + state.intensity.slice(1) : 'Fancy'} ${state.hue ? state.hue.charAt(0).toUpperCase() + state.hue.slice(1) : ''}` };
+
+    const dpPred = _diamondProdVNextPredict(dpRow, _diamondProdVNextCtx);
+
+    if (dpPred?.price > 0 && dpPriceEl) {
+      dpPriceEl.textContent = `${fmt(dpPred.price)} unified`;
+      if (dpModelEl) dpModelEl.textContent = dpPred.modelVersion || 'DiamondProd vNext';
+      if (dpNoteEl) {
+        const branch = dpPred.branch || 'unknown';
+        const expert = dpPred.selectedExpert || 'routed';
+        const tier = dpPred.supportTier || 'unknown';
+        const band = dpPred.confidenceBand || 'unrated';
+        const reason = dpPred.fallbackReason ? ` (${dpPred.fallbackReason})` : '';
+        const upcStr = dpPred.pricePerCarat ? ` $${Math.round(dpPred.pricePerCarat)}/ct` : '';
+        dpNoteEl.innerHTML = `<strong>${escapeHTML(branch)}</strong> branch · expert=${escapeHTML(expert)} · tier=${escapeHTML(tier)} · band=${escapeHTML(band)}${upcStr}${reason}`;
+      }
+    } else if (dpPred?.fallbackReason && dpPriceEl) {
+      dpPriceEl.textContent = 'No prediction';
+      if (dpNoteEl) {
+        dpNoteEl.innerHTML = `<strong>${escapeHTML(dpPred.branch || 'unknown')}</strong> branch · ${escapeHTML(dpPred.fallbackReason)}`;
+      }
+    } else if (dpPriceEl) {
+      dpPriceEl.textContent = 'Computing…';
+      if (dpNoteEl) dpNoteEl.textContent = 'DiamondProd vNext is computing a unified prediction.';
+    }
+  } else if (dpPriceEl) {
+    dpPriceEl.textContent = 'Loading…';
+    if (dpNoteEl) dpNoteEl.textContent = 'DiamondProd vNext is loading white + color branch artifacts.';
   }
 }
 
@@ -7478,6 +7617,7 @@ loadStarsgemS26Model(); // async: S26 champion hybrid replacing the old S25 audi
 loadStarsgemS28Model(); // async: loads S28 single monotone parametric audit surface
 loadStarsgemS30Model(); // async: loads S30 supported-curve expert used by vNext
 loadWhiteProdVNextModel(); // async: routed production winner (S30 → S26 → S33-A → S28)
+loadDiamondProdVNextModel(); // async: unified DiamondProd vNext (white + fancy-color)
 loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor (ExtraTrees S22)
 loadColorS23Model();       // async: S23-style color model (LightGBM + monotone intensity)
 loadColorS27Model();       // async: S27 color champion (S22-led + S23/comp guardrails)

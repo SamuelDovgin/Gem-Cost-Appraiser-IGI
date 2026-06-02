@@ -1,0 +1,36 @@
+{
+  "version": "diamond-prod-vnext-v0.1.0",
+  "description": "Router config for DiamondProd vNext — classifies white vs fancy-color diamonds and routes to the appropriate branch.",
+  "classificationRules": {
+    "whiteGrades": ["D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"],
+    "fancyKeywords": ["fancy", "vivid", "intense", "deep", "dark", "light"],
+    "defaultBranch": "auto"
+  },
+  "sourceAdjustment": {
+    "messiToFactoryFactor": 1.25,
+    "starsgemDirectFactor": 1.0,
+    "allowedRange": [1.20, 1.30]
+  },
+  "branches": {
+    "white": {
+      "predictor": "research/scripts/predict-white-prod-vnext.mjs",
+      "modelVersion": "white-prod-vnext-v0.1.0",
+      "experts": ["S30", "S26", "S33A", "S28"]
+    },
+    "fancy-color": {
+      "predictor": "research/scripts/predict-color-prod-vnext.mjs",
+      "modelVersion": "color-prod-vnext-v0.1.0",
+      "experts": ["E1_DIRECT_QUOTE", "E2_S22", "E3_S23", "E4_COMPS", "E5_CURATED_PRIOR"]
+    }
+  },
+  "rareHuePolicy": {
+    "orange": "curated_prior_plus_comps_plus_direct_quote_warning",
+    "purple": "curated_prior_plus_comps_plus_direct_quote_warning",
+    "violet": "curated_prior_plus_comps_plus_direct_quote_warning"
+  },
+  "cautionHuePolicy": {
+    "green": "s22_with_wider_interval_and_s23_sanity_check",
+    "brown": "separate_branch_do_not_compare_to_pure_fancy_hues",
+    "red": "s22_with_support_warning_direct_quote_preferred"
+  }
+}

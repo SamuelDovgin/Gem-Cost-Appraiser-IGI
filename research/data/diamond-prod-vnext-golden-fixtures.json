@@ -1,0 +1,837 @@
+{
+  "date": "2026-06-02",
+  "modelVersion": "diamond-prod-vnext-v0.1.0",
+  "tolerance": {
+    "price": "0.5%",
+    "upc": "1.0%"
+  },
+  "fixtures": [
+    {
+      "name": "W1_3ct_Round_E_VS1",
+      "input": {
+        "carat": 3,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "expectExpert": "S28",
+      "status": "PASS",
+      "price": 368.69,
+      "upc": 122.9,
+      "branch": "white",
+      "expert": "S28",
+      "tier": "dense",
+      "band": "floor",
+      "reason": "display_grid_s28"
+    },
+    {
+      "name": "W2_7.77ct_Round_E_VS1",
+      "input": {
+        "carat": 7.77,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "expectExpert": "S30",
+      "status": "PASS",
+      "price": 1625.21,
+      "upc": 209.16,
+      "branch": "white",
+      "expert": "S30",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "W3_5.21ct_Heart_D_VS1",
+      "input": {
+        "carat": 5.21,
+        "shape_style": "heart_standard",
+        "color": "D",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "expectExpert": "S30",
+      "status": "PASS",
+      "price": 1137.04,
+      "upc": 218.24,
+      "branch": "white",
+      "expert": "S30",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "W4_2.99ct_Round_E_VS1",
+      "input": {
+        "carat": 2.99,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "expectExpert": "S30",
+      "status": "PASS",
+      "price": 325.16,
+      "upc": 108.75,
+      "branch": "white",
+      "expert": "S30",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "W5_3.01ct_Round_E_VS1",
+      "input": {
+        "carat": 3.01,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "expectExpert": "S30",
+      "status": "PASS",
+      "price": 327.34,
+      "upc": 108.75,
+      "branch": "white",
+      "expert": "S30",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "W6_1ct_Round_D_VVS1",
+      "input": {
+        "carat": 1.01,
+        "shape_style": "round_standard",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "status": "PASS",
+      "price": 131.09,
+      "upc": 129.79,
+      "branch": "white",
+      "expert": "S33A",
+      "tier": "dense",
+      "band": "medium",
+      "reason": null
+    },
+    {
+      "name": "W7_2ct_Oval_F_VS2",
+      "input": {
+        "carat": 2.02,
+        "shape_style": "oval_standard",
+        "color": "F",
+        "clarity": "VS2",
+        "cut_raw": "VG",
+        "polish": "EX",
+        "symmetry": "VG",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "status": "PASS",
+      "price": 237.24,
+      "upc": 117.45,
+      "branch": "white",
+      "expert": "S26",
+      "tier": "sparse",
+      "band": "medium",
+      "reason": "sparse_cell_s26"
+    },
+    {
+      "name": "W8_1_5ct_Pear_G_SI1",
+      "input": {
+        "carat": 1.51,
+        "shape_style": "pear_standard",
+        "color": "G",
+        "clarity": "SI1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "HPHT"
+      },
+      "expectBranch": "white",
+      "status": "PASS",
+      "price": 106.35,
+      "upc": 70.43,
+      "branch": "white",
+      "expert": "S33A",
+      "tier": "empty",
+      "band": "low",
+      "reason": "s33a_weak_anchor_n1"
+    },
+    {
+      "name": "W9_3ct_Emerald_H_VS1",
+      "input": {
+        "carat": 3.05,
+        "shape_style": "emerald_standard",
+        "color": "H",
+        "clarity": "VS1",
+        "cut_raw": "ID",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "status": "PASS",
+      "price": 268.98,
+      "upc": 88.19,
+      "branch": "white",
+      "expert": "S33A",
+      "tier": "empty",
+      "band": "low",
+      "reason": "s33a_weak_anchor_n1"
+    },
+    {
+      "name": "W10_2_5ct_Princess_E_VVS2",
+      "input": {
+        "carat": 2.51,
+        "shape_style": "princess_standard",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "status": "PASS",
+      "price": 406.76,
+      "upc": 162.05,
+      "branch": "white",
+      "expert": "S33A",
+      "tier": "dense",
+      "band": "medium",
+      "reason": null
+    },
+    {
+      "name": "W11_5ct_Round_J_SI2",
+      "input": {
+        "carat": 5.01,
+        "shape_style": "round_standard",
+        "color": "J",
+        "clarity": "SI2",
+        "cut_raw": "VG",
+        "polish": "VG",
+        "symmetry": "VG",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "status": "PASS",
+      "price": 270.45,
+      "upc": 53.98,
+      "branch": "white",
+      "expert": "S28",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "s33a_weak_anchor_high_carat_n1"
+    },
+    {
+      "name": "W12_10ct_Round_E_VS1",
+      "input": {
+        "carat": 10,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "expectExpert": "S28",
+      "status": "PASS",
+      "price": 3322.39,
+      "upc": 332.24,
+      "branch": "white",
+      "expert": "S28",
+      "tier": "medium",
+      "band": "floor",
+      "reason": "display_grid_s28"
+    },
+    {
+      "name": "W13_15ct_Round_F_VS2",
+      "input": {
+        "carat": 15,
+        "shape_style": "round_standard",
+        "color": "F",
+        "clarity": "VS2",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "expectExpert": "S28",
+      "status": "PASS",
+      "price": 6062.31,
+      "upc": 404.15,
+      "branch": "white",
+      "expert": "S28",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "display_grid_s28"
+    },
+    {
+      "name": "C1_StarGem_Yellow",
+      "input": {
+        "carat": 1.02,
+        "shape": "cushion",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS1",
+        "reportNo": "SG-YELLOW-001"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 232.95,
+      "upc": 228.38,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C2_StarGem_Pink",
+      "input": {
+        "carat": 1.5,
+        "shape": "radiant",
+        "colorHue": "pink",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS2",
+        "reportNo": "SG-PINK-001"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 360.45,
+      "upc": 240.3,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C3_StarGem_Blue",
+      "input": {
+        "carat": 2,
+        "shape": "oval",
+        "colorHue": "blue",
+        "colorIntensity": "fancy",
+        "clarity": "VVS2",
+        "reportNo": "SG-BLUE-001"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 541.28,
+      "upc": 270.64,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "C4_Yellow_Vivid_2ct",
+      "input": {
+        "carat": 2,
+        "shape": "radiant",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 515.61,
+      "upc": 257.81,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "medium",
+      "band": "medium",
+      "reason": null
+    },
+    {
+      "name": "C5_Yellow_Intense_1_5ct",
+      "input": {
+        "carat": 1.5,
+        "shape": "cushion",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 336.76,
+      "upc": 224.51,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C6_Yellow_Fancy_3ct",
+      "input": {
+        "carat": 3,
+        "shape": "oval",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy",
+        "clarity": "VVS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 902.61,
+      "upc": 300.87,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C7_Yellow_Light_1ct",
+      "input": {
+        "carat": 1,
+        "shape": "pear",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy light",
+        "clarity": "SI1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 239.11,
+      "upc": 239.11,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C8_Pink_Vivid_1_5ct",
+      "input": {
+        "carat": 1.5,
+        "shape": "cushion",
+        "colorHue": "pink",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 381.54,
+      "upc": 254.36,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C9_Pink_Intense_2ct",
+      "input": {
+        "carat": 2,
+        "shape": "radiant",
+        "colorHue": "pink",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 494.04,
+      "upc": 247.02,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "sparse",
+      "band": "low",
+      "reason": "sparse_primary_s22"
+    },
+    {
+      "name": "C10_Pink_Fancy_1ct",
+      "input": {
+        "carat": 1,
+        "shape": "round",
+        "colorHue": "pink",
+        "colorIntensity": "fancy",
+        "clarity": "VVS1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 271.8,
+      "upc": 271.8,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C11_Blue_Vivid_2_5ct",
+      "input": {
+        "carat": 2.5,
+        "shape": "emerald",
+        "colorHue": "blue",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 641.04,
+      "upc": 256.41,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C12_Blue_Intense_1_5ct",
+      "input": {
+        "carat": 1.5,
+        "shape": "oval",
+        "colorHue": "blue",
+        "colorIntensity": "fancy intense",
+        "clarity": "VVS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 405.5,
+      "upc": 270.34,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "sparse",
+      "band": "low",
+      "reason": "sparse_primary_s22"
+    },
+    {
+      "name": "C13_Blue_Fancy_3ct",
+      "input": {
+        "carat": 3,
+        "shape": "cushion",
+        "colorHue": "blue",
+        "colorIntensity": "fancy",
+        "clarity": "VS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 753.63,
+      "upc": 251.21,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C14_Green_Intense_3ct",
+      "input": {
+        "carat": 3,
+        "shape": "pear",
+        "colorHue": "green",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 887.34,
+      "upc": 295.78,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "low",
+      "reason": "green_s22_with_s23_guard"
+    },
+    {
+      "name": "C15_Green_Fancy_1_5ct",
+      "input": {
+        "carat": 1.5,
+        "shape": "radiant",
+        "colorHue": "green",
+        "colorIntensity": "fancy",
+        "clarity": "VVS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 416.07,
+      "upc": 277.38,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "low",
+      "reason": "green_s22_with_s23_guard"
+    },
+    {
+      "name": "C16_Brown_Fancy_2ct",
+      "input": {
+        "carat": 2,
+        "shape": "heart",
+        "colorHue": "brown",
+        "colorIntensity": "fancy",
+        "clarity": "VS1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 568.72,
+      "upc": 284.36,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "low",
+      "reason": "brown_hue_caution"
+    },
+    {
+      "name": "C17_Brown_Intense_1_5ct",
+      "input": {
+        "carat": 1.5,
+        "shape": "cushion",
+        "colorHue": "brown",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 388.89,
+      "upc": 259.26,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "low",
+      "reason": "brown_hue_caution"
+    },
+    {
+      "name": "C18_Red_Fancy_1ct",
+      "input": {
+        "carat": 1,
+        "shape": "round",
+        "colorHue": "red",
+        "colorIntensity": "fancy",
+        "clarity": "SI1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 272.55,
+      "upc": 272.55,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "low",
+      "reason": "red_hue_sparse_warning"
+    },
+    {
+      "name": "C19_Red_Vivid_1_5ct",
+      "input": {
+        "carat": 1.5,
+        "shape": "oval",
+        "colorHue": "red",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 410.74,
+      "upc": 273.83,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "low",
+      "reason": "red_hue_sparse_warning"
+    },
+    {
+      "name": "C20_Orange_Intense_1_5ct",
+      "input": {
+        "carat": 1.5,
+        "shape": "cushion",
+        "colorHue": "orange",
+        "colorIntensity": "fancy intense",
+        "clarity": "VS2"
+      },
+      "expectBranch": "fancy-color",
+      "expectExpert": "E5_CURATED_PRIOR",
+      "status": "PASS",
+      "price": 1200,
+      "upc": 800,
+      "branch": "fancy-color",
+      "expert": "E5_CURATED_PRIOR",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "rare_hue_direct_quote_recommended"
+    },
+    {
+      "name": "C21_Purple_Fancy_2ct",
+      "input": {
+        "carat": 2,
+        "shape": "radiant",
+        "colorHue": "purple",
+        "colorIntensity": "fancy",
+        "clarity": "VS1"
+      },
+      "expectBranch": "fancy-color",
+      "expectExpert": "E5_CURATED_PRIOR",
+      "status": "PASS",
+      "price": 1000,
+      "upc": 500,
+      "branch": "fancy-color",
+      "expert": "E5_CURATED_PRIOR",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "rare_hue_direct_quote_recommended"
+    },
+    {
+      "name": "C22_Yellow_Vivid_5ct",
+      "input": {
+        "carat": 5,
+        "shape": "emerald",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 1588.71,
+      "upc": 317.74,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "C23_Yellow_Vivid_10ct",
+      "input": {
+        "carat": 10,
+        "shape": "radiant",
+        "colorHue": "yellow",
+        "colorIntensity": "fancy vivid",
+        "clarity": "VS1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 4159.77,
+      "upc": 415.98,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "sparse",
+      "band": "low",
+      "reason": "sparse_primary_s22"
+    },
+    {
+      "name": "C24_Pink_Intense_7ct",
+      "input": {
+        "carat": 7,
+        "shape": "cushion",
+        "colorHue": "pink",
+        "colorIntensity": "fancy intense",
+        "clarity": "VVS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 2216.94,
+      "upc": 316.71,
+      "branch": "fancy-color",
+      "expert": "E2_S22",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_primary_s22_extrapolation"
+    },
+    {
+      "name": "A1_NoColor_2ct",
+      "input": {
+        "carat": 2,
+        "shape_style": "round_standard",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "typeName": "CVD"
+      },
+      "expectBranch": "white",
+      "status": "PASS",
+      "price": 192.68,
+      "upc": 96.34,
+      "branch": "white",
+      "expert": "S33A",
+      "tier": "dense",
+      "band": "low",
+      "reason": null
+    },
+    {
+      "name": "A2_ColorByLabel_FancyVividYellow",
+      "input": {
+        "carat": 1.5,
+        "shape": "radiant",
+        "color": "Fancy Vivid Yellow",
+        "clarity": "VS1"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 398.27,
+      "upc": 265.51,
+      "branch": "fancy-color",
+      "expert": "E3_S23",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_cell_s23_fallback"
+    },
+    {
+      "name": "A3_ColorByFamily",
+      "input": {
+        "carat": 2,
+        "shape": "cushion",
+        "colorFamily": "fancy",
+        "clarity": "VS2"
+      },
+      "expectBranch": "fancy-color",
+      "status": "PASS",
+      "price": 574.76,
+      "upc": 287.38,
+      "branch": "fancy-color",
+      "expert": "E3_S23",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "empty_cell_s23_fallback"
+    }
+  ],
+  "whiteParity": {
+    "passed": 14,
+    "failed": 0,
+    "total": 14
+  },
+  "displayGrid": {
+    "passed": 224,
+    "failed": 0
+  },
+  "intensityMonotonicity": {
+    "passed": 162,
+    "failed": 0
+  },
+  "summary": {
+    "passed": 40,
+    "failed": 0,
+    "allPassed": true
+  }
+}
