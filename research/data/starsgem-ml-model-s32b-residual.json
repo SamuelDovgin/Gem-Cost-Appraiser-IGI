@@ -1,0 +1,58 @@
+{
+  "generatedDate": "2026-06-02",
+  "modelName": "S32-B \u2014 S32-A anchors + capped CatBoost residual",
+  "modelVersion": "s32b-residual-v0.1",
+  "targetType": "surface_plus_anchors_plus_residual",
+  "catboostModelPath": "s32b-catboost-model.json",
+  "hyperparameters": {
+    "r_min": 10,
+    "K_resid": 15,
+    "R_cap": 0.15,
+    "cb_iterations": 1200,
+    "cb_learning_rate": 0.02,
+    "cb_depth": 4,
+    "cb_l2_leaf_reg": 10,
+    "cb_random_strength": 2
+  },
+  "features": {
+    "numeric": [
+      "log_carat",
+      "color_goodness",
+      "clarity_goodness",
+      "lw_ratio",
+      "table_pct",
+      "depth_pct",
+      "anchor_level",
+      "n_full",
+      "anchor_n"
+    ],
+    "categorical": [
+      "shape_style",
+      "cut_grade",
+      "typeName"
+    ]
+  },
+  "monotone_constraints": {
+    "log_carat": 0,
+    "color_goodness": 1,
+    "clarity_goodness": 1,
+    "lw_ratio": 0,
+    "table_pct": 0,
+    "depth_pct": 0,
+    "anchor_level": 0,
+    "n_full": 0,
+    "anchor_n": 0,
+    "shape_style": 0,
+    "cut_grade": 0,
+    "typeName": 0
+  },
+  "metrics": {
+    "train_mae": 0.04089293773630477,
+    "val_mae": 0.044376390347626665,
+    "train_mape_on_residual": 302.9247990522031,
+    "val_mape_on_residual": 165.80118356074928,
+    "train_corr": 0.6401886595270809,
+    "val_corr": 0.5896705702057528,
+    "pct_capped": 3.455855415801685
+  }
+}

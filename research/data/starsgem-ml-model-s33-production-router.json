@@ -1,0 +1,65 @@
+{
+  "generatedDate": "2026-06-02",
+  "modelName": "White Diamond Production Router — S26 + S30 + S33-A + S28 policy",
+  "modelVersion": "white-prod-router-v0.1",
+  "targetType": "routed_pricing_policy",
+  "description": "Production routing policy per research/production-quality-white-ml-roadmap.md. Routes between S26 (dense lookup), S30 (supported smooth curves), S33-A (constrained credibility surface), and S28 (monotone fallback).",
+  "experts": ["S26", "S30", "S33A", "S28"],
+  "routingRules": [
+    {
+      "name": "dense_lookup",
+      "priority": 1,
+      "condition": "S26 lookup level <= 3 AND S26 lookup count >= 5 AND carat < 8",
+      "model": "S26",
+      "confidence": "high",
+      "reason": "dense lookup cell with adequate support"
+    },
+    {
+      "name": "supported_s30_curve",
+      "priority": 2,
+      "condition": "S30 curve exists AND curve.n >= 15 AND carat within [curve.minCarat, curve.maxCarat] AND carat >= 5",
+      "model": "S30",
+      "confidence": "high",
+      "reason": "S30 smooth median curve best for high-carat supported specs"
+    },
+    {
+      "name": "s33a_anchor",
+      "priority": 3,
+      "condition": "S33-A L1 anchor exists AND anchor.n >= 10",
+      "model": "S33A",
+      "confidence": "medium",
+      "reason": "constrained credibility anchor with monotonicity guarantee"
+    },
+    {
+      "name": "s28_fallback",
+      "priority": 4,
+      "condition": "always",
+      "model": "S28",
+      "confidence": "low",
+      "reason": "monotone structural prior as final fallback"
+    }
+  ],
+  "displayRules": {
+    "showSelectedModel": true,
+    "showSupportTier": true,
+    "showConfidenceBand": true,
+    "showFallbackReason": true,
+    "hideS33AResearchLabel": false
+  },
+  "supportTiers": {
+    "dense": { "min": 20, "description": "≥20 rows in benchmark cell", "confidence": "high" },
+    "medium": { "min": 5, "description": "5-19 rows", "confidence": "medium" },
+    "sparse": { "min": 1, "description": "1-4 rows", "confidence": "low" },
+    "empty": { "min": 0, "description": "0 rows — S28 only", "confidence": "floor" }
+  },
+  "conformalIntervals": {
+    "s33a": {
+      "80pct": { "logWidth": 0.1073, "multiplierLow": 0.8982, "multiplierHigh": 1.1133 },
+      "byTier": {
+        "dense": { "logWidth": 0.1008, "multiplierLow": 0.9041, "multiplierHigh": 1.1060 },
+        "medium": { "logWidth": 0.1287, "multiplierLow": 0.8792, "multiplierHigh": 1.1374 },
+        "sparse": { "logWidth": 0.2185, "multiplierLow": 0.8037, "multiplierHigh": 1.2442 }
+      }
+    }
+  }
+}

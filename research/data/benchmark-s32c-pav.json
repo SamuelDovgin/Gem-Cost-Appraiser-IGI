@@ -1,0 +1,28 @@
+{
+  "date": "2026-06-02",
+  "model": "s32c-pav-v0.1",
+  "phase": "S32-C",
+  "prePav": {
+    "n": 4415,
+    "mape": 7.0891,
+    "mdape": 4.0633,
+    "p90ape": 17.3403,
+    "biasPct": -1.2261
+  },
+  "postPav": {
+    "n": 4414,
+    "mape": 9.6912,
+    "mdape": 6.3729,
+    "p90ape": 21.2847,
+    "biasPct": -1.4946
+  },
+  "pavGap": 2.6021,
+  "monotonicity": {
+    "caratSpecs": 56,
+    "caratViolatingSpecs": 0,
+    "colorViolations": 0,
+    "clarityViolations": 0
+  },
+  "monotonicityPass": true,
+  "pavGapOk": false
+}

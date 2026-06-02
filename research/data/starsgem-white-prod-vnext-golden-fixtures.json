@@ -1,0 +1,324 @@
+{
+  "date": "2026-06-02",
+  "modelVersion": "white-prod-vnext-v0.1.0",
+  "tolerance": {
+    "price": "0.5%",
+    "upc": "1.0%"
+  },
+  "fixtures": [
+    {
+      "name": "P1_3ct_Round_E_VS1",
+      "input": {
+        "carat": 3,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectExpert": "S28",
+      "status": "PASS",
+      "price": 368.69,
+      "upc": 122.9,
+      "expert": "S28",
+      "tier": "dense",
+      "band": "floor",
+      "reason": "display_grid_s28"
+    },
+    {
+      "name": "P2_7.77ct_Round_E_VS1",
+      "input": {
+        "carat": 7.77,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectExpert": "S30",
+      "status": "PASS",
+      "price": 1625.21,
+      "upc": 209.16,
+      "expert": "S30",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "P3_5.21ct_Heart_D_VS1",
+      "input": {
+        "carat": 5.21,
+        "shape_style": "heart_standard",
+        "color": "D",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectExpert": "S30",
+      "status": "PASS",
+      "price": 1137.04,
+      "upc": 218.24,
+      "expert": "S30",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "P5a_2.99ct_Round_E_VS1",
+      "input": {
+        "carat": 2.99,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectExpert": "S30",
+      "status": "PASS",
+      "price": 325.16,
+      "upc": 108.75,
+      "expert": "S30",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "P5b_3.01ct_Round_E_VS1",
+      "input": {
+        "carat": 3.01,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectExpert": "S30",
+      "status": "PASS",
+      "price": 327.34,
+      "upc": 108.75,
+      "expert": "S30",
+      "tier": "dense",
+      "band": "high",
+      "reason": null
+    },
+    {
+      "name": "Typical_1ct_Round_D_VVS1",
+      "input": {
+        "carat": 1.01,
+        "shape_style": "round_standard",
+        "color": "D",
+        "clarity": "VVS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "status": "PASS",
+      "price": 131.09,
+      "upc": 129.79,
+      "expert": "S33A",
+      "tier": "dense",
+      "band": "medium",
+      "reason": null
+    },
+    {
+      "name": "Typical_2ct_Oval_F_VS2",
+      "input": {
+        "carat": 2.02,
+        "shape_style": "oval_standard",
+        "color": "F",
+        "clarity": "VS2",
+        "cut_raw": "VG",
+        "polish": "EX",
+        "symmetry": "VG",
+        "typeName": "CVD"
+      },
+      "status": "PASS",
+      "price": 237.24,
+      "upc": 117.45,
+      "expert": "S26",
+      "tier": "sparse",
+      "band": "medium",
+      "reason": "sparse_cell_s26"
+    },
+    {
+      "name": "Typical_1_5ct_Pear_G_SI1",
+      "input": {
+        "carat": 1.51,
+        "shape_style": "pear_standard",
+        "color": "G",
+        "clarity": "SI1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "HPHT"
+      },
+      "status": "PASS",
+      "price": 106.35,
+      "upc": 70.43,
+      "expert": "S33A",
+      "tier": "empty",
+      "band": "low",
+      "reason": "s33a_weak_anchor_n1"
+    },
+    {
+      "name": "Typical_3ct_Emerald_H_VS1",
+      "input": {
+        "carat": 3.05,
+        "shape_style": "emerald_standard",
+        "color": "H",
+        "clarity": "VS1",
+        "cut_raw": "ID",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "status": "PASS",
+      "price": 268.98,
+      "upc": 88.19,
+      "expert": "S33A",
+      "tier": "empty",
+      "band": "low",
+      "reason": "s33a_weak_anchor_n1"
+    },
+    {
+      "name": "Typical_2_5ct_Princess_E_VVS2",
+      "input": {
+        "carat": 2.51,
+        "shape_style": "princess_standard",
+        "color": "E",
+        "clarity": "VVS2",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "status": "PASS",
+      "price": 406.76,
+      "upc": 162.05,
+      "expert": "S33A",
+      "tier": "dense",
+      "band": "medium",
+      "reason": null
+    },
+    {
+      "name": "Typical_4ct_Cushion_D_VS1",
+      "input": {
+        "carat": 4.03,
+        "shape_style": "cushion_standard",
+        "color": "D",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "status": "PASS",
+      "price": 573.77,
+      "upc": 142.37,
+      "expert": "S33A",
+      "tier": "empty",
+      "band": "low",
+      "reason": "s33a_weak_anchor_n1"
+    },
+    {
+      "name": "Typical_5ct_Round_J_SI2",
+      "input": {
+        "carat": 5.01,
+        "shape_style": "round_standard",
+        "color": "J",
+        "clarity": "SI2",
+        "cut_raw": "VG",
+        "polish": "VG",
+        "symmetry": "VG",
+        "typeName": "CVD"
+      },
+      "status": "PASS",
+      "price": 270.45,
+      "upc": 53.98,
+      "expert": "S28",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "s33a_weak_anchor_high_carat_n1"
+    },
+    {
+      "name": "High_10ct_Round_E_VS1",
+      "input": {
+        "carat": 10,
+        "shape_style": "round_standard",
+        "color": "E",
+        "clarity": "VS1",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectExpert": "S28",
+      "status": "PASS",
+      "price": 3322.39,
+      "upc": 332.24,
+      "expert": "S28",
+      "tier": "medium",
+      "band": "floor",
+      "reason": "display_grid_s28"
+    },
+    {
+      "name": "High_15ct_Round_F_VS2",
+      "input": {
+        "carat": 15,
+        "shape_style": "round_standard",
+        "color": "F",
+        "clarity": "VS2",
+        "cut_raw": "EX",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "expectExpert": "S28",
+      "status": "PASS",
+      "price": 6062.31,
+      "upc": 404.15,
+      "expert": "S28",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "display_grid_s28"
+    },
+    {
+      "name": "Selected_2ct_Round_D_IF",
+      "input": {
+        "carat": 2,
+        "shape_style": "round_standard",
+        "color": "D",
+        "clarity": "IF",
+        "cut_raw": "ID",
+        "polish": "EX",
+        "symmetry": "EX",
+        "typeName": "CVD"
+      },
+      "status": "PASS",
+      "price": 351.31,
+      "upc": 175.65,
+      "expert": "S28",
+      "tier": "empty",
+      "band": "floor",
+      "reason": "display_grid_s28"
+    }
+  ],
+  "summary": {
+    "passed": 15,
+    "failed": 0,
+    "gridPassed": 224,
+    "gridFailed": 0,
+    "allPassed": true
+  }
+}

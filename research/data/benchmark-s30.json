@@ -1,0 +1,288 @@
+{
+  "date": "2026-06-02",
+  "dataset": "research/data/dataset-clean-training.json",
+  "totalRows": 21982,
+  "holdoutMethod": "reportHash(row) % 5 === 0 (matches S28 trainer)",
+  "holdoutRows": 4415,
+  "trainRows": 17567,
+  "comparators": {
+    "s28": {
+      "source": "embedded Python holdout metrics in starsgem-ml-model-s28-monotone-parametric.json",
+      "note": "S28 v0.4 live Node parity has been verified against the Python artifact metrics.",
+      "holdout": {
+        "n": 4415,
+        "mape": 10.6149,
+        "mdape": 8.2025,
+        "p90ape": 21.6388,
+        "biasPct": 0.8928
+      },
+      "holdoutByCaratBucket": {
+        "1-1.99": {
+          "n": 2173,
+          "mape": 9.7507,
+          "mdape": 8.0453,
+          "p90ape": 19.694,
+          "biasPct": 0.5776
+        },
+        "10+": {
+          "n": 77,
+          "mape": 19.6186,
+          "mdape": 8.7889,
+          "p90ape": 22.8267,
+          "biasPct": 13.1412
+        },
+        "2-2.99": {
+          "n": 1011,
+          "mape": 9.6396,
+          "mdape": 6.7812,
+          "p90ape": 23.3784,
+          "biasPct": -0.3821
+        },
+        "3-4.99": {
+          "n": 768,
+          "mape": 12.6528,
+          "mdape": 10.1919,
+          "p90ape": 22.88,
+          "biasPct": 1.9748
+        },
+        "5-9.99": {
+          "n": 386,
+          "mape": 12.184,
+          "mdape": 9.9329,
+          "p90ape": 23.9388,
+          "biasPct": 1.4103
+        }
+      }
+    },
+    "s26": "lookup-reconstruction from starsgem-pricing-intelligence.json"
+  },
+  "s30": {
+    "inSampleArtifact": {
+      "description": "Shipped artifact trained on all rows — holdout rows may appear in curve medians",
+      "curveCount": 174,
+      "n": 4415,
+      "s30": {
+        "n": 4323,
+        "mape": 3.9303,
+        "mdape": 1.4332,
+        "p90ape": 9.735,
+        "biasPct": -0.0141
+      },
+      "s26": {
+        "n": 4415,
+        "mape": 5.6706,
+        "mdape": 1.9973,
+        "p90ape": 15.3844,
+        "biasPct": -1.3565
+      },
+      "s30Coverage": 4323,
+      "s30Bounded": 45,
+      "winner": "s30",
+      "segments": {
+        "hasCurve": {
+          "n": 4323,
+          "s30": {
+            "n": 4323,
+            "mape": 3.9303,
+            "mdape": 1.4332,
+            "p90ape": 9.735,
+            "biasPct": -0.0141
+          },
+          "s26": {
+            "n": 4323,
+            "mape": 5.616,
+            "mdape": 1.9863,
+            "p90ape": 15.092,
+            "biasPct": -1.2748
+          },
+          "s30Coverage": 4323,
+          "s30Bounded": 45,
+          "winner": "s30"
+        },
+        "missingCurve": {
+          "n": 92,
+          "s30": {
+            "n": 0,
+            "mape": null,
+            "mdape": null,
+            "p90ape": null,
+            "biasPct": null
+          },
+          "s26": {
+            "n": 92,
+            "mape": 8.2335,
+            "mdape": 2.7775,
+            "p90ape": 31.3561,
+            "biasPct": -5.1947
+          },
+          "s30Coverage": 0,
+          "s30Bounded": 0,
+          "winner": "s26"
+        },
+        "inSupport": {
+          "n": 4278,
+          "s30": {
+            "n": 4278,
+            "mape": 3.9561,
+            "mdape": 1.4429,
+            "p90ape": 9.746,
+            "biasPct": -0.0173
+          },
+          "s26": {
+            "n": 4278,
+            "mape": 5.5566,
+            "mdape": 1.9863,
+            "p90ape": 14.8518,
+            "biasPct": -1.2067
+          },
+          "s30Coverage": 4278,
+          "s30Bounded": 0,
+          "winner": "s30"
+        },
+        "boundedExtrap": {
+          "n": 45,
+          "s30": {
+            "n": 45,
+            "mape": 1.4732,
+            "mdape": 0.0076,
+            "p90ape": 3.808,
+            "biasPct": 0.2872
+          },
+          "s26": {
+            "n": 45,
+            "mape": 11.2633,
+            "mdape": 1.9949,
+            "p90ape": 33.1285,
+            "biasPct": -7.753
+          },
+          "s30Coverage": 45,
+          "s30Bounded": 45,
+          "winner": "s30"
+        }
+      },
+      "fullDataset": {
+        "n": 21982,
+        "s30": {
+          "n": 21516,
+          "mape": 4.0709,
+          "mdape": 1.3745,
+          "p90ape": 10.0015,
+          "biasPct": 0.0715
+        },
+        "s26": {
+          "n": 21982,
+          "mape": 5.7883,
+          "mdape": 2.0266,
+          "p90ape": 15.3844,
+          "biasPct": -1.2565
+        },
+        "s30Coverage": 21516,
+        "s30Bounded": 242
+      }
+    },
+    "trainOnlyHoldout": {
+      "description": "Curves fit on train rows only, evaluated on holdout (fairer for S30)",
+      "curveCount": 154,
+      "n": 4415,
+      "s30": {
+        "n": 4264,
+        "mape": 4.5373,
+        "mdape": 1.7025,
+        "p90ape": 11.3998,
+        "biasPct": -0.0179
+      },
+      "s26": {
+        "n": 4415,
+        "mape": 5.6706,
+        "mdape": 1.9973,
+        "p90ape": 15.3844,
+        "biasPct": -1.3565
+      },
+      "s30Coverage": 4264,
+      "s30Bounded": 64,
+      "winner": "s30",
+      "segments": {
+        "hasCurve": {
+          "n": 4264,
+          "s30": {
+            "n": 4264,
+            "mape": 4.5373,
+            "mdape": 1.7025,
+            "p90ape": 11.3998,
+            "biasPct": -0.0179
+          },
+          "s26": {
+            "n": 4264,
+            "mape": 5.5994,
+            "mdape": 1.9944,
+            "p90ape": 15.0431,
+            "biasPct": -1.2189
+          },
+          "s30Coverage": 4264,
+          "s30Bounded": 64,
+          "winner": "s30"
+        },
+        "missingCurve": {
+          "n": 151,
+          "s30": {
+            "n": 0,
+            "mape": null,
+            "mdape": null,
+            "p90ape": null,
+            "biasPct": null
+          },
+          "s26": {
+            "n": 151,
+            "mape": 7.6795,
+            "mdape": 2.2489,
+            "p90ape": 27.5875,
+            "biasPct": -5.2431
+          },
+          "s30Coverage": 0,
+          "s30Bounded": 0,
+          "winner": "s26"
+        },
+        "inSupport": {
+          "n": 4200,
+          "s30": {
+            "n": 4200,
+            "mape": 4.4841,
+            "mdape": 1.7025,
+            "p90ape": 11.1153,
+            "biasPct": 0.033
+          },
+          "s26": {
+            "n": 4200,
+            "mape": 5.5361,
+            "mdape": 1.9969,
+            "p90ape": 14.8033,
+            "biasPct": -1.1339
+          },
+          "s30Coverage": 4200,
+          "s30Bounded": 0,
+          "winner": "s30"
+        },
+        "boundedExtrap": {
+          "n": 64,
+          "s30": {
+            "n": 64,
+            "mape": 8.0285,
+            "mdape": 2.1044,
+            "p90ape": 21.3335,
+            "biasPct": -3.3547
+          },
+          "s26": {
+            "n": 64,
+            "mape": 9.7553,
+            "mdape": 1.8629,
+            "p90ape": 24.7666,
+            "biasPct": -6.7954
+          },
+          "s30Coverage": 64,
+          "s30Bounded": 64,
+          "winner": "s30"
+        }
+      }
+    }
+  }
+}

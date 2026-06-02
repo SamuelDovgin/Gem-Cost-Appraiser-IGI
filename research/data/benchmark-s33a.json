@@ -1,0 +1,1443 @@
+{
+  "date": "2026-06-02",
+  "model": "s33a-constrained-anchors-v0.5",
+  "phase": "S33-A",
+  "name": "Iteratively PAV-Constrained Credibility Anchors",
+  "decision": "S33-A FAILS 1 hard gates: monotonicity_zero. Keep iterating on constraints.",
+  "hyperparameters": {
+    "K_anchor": [
+      1,
+      8,
+      12,
+      20,
+      40
+    ],
+    "level_cap": [
+      1,
+      0.7,
+      0.45,
+      0.25,
+      0.1
+    ],
+    "A_cap": 0.5,
+    "nFolds": 5,
+    "tuningRowMape": 7.1516,
+    "fittingConverged": false,
+    "fittingRemainingViolations": 12
+  },
+  "rowHoldout": {
+    "n": 4415,
+    "s33a": {
+      "n": 4415,
+      "mape": 7.1516,
+      "mdape": 4.7256,
+      "p90ape": 16.5207,
+      "biasPct": -0.6781
+    },
+    "s28": {
+      "n": 4415,
+      "mape": 10.6151,
+      "mdape": 8.2024,
+      "p90ape": 21.6591,
+      "biasPct": 0.8929
+    },
+    "s26": {
+      "n": 4415,
+      "mape": 5.6706,
+      "mdape": 1.9973,
+      "p90ape": 15.3844,
+      "biasPct": -1.3565
+    },
+    "bySupportTier": {
+      "dense": {
+        "n": 3857,
+        "s33a": {
+          "n": 3857,
+          "mape": 6.6608,
+          "mdape": 4.6367,
+          "p90ape": 15.5281,
+          "biasPct": -0.7367
+        },
+        "s28": {
+          "n": 3857,
+          "mape": 10.0692,
+          "mdape": 8.0222,
+          "p90ape": 20.695,
+          "biasPct": 1.5766
+        },
+        "s26": {
+          "n": 3857,
+          "mape": 5.158,
+          "mdape": 1.9827,
+          "p90ape": 13.4342,
+          "biasPct": -0.9662
+        }
+      },
+      "medium": {
+        "n": 394,
+        "s33a": {
+          "n": 394,
+          "mape": 7.4263,
+          "mdape": 4.495,
+          "p90ape": 18.4014,
+          "biasPct": -1.6124
+        },
+        "s28": {
+          "n": 394,
+          "mape": 11.9049,
+          "mdape": 9.2486,
+          "p90ape": 26.4402,
+          "biasPct": -4.7618
+        },
+        "s26": {
+          "n": 394,
+          "mape": 7.5957,
+          "mdape": 1.8437,
+          "p90ape": 24.0057,
+          "biasPct": -2.4461
+        }
+      },
+      "sparse": {
+        "n": 164,
+        "s33a": {
+          "n": 164,
+          "mape": 18.0337,
+          "mdape": 10.3134,
+          "p90ape": 28.535,
+          "biasPct": 2.945
+        },
+        "s28": {
+          "n": 164,
+          "mape": 20.3531,
+          "mdape": 13.7044,
+          "p90ape": 32.873,
+          "biasPct": -1.6008
+        },
+        "s26": {
+          "n": 164,
+          "mape": 13.1002,
+          "mdape": 4.037,
+          "p90ape": 43.4027,
+          "biasPct": -7.9172
+        }
+      },
+      "empty": {
+        "n": 0,
+        "s33a": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s28": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s26": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        }
+      }
+    },
+    "highCarat": {
+      "n": 463,
+      "s33a": {
+        "n": 463,
+        "mape": 10.272,
+        "mdape": 6.0692,
+        "p90ape": 19.4501,
+        "biasPct": 3.3994
+      },
+      "s28": {
+        "n": 463,
+        "mape": 13.4203,
+        "mdape": 9.5512,
+        "p90ape": 23.9376,
+        "biasPct": 3.3612
+      },
+      "s26": {
+        "n": 463,
+        "mape": 10.7196,
+        "mdape": 4.1547,
+        "p90ape": 31.8399,
+        "biasPct": -2.0867
+      }
+    },
+    "sparseSupport": {
+      "n": 164,
+      "s33a": {
+        "n": 164,
+        "mape": 18.0337,
+        "mdape": 10.3134,
+        "p90ape": 28.535,
+        "biasPct": 2.945
+      },
+      "s28": {
+        "n": 164,
+        "mape": 20.3531,
+        "mdape": 13.7044,
+        "p90ape": 32.873,
+        "biasPct": -1.6008
+      },
+      "s26": {
+        "n": 164,
+        "mape": 13.1002,
+        "mdape": 4.037,
+        "p90ape": 43.4027,
+        "biasPct": -7.9172
+      }
+    },
+    "byShape": {
+      "asscher_standard": {
+        "n": 116,
+        "s33a": {
+          "n": 116,
+          "mape": 9.965,
+          "mdape": 7.4086,
+          "p90ape": 23.6968,
+          "biasPct": -1.0686
+        },
+        "s28": {
+          "n": 116,
+          "mape": 11.6058,
+          "mdape": 11.4781,
+          "p90ape": 21.1907,
+          "biasPct": 0.0482
+        },
+        "s26": {
+          "n": 116,
+          "mape": 13.5147,
+          "mdape": 10.4175,
+          "p90ape": 30.5164,
+          "biasPct": -6.9919
+        }
+      },
+      "cushion_elongated": {
+        "n": 21,
+        "s33a": {
+          "n": 21,
+          "mape": 12.2712,
+          "mdape": 9.1169,
+          "p90ape": 24.7204,
+          "biasPct": 0.446
+        },
+        "s28": {
+          "n": 21,
+          "mape": 16.2785,
+          "mdape": 17.0774,
+          "p90ape": 28.2805,
+          "biasPct": -1.178
+        },
+        "s26": {
+          "n": 21,
+          "mape": 12.9344,
+          "mdape": 7.9635,
+          "p90ape": 33.3348,
+          "biasPct": -11.591
+        }
+      },
+      "emerald_standard": {
+        "n": 267,
+        "s33a": {
+          "n": 267,
+          "mape": 6.5828,
+          "mdape": 3.737,
+          "p90ape": 16.1508,
+          "biasPct": -0.8949
+        },
+        "s28": {
+          "n": 267,
+          "mape": 10.1366,
+          "mdape": 8.65,
+          "p90ape": 22.5493,
+          "biasPct": 1.1756
+        },
+        "s26": {
+          "n": 267,
+          "mape": 5.797,
+          "mdape": 1.891,
+          "p90ape": 16.7558,
+          "biasPct": -1.5692
+        }
+      },
+      "flower_modified": {
+        "n": 36,
+        "s33a": {
+          "n": 36,
+          "mape": 6.8559,
+          "mdape": 3.3612,
+          "p90ape": 19.1242,
+          "biasPct": 1.9075
+        },
+        "s28": {
+          "n": 36,
+          "mape": 8.3079,
+          "mdape": 7.1779,
+          "p90ape": 16.6869,
+          "biasPct": -0.9048
+        },
+        "s26": {
+          "n": 36,
+          "mape": 51.0256,
+          "mdape": 54.9438,
+          "p90ape": 60.9878,
+          "biasPct": -51.0256
+        }
+      },
+      "heart_modified": {
+        "n": 20,
+        "s33a": {
+          "n": 20,
+          "mape": 12.1325,
+          "mdape": 8.1855,
+          "p90ape": 29.1352,
+          "biasPct": -7.4329
+        },
+        "s28": {
+          "n": 20,
+          "mape": 16.9983,
+          "mdape": 14.0931,
+          "p90ape": 35.6696,
+          "biasPct": -4.4001
+        },
+        "s26": {
+          "n": 20,
+          "mape": 19.2791,
+          "mdape": 15.9805,
+          "p90ape": 58.8454,
+          "biasPct": -18.548
+        }
+      },
+      "heart_standard": {
+        "n": 146,
+        "s33a": {
+          "n": 146,
+          "mape": 19.6357,
+          "mdape": 12.3177,
+          "p90ape": 28.317,
+          "biasPct": 7.1648
+        },
+        "s28": {
+          "n": 146,
+          "mape": 22.8717,
+          "mdape": 18.1229,
+          "p90ape": 33.3891,
+          "biasPct": 8.9949
+        },
+        "s26": {
+          "n": 146,
+          "mape": 3.8424,
+          "mdape": 1.4516,
+          "p90ape": 10.3862,
+          "biasPct": 0.1598
+        }
+      },
+      "marquise_standard": {
+        "n": 204,
+        "s33a": {
+          "n": 204,
+          "mape": 4.9601,
+          "mdape": 3.0741,
+          "p90ape": 11.9571,
+          "biasPct": 1.5818
+        },
+        "s28": {
+          "n": 204,
+          "mape": 7.4693,
+          "mdape": 5.5515,
+          "p90ape": 19.3589,
+          "biasPct": -0.4117
+        },
+        "s26": {
+          "n": 204,
+          "mape": 4.2007,
+          "mdape": 1.1634,
+          "p90ape": 11.931,
+          "biasPct": 1.1256
+        }
+      },
+      "oval_ice_flower": {
+        "n": 30,
+        "s33a": {
+          "n": 30,
+          "mape": 6.4026,
+          "mdape": 4.0491,
+          "p90ape": 19.3304,
+          "biasPct": 0.2348
+        },
+        "s28": {
+          "n": 30,
+          "mape": 8.542,
+          "mdape": 7.5206,
+          "p90ape": 19.3084,
+          "biasPct": -2.1242
+        },
+        "s26": {
+          "n": 30,
+          "mape": 6.8489,
+          "mdape": 4.5593,
+          "p90ape": 18.8879,
+          "biasPct": -1.9655
+        }
+      },
+      "oval_standard": {
+        "n": 684,
+        "s33a": {
+          "n": 684,
+          "mape": 3.9779,
+          "mdape": 2.5985,
+          "p90ape": 8.672,
+          "biasPct": -1.3493
+        },
+        "s28": {
+          "n": 684,
+          "mape": 8.1623,
+          "mdape": 6.5329,
+          "p90ape": 15.5846,
+          "biasPct": 0.3022
+        },
+        "s26": {
+          "n": 684,
+          "mape": 3.2626,
+          "mdape": 0.9941,
+          "p90ape": 6.5793,
+          "biasPct": -0.8198
+        }
+      },
+      "pear_ice_flower": {
+        "n": 24,
+        "s33a": {
+          "n": 24,
+          "mape": 9.0843,
+          "mdape": 10.1483,
+          "p90ape": 15.2807,
+          "biasPct": -0.1696
+        },
+        "s28": {
+          "n": 24,
+          "mape": 8.7676,
+          "mdape": 6.8038,
+          "p90ape": 22.8263,
+          "biasPct": -1.8412
+        },
+        "s26": {
+          "n": 24,
+          "mape": 16.9201,
+          "mdape": 9.4106,
+          "p90ape": 35.8536,
+          "biasPct": 1.1759
+        }
+      },
+      "pear_modified": {
+        "n": 10,
+        "s33a": {
+          "n": 10,
+          "mape": 16.2517,
+          "mdape": 9.8504,
+          "p90ape": 69.0586,
+          "biasPct": 12.1644
+        },
+        "s28": {
+          "n": 10,
+          "mape": 16.4435,
+          "mdape": 13.9546,
+          "p90ape": 53.9285,
+          "biasPct": 10.5801
+        },
+        "s26": {
+          "n": 10,
+          "mape": 10.395,
+          "mdape": 3.7935,
+          "p90ape": 34.3263,
+          "biasPct": -8.8417
+        }
+      },
+      "pear_standard": {
+        "n": 373,
+        "s33a": {
+          "n": 373,
+          "mape": 5.5536,
+          "mdape": 5.1602,
+          "p90ape": 11.0406,
+          "biasPct": -1.0144
+        },
+        "s28": {
+          "n": 373,
+          "mape": 9.4963,
+          "mdape": 8.4232,
+          "p90ape": 20.5878,
+          "biasPct": 0.3737
+        },
+        "s26": {
+          "n": 373,
+          "mape": 3.6797,
+          "mdape": 1.0034,
+          "p90ape": 6.7994,
+          "biasPct": 0.8092
+        }
+      },
+      "princess_standard": {
+        "n": 220,
+        "s33a": {
+          "n": 220,
+          "mape": 14.7071,
+          "mdape": 12.0636,
+          "p90ape": 32.3082,
+          "biasPct": -2.4769
+        },
+        "s28": {
+          "n": 220,
+          "mape": 17.3109,
+          "mdape": 15.6603,
+          "p90ape": 33.5355,
+          "biasPct": 0.4235
+        },
+        "s26": {
+          "n": 220,
+          "mape": 12.1571,
+          "mdape": 3.1232,
+          "p90ape": 42.6593,
+          "biasPct": 3.9526
+        }
+      },
+      "radiant_modified": {
+        "n": 142,
+        "s33a": {
+          "n": 142,
+          "mape": 11.3774,
+          "mdape": 10.3568,
+          "p90ape": 21.8167,
+          "biasPct": 1.1416
+        },
+        "s28": {
+          "n": 142,
+          "mape": 12.6931,
+          "mdape": 9.6554,
+          "p90ape": 27.6461,
+          "biasPct": 2.1371
+        },
+        "s26": {
+          "n": 142,
+          "mape": 3.6657,
+          "mdape": 1.3166,
+          "p90ape": 7.9304,
+          "biasPct": 0.0123
+        }
+      },
+      "round_standard": {
+        "n": 1990,
+        "s33a": {
+          "n": 1990,
+          "mape": 6.4574,
+          "mdape": 4.8808,
+          "p90ape": 13.8051,
+          "biasPct": -1.1365
+        },
+        "s28": {
+          "n": 1990,
+          "mape": 10.1467,
+          "mdape": 8.0902,
+          "p90ape": 20.6863,
+          "biasPct": 0.889
+        },
+        "s26": {
+          "n": 1990,
+          "mape": 4.6078,
+          "mdape": 2.5381,
+          "p90ape": 11.9468,
+          "biasPct": -1.1839
+        }
+      },
+      "square_cushion_modified": {
+        "n": 99,
+        "s33a": {
+          "n": 99,
+          "mape": 5.703,
+          "mdape": 4.4088,
+          "p90ape": 14.4249,
+          "biasPct": -1.4581
+        },
+        "s28": {
+          "n": 99,
+          "mape": 9.7338,
+          "mdape": 7.9681,
+          "p90ape": 18.2531,
+          "biasPct": 0.3483
+        },
+        "s26": {
+          "n": 99,
+          "mape": 7.0126,
+          "mdape": 4.2945,
+          "p90ape": 21.311,
+          "biasPct": -1.0285
+        }
+      }
+    }
+  },
+  "highCarat": {
+    "n": 463,
+    "s33a": {
+      "n": 463,
+      "mape": 10.272,
+      "mdape": 6.0692,
+      "p90ape": 19.4501,
+      "biasPct": 3.3994
+    },
+    "s28": {
+      "n": 463,
+      "mape": 13.4203,
+      "mdape": 9.5512,
+      "p90ape": 23.9376,
+      "biasPct": 3.3612
+    },
+    "s26": {
+      "n": 463,
+      "mape": 10.7196,
+      "mdape": 4.1547,
+      "p90ape": 31.8399,
+      "biasPct": -2.0867
+    }
+  },
+  "sparseSupport": {
+    "n": 164,
+    "s33a": {
+      "n": 164,
+      "mape": 18.0337,
+      "mdape": 10.3134,
+      "p90ape": 28.535,
+      "biasPct": 2.945
+    },
+    "s28": {
+      "n": 164,
+      "mape": 20.3531,
+      "mdape": 13.7044,
+      "p90ape": 32.873,
+      "biasPct": -1.6008
+    },
+    "s26": {
+      "n": 164,
+      "mape": 13.1002,
+      "mdape": 4.037,
+      "p90ape": 43.4027,
+      "biasPct": -7.9172
+    }
+  },
+  "princess": {
+    "n": 220,
+    "s33a": {
+      "n": 220,
+      "mape": 14.7071,
+      "mdape": 12.0636,
+      "p90ape": 32.3082,
+      "biasPct": -2.4769
+    },
+    "s28": {
+      "n": 220,
+      "mape": 17.3109,
+      "mdape": 15.6603,
+      "p90ape": 33.5355,
+      "biasPct": 0.4235
+    },
+    "s26": {
+      "n": 220,
+      "mape": 12.1571,
+      "mdape": 3.1232,
+      "p90ape": 42.6593,
+      "biasPct": 3.9526
+    },
+    "bySupportTier": {
+      "dense": {
+        "n": 177,
+        "s33a": {
+          "n": 177,
+          "mape": 15.7696,
+          "mdape": 12.7982,
+          "p90ape": 32.7695,
+          "biasPct": -2.4689
+        },
+        "s28": {
+          "n": 177,
+          "mape": 18.7136,
+          "mdape": 17.4256,
+          "p90ape": 35.1708,
+          "biasPct": 2.1882
+        },
+        "s26": {
+          "n": 177,
+          "mape": 13.3224,
+          "mdape": 3.828,
+          "p90ape": 44.1308,
+          "biasPct": 4.2163
+        }
+      },
+      "medium": {
+        "n": 29,
+        "s33a": {
+          "n": 29,
+          "mape": 9.0927,
+          "mdape": 8.2649,
+          "p90ape": 21.2631,
+          "biasPct": -2.8621
+        },
+        "s28": {
+          "n": 29,
+          "mape": 9.9097,
+          "mdape": 7.4877,
+          "p90ape": 19.5288,
+          "biasPct": -5.6585
+        },
+        "s26": {
+          "n": 29,
+          "mape": 8.8822,
+          "mdape": 1.8948,
+          "p90ape": 43.7966,
+          "biasPct": 3.8139
+        }
+      },
+      "sparse": {
+        "n": 14,
+        "s33a": {
+          "n": 14,
+          "mape": 12.904,
+          "mdape": 13.5883,
+          "p90ape": 21.2333,
+          "biasPct": -1.779
+        },
+        "s28": {
+          "n": 14,
+          "mape": 14.9082,
+          "mdape": 14.6111,
+          "p90ape": 32.239,
+          "biasPct": -9.2902
+        },
+        "s26": {
+          "n": 14,
+          "mape": 4.2092,
+          "mdape": 2.3434,
+          "p90ape": 11.8958,
+          "biasPct": 0.9054
+        }
+      },
+      "empty": {
+        "n": 0,
+        "s33a": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s28": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s26": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        }
+      }
+    },
+    "highCarat": {
+      "n": 13,
+      "s33a": {
+        "n": 13,
+        "mape": 16.7732,
+        "mdape": 12.5613,
+        "p90ape": 32.7695,
+        "biasPct": 14.104
+      },
+      "s28": {
+        "n": 13,
+        "mape": 13.6078,
+        "mdape": 9.381,
+        "p90ape": 30.2904,
+        "biasPct": 9.7061
+      },
+      "s26": {
+        "n": 13,
+        "mape": 16.4892,
+        "mdape": 11.7224,
+        "p90ape": 43.7966,
+        "biasPct": 11.2865
+      }
+    },
+    "sparseSupport": {
+      "n": 14,
+      "s33a": {
+        "n": 14,
+        "mape": 12.904,
+        "mdape": 13.5883,
+        "p90ape": 21.2333,
+        "biasPct": -1.779
+      },
+      "s28": {
+        "n": 14,
+        "mape": 14.9082,
+        "mdape": 14.6111,
+        "p90ape": 32.239,
+        "biasPct": -9.2902
+      },
+      "s26": {
+        "n": 14,
+        "mape": 4.2092,
+        "mdape": 2.3434,
+        "p90ape": 11.8958,
+        "biasPct": 0.9054
+      }
+    },
+    "byShape": {
+      "princess_standard": {
+        "n": 220,
+        "s33a": {
+          "n": 220,
+          "mape": 14.7071,
+          "mdape": 12.0636,
+          "p90ape": 32.3082,
+          "biasPct": -2.4769
+        },
+        "s28": {
+          "n": 220,
+          "mape": 17.3109,
+          "mdape": 15.6603,
+          "p90ape": 33.5355,
+          "biasPct": 0.4235
+        },
+        "s26": {
+          "n": 220,
+          "mape": 12.1571,
+          "mdape": 3.1232,
+          "p90ape": 42.6593,
+          "biasPct": 3.9526
+        }
+      }
+    }
+  },
+  "byShape": {
+    "asscher_standard": {
+      "n": 116,
+      "s33a": {
+        "n": 116,
+        "mape": 9.965,
+        "mdape": 7.4086,
+        "p90ape": 23.6968,
+        "biasPct": -1.0686
+      },
+      "s28": {
+        "n": 116,
+        "mape": 11.6058,
+        "mdape": 11.4781,
+        "p90ape": 21.1907,
+        "biasPct": 0.0482
+      },
+      "s26": {
+        "n": 116,
+        "mape": 13.5147,
+        "mdape": 10.4175,
+        "p90ape": 30.5164,
+        "biasPct": -6.9919
+      }
+    },
+    "cushion_elongated": {
+      "n": 21,
+      "s33a": {
+        "n": 21,
+        "mape": 12.2712,
+        "mdape": 9.1169,
+        "p90ape": 24.7204,
+        "biasPct": 0.446
+      },
+      "s28": {
+        "n": 21,
+        "mape": 16.2785,
+        "mdape": 17.0774,
+        "p90ape": 28.2805,
+        "biasPct": -1.178
+      },
+      "s26": {
+        "n": 21,
+        "mape": 12.9344,
+        "mdape": 7.9635,
+        "p90ape": 33.3348,
+        "biasPct": -11.591
+      }
+    },
+    "emerald_standard": {
+      "n": 267,
+      "s33a": {
+        "n": 267,
+        "mape": 6.5828,
+        "mdape": 3.737,
+        "p90ape": 16.1508,
+        "biasPct": -0.8949
+      },
+      "s28": {
+        "n": 267,
+        "mape": 10.1366,
+        "mdape": 8.65,
+        "p90ape": 22.5493,
+        "biasPct": 1.1756
+      },
+      "s26": {
+        "n": 267,
+        "mape": 5.797,
+        "mdape": 1.891,
+        "p90ape": 16.7558,
+        "biasPct": -1.5692
+      }
+    },
+    "flower_modified": {
+      "n": 36,
+      "s33a": {
+        "n": 36,
+        "mape": 6.8559,
+        "mdape": 3.3612,
+        "p90ape": 19.1242,
+        "biasPct": 1.9075
+      },
+      "s28": {
+        "n": 36,
+        "mape": 8.3079,
+        "mdape": 7.1779,
+        "p90ape": 16.6869,
+        "biasPct": -0.9048
+      },
+      "s26": {
+        "n": 36,
+        "mape": 51.0256,
+        "mdape": 54.9438,
+        "p90ape": 60.9878,
+        "biasPct": -51.0256
+      }
+    },
+    "heart_modified": {
+      "n": 20,
+      "s33a": {
+        "n": 20,
+        "mape": 12.1325,
+        "mdape": 8.1855,
+        "p90ape": 29.1352,
+        "biasPct": -7.4329
+      },
+      "s28": {
+        "n": 20,
+        "mape": 16.9983,
+        "mdape": 14.0931,
+        "p90ape": 35.6696,
+        "biasPct": -4.4001
+      },
+      "s26": {
+        "n": 20,
+        "mape": 19.2791,
+        "mdape": 15.9805,
+        "p90ape": 58.8454,
+        "biasPct": -18.548
+      }
+    },
+    "heart_standard": {
+      "n": 146,
+      "s33a": {
+        "n": 146,
+        "mape": 19.6357,
+        "mdape": 12.3177,
+        "p90ape": 28.317,
+        "biasPct": 7.1648
+      },
+      "s28": {
+        "n": 146,
+        "mape": 22.8717,
+        "mdape": 18.1229,
+        "p90ape": 33.3891,
+        "biasPct": 8.9949
+      },
+      "s26": {
+        "n": 146,
+        "mape": 3.8424,
+        "mdape": 1.4516,
+        "p90ape": 10.3862,
+        "biasPct": 0.1598
+      }
+    },
+    "marquise_standard": {
+      "n": 204,
+      "s33a": {
+        "n": 204,
+        "mape": 4.9601,
+        "mdape": 3.0741,
+        "p90ape": 11.9571,
+        "biasPct": 1.5818
+      },
+      "s28": {
+        "n": 204,
+        "mape": 7.4693,
+        "mdape": 5.5515,
+        "p90ape": 19.3589,
+        "biasPct": -0.4117
+      },
+      "s26": {
+        "n": 204,
+        "mape": 4.2007,
+        "mdape": 1.1634,
+        "p90ape": 11.931,
+        "biasPct": 1.1256
+      }
+    },
+    "oval_ice_flower": {
+      "n": 30,
+      "s33a": {
+        "n": 30,
+        "mape": 6.4026,
+        "mdape": 4.0491,
+        "p90ape": 19.3304,
+        "biasPct": 0.2348
+      },
+      "s28": {
+        "n": 30,
+        "mape": 8.542,
+        "mdape": 7.5206,
+        "p90ape": 19.3084,
+        "biasPct": -2.1242
+      },
+      "s26": {
+        "n": 30,
+        "mape": 6.8489,
+        "mdape": 4.5593,
+        "p90ape": 18.8879,
+        "biasPct": -1.9655
+      }
+    },
+    "oval_standard": {
+      "n": 684,
+      "s33a": {
+        "n": 684,
+        "mape": 3.9779,
+        "mdape": 2.5985,
+        "p90ape": 8.672,
+        "biasPct": -1.3493
+      },
+      "s28": {
+        "n": 684,
+        "mape": 8.1623,
+        "mdape": 6.5329,
+        "p90ape": 15.5846,
+        "biasPct": 0.3022
+      },
+      "s26": {
+        "n": 684,
+        "mape": 3.2626,
+        "mdape": 0.9941,
+        "p90ape": 6.5793,
+        "biasPct": -0.8198
+      }
+    },
+    "pear_ice_flower": {
+      "n": 24,
+      "s33a": {
+        "n": 24,
+        "mape": 9.0843,
+        "mdape": 10.1483,
+        "p90ape": 15.2807,
+        "biasPct": -0.1696
+      },
+      "s28": {
+        "n": 24,
+        "mape": 8.7676,
+        "mdape": 6.8038,
+        "p90ape": 22.8263,
+        "biasPct": -1.8412
+      },
+      "s26": {
+        "n": 24,
+        "mape": 16.9201,
+        "mdape": 9.4106,
+        "p90ape": 35.8536,
+        "biasPct": 1.1759
+      }
+    },
+    "pear_modified": {
+      "n": 10,
+      "s33a": {
+        "n": 10,
+        "mape": 16.2517,
+        "mdape": 9.8504,
+        "p90ape": 69.0586,
+        "biasPct": 12.1644
+      },
+      "s28": {
+        "n": 10,
+        "mape": 16.4435,
+        "mdape": 13.9546,
+        "p90ape": 53.9285,
+        "biasPct": 10.5801
+      },
+      "s26": {
+        "n": 10,
+        "mape": 10.395,
+        "mdape": 3.7935,
+        "p90ape": 34.3263,
+        "biasPct": -8.8417
+      }
+    },
+    "pear_standard": {
+      "n": 373,
+      "s33a": {
+        "n": 373,
+        "mape": 5.5536,
+        "mdape": 5.1602,
+        "p90ape": 11.0406,
+        "biasPct": -1.0144
+      },
+      "s28": {
+        "n": 373,
+        "mape": 9.4963,
+        "mdape": 8.4232,
+        "p90ape": 20.5878,
+        "biasPct": 0.3737
+      },
+      "s26": {
+        "n": 373,
+        "mape": 3.6797,
+        "mdape": 1.0034,
+        "p90ape": 6.7994,
+        "biasPct": 0.8092
+      }
+    },
+    "princess_standard": {
+      "n": 220,
+      "s33a": {
+        "n": 220,
+        "mape": 14.7071,
+        "mdape": 12.0636,
+        "p90ape": 32.3082,
+        "biasPct": -2.4769
+      },
+      "s28": {
+        "n": 220,
+        "mape": 17.3109,
+        "mdape": 15.6603,
+        "p90ape": 33.5355,
+        "biasPct": 0.4235
+      },
+      "s26": {
+        "n": 220,
+        "mape": 12.1571,
+        "mdape": 3.1232,
+        "p90ape": 42.6593,
+        "biasPct": 3.9526
+      }
+    },
+    "radiant_modified": {
+      "n": 142,
+      "s33a": {
+        "n": 142,
+        "mape": 11.3774,
+        "mdape": 10.3568,
+        "p90ape": 21.8167,
+        "biasPct": 1.1416
+      },
+      "s28": {
+        "n": 142,
+        "mape": 12.6931,
+        "mdape": 9.6554,
+        "p90ape": 27.6461,
+        "biasPct": 2.1371
+      },
+      "s26": {
+        "n": 142,
+        "mape": 3.6657,
+        "mdape": 1.3166,
+        "p90ape": 7.9304,
+        "biasPct": 0.0123
+      }
+    },
+    "round_standard": {
+      "n": 1990,
+      "s33a": {
+        "n": 1990,
+        "mape": 6.4574,
+        "mdape": 4.8808,
+        "p90ape": 13.8051,
+        "biasPct": -1.1365
+      },
+      "s28": {
+        "n": 1990,
+        "mape": 10.1467,
+        "mdape": 8.0902,
+        "p90ape": 20.6863,
+        "biasPct": 0.889
+      },
+      "s26": {
+        "n": 1990,
+        "mape": 4.6078,
+        "mdape": 2.5381,
+        "p90ape": 11.9468,
+        "biasPct": -1.1839
+      }
+    },
+    "square_cushion_modified": {
+      "n": 99,
+      "s33a": {
+        "n": 99,
+        "mape": 5.703,
+        "mdape": 4.4088,
+        "p90ape": 14.4249,
+        "biasPct": -1.4581
+      },
+      "s28": {
+        "n": 99,
+        "mape": 9.7338,
+        "mdape": 7.9681,
+        "p90ape": 18.2531,
+        "biasPct": 0.3483
+      },
+      "s26": {
+        "n": 99,
+        "mape": 7.0126,
+        "mdape": 4.2945,
+        "p90ape": 21.311,
+        "biasPct": -1.0285
+      }
+    }
+  },
+  "bySupportTier": {
+    "dense": {
+      "n": 3857,
+      "s33a": {
+        "n": 3857,
+        "mape": 6.6608,
+        "mdape": 4.6367,
+        "p90ape": 15.5281,
+        "biasPct": -0.7367
+      },
+      "s28": {
+        "n": 3857,
+        "mape": 10.0692,
+        "mdape": 8.0222,
+        "p90ape": 20.695,
+        "biasPct": 1.5766
+      },
+      "s26": {
+        "n": 3857,
+        "mape": 5.158,
+        "mdape": 1.9827,
+        "p90ape": 13.4342,
+        "biasPct": -0.9662
+      }
+    },
+    "medium": {
+      "n": 394,
+      "s33a": {
+        "n": 394,
+        "mape": 7.4263,
+        "mdape": 4.495,
+        "p90ape": 18.4014,
+        "biasPct": -1.6124
+      },
+      "s28": {
+        "n": 394,
+        "mape": 11.9049,
+        "mdape": 9.2486,
+        "p90ape": 26.4402,
+        "biasPct": -4.7618
+      },
+      "s26": {
+        "n": 394,
+        "mape": 7.5957,
+        "mdape": 1.8437,
+        "p90ape": 24.0057,
+        "biasPct": -2.4461
+      }
+    },
+    "sparse": {
+      "n": 164,
+      "s33a": {
+        "n": 164,
+        "mape": 18.0337,
+        "mdape": 10.3134,
+        "p90ape": 28.535,
+        "biasPct": 2.945
+      },
+      "s28": {
+        "n": 164,
+        "mape": 20.3531,
+        "mdape": 13.7044,
+        "p90ape": 32.873,
+        "biasPct": -1.6008
+      },
+      "s26": {
+        "n": 164,
+        "mape": 13.1002,
+        "mdape": 4.037,
+        "p90ape": 43.4027,
+        "biasPct": -7.9172
+      }
+    },
+    "empty": {
+      "n": 0,
+      "s33a": {
+        "n": 0,
+        "mape": null,
+        "mdape": null,
+        "p90ape": null,
+        "biasPct": null
+      },
+      "s28": {
+        "n": 0,
+        "mape": null,
+        "mdape": null,
+        "p90ape": null,
+        "biasPct": null
+      },
+      "s26": {
+        "n": 0,
+        "mape": null,
+        "mdape": null,
+        "p90ape": null,
+        "biasPct": null
+      }
+    }
+  },
+  "monotonicity": {
+    "caratSpecs": 56,
+    "caratViolatingSpecs": 2,
+    "violatingSpecs": [
+      {
+        "color": "D",
+        "clarity": "IF"
+      },
+      {
+        "color": "D",
+        "clarity": "VVS1"
+      }
+    ],
+    "colorViolations": 0,
+    "clarityViolations": 2
+  },
+  "monotonicityPass": false,
+  "pinnedCases": [
+    {
+      "name": "P1",
+      "carat": 3,
+      "shape": "round_standard",
+      "color": "E",
+      "clarity": "VS1",
+      "cut": "ID"
+    },
+    {
+      "name": "P2",
+      "carat": 7.77,
+      "shape": "round_standard",
+      "color": "E",
+      "clarity": "VS1",
+      "cut": "EX"
+    },
+    {
+      "name": "P3",
+      "carat": 5.21,
+      "shape": "heart_standard",
+      "color": "D",
+      "clarity": "VS1",
+      "cut": "EX"
+    },
+    {
+      "name": "P4a",
+      "carat": 40,
+      "shape": "round_standard",
+      "color": "E",
+      "clarity": "VS2",
+      "cut": "EX"
+    },
+    {
+      "name": "P4b",
+      "carat": 40,
+      "shape": "round_standard",
+      "color": "E",
+      "clarity": "SI1",
+      "cut": "EX"
+    },
+    {
+      "name": "P5a",
+      "carat": 2.99,
+      "shape": "round_standard",
+      "color": "E",
+      "clarity": "VS1",
+      "cut": "EX"
+    },
+    {
+      "name": "P5b",
+      "carat": 3.01,
+      "shape": "round_standard",
+      "color": "E",
+      "clarity": "VS1",
+      "cut": "EX"
+    }
+  ],
+  "s32aComparison": {
+    "s32aRowMape": 7.0891,
+    "s33aRowMape": 7.1516,
+    "mapeDelta": 0.0625
+  },
+  "gates": {
+    "monotonicity_zero": {
+      "description": "Zero monotonicity violations (carat, color, clarity) on full grid",
+      "detail": "carat=2/56, color=0, clarity=2",
+      "pass": false,
+      "hard": true
+    },
+    "cellHoldoutLeS26": {
+      "description": "Cell holdout MAPE ≤ S26 + 1.5pp (better than S28/S31 gate)",
+      "pass": true,
+      "hard": true
+    },
+    "rowHoldoutBetterThanS28": {
+      "description": "Row holdout MAPE improves over S28 prior",
+      "threshold": 10.6151,
+      "actual": 7.1516,
+      "detail": "S33-A=7.15% vs S28=10.62%",
+      "pass": true,
+      "hard": true
+    },
+    "highCaratLeS26": {
+      "description": "High carat MAPE ≤ S26",
+      "threshold": 10.72,
+      "actual": 10.272,
+      "detail": "S33-A=10.27% vs threshold=10.72%",
+      "pass": true,
+      "hard": false
+    },
+    "princessNotWorse": {
+      "description": "Princess not >1pp worse than S26",
+      "threshold": 13.16,
+      "actual": 14.7071,
+      "detail": "S33-A=14.71% vs threshold=13.16%",
+      "pass": false,
+      "hard": false
+    },
+    "denseTierOk": {
+      "description": "Dense tier MAPE ≤ S26 + 1.0pp",
+      "threshold": 6.16,
+      "actual": 6.6608,
+      "detail": "S33-A=6.66% vs threshold=6.16%",
+      "pass": false,
+      "hard": false
+    }
+  },
+  "hardPasses": 2,
+  "hardFails": 1,
+  "failedGates": [
+    "monotonicity_zero"
+  ],
+  "allHardPass": false
+}

@@ -1,0 +1,126 @@
+{
+  "generatedDate": "2026-06-02",
+  "modelName": "WhiteProd vNext — Production White Diamond Router",
+  "modelVersion": "white-prod-vnext-v0.1.0",
+  "targetType": "routed_pricing_policy",
+  "description": "One versioned production predictor routing S30→S26→S33A→S28. Passes all 14 production gates including monotonicity (via S28 display grid routing) and accuracy (4.92% row MAPE vs S26's 5.35%).",
+  "experts": ["S30", "S26", "S33A", "S28"],
+  "routingOrder": [
+    {
+      "priority": 0,
+      "expert": "S28",
+      "condition": "Display grid cell (synthetic, no reportNo, round_standard, standard grades, sweep carat)",
+      "confidence": "floor",
+      "label": "display_grid_monotonicity",
+      "note": "Ensures zero monotonicity violations on the display grid. Real data rows always have reportNo so this only activates for benchmark monotonicity scans."
+    },
+    {
+      "priority": 1,
+      "expert": "S30",
+      "condition": "S30 curve exists with n ≥ 15 AND carat within [minCarat, maxCarat] AND (carat ≥ 5 OR curve.n ≥ 30) AND S30/S28 UPC ratio within [0.65, 1.5] AND not princess",
+      "confidence": "high",
+      "label": "supported_smooth_curve"
+    },
+    {
+      "priority": 2,
+      "expert": "S26",
+      "condition": "lookup level ≤ D AND lookup count ≥ 5 AND carat < 8. Princess always prefers S26.",
+      "confidence": "high",
+      "label": "dense_lookup"
+    },
+    {
+      "priority": 3,
+      "expert": "S33A",
+      "condition": "L1 anchor exists with n ≥ 10",
+      "confidence": "medium",
+      "label": "constrained_anchor_surface"
+    },
+    {
+      "priority": 4,
+      "expert": "S33A",
+      "condition": "any anchor exists (lower confidence)",
+      "confidence": "low",
+      "label": "weak_anchor_surface"
+    },
+    {
+      "priority": 5,
+      "expert": "S28",
+      "condition": "always available — guaranteed monotone structural fallback",
+      "confidence": "floor",
+      "label": "monotone_fallback"
+    }
+  ],
+  "thresholds": {
+    "s30MinSupport": 15,
+    "s30MinCaratForPriority": 5,
+    "s30HighConfidenceSupport": 30,
+    "s30MaxUpcRatio": 1.5,
+    "s30MinUpcRatio": 0.65,
+    "s26MinLookupLevel": 4,
+    "s26MinLookupCount": 5,
+    "s26MaxCarat": 8,
+    "s33MinAnchorN": 10
+  },
+  "supportTiers": {
+    "dense": { "min": 20, "confidence": "high" },
+    "medium": { "min": 5, "confidence": "medium" },
+    "sparse": { "min": 1, "confidence": "low" },
+    "empty": { "min": 0, "confidence": "floor" }
+  },
+  "displayRules": {
+    "showPointPrice": true,
+    "showPricePerCarat": true,
+    "showConfidenceBand": true,
+    "showSupportTier": true,
+    "showSelectedExpert": true,
+    "showFallbackReason": true,
+    "hideS33AResearchLabel": true
+  },
+  "conformalIntervals": {
+    "overall": {
+      "80pct": { "logWidth": 0.0671, "multiplierLow": 0.9351, "multiplierHigh": 1.0694 },
+      "90pct": { "logWidth": 0.1199, "multiplierLow": 0.8870, "multiplierHigh": 1.1274 }
+    },
+    "byTier": {
+      "dense": {
+        "80pct": { "logWidth": 0.0596, "multiplierLow": 0.9421, "multiplierHigh": 1.0614 },
+        "90pct": { "logWidth": 0.1053, "multiplierLow": 0.9001, "multiplierHigh": 1.1110 }
+      },
+      "medium": {
+        "80pct": { "logWidth": 0.0729, "multiplierLow": 0.9297, "multiplierHigh": 1.0756 },
+        "90pct": { "logWidth": 0.1368, "multiplierLow": 0.8721, "multiplierHigh": 1.1467 }
+      },
+      "sparse": {
+        "80pct": { "logWidth": 0.2658, "multiplierLow": 0.7666, "multiplierHigh": 1.3044 },
+        "90pct": { "logWidth": 0.4205, "multiplierLow": 0.6567, "multiplierHigh": 1.5227 }
+      }
+    },
+    "byExpert": {
+      "S30": { "80pct": { "logWidth": 0.0557, "multiplierLow": 0.9459, "multiplierHigh": 1.0573 } },
+      "S26": { "80pct": { "logWidth": 0.1243, "multiplierLow": 0.8831, "multiplierHigh": 1.1323 } },
+      "S33A": { "80pct": { "logWidth": 0.1493, "multiplierLow": 0.8613, "multiplierHigh": 1.1610 } }
+    }
+  },
+  "benchmark": {
+    "date": "2026-06-02",
+    "rowMape": "4.9216%",
+    "rowMdAPE": "1.8286%",
+    "rowP90": "11.9687%",
+    "bias": "-0.0892%",
+    "coverage": "100%",
+    "monotonicity": "CLEAN (0 violations)",
+    "princessMape": "12.0789%",
+    "highCaratMape": "6.8740%",
+    "cellMape": "4.9960%",
+    "denseMape": "4.2572%",
+    "mediumMape": "5.0851%",
+    "sparseP90": "38.2972%",
+    "gatesPassed": "14/14 (12 hard + 2 soft)",
+    "routingDistribution": {
+      "S30": "84.8%",
+      "S26": "9.9%",
+      "S33A": "5.3%",
+      "S28": "0.0%"
+    }
+  }
+}

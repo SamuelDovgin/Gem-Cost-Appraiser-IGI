@@ -1,7 +1,7 @@
 # S28 — Monotone Parametric Trend Surface
 
-**Status:** Prototype training script added  
-**Date:** 2026-05-31  
+**Status:** Re-fit as v0.4 grade-premium monotone surface  
+**Date:** 2026-06-01  
 **Artifact:** `research/data/starsgem-ml-model-s28-monotone-parametric.json`  
 **Training source:** `research/data/dataset-clean-training.json` per [`ml-training-data-policy.md`](ml-training-data-policy.md)
 
@@ -26,12 +26,13 @@ log($/ct) =
   + learned cut modifiers
   + supported shape/cut carat interactions
   + learned dimension penalties
-  + learned row/vintage trend
 ```
 
-Prediction uses the same formula with row/vintage set to the current sheet edge,
-so old rows can teach shape, carat, and dimension relationships without pricing a
-new stone as if it were old inventory.
+Version 0.4 intentionally removes the old row/vintage term. The v0.2 live path
+set vintage to the current sheet edge while Python holdout metrics used each
+row's own vintage value, which created a large live-vs-Python parity failure.
+The current artifact keeps the single surface focused on carat, grade, shape,
+cut, growth, and dimension behavior.
 
 ---
 
@@ -96,28 +97,14 @@ for supported cuts/shapes without making larger stones cheaper per carat.
 
 ## Temporal / Rate-Card Handling
 
-The StarGem sheet contains multiple rate-card eras. Same-spec stones can differ
-by 2x mainly because old and new inventory live in the same file.
+The StarGem sheet contains multiple rate-card eras, but v0.4 does not include a
+vintage feature. That is deliberate: S28 is being judged as a single pricing
+surface, and the deployed predictor must match the artifact's reported metrics.
 
-S28 therefore includes a `vintage01` feature:
-
-```text
-vintage01 = (rowNo - minRowNo) / (maxRowNo - minRowNo)
-```
-
-During training, this absorbs rate-card drift. During current prediction, S28
-sets `vintage01 = 1`, which means "price this as current inventory." This is not
-an ensemble or a manual override; it is one learned coefficient in the surface.
-
-The trainer also includes monotone vintage hinges. That matters because the
-StarGem file is not one clean linear time decay; it has rate-card shelves. The
-hinges let the single model learn old-to-new regime changes while still forcing
-later rows to be no more expensive than earlier rows for the same spec.
-
-Current S28 training uses only clean Segment A, whose row numbers are already in
-the recent rate-card window. The vintage terms remain in the model so the same
-architecture can detect residual current-window drift, but S28 does not train on
-the full raw mixed-era `starsgem-index.json`.
+Current S28 training uses only clean Segment A from
+`dataset-clean-training.json`. If future work reintroduces temporal handling, it
+must include a live-vs-Python parity gate and should report both row-vintage and
+current-vintage metrics explicitly.
 
 ---
 

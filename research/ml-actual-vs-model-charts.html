@@ -11,9 +11,14 @@
       --line: #d8dee8;
       --surface: #fff;
       --bg: #f4f6f8;
+      --whiteProd: #dc2626;
       --s26: #176c7d;
+      --s30: #b45309;
+      --s33a: #7c3aed;
+      --s32a: #0891b2;
       --s28: #6d5bd0;
-      --s22: #b45309;
+      --s29: #0f766e;
+      --s22: #b83280;
       --lookup: #2f855a;
       --clean: #9f1239;
       --starsgem: #334155;
@@ -94,7 +99,8 @@
   <header>
     <h1>StarGem actuals vs ML estimates</h1>
     <p class="lead">
-      Continuous $/ct curves for the current champion models, overlaid on actual StarGem prices from the
+      Continuous $/ct curves for production candidates (WhiteProd vNext, S30, S33A, S32A) and baselines (S26, S28),
+      overlaid on actual StarGem prices from the
       <strong>clean training dataset</strong> and the full <strong>starsgem-index</strong> records.
       Regenerate with <code>npm run research:ml-charts</code>.
       For ladders, bucket zoom, and model guide see
@@ -111,10 +117,15 @@
     const DATA_URL = 'data/ml-actual-vs-model-charts-data.json';
 
     const STYLES = {
+      whiteProd: { color: '#dc2626', width: 3.2, dash: null,  label: 'WhiteProd vNext (routed)' },
       s26:       { color: '#176c7d', width: 2.6, dash: null,  label: 'S26 hybrid (lookup + ML)' },
-      s26Lookup: { color: '#2f855a', width: 1.8, dash: '6 4', label: 'S26 lookup only' },
-      s28:       { color: '#6d5bd0', width: 2.4, dash: null,  label: 'S28 monotone surface' },
-      s22:       { color: '#b45309', width: 1.6, dash: '4 3', label: 'S22 + S21 fallback' },
+      s30:       { color: '#b45309', width: 2.4, dash: '4 3', label: 'S30 bounded smooth' },
+      s33a:      { color: '#7c3aed', width: 2.2, dash: null,  label: 'S33A constrained anchors' },
+      s32a:      { color: '#0891b2', width: 2.0, dash: '3 2', label: 'S32A anchors' },
+      s28:       { color: '#6d5bd0', width: 2.2, dash: null,  label: 'S28 monotone surface' },
+      s26Lookup: { color: '#2f855a', width: 1.6, dash: '6 4', label: 'S26 lookup only' },
+      s29:       { color: '#0f766e', width: 1.8, dash: '2 3', label: 'S29 hybrid (research)' },
+      s22:       { color: '#b83280', width: 1.4, dash: '4 3', label: 'S22 + S21 (research)' },
       medClean:  { color: '#be123c', width: 2.0, dash: null,  label: 'Actual median (clean dataset)' },
       medSg:     { color: '#475569', width: 2.0, dash: '2 2', label: 'Actual median (StarGem index)' },
       scatterClean: { color: '#e11d48', stroke: '#9f1239', radius: 6, opacity: 0.52, strokeWidth: 1.4, label: 'Clean training rows' },
@@ -189,9 +200,14 @@
         ['scatterSg', STYLES.scatterSg],
         ['medClean', STYLES.medClean],
         ['medSg', STYLES.medSg],
+        ['whiteProd', STYLES.whiteProd],
         ['s26', STYLES.s26],
-        ['s26Lookup', STYLES.s26Lookup],
+        ['s30', STYLES.s30],
+        ['s33a', STYLES.s33a],
+        ['s32a', STYLES.s32a],
         ['s28', STYLES.s28],
+        ['s26Lookup', STYLES.s26Lookup],
+        ['s29', STYLES.s29],
         ['s22', STYLES.s22],
       ];
       return keys.map(([id, st]) => {
@@ -238,9 +254,14 @@
           { kind: 'line', ...STYLES.medClean, points: chart.medianCurves.clean || [] },
           { kind: 'line', ...STYLES.medSg, points: chart.medianCurves.starsgem || [] },
           { kind: 'line', ...STYLES.s26Lookup, points: chart.curves.s26Lookup || [] },
-          { kind: 'line', ...STYLES.s26, points: chart.curves.s26 || [] },
-          { kind: 'line', ...STYLES.s28, points: chart.curves.s28 || [] },
+          { kind: 'line', ...STYLES.s29, points: chart.curves.s29 || [] },
           { kind: 'line', ...STYLES.s22, points: chart.curves.s22 || [] },
+          { kind: 'line', ...STYLES.s28, points: chart.curves.s28 || [] },
+          { kind: 'line', ...STYLES.s32a, points: chart.curves.s32a || [] },
+          { kind: 'line', ...STYLES.s33a, points: chart.curves.s33a || [] },
+          { kind: 'line', ...STYLES.s30, points: chart.curves.s30 || [] },
+          { kind: 'line', ...STYLES.s26, points: chart.curves.s26 || [] },
+          { kind: 'line', ...STYLES.whiteProd, points: chart.curves.whiteProd || [] },
         ];
 
         const svgHost = panel.querySelector('.chart-svg');

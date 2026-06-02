@@ -27,7 +27,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 
 TRAINING_JSON = DATA_DIR / "dataset-clean-training.json"
 OUTPUT_JSON = DATA_DIR / "starsgem-ml-model-s28-monotone-parametric.json"
-MODEL_VERSION = "s28-monotone-parametric-v0.2-clean-segment-a"
+MODEL_VERSION = "s28-monotone-parametric-v0.4-grade-premium-no-vintage"
 
 RIDGE_LAMBDA = 0.018
 ITERATIONS = 6000
@@ -57,6 +57,8 @@ CLARITY_RANK = {
     "SI2": 6,
 }
 
+MAX_COLOR_RANK = max(COLOR_RANK.values())
+MAX_CLARITY_RANK = max(CLARITY_RANK.values())
 SHAPE_FALLBACK = "round"
 MAGIC_THRESHOLDS = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0]
 VINTAGE_KNOTS = [0.2, 0.4, 0.6, 0.8]
@@ -215,8 +217,8 @@ def feature_row(row, shapes, cuts, shape_interactions, cut_interactions, norms):
     values.extend([
         row["colorRank"],
         row["clarityRank"],
-        row["colorRank"] * grade_size,
-        row["clarityRank"] * grade_size,
+        (MAX_COLOR_RANK - row["colorRank"]) * grade_size,
+        (MAX_CLARITY_RANK - row["clarityRank"]) * grade_size,
         row["isHpht"],
     ])
     values.extend([1.0 if row["shape"] == shape else 0.0 for shape in shapes])
@@ -228,8 +230,7 @@ def feature_row(row, shapes, cuts, shape_interactions, cut_interactions, norms):
     for cut in cut_interactions:
         active = 1.0 if row["cut"] == cut else 0.0
         values.extend([active * value for value in carat_extra])
-    values.extend([lw_dev, table_dev, depth_dev, row["vintage01"]])
-    values.extend(vintage_basis(row["vintage01"]))
+    values.extend([lw_dev, table_dev, depth_dev])
     return values
 
 
@@ -257,11 +258,11 @@ def project(weights, names, stds):
             or "_carat_" in name
             or "_magic_" in name
             or name == "isHpht"
+            or name in ("colorPremium", "clarityPremium")
         ):
             out[idx] = max(0.0, out[idx])
         elif (
-            name in ("colorRank", "clarityRank", "colorRank_size", "clarityRank_size", "lwDev", "tableDev", "depthDev")
-            or name.startswith("vintage_")
+            name in ("colorRank", "clarityRank", "lwDev", "tableDev", "depthDev")
         ):
             out[idx] = min(0.0, out[idx])
     return out
@@ -343,7 +344,7 @@ def monotonicity_checks(weights, names, means, stds, shapes, cuts, shape_interac
     base = {
         "rowNo": 999999,
         "reportNo": "CHECK",
-        "shape": "round",
+        "shape": "round_standard",
         "cut": "ID",
         "carat": 1.0,
         "color": "D",
@@ -351,9 +352,9 @@ def monotonicity_checks(weights, names, means, stds, shapes, cuts, shape_interac
         "clarity": "IF",
         "clarityRank": 0,
         "isHpht": 0.0,
-        "lwRatio": norms.get("round", norms["_global"])["lwRatio"],
-        "tablePct": norms.get("round", norms["_global"])["tablePct"],
-        "depthPct": norms.get("round", norms["_global"])["depthPct"],
+        "lwRatio": norms.get("round_standard", norms["_global"])["lwRatio"],
+        "tablePct": norms.get("round_standard", norms["_global"])["tablePct"],
+        "depthPct": norms.get("round_standard", norms["_global"])["depthPct"],
         "vintage01": 1.0,
     }
 
@@ -383,6 +384,34 @@ def monotonicity_checks(weights, names, means, stds, shapes, cuts, shape_interac
     cvd = score(dict(base, isHpht=0.0))
     hpht = score(dict(base, isHpht=1.0))
 
+    def nondecreasing(values):
+        return all(values[i + 1] + 1e-9 >= values[i] for i in range(len(values) - 1))
+
+    def nonincreasing(values):
+        return all(values[i + 1] <= values[i] + 1e-9 for i in range(len(values) - 1))
+
+    full_grid = []
+    for color in COLOR_RANK:
+        for clarity in CLARITY_RANK:
+            prices = [
+                score(dict(
+                    base,
+                    carat=carat,
+                    color=color,
+                    colorRank=COLOR_RANK[color],
+                    clarity=clarity,
+                    clarityRank=CLARITY_RANK[clarity],
+                ))
+                for carat in carats
+            ]
+            full_grid.append({
+                "spec": f"ROUND {color} {clarity}",
+                "caratPerCtNondecreasing": nondecreasing(prices),
+                "prices": dict(zip([str(c) for c in carats], [round(v, 2) for v in prices])),
+            })
+
+    full_grid_violations = [row for row in full_grid if not row["caratPerCtNondecreasing"]]
+
     cut_curves = {}
     for cut in ["-", "ID", "EX"]:
         if cut in cuts or cut in cut_interactions or cut == base["cut"]:
@@ -391,17 +420,13 @@ def monotonicity_checks(weights, names, means, stds, shapes, cuts, shape_interac
                 [round(score(dict(base, cut=cut, carat=c)), 2) for c in carats],
             ))
 
-    def nondecreasing(values):
-        return all(values[i + 1] + 1e-9 >= values[i] for i in range(len(values) - 1))
-
-    def nonincreasing(values):
-        return all(values[i + 1] <= values[i] + 1e-9 for i in range(len(values) - 1))
-
     return {
         "caratPerCtNondecreasing": nondecreasing(carat_prices),
+        "caratPerCtNondecreasingFullGrid": len(full_grid_violations) == 0,
         "clarityBetterIsHigher": nonincreasing(clarity_prices),
         "colorBetterIsHigher": nonincreasing(color_prices),
         "hphtAtLeastCvd": hpht + 1e-9 >= cvd,
+        "fullGridCaratViolations": full_grid_violations[:10],
         "sampleRoundDIfPerCtByCarat": dict(zip([str(c) for c in carats], [round(v, 2) for v in carat_prices])),
         "sampleRoundDClarityLadderAt1ct": dict(zip(clarities, [round(v, 2) for v in clarity_prices])),
         "sampleRoundIfColorLadderAt1ct": dict(zip(colors, [round(v, 2) for v in color_prices])),
@@ -470,14 +495,12 @@ def main():
     for threshold in MAGIC_THRESHOLDS:
         label = str(threshold).replace(".", "_")
         names.extend([f"magic_approach_{label}ct", f"magic_step_{label}ct"])
-    names.extend(["colorRank", "clarityRank", "colorRank_size", "clarityRank_size", "isHpht"])
+    names.extend(["colorRank", "clarityRank", "colorPremium", "clarityPremium", "isHpht"])
     names.extend([f"shape_{shape}" for shape in shapes])
     names.extend([f"cut_{cut}" for cut in cuts])
     add_interaction_names(names, "shape", shape_interactions)
     add_interaction_names(names, "cut", cut_interactions)
-    names.extend(["lwDev", "tableDev", "depthDev", "vintage01"])
-    for knot in VINTAGE_KNOTS:
-        names.append(f"vintage_hinge_{str(knot).replace('.', '_')}")
+    names.extend(["lwDev", "tableDev", "depthDev"])
 
     train_x_raw = make_design(train, shapes, cuts, shape_interactions, cut_interactions, norms)
     holdout_x_raw = make_design(holdout, shapes, cuts, shape_interactions, cut_interactions, norms)
@@ -515,11 +538,11 @@ def main():
             "magicWeights": "threshold approach ramps and exact/above-threshold steps are projected >= 0, so the model can learn 1.9ct < 2ct and 3.9ct < 4ct without using a smooth-only equation.",
             "clarity": "clarityRank coefficient is projected <= 0, so worse clarity cannot increase price.",
             "color": "colorRank coefficient is projected <= 0, so worse white color cannot increase price.",
-            "gradeSizeInteractions": "colorRank_size and clarityRank_size are projected <= 0, so grade premiums can grow with carat without inverting.",
+            "gradeSizeInteractions": "colorPremium and clarityPremium use (worst rank - grade rank) * log1p(carat) and are projected >= 0, so better-grade premiums can grow with carat without making worse grades cheaper as size rises.",
             "growth": "HPHT coefficient is projected >= 0, so HPHT cannot price below CVD.",
             "shapeAndCutCaratInteractions": "Supported shapes and cuts receive nonnegative extra carat/magic-weight terms, so carat scarcity can differ by cut/shape without breaking global monotonicity.",
             "dimensions": "shape-normalized L/W, table, and depth deviations are projected <= 0.",
-            "vintage": "vintage and vintage hinges are projected <= 0, so later/current rate cards can be learned as lower without oscillating.",
+            "vintage": "Disabled in v0.4 so live predictions and training metrics use the same surface instead of forcing every deployed prediction to the current-row edge.",
         },
         "featureNames": names,
         "featureMeans": [round(float(v), 10) for v in means],
@@ -540,7 +563,7 @@ def main():
             "holdoutByCaratBucket": group_metrics(holdout, holdout_logs, lambda r: carat_bucket(r["carat"])),
         },
         "monotonicityChecks": checks,
-        "caveat": "Prototype uses a linear constrained surface with ridge shrinkage. It is meant to test the single-surface monotone approach before browser deployment.",
+            "caveat": "Prototype uses a linear constrained surface with ridge shrinkage. It is meant to test the single-surface monotone approach before browser deployment.",
     }
 
     OUTPUT_JSON.write_text(json.dumps(model, indent=2) + "\n")

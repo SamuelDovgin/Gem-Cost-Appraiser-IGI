@@ -1,0 +1,106 @@
+{
+  "date": "2026-06-01",
+  "models": {
+    "s29": {
+      "n": 5225,
+      "mape": 17.8013,
+      "mdape": 7.7586,
+      "p90ape": 23.6327,
+      "biasPct": 8.036
+    },
+    "s28": {
+      "n": 5225,
+      "mape": 17.8013,
+      "mdape": 7.7586,
+      "p90ape": 23.6327,
+      "biasPct": 8.036
+    },
+    "s26": {
+      "n": 5225,
+      "mape": 5.2344,
+      "mdape": 2.0062,
+      "p90ape": 13.9848,
+      "biasPct": -1.0779
+    }
+  },
+  "supportTierBreakdown": {
+    "s29": {
+      "dense": {
+        "n": 4611,
+        "mape": 9.4204,
+        "mdape": 7.3466,
+        "p90ape": 22.0671,
+        "biasPct": 1.097
+      },
+      "medium": {
+        "n": 467,
+        "mape": 14.7744,
+        "mdape": 11.1122,
+        "p90ape": 29.5275,
+        "biasPct": -6.4084
+      },
+      "sparse": {
+        "n": 147,
+        "mape": 290.3058,
+        "mdape": 14.4365,
+        "p90ape": 32.8135,
+        "biasPct": 271.584
+      }
+    },
+    "s28": {
+      "dense": {
+        "n": 4611,
+        "mape": 9.4204,
+        "mdape": 7.3466,
+        "p90ape": 22.0671,
+        "biasPct": 1.097
+      },
+      "medium": {
+        "n": 467,
+        "mape": 14.7744,
+        "mdape": 11.1122,
+        "p90ape": 29.5275,
+        "biasPct": -6.4084
+      },
+      "sparse": {
+        "n": 147,
+        "mape": 290.3058,
+        "mdape": 14.4365,
+        "p90ape": 32.8135,
+        "biasPct": 271.584
+      }
+    },
+    "s26": {
+      "dense": {
+        "n": 4611,
+        "mape": 4.8882,
+        "mdape": 2.0596,
+        "p90ape": 13.52,
+        "biasPct": -0.7817
+      },
+      "medium": {
+        "n": 467,
+        "mape": 7.6949,
+        "mdape": 1.5627,
+        "p90ape": 24.9983,
+        "biasPct": -2.8055
+      },
+      "sparse": {
+        "n": 147,
+        "mape": 8.2775,
+        "mdape": 0.9615,
+        "p90ape": 28.5012,
+        "biasPct": -4.8795
+      }
+    }
+  },
+  "decisionRule": {
+    "rule1_denseMatchHeldout": false,
+    "rule1b_beatS26InCellDense": false,
+    "rule2_zeroMonoViolations": false,
+    "rule3_continuousCarat": true,
+    "rule5_beatS28Sparse": false,
+    "totalPassedCore": 1,
+    "totalCoreRules": 4
+  }
+}

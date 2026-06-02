@@ -98,11 +98,16 @@
     const DATA_URL = 'data/ml-model-explainer-data.json';
 
     const DEFAULT_STYLES = {
+      whiteProd: { color: '#dc2626', width: 3.2, dash: null },
       s26: { color: '#176c7d', width: 2.5, dash: null },
-      s26Lookup: { color: '#2f855a', width: 2, dash: '6 4' },
-      s28: { color: '#6d5bd0', width: 2.4, dash: null },
-      s22: { color: '#b45309', width: 1.6, dash: '4 3' },
-      s23: { color: '#c2410c', width: 1.5, dash: '2 4' },
+      s30: { color: '#b45309', width: 2.4, dash: '4 3' },
+      s33a: { color: '#7c3aed', width: 2.2, dash: null },
+      s32a: { color: '#0891b2', width: 2, dash: '3 2' },
+      s28: { color: '#6d5bd0', width: 2.2, dash: null },
+      s26Lookup: { color: '#2f855a', width: 1.8, dash: '6 4' },
+      s29: { color: '#0f766e', width: 1.8, dash: '2 3' },
+      s22: { color: '#b83280', width: 1.4, dash: '4 3' },
+      s23: { color: '#c2410c', width: 1.4, dash: '2 4' },
       cleanSmooth: { color: '#be123c', width: 2, dash: null },
       clean: { color: '#e11d48', width: 1.5, dash: '2 2' },
       starsgem: { color: '#94a3b8', width: 1.2, dash: '1 3' },
@@ -222,10 +227,15 @@
         { kind: 'scatter', color: '#64748b', stroke: '#334155', radius: 5.5, opacity: 0.42, strokeWidth: 1.2, points: sec.scatter?.starsgem || [] },
         { kind: 'line', ...DEFAULT_STYLES.cleanSmooth, points: sec.medianCurves?.cleanSmooth || [] },
         { kind: 'line', ...DEFAULT_STYLES.s26Lookup, points: curves.s26Lookup || [] },
-        { kind: 'line', ...DEFAULT_STYLES.s28, points: curves.s28 || [] },
-        { kind: 'line', ...DEFAULT_STYLES.s26, points: curves.s26 || [] },
-        { kind: 'line', ...DEFAULT_STYLES.s22, points: curves.s22 || [] },
         { kind: 'line', ...DEFAULT_STYLES.s23, points: curves.s23 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s22, points: curves.s22 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s29, points: curves.s29 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s28, points: curves.s28 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s32a, points: curves.s32a || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s33a, points: curves.s33a || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s30, points: curves.s30 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s26, points: curves.s26 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.whiteProd, points: curves.whiteProd || [] },
       ];
 
       renderSvg(el.querySelector('.chart-wrap'), {
@@ -237,7 +247,8 @@
       });
 
       el.querySelector('.legend').innerHTML = legendFrom(legend, [
-        'cleanScatter', 'starsgemScatter', 'cleanSmooth', 's26Lookup', 's28', 's26', 's22', 's23',
+        'cleanScatter', 'starsgemScatter', 'cleanSmooth', 'whiteProd', 's26', 's30', 's33a', 's32a', 's28',
+        's26Lookup', 's29', 's22', 's23',
       ]);
       return el;
     }
@@ -250,17 +261,24 @@
       const curves = sec.curves || {};
       const series = [
         { kind: 'line', ...DEFAULT_STYLES.s26Lookup, points: curves.s26Lookup || [] },
-        { kind: 'line', ...DEFAULT_STYLES.s28, points: curves.s28 || [] },
-        { kind: 'line', ...DEFAULT_STYLES.s26, points: curves.s26 || [] },
-        { kind: 'line', ...DEFAULT_STYLES.s22, points: curves.s22 || [] },
         { kind: 'line', ...DEFAULT_STYLES.s23, points: curves.s23 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s22, points: curves.s22 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s29, points: curves.s29 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s28, points: curves.s28 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s32a, points: curves.s32a || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s33a, points: curves.s33a || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s30, points: curves.s30 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.s26, points: curves.s26 || [] },
+        { kind: 'line', ...DEFAULT_STYLES.whiteProd, points: curves.whiteProd || [] },
       ];
       renderSvg(el.querySelector('.chart-wrap'), {
         series,
         xCategories: sec.labels,
         yLabel: sec.yLabel || '$/ct',
       });
-      el.querySelector('.legend').innerHTML = legendFrom(legend, ['s26Lookup', 's28', 's26', 's22', 's23']);
+      el.querySelector('.legend').innerHTML = legendFrom(legend, [
+        'whiteProd', 's26', 's30', 's33a', 's32a', 's28', 's26Lookup', 's29', 's22', 's23',
+      ]);
       return el;
     }
 
@@ -269,10 +287,10 @@
       el.className = 'panel';
       el.id = sec.id;
       let html = `<h2>${sec.title}</h2><p class="sub">${sec.subtitle || ''}</p><table class="data"><thead><tr>
-        <th>carat</th><th>carat_bucket</th><th>lookup $/ct</th><th>S28 $/ct</th><th>S26 hybrid $/ct</th>
+        <th>carat</th><th>bucket</th><th>WhiteProd</th><th>S30</th><th>S33A</th><th>S28</th><th>lookup</th><th>S26</th>
       </tr></thead><tbody>`;
       for (const r of sec.rows || []) {
-        html += `<tr><td>${r.carat}</td><td>${r.bucket}</td><td>${r.lookupUpc ?? '—'}</td><td>${r.s28Upc ?? '—'}</td><td>${r.s26Upc ?? '—'}</td></tr>`;
+        html += `<tr><td>${r.carat}</td><td>${r.bucket}</td><td>${r.whiteProdUpc ?? '—'}</td><td>${r.s30Upc ?? '—'}</td><td>${r.s33aUpc ?? '—'}</td><td>${r.s28Upc ?? '—'}</td><td>${r.lookupUpc ?? '—'}</td><td>${r.s26Upc ?? '—'}</td></tr>`;
       }
       html += '</tbody></table>';
       el.innerHTML = html;

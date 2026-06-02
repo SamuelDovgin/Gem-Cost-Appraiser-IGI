@@ -45,7 +45,10 @@ function caratChart(id, title, subtitle, spec, minCt, maxCt, step, extras = {}) 
   const carats = caratRange(minCt, maxCt, step);
   const { curves, meta } = pred.curveUpc(spec, carats);
   const actuals = collectActuals(engine, spec, maxCt);
-  const cleanMed = binnedMedian(actuals.clean);
+  const inWindow = points => points.filter(p => p.x >= minCt - step / 2 && p.x <= maxCt + step / 2);
+  const cleanWindow = inWindow(actuals.clean);
+  const starsgemWindow = inWindow(actuals.starsgem);
+  const cleanMed = binnedMedian(cleanWindow);
   const cleanSmooth = rollingMedian(cleanMed, Math.max(step * 3, 0.15));
 
   return {
@@ -62,35 +65,45 @@ function caratChart(id, title, subtitle, spec, minCt, maxCt, step, extras = {}) 
     lookupMeta: meta,
     vlines: extras.vlines || [],
     scatter: {
-      clean: samplePoints(actuals.clean, 800),
-      starsgem: samplePoints(actuals.starsgem, 800),
+      clean: samplePoints(cleanWindow, 800),
+      starsgem: samplePoints(starsgemWindow, 800),
     },
     medianCurves: {
       clean: cleanMed,
       cleanSmooth,
-      starsgem: binnedMedian(actuals.starsgem),
+      starsgem: binnedMedian(starsgemWindow),
     },
     counts: {
-      clean: actuals.clean.length,
-      starsgem: actuals.starsgem.length,
+      clean: cleanWindow.length,
+      starsgem: starsgemWindow.length,
     },
   };
 }
 
+function pushLadderPoint(curves, x, p, carat, label) {
+  if (!p) return;
+  if (p.whiteProd?.upc > 0) curves.whiteProd.push({ x, y: p.whiteProd.upc, label });
+  if (p.s26?.upc > 0) curves.s26.push({ x, y: p.s26.upc, label });
+  if (p.s28?.upc > 0) curves.s28.push({ x, y: p.s28.upc, label });
+  if (p.s29?.upc > 0) curves.s29.push({ x, y: p.s29.upc, label });
+  if (p.s30?.upc > 0) curves.s30.push({ x, y: p.s30.upc, label });
+  if (p.s32a?.upc > 0) curves.s32a.push({ x, y: p.s32a.upc, label });
+  if (p.s33a?.upc > 0) curves.s33a.push({ x, y: p.s33a.upc, label });
+  if (p.s22?.price > 0) curves.s22.push({ x, y: p.s22.price / carat, label });
+  if (p.lookup?.upc > 0) curves.s26Lookup.push({ x, y: p.lookup.upc, label });
+}
+
 function ladderChart(id, title, subtitle, spec, carat, axis, labels) {
-  const curves = { s26: [], s28: [], s22: [], s26Lookup: [] };
+  const curves = {
+    whiteProd: [], s26: [], s28: [], s29: [], s30: [], s32a: [], s33a: [], s22: [], s26Lookup: [],
+  };
   for (let i = 0; i < labels.length; i++) {
     const label = labels[i];
     const overrides = { carat };
     if (axis === 'clarity') overrides.clarity = label;
     else overrides.color = label;
 
-    const p = pred.predictAll(spec, overrides);
-    const x = i;
-    if (p.s26?.upc > 0) curves.s26.push({ x, y: p.s26.upc, label });
-    if (p.s28?.upc > 0) curves.s28.push({ x, y: p.s28.upc, label });
-    if (p.s22?.price > 0) curves.s22.push({ x, y: p.s22.price / carat, label });
-    if (p.lookup?.upc > 0) curves.s26Lookup.push({ x, y: p.lookup.upc, label });
+    pushLadderPoint(curves, i, pred.predictAll(spec, overrides), carat, label);
   }
   return {
     type: 'ladder',
@@ -107,7 +120,9 @@ function ladderChart(id, title, subtitle, spec, carat, axis, labels) {
 
 function shapeFanChart(id, title, carat, color, clarity) {
   const labels = SHAPE_FAN;
-  const curves = { s26: [], s28: [], s26Lookup: [] };
+  const curves = {
+    whiteProd: [], s26: [], s28: [], s29: [], s30: [], s32a: [], s33a: [], s22: [], s26Lookup: [],
+  };
   for (let i = 0; i < labels.length; i++) {
     const shape = labels[i];
     const spec = {
@@ -119,10 +134,13 @@ function shapeFanChart(id, title, carat, color, clarity) {
       shapeStyle: `${shape}_STANDARD`,
       carat,
     };
-    const p = pred.predictAll(spec, { shape, shapeStyle: `${shape}_STANDARD`, carat });
-    if (p.s26?.upc > 0) curves.s26.push({ x: i, y: p.s26.upc, label: shape });
-    if (p.s28?.upc > 0) curves.s28.push({ x: i, y: p.s28.upc, label: shape });
-    if (p.lookup?.upc > 0) curves.s26Lookup.push({ x: i, y: p.lookup.upc, label: shape });
+    pushLadderPoint(
+      curves,
+      i,
+      pred.predictAll(spec, { shape, shapeStyle: `${shape}_STANDARD`, carat }),
+      carat,
+      shape,
+    );
   }
   return {
     type: 'ladder',
@@ -139,17 +157,18 @@ function shapeFanChart(id, title, carat, color, clarity) {
 function growthChart(id, carat) {
   const spec = { ...BASE_SPEC, carat };
   const types = ['CVD', 'HPHT'];
-  const curves = { s28: [] };
+  const curves = { s28: [], s29: [] };
   const labels = types;
   for (let i = 0; i < types.length; i++) {
     const p = pred.predictAll(spec, { typeName: types[i], carat });
     if (p.s28?.upc > 0) curves.s28.push({ x: i, y: p.s28.upc, label: types[i] });
+    if (p.s29?.upc > 0) curves.s29.push({ x: i, y: p.s29.upc, label: types[i] });
   }
   return {
     type: 'ladder',
     id,
     title: `Growth method · ${carat}ct ROUND E VS1`,
-    subtitle: 'S28 enforces HPHT ≥ CVD for the same spec',
+    subtitle: 'S28/S29 enforce HPHT ≥ CVD for the same spec',
     axis: 'growth',
     labels,
     yLabel: '$/ct',
@@ -167,6 +186,11 @@ const sections = [
       'S26 hybrid — log-space blend of lookup + S22 + S23 (offline charts omit live comps). Production champion for dense cells.',
       'S22 / S23 — ExtraTrees / LightGBM on lookup residuals + large-carat tail. Piecewise within leaves; good locally, not a global smooth law.',
       'S28 — single monotone log($/ct) surface in carat, grades, shape, magic weights. Target continuous pricing law (see continuous-pricing-surface-principles.md).',
+      'S29 — S28 surface + empirical-Bayes cell anchors + cut-tier offsets + shrunk monotone LightGBM residual. Research scaffold; fails the current S26 replacement rule.',
+      'S30 — bounded smooth clean-median curves. Primary router expert for supported high-carat cells.',
+      'S33A — S28 surface + constrained hierarchical anchors for transfer/sparse cells.',
+      'S32A — S28 + anchor offsets (benchmark expert; not in the live router).',
+      'WhiteProd vNext — production candidate: routes S30 → S26 lookup → S33A → S28 fallback. Thick red line on charts below.',
     ],
   },
 
@@ -323,7 +347,11 @@ const sections = [
         carat,
         bucket: p.bucket,
         lookupUpc: p.lookup?.upc ? Math.round(p.lookup.upc * 100) / 100 : null,
+        whiteProdUpc: p.whiteProd?.upc ? Math.round(p.whiteProd.upc * 100) / 100 : null,
         s28Upc: p.s28?.upc ? Math.round(p.s28.upc * 100) / 100 : null,
+        s29Upc: p.s29?.upc ? Math.round(p.s29.upc * 100) / 100 : null,
+        s30Upc: p.s30?.upc ? Math.round(p.s30.upc * 100) / 100 : null,
+        s33aUpc: p.s33a?.upc ? Math.round(p.s33a.upc * 100) / 100 : null,
         s26Upc: p.s26?.upc ? Math.round(p.s26.upc * 100) / 100 : null,
       };
     }),
@@ -336,10 +364,15 @@ const payload = {
   bucketEdges: CARAT_BUCKET_EDGES,
   magicWeights: MAGIC_WEIGHT_LINES,
   modelLegend: {
-    s26: { label: 'S26 hybrid', color: '#176c7d', desc: 'Lookup + S22/S23 blend (no comps in offline chart)' },
+    whiteProd: { label: 'WhiteProd vNext (routed)', color: '#dc2626', desc: 'Production candidate — S30 → S26 → S33A → S28' },
+    s26: { label: 'S26 hybrid', color: '#176c7d', desc: 'Current production champion — lookup + S22/S23 blend' },
+    s30: { label: 'S30 bounded smooth median', color: '#b45309', dash: '4 3', desc: 'Smooth clean-median curves (router expert)' },
+    s33a: { label: 'S33A constrained anchors', color: '#7c3aed', desc: 'S28 + hierarchical anchors (router expert)' },
+    s32a: { label: 'S32A anchors', color: '#0891b2', dash: '3 2', desc: 'S28 + anchor offsets (benchmark expert)' },
+    s28: { label: 'S28 monotone surface', color: '#6d5bd0', desc: 'Continuous parametric $/ct (router fallback)' },
     s26Lookup: { label: 'S26 lookup only', color: '#2f855a', dash: '6 4', desc: 'Carat-bucket table — piecewise constant' },
-    s28: { label: 'S28 monotone surface', color: '#6d5bd0', desc: 'Continuous parametric $/ct' },
-    s22: { label: 'S22 + S21', color: '#b45309', dash: '4 3', desc: 'Tree ensemble residual' },
+    s29: { label: 'S29 hybrid (anchor + residual)', color: '#0f766e', desc: 'S28 + EB cell anchor + shrunk LGBM residual' },
+    s22: { label: 'S22 + S21', color: '#b83280', dash: '4 3', desc: 'Tree ensemble residual' },
     s23: { label: 'S23 + S21', color: '#c2410c', dash: '2 4', desc: 'Monotone LightGBM (shown on ladders when present)' },
     cleanSmooth: { label: 'Clean actual (smooth median)', color: '#be123c', desc: 'Rolling median of clean training $/ct' },
     cleanScatter: { label: 'Clean training rows', color: '#9f1239' },

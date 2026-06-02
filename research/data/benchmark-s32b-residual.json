@@ -1,0 +1,56 @@
+{
+  "date": "2026-06-02",
+  "model": "s32b-residual-v0.1",
+  "phase": "S32-B",
+  "hyperparameters": {
+    "r_min": 10,
+    "K_resid": 15,
+    "R_cap": 0.15,
+    "cb_iterations": 1200,
+    "cb_learning_rate": 0.02,
+    "cb_depth": 4,
+    "cb_l2_leaf_reg": 10,
+    "cb_random_strength": 2
+  },
+  "features": {
+    "numeric": [
+      "log_carat",
+      "color_goodness",
+      "clarity_goodness",
+      "lw_ratio",
+      "table_pct",
+      "depth_pct",
+      "anchor_level",
+      "n_full",
+      "anchor_n"
+    ],
+    "categorical": [
+      "shape_style",
+      "cut_grade",
+      "typeName"
+    ]
+  },
+  "metrics": {
+    "train_mae": 0.04089293773630477,
+    "val_mae": 0.044376390347626665,
+    "train_mape_on_residual": 302.9247990522031,
+    "val_mape_on_residual": 165.80118356074928,
+    "train_corr": 0.6401886595270809,
+    "val_corr": 0.5896705702057528,
+    "pct_capped": 3.455855415801685
+  },
+  "feature_importance": {
+    "log_carat": 37.125191949666785,
+    "color_goodness": 2.449732342338895,
+    "clarity_goodness": 4.488046016476367,
+    "lw_ratio": 7.021470997830645,
+    "table_pct": 2.9502730933754724,
+    "depth_pct": 5.275226817735968,
+    "anchor_level": 0.0,
+    "n_full": 13.76025543728686,
+    "anchor_n": 10.251055563924057,
+    "shape_style": 6.158497679443287,
+    "cut_grade": 3.6637692700088516,
+    "typeName": 6.856480831912792
+  }
+}

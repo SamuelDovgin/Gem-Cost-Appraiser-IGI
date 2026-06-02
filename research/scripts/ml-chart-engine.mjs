@@ -5,6 +5,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createHash } from 'crypto';
 import {
   buildStarsgemRow,
   predictStarsgemMl,
@@ -12,6 +13,14 @@ import {
   starsgemCaratBucket,
 } from './starsgem-ml-predict.mjs';
 import { predictS28 } from './s28-predict.mjs';
+import { buildS29Row, predictS29, s29BenchmarkCellKey } from './s29-predict.mjs';
+import { predictS30 } from './s30-predict.mjs';
+import { predictS32 } from './s32-predict.mjs';
+import {
+  loadWhiteProdVNext,
+  predictWhiteProdVNext,
+  predictS33A,
+} from './predict-white-prod-vnext.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA = path.resolve(__dirname, '../data');
@@ -21,6 +30,11 @@ export const COLOR_LADDER = ['D', 'E', 'F', 'G', 'H', 'I', 'J'];
 export const SHAPE_FAN = ['ROUND', 'PEAR', 'OVAL', 'MARQUISE', 'EMERALD', 'PRINCESS', 'HEART', 'RADIANT'];
 export const CARAT_BUCKET_EDGES = [0.3, 0.5, 0.7, 0.9, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 10.0];
 export const MAGIC_WEIGHT_LINES = [1, 1.5, 2, 3, 4, 5, 10, 20];
+
+/** Curves shown on comparison charts (production path + baselines). */
+export const PRODUCTION_CURVE_KEYS = ['whiteProd', 's26', 's30', 's33a', 's32a', 's28'];
+/** Research / reference curves (lighter in legends). */
+export const RESEARCH_CURVE_KEYS = ['s26Lookup', 's29', 's22', 's23'];
 
 let _cache = null;
 
@@ -33,6 +47,11 @@ export function loadChartEngine() {
     s23: loadJson('starsgem-ml-extra-trees-model-s23-grade-agnostic-anchor.json'),
     s26: loadJson('starsgem-ml-model-s26-champion.json'),
     s28: loadJson('starsgem-ml-model-s28-monotone-parametric.json'),
+    s29: loadJson('starsgem-ml-model-s29-hybrid.json'),
+    s30: loadJson('starsgem-ml-model-s30-bounded-smooth.json'),
+    s32a: loadJson('starsgem-ml-model-s32a-anchors.json'),
+    s33a: loadJson('starsgem-ml-model-s33a-constrained-anchors.json'),
+    whiteProd: loadWhiteProdVNext(),
     intel: loadJson('starsgem-pricing-intelligence.json'),
     cleanRows: loadJson('dataset-clean-training.json'),
     starsgemRecords: loadJson('starsgem-index.json').records || [],
@@ -116,8 +135,40 @@ export function rawSpec(spec, carat) {
   };
 }
 
+/** Row shape for routed predictors — avoids display-grid heuristic on chart sweeps. */
+export function chartPricingRow(spec, carat, row) {
+  const raw = rawSpec(spec, carat);
+  return {
+    ...raw,
+    carat,
+    shape_style: String(raw.shape_style || '').toLowerCase(),
+    polish: row?.Polish ?? 'EX',
+    symmetry: row?.Symmetry ?? 'EX',
+    reportNo: '__chart__',
+    lw_ratio: 1.0,
+    table_pct: 57,
+    depth_pct: 61,
+  };
+}
+
 export function createPredictors(engine) {
-  const { s20, s21, s23, s26, s28, intel } = engine;
+  const { s20, s21, s23, s26, s28, s29, s30, s32a, s33a, whiteProd, intel } = engine;
+  const trainBenchmarkCells = (() => {
+    if (!s29 || !engine.cleanRows) return null;
+    const holdoutFrac = Number(s29.configuration?.cellHoldoutFrac ?? 0.2);
+    const cells = new Set();
+    for (const row of engine.cleanRows) {
+      const key = s29BenchmarkCellKey({
+        carat: row.carat,
+        shape_style: row.shape_style,
+        color: row.color,
+        clarity: row.clarity,
+      });
+      const h = Number(BigInt(`0x${createHash('md5').update(key).digest('hex')}`) % 1000n);
+      if (h / 1000 >= holdoutFrac) cells.add(key);
+    }
+    return cells;
+  })();
 
   function s26LookupPrediction(raw, row) {
     const carat = Number(raw.carat);
@@ -295,8 +346,33 @@ export function createPredictors(engine) {
     const lookup = s26LookupPrediction(raw, row);
     const s26h = predictS26Hybrid(row, raw);
     const s28p = predictS28({ ...row, shape_style: merged.shapeStyle?.toLowerCase() }, s28);
+    const s29Row = buildS29Row({
+      carat,
+      shape_style: merged.shapeStyle?.toLowerCase() || raw.shape_style,
+      color: raw.color,
+      clarity: raw.clarity,
+      cut_raw: raw.cut_raw,
+      typeName: raw.typeName,
+      polish: row.Polish,
+      symmetry: row.Symmetry,
+    });
+    const s29p = predictS29(s29Row, s29, { trainBenchmarkCells });
+    const s30p = predictS30({
+      carat,
+      shape_style: merged.shapeStyle?.toLowerCase() || raw.shape_style,
+      color: raw.color,
+      clarity: raw.clarity,
+      cut_raw: raw.cut_raw,
+      typeName: raw.typeName,
+      polish: row.Polish,
+      symmetry: row.Symmetry,
+    }, s30);
     const s22p = s22Prediction(row);
     const s23p = s23Prediction(row);
+    const pricingRow = chartPricingRow(merged, carat, row);
+    const s33p = predictS33A(pricingRow, s33a);
+    const s32p = predictS32(pricingRow, s32a);
+    const wp = predictWhiteProdVNext(pricingRow, whiteProd);
 
     return {
       carat,
@@ -304,23 +380,56 @@ export function createPredictors(engine) {
       lookup,
       s26: s26h,
       s28: s28p,
+      s29: s29p,
+      s30: s30p,
+      s32a: s32p,
+      s33a: s33p,
+      whiteProd:
+        wp?.pricePerCarat > 0
+          ? { price: wp.price, upc: wp.pricePerCarat, expert: wp.selectedExpert }
+          : null,
       s22: s22p,
       s23: s23p,
     };
   }
 
+  function emptyCurves() {
+    return {
+      whiteProd: [],
+      s26: [],
+      s28: [],
+      s29: [],
+      s30: [],
+      s32a: [],
+      s33a: [],
+      s22: [],
+      s23: [],
+      s26Lookup: [],
+    };
+  }
+
+  function appendCurvePoints(curves, carat, p) {
+    if (!p) return;
+    if (p.whiteProd?.upc > 0) curves.whiteProd.push({ x: carat, y: p.whiteProd.upc });
+    if (p.s26?.upc > 0) curves.s26.push({ x: carat, y: p.s26.upc });
+    if (p.s28?.upc > 0) curves.s28.push({ x: carat, y: p.s28.upc });
+    if (p.s29?.upc > 0) curves.s29.push({ x: carat, y: p.s29.upc });
+    if (p.s30?.upc > 0) curves.s30.push({ x: carat, y: p.s30.upc });
+    if (p.s32a?.upc > 0) curves.s32a.push({ x: carat, y: p.s32a.upc });
+    if (p.s33a?.upc > 0) curves.s33a.push({ x: carat, y: p.s33a.upc });
+    if (p.s22?.price > 0) curves.s22.push({ x: carat, y: p.s22.price / carat });
+    if (p.s23?.price > 0) curves.s23.push({ x: carat, y: p.s23.price / carat });
+    if (p.lookup?.upc > 0) curves.s26Lookup.push({ x: carat, y: p.lookup.upc });
+  }
+
   function curveUpc(spec, carats) {
-    const curves = { s26: [], s28: [], s22: [], s23: [], s26Lookup: [] };
+    const curves = emptyCurves();
     const meta = [];
     for (const carat of carats) {
       const p = predictAll({ ...spec, carat });
       if (!p) continue;
-      if (p.s26?.upc > 0) curves.s26.push({ x: carat, y: p.s26.upc });
-      if (p.s28?.upc > 0) curves.s28.push({ x: carat, y: p.s28.upc });
-      if (p.s22?.price > 0) curves.s22.push({ x: carat, y: p.s22.price / carat });
-      if (p.s23?.price > 0) curves.s23.push({ x: carat, y: p.s23.price / carat });
+      appendCurvePoints(curves, carat, p);
       if (p.lookup?.upc > 0) {
-        curves.s26Lookup.push({ x: carat, y: p.lookup.upc });
         meta.push({
           x: carat,
           bucket: p.bucket,
@@ -333,11 +442,17 @@ export function createPredictors(engine) {
   }
 
   function curveTotalPrice(spec, carats) {
-    const curves = { s26: [], s28: [], s26Lookup: [] };
+    const curves = emptyCurves();
     for (const carat of carats) {
       const p = predictAll({ ...spec, carat });
+      if (!p) continue;
+      if (p.whiteProd?.price > 0) curves.whiteProd.push({ x: carat, y: p.whiteProd.price });
       if (p.s26?.price > 0) curves.s26.push({ x: carat, y: p.s26.price });
       if (p.s28?.price > 0) curves.s28.push({ x: carat, y: p.s28.price });
+      if (p.s29?.price > 0) curves.s29.push({ x: carat, y: p.s29.price });
+      if (p.s30?.price > 0) curves.s30.push({ x: carat, y: p.s30.price });
+      if (p.s32a?.price > 0) curves.s32a.push({ x: carat, y: p.s32a.price });
+      if (p.s33a?.price > 0) curves.s33a.push({ x: carat, y: p.s33a.price });
       if (p.lookup?.price > 0) curves.s26Lookup.push({ x: carat, y: p.lookup.price });
     }
     return curves;

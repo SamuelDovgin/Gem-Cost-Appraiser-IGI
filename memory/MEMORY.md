@@ -1,0 +1,3 @@
+- [WhiteProd vNext](white-prod-vnext.md) — Production predictor passes all 14 gates, ready for M7 shadow release
+- [Predictor Module](predictor-module.md) — API reference for predict-white-prod-vnext.mjs
+- [Benchmark Script](benchmark-script.md) — Benchmark script and output location

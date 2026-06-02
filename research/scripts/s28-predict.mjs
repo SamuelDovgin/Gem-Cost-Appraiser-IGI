@@ -7,6 +7,8 @@ import { starsgemNorm } from './starsgem-ml-predict.mjs';
 
 const S28_COLOR_RANK = { D: 0, E: 1, F: 2, G: 3, H: 4, I: 5, J: 6, K: 7 };
 const S28_CLARITY_RANK = { IF: 0, VVS1: 1, VVS: 1.5, VVS2: 2, VS1: 3, VS: 3.5, VS2: 4, SI1: 5, SI2: 6 };
+const S28_MAX_COLOR_RANK = 7;
+const S28_MAX_CLARITY_RANK = 6;
 const S28_MAGIC_THRESHOLDS = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0];
 const S28_VINTAGE_KNOTS = [0.2, 0.4, 0.6, 0.8];
 
@@ -29,6 +31,10 @@ function s28FeatureKey(value) {
   return String(value).replace(/-/g, 'minus').replace(/\./g, '_');
 }
 
+function s28ThresholdLabel(value) {
+  return Number.isInteger(value) ? value.toFixed(1).replace('.', '_') : String(value).replace('.', '_');
+}
+
 function s28CaratBasis(carat) {
   const logCt = Math.log(carat);
   return {
@@ -43,7 +49,7 @@ function s28CaratBasis(carat) {
 function s28MagicBasis(carat) {
   const out = {};
   for (const threshold of S28_MAGIC_THRESHOLDS) {
-    const label = String(threshold).replace('.', '_');
+    const label = s28ThresholdLabel(threshold);
     const window = Math.min(0.25, threshold * 0.12);
     const rampStart = Math.max(0, threshold - window);
     let approach = 0;
@@ -58,7 +64,7 @@ function s28MagicBasis(carat) {
   return out;
 }
 
-function s28FeatureValue(name, row, model) {
+export function s28FeatureValue(name, row, model) {
   if (name === 'intercept') return 1;
   const carat = Number(row?.Carat ?? row?.carat);
   if (!Number.isFinite(carat) || carat <= 0) return 0;
@@ -75,6 +81,8 @@ function s28FeatureValue(name, row, model) {
   if (Number.isFinite(baseValue)) return baseValue;
   if (name === 'colorRank') return colorRank;
   if (name === 'clarityRank') return clarityRank;
+  if (name === 'colorPremium') return (S28_MAX_COLOR_RANK - colorRank) * gradeSize;
+  if (name === 'clarityPremium') return (S28_MAX_CLARITY_RANK - clarityRank) * gradeSize;
   if (name === 'colorRank_size') return colorRank * gradeSize;
   if (name === 'clarityRank_size') return clarityRank * gradeSize;
   if (name === 'isHpht') return starsgemNorm(row?.TypeName ?? row?.typeName ?? row?.growthMethod) === 'HPHT' ? 1 : 0;

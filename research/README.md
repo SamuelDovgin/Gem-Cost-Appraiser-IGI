@@ -4,8 +4,10 @@ This folder keeps supporting research and capture tooling out of the published a
 
 ## Start here (white-diamond ML)
 
-- **[`white-diamond-ml-pricing-research-report.md`](white-diamond-ml-pricing-research-report.md)** — consolidated report: cleaned dataset (schema, quarantine, target estimand), full model history (S7–S28), constraints, chart evidence, and candidate “something better” architectures.
+- **[`latest-models-comprehensive-evaluation-report.md`](latest-models-comprehensive-evaluation-report.md)** — multi-split evaluation of S26, S28, S29, S30, S31 (MAPE by holdout type, per-model recommendations, literature).
+- **[`white-diamond-ml-pricing-research-report.md`](white-diamond-ml-pricing-research-report.md)** — consolidated report: cleaned dataset, full model history (S7–S31), S28 v0.4 re-fit, production decision, constraints, comprehensive benchmarks, and tiered hybrid architecture.
 - **[`white-diamond-ml-pricing-improvement-plan.md`](white-diamond-ml-pricing-improvement-plan.md)** — highest-value implementation order for the anchor + fixed S28 surface + shrunk residual direction.
+- **[`S30-bounded-smooth-median-prototype.md`](S30-bounded-smooth-median-prototype.md)** — research-only bounded smooth median curve prototype inspired by the clean rolling-median chart behavior.
 - Charts: `npm run research:ml-explainer` → [`ml-model-explainer.html`](ml-model-explainer.html) (after `npm run serve`).
 
 ## Contents
