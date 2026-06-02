@@ -752,11 +752,11 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         </div>
         <div class="ml-model-compare-col ml-model-compare-col--candidate">
           <div class="ml-compare-head">
-            <div class="ml-compare-label">Candidate — formally monotone</div>
-            <div class="intel-pill" id="starsgem-s23-model">S23</div>
+            <div class="ml-compare-label">Production winner</div>
+            <div class="intel-pill" id="starsgem-vnext-model">WhiteProd vNext</div>
           </div>
-          <div class="intel-formula" id="starsgem-s23-price">Loading…</div>
-          <div class="intel-sub" id="starsgem-s23-note">Loading S23 model…</div>
+          <div class="intel-formula" id="starsgem-vnext-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-vnext-note">Loading WhiteProd vNext…</div>
         </div>
         <div class="ml-model-compare-col ml-model-compare-col--s25">
           <div class="ml-compare-head">
@@ -776,11 +776,11 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
         </div>
         <div class="ml-model-compare-col ml-model-compare-col--candidate">
           <div class="ml-compare-head">
-            <div class="ml-compare-label">Guarded anchor over S28</div>
-            <div class="intel-pill" id="starsgem-s31-model">S31</div>
+            <div class="ml-compare-label">Supported curve expert</div>
+            <div class="intel-pill" id="starsgem-s30-model">S30</div>
           </div>
-          <div class="intel-formula" id="starsgem-s31-price">Loading…</div>
-          <div class="intel-sub" id="starsgem-s31-note">Loading S31 model…</div>
+          <div class="intel-formula" id="starsgem-s30-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-s30-note">Loading S30 model…</div>
         </div>
       </div>
     </div>
@@ -996,6 +996,12 @@ let _starsgemMlS26Model = null;
 let _starsgemMlS26ModelPromise = null;
 let _starsgemS28Model = null;
 let _starsgemS28ModelPromise = null;
+let _starsgemS30Model = null;
+let _starsgemS30ModelPromise = null;
+let _starsgemS30Predict = null;
+let _whiteProdVNextCtx = null;
+let _whiteProdVNextPromise = null;
+let _whiteProdVNextPredict = null;
 let _starsgemS31Model = null;
 let _starsgemS31ModelPromise = null;
 let _starsgemS31ModelFailed = false;
@@ -1187,6 +1193,98 @@ async function loadStarsgemS28Model() {
       return null;
     });
   return _starsgemS28ModelPromise;
+}
+
+async function loadStarsgemS30Model() {
+  if (_starsgemS30Model) return _starsgemS30Model;
+  if (_starsgemS30ModelPromise) return _starsgemS30ModelPromise;
+  // S30: bounded smooth median curves. It is the strongest supported-curve
+  // expert and the first route inside WhiteProd vNext when support is high.
+  _starsgemS30ModelPromise = Promise.all([
+    fetch('research/data/starsgem-ml-model-s30-bounded-smooth.json?v=20260602-s30-vnext')
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }),
+    import('./research/scripts/s30-predict.mjs'),
+  ])
+    .then(([data, mod]) => {
+      _starsgemS30Model = data;
+      _starsgemS30Predict = mod.predictS30;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('StarGem S30 supported curve model unavailable.', err);
+      updateStarsgemPricingIntel();
+      return null;
+    });
+  return _starsgemS30ModelPromise;
+}
+
+function whiteProdVNextRowFromStarsgemRow(row) {
+  return {
+    carat: Number(row.Carat),
+    Carat: Number(row.Carat),
+    shape: row.Shape,
+    Shape: row.Shape,
+    raw_shape_code: row.Shape,
+    shape_style: row.Shape_Style,
+    Shape_Style: row.Shape_Style,
+    color: row.Color,
+    Color: row.Color,
+    clarity: row.Clarity,
+    Clarity: row.Clarity,
+    typeName: row.TypeName,
+    TypeName: row.TypeName,
+    cut_raw: row.Cut,
+    Cut: row.Cut,
+    polish: row.Polish,
+    symmetry: row.Symmetry,
+    lw_ratio: row.LengthWidthRatio,
+    table_pct: row.Table_Scale,
+    depth_pct: row.Depth_Scale,
+    _displayGrid: !state.reportMeasurements,
+  };
+}
+
+async function loadWhiteProdVNextModel() {
+  if (_whiteProdVNextCtx) return _whiteProdVNextCtx;
+  if (_whiteProdVNextPromise) return _whiteProdVNextPromise;
+  _whiteProdVNextPromise = Promise.all([
+    loadStarsgemPricingIntel(),
+    loadStarsgemS28Model(),
+    loadStarsgemS30Model(),
+    fetch('research/data/starsgem-ml-model-s33a-constrained-anchors.json?v=20260602-s33a-vnext')
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }),
+    fetch('research/data/dataset-clean-training.json?v=20260602-vnext-support')
+      .then(res => {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      }),
+    import('./research/scripts/predict-white-prod-vnext-browser.mjs'),
+  ])
+    .then(([s26Intel, s28, s30, s33a, allRows, mod]) => {
+      _whiteProdVNextPredict = mod.predictWhiteProdVNext;
+      _whiteProdVNextCtx = mod.initWhiteProdVNext({
+        s30,
+        s26Intel,
+        s33a,
+        s28,
+        allRows,
+      });
+      updateStarsgemPricingIntel();
+      return _whiteProdVNextCtx;
+    })
+    .catch(err => {
+      console.warn('WhiteProd vNext model unavailable.', err);
+      updateStarsgemPricingIntel();
+      return null;
+    });
+  return _whiteProdVNextPromise;
 }
 
 async function loadStarsgemS31Model() {
@@ -3374,72 +3472,68 @@ function updateStarsgemPricingIntel() {
     rateEl.textContent = '—';
   }
 
-  // ── S23 candidate panel ──────────────────────────────────────────────────
-  const s23PriceEl = document.getElementById('starsgem-s23-price');
-  const s23NoteEl  = document.getElementById('starsgem-s23-note');
-  const s23ModelEl = document.getElementById('starsgem-s23-model');
+  // ── WhiteProd vNext routed production predictor panel ───────────────────
+  const vNextPriceEl = document.getElementById('starsgem-vnext-price');
+  const vNextNoteEl  = document.getElementById('starsgem-vnext-note');
+  const vNextModelEl = document.getElementById('starsgem-vnext-model');
   const deltaEl    = document.getElementById('ml-compare-delta');
   let s23PredForS26 = null;
 
   if (isWhite() && _starsgemS23Model) {
     const s23WithFallback = predictStarsgemMlWithCoverageFallback(row, _starsgemS23Model);
-    let s23Pred = applyClarityMonotoneCeiling(row, _starsgemS23Model, s23WithFallback.pred);
-    let _s23UsedS21Fallback = s23WithFallback.usedS21Fallback;
-    s23PredForS26 = s23Pred;
-    if (s23Pred && s23PriceEl) {
-      s23PriceEl.textContent = `${fmt(s23Pred.price)} ML model`;
-      if (s23ModelEl) s23ModelEl.textContent = 'S23 (LightGBM monotone)';
-      if (s23NoteEl) {
-        const dims = state.reportMeasurements ? 'using IGI dimensions/table/depth' : 'using selected specs';
-        const tailNote = s23Pred.tail?.level && s23Pred.tail.level !== 'NONE'
-          ? ` Tail: ${escapeHTML(s23Pred.tail.level)}, ${s23Pred.tail.multiplier.toFixed(2)}×.`
-          : '';
-        const s23FallbackNote = _s23UsedS21Fallback
-          ? ' S23 had no anchor coverage at this spec — S21 (LightGBM, 792 samples) used as fallback base.'
-          : '';
-        const clarityCeilingNote = s23Pred._clarityCeilingApplied
-          ? ` Clarity monotone ceiling applied: raw ${fmt(Math.round(s23Pred._rawBeforeClarityCeiling))} was above ${escapeHTML(s23Pred._clarityCeilingFrom || 'better clarity')}; displayed value capped so worse grades never exceed better grades.`
-          : '';
-        s23NoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> grade-agnostic anchor + monotone LightGBM residual (${dims}). Formally monotone display after fallback — worse clarity never exceeds better clarity.${tailNote}${clarityCeilingNote}${s23FallbackNote}`;
+    s23PredForS26 = applyClarityMonotoneCeiling(row, _starsgemS23Model, s23WithFallback.pred);
+  }
+
+  if (isWhite() && _whiteProdVNextCtx && _whiteProdVNextPredict) {
+    const vNextPred = _whiteProdVNextPredict(whiteProdVNextRowFromStarsgemRow(row), _whiteProdVNextCtx);
+    if (vNextPred?.price > 0 && vNextPriceEl) {
+      vNextPriceEl.textContent = `${fmt(vNextPred.price)} routed production`;
+      if (vNextModelEl) vNextModelEl.textContent = vNextPred.modelVersion || 'WhiteProd vNext';
+      if (vNextNoteEl) {
+        const diag = vNextPred.diagnostics || {};
+        const expert = vNextPred.selectedExpert || 'routed';
+        const support = vNextPred.supportTier || 'unknown';
+        const confidence = vNextPred.confidenceBand || 'unrated';
+        const supportDetail = diag.curveSupport
+          ? ` Curve support n=${diag.curveSupport}.`
+          : diag.lookupCount
+            ? ` Lookup ${escapeHTML(diag.lookupLevel || '—')}, n=${diag.lookupCount}.`
+            : diag.anchorN
+              ? ` S33-A anchor n=${diag.anchorN}.`
+              : diag.cellSupport != null
+                ? ` Cell support n=${diag.cellSupport}.`
+                : '';
+        const fallback = vNextPred.fallbackReason ? ` Route note: ${escapeHTML(String(vNextPred.fallbackReason).replace(/_/g, ' '))}.` : '';
+        vNextNoteEl.innerHTML = (
+          `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> `
+          + `WhiteProd vNext selected ${escapeHTML(expert)}; ${escapeHTML(support)} support, ${escapeHTML(confidence)} confidence.`
+          + `${supportDetail}${fallback}`
+        );
       }
-      // Delta vs S22
-      if (deltaEl && mlPred && mlPred.price) {
-        const delta = s23Pred.price - mlPred.price;
+      if (deltaEl && mlPred?.price) {
+        const delta = vNextPred.price - mlPred.price;
         const deltaPct = (delta / mlPred.price) * 100;
         const sign = delta >= 0 ? '+' : '';
-        deltaEl.textContent = `S23 vs S22: ${sign}${fmt(Math.round(delta))} (${sign}${deltaPct.toFixed(1)}%)`;
+        deltaEl.textContent = `vNext vs S22: ${sign}${fmt(Math.round(delta))} (${sign}${deltaPct.toFixed(1)}%)`;
         deltaEl.className = 'ml-compare-delta' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '');
+      } else if (deltaEl) {
+        deltaEl.textContent = '—';
+        deltaEl.className = 'ml-compare-delta';
       }
-    }
-  } else if (!isWhite()) {
-    const colorRow2 = colorDiamondModelRowFromState(state.carat);
-    if (_colorS23Model && colorRow2) {
-      const s23ColorPred = predictColorDiamondMl(colorRow2, _colorS23Model);
-      if (s23ColorPred && s23PriceEl) {
-        s23PriceEl.textContent = `${fmt(s23ColorPred.price)} ML model`;
-        if (s23ModelEl) s23ModelEl.textContent = 'S23 color (LightGBM monotone)';
-        if (s23NoteEl) {
-          const adj = s23ColorPred.sourceAdjustment?.messiColorToStarsgemLikeFactor || 1.25;
-          s23NoteEl.textContent = `LightGBM fancy-color model with monotone intensity constraint. Messi rows trained at ÷${adj}× source adjustment (StarGem-like factory pricing).`;
-        }
-        if (deltaEl && colorMlPred && colorMlPred.price) {
-          const delta = s23ColorPred.price - colorMlPred.price;
-          const deltaPct = (delta / colorMlPred.price) * 100;
-          const sign = delta >= 0 ? '+' : '';
-          deltaEl.textContent = `S23 vs S22: ${sign}${fmt(Math.round(delta))} (${sign}${deltaPct.toFixed(1)}%)`;
-          deltaEl.className = 'ml-compare-delta' + (delta > 0 ? ' up' : delta < 0 ? ' down' : '');
-        } else if (deltaEl) {
-          deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta';
-        }
-      }
-    } else {
-      if (s23PriceEl) s23PriceEl.textContent = _colorS23Model ? 'Color row unavailable' : 'Loading S23 color…';
-      if (s23NoteEl) s23NoteEl.textContent = 'S23 color model (LightGBM + monotone intensity) is loading.';
+    } else if (vNextPriceEl) {
+      vNextPriceEl.textContent = 'vNext unavailable';
+      if (vNextNoteEl) vNextNoteEl.textContent = 'WhiteProd vNext could not produce a routed white-diamond prediction for this row.';
       if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
     }
+  } else if (!isWhite()) {
+    if (vNextPriceEl) vNextPriceEl.textContent = 'White model only';
+    if (vNextNoteEl) vNextNoteEl.textContent = 'WhiteProd vNext is the production routed predictor for white diamonds; fancy colors use S27 color champion.';
+    if (vNextModelEl) vNextModelEl.textContent = 'WhiteProd vNext';
+    if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
   } else {
-    if (s23PriceEl) s23PriceEl.textContent = 'Loading S23…';
-    if (s23NoteEl) s23NoteEl.textContent = 'S23 model is loading (grade-agnostic anchor + LightGBM).';
+    if (vNextPriceEl) vNextPriceEl.textContent = 'Loading vNext…';
+    if (vNextNoteEl) vNextNoteEl.textContent = 'WhiteProd vNext is loading S30, S26 lookup, S33-A, S28, and support counts.';
+    if (vNextModelEl) vNextModelEl.textContent = 'WhiteProd vNext';
     if (deltaEl) { deltaEl.textContent = '—'; deltaEl.className = 'ml-compare-delta'; }
   }
 
@@ -3565,42 +3659,45 @@ function updateStarsgemPricingIntel() {
     if (s28ModelEl) s28ModelEl.textContent = 'S28';
   }
 
-  // ── S31 guarded anchor panel ────────────────────────────────────────────
-  const s31PriceEl = document.getElementById('starsgem-s31-price');
-  const s31NoteEl  = document.getElementById('starsgem-s31-note');
-  const s31ModelEl = document.getElementById('starsgem-s31-model');
+  // ── S30 supported curve expert panel ────────────────────────────────────
+  const s30PriceEl = document.getElementById('starsgem-s30-price');
+  const s30NoteEl  = document.getElementById('starsgem-s30-note');
+  const s30ModelEl = document.getElementById('starsgem-s30-model');
 
-  if (isWhite() && _starsgemS31Model) {
-    const s31Pred = predictS31(row, _starsgemS31Model);
-    if (s31Pred && s31PriceEl) {
-      s31PriceEl.textContent = `${fmt(s31Pred.price)} guarded anchor`;
-      if (s31ModelEl) s31ModelEl.textContent = 'S31';
-      if (s31NoteEl) {
-        const surfaceSource = _starsgemS31Model.surfaceModel?.modelVersion || 'S28 surface';
-        const anchorNote = Number.isFinite(s31Pred.anchorMultiplier)
-          ? ` Anchor shift ${s31Pred.anchorMultiplier.toFixed(2)}× vs base surface.`
+  if (isWhite() && _starsgemS30Model && _starsgemS30Predict) {
+    const s30Pred = _starsgemS30Predict(whiteProdVNextRowFromStarsgemRow(row), _starsgemS30Model);
+    if (s30Pred && s30PriceEl) {
+      s30PriceEl.textContent = `${fmt(s30Pred.price)} supported curve`;
+      if (s30ModelEl) s30ModelEl.textContent = 'S30';
+      if (s30NoteEl) {
+        const source = s30Pred.curveSource === 'exact_cut_tier'
+          ? 'exact cut-tier curve'
+          : s30Pred.curveSource === 'parent_spec'
+            ? 'parent spec curve'
+            : 'available curve';
+        const range = Number.isFinite(s30Pred.minCarat) && Number.isFinite(s30Pred.maxCarat)
+          ? ` trained ${s30Pred.minCarat.toFixed(2)}-${s30Pred.maxCarat.toFixed(2)}ct`
           : '';
-        const extrapolation = s31Pred.extrapolated
-          ? ' Base surface extrapolated beyond training support.'
+        const bounded = s30Pred.bounded
+          ? ' Current carat is outside observed curve range, so S30 is endpoint-clamped.'
           : '';
-        s31NoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> guarded monotone anchor over ${escapeHTML(surfaceSource)}.${anchorNote}${extrapolation}`;
+        s30NoteEl.innerHTML = (
+          `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> `
+          + `${escapeHTML(source)}; n=${Number(s30Pred.support || 0)}, $${Math.round(s30Pred.upc)}/ct${escapeHTML(range)}.${bounded}`
+        );
       }
-    } else if (s31PriceEl) {
-      s31PriceEl.textContent = 'S31 unavailable';
-      if (s31NoteEl) s31NoteEl.textContent = 'S31 could not produce a guarded-anchor prediction for this row.';
+    } else if (s30PriceEl) {
+      s30PriceEl.textContent = 'S30 unavailable';
+      if (s30NoteEl) s30NoteEl.textContent = 'S30 could not find a supported curve for this row.';
     }
   } else if (!isWhite()) {
-    if (s31PriceEl) s31PriceEl.textContent = 'White model only';
-    if (s31NoteEl) s31NoteEl.textContent = 'S31 is currently trained only on the clean white-diamond surface and anchor grids.';
-    if (s31ModelEl) s31ModelEl.textContent = 'S31';
-  } else if (_starsgemS31ModelFailed) {
-    if (s31PriceEl) s31PriceEl.textContent = 'S31 unavailable';
-    if (s31NoteEl) s31NoteEl.textContent = 'S31 model could not be loaded from research/data/starsgem-ml-model-s31-guarded-anchor.json.';
-    if (s31ModelEl) s31ModelEl.textContent = 'S31';
+    if (s30PriceEl) s30PriceEl.textContent = 'White model only';
+    if (s30NoteEl) s30NoteEl.textContent = 'S30 is currently trained only on clean white-diamond curve support.';
+    if (s30ModelEl) s30ModelEl.textContent = 'S30';
   } else {
-    if (s31PriceEl) s31PriceEl.textContent = 'Loading S31…';
-    if (s31NoteEl) s31NoteEl.textContent = 'S31 guarded monotone anchor is loading.';
-    if (s31ModelEl) s31ModelEl.textContent = 'S31';
+    if (s30PriceEl) s30PriceEl.textContent = 'Loading S30…';
+    if (s30NoteEl) s30NoteEl.textContent = 'S30 supported curve model is loading.';
+    if (s30ModelEl) s30ModelEl.textContent = 'S30';
   }
 }
 
@@ -7107,9 +7204,9 @@ loadStarsgemPricingIntel(); // async: exposes StarGem lookup/formula diagnostics
 loadStarsgemMlModel(); // async: loads compact browser ML price predictor (S22)
 loadStarsgemS21Model(); // async: S21 fallback for S22 when S20 hits global lookup gap
 loadStarsgemS26Model(); // async: S26 champion hybrid replacing the old S25 audit panel
-loadStarsgemS23Model(); // async: loads S23 candidate (grade-agnostic anchor + monotone LightGBM)
 loadStarsgemS28Model(); // async: loads S28 single monotone parametric audit surface
-loadStarsgemS31Model(); // async: loads S31 guarded anchor over the S28 surface
+loadStarsgemS30Model(); // async: loads S30 supported-curve expert used by vNext
+loadWhiteProdVNextModel(); // async: routed production winner (S30 → S26 → S33-A → S28)
 loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor (ExtraTrees S22)
 loadColorS23Model();       // async: S23-style color model (LightGBM + monotone intensity)
 loadColorS27Model();       // async: S27 color champion (S22-led + S23/comp guardrails)
