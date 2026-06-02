@@ -1,0 +1,255 @@
+{
+  "date": "2026-06-01",
+  "model": "s31-guarded-anchor-v0.2-projected-total-grid",
+  "decision": "research-only: monotonicity passes, but it must match S26 dense accuracy and beat S28 on held-out cells before production",
+  "rowHoldout": {
+    "n": 4415,
+    "s31": {
+      "n": 4415,
+      "mape": 8.5312,
+      "mdape": 5.9612,
+      "p90ape": 18.9153,
+      "biasPct": -1.2388
+    },
+    "s28": {
+      "n": 4415,
+      "mape": 10.6151,
+      "mdape": 8.2024,
+      "p90ape": 21.6591,
+      "biasPct": 0.8929
+    },
+    "s26": {
+      "n": 4415,
+      "mape": 5.6706,
+      "mdape": 1.9973,
+      "p90ape": 15.3844,
+      "biasPct": -1.3565
+    },
+    "bySupportTier": {
+      "dense": {
+        "n": 3661,
+        "s31": {
+          "n": 3661,
+          "mape": 7.9556,
+          "mdape": 5.8061,
+          "p90ape": 16.5357,
+          "biasPct": -1.2047
+        },
+        "s28": {
+          "n": 3661,
+          "mape": 10.0891,
+          "mdape": 8.012,
+          "p90ape": 20.695,
+          "biasPct": 1.7515
+        },
+        "s26": {
+          "n": 3661,
+          "mape": 5.1094,
+          "mdape": 1.9786,
+          "p90ape": 13.4032,
+          "biasPct": -1.0529
+        }
+      },
+      "medium": {
+        "n": 528,
+        "s31": {
+          "n": 528,
+          "mape": 9.841,
+          "mdape": 6.4878,
+          "p90ape": 22.374,
+          "biasPct": -1.851
+        },
+        "s28": {
+          "n": 528,
+          "mape": 11.2709,
+          "mdape": 8.8775,
+          "p90ape": 25.6829,
+          "biasPct": -3.9923
+        },
+        "s26": {
+          "n": 528,
+          "mape": 7.2908,
+          "mdape": 1.9969,
+          "p90ape": 22.3376,
+          "biasPct": -1.0913
+        }
+      },
+      "sparse": {
+        "n": 179,
+        "s31": {
+          "n": 179,
+          "mape": 13.8652,
+          "mdape": 10.1276,
+          "p90ape": 29.7942,
+          "biasPct": -1.3326
+        },
+        "s28": {
+          "n": 179,
+          "mape": 13.2494,
+          "mdape": 10.559,
+          "p90ape": 28.3172,
+          "biasPct": -5.5997
+        },
+        "s26": {
+          "n": 179,
+          "mape": 10.04,
+          "mdape": 2.3434,
+          "p90ape": 38.1414,
+          "biasPct": -6.6282
+        }
+      },
+      "empty": {
+        "n": 47,
+        "s31": {
+          "n": 47,
+          "mape": 18.3396,
+          "mdape": 13.3424,
+          "p90ape": 38.0064,
+          "biasPct": 3.3399
+        },
+        "s28": {
+          "n": 47,
+          "mape": 34.1809,
+          "mdape": 13.9707,
+          "p90ape": 42.9991,
+          "biasPct": 13.623
+        },
+        "s26": {
+          "n": 47,
+          "mape": 14.5376,
+          "mdape": 6.0835,
+          "p90ape": 44.3378,
+          "biasPct": -7.9075
+        }
+      }
+    }
+  },
+  "heldOutCells": {
+    "n": 3626,
+    "s31": {
+      "n": 3626,
+      "mape": 9.8907,
+      "mdape": 6.8175,
+      "p90ape": 22.9779,
+      "biasPct": 0.6356
+    },
+    "s28": {
+      "n": 3626,
+      "mape": 9.6205,
+      "mdape": 7.0842,
+      "p90ape": 20.5781,
+      "biasPct": 0.2704
+    },
+    "s26": {
+      "n": 3626,
+      "mape": 5.3133,
+      "mdape": 2.7339,
+      "p90ape": 12.6078,
+      "biasPct": -0.8236
+    },
+    "bySupportTier": {
+      "dense": {
+        "n": 0,
+        "s31": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s28": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s26": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        }
+      },
+      "medium": {
+        "n": 0,
+        "s31": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s28": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s26": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        }
+      },
+      "sparse": {
+        "n": 0,
+        "s31": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s28": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        },
+        "s26": {
+          "n": 0,
+          "mape": null,
+          "mdape": null,
+          "p90ape": null,
+          "biasPct": null
+        }
+      },
+      "empty": {
+        "n": 3626,
+        "s31": {
+          "n": 3626,
+          "mape": 9.8907,
+          "mdape": 6.8175,
+          "p90ape": 22.9779,
+          "biasPct": 0.6356
+        },
+        "s28": {
+          "n": 3626,
+          "mape": 9.6205,
+          "mdape": 7.0842,
+          "p90ape": 20.5781,
+          "biasPct": 0.2704
+        },
+        "s26": {
+          "n": 3626,
+          "mape": 5.3133,
+          "mdape": 2.7339,
+          "p90ape": 12.6078,
+          "biasPct": -0.8236
+        }
+      }
+    }
+  },
+  "monotonicity": {
+    "caratSpecs": 56,
+    "caratViolatingSpecs": 0,
+    "colorViolations": 0,
+    "clarityViolations": 0
+  }
+}
