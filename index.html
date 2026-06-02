@@ -184,7 +184,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .intel-compare-v.delta-down{color:var(--orange)}
 .intel-compare-v.delta-flat{color:var(--muted2)}
 @media(max-width:560px){.intel-compare-row{grid-template-columns:1fr}}
-.ml-model-compare-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border-top:.5px solid var(--border)}
+.ml-model-compare-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;border-top:.5px solid var(--border)}
 .ml-model-compare-col{padding:15px 22px 16px;min-width:0}
 .ml-model-compare-col:not(:last-child){border-right:.5px solid var(--border)}
 .ml-model-compare-col--candidate{background:rgba(212,175,114,0.04)}
@@ -192,7 +192,7 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
 .ml-compare-label{font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .ml-compare-delta{font-family:'DM Mono',monospace;font-size:11px;margin-top:6px;padding:3px 0;border-top:.5px solid var(--border);color:var(--muted2)}
 .ml-compare-delta.up{color:var(--green)}.ml-compare-delta.down{color:var(--orange)}
-@media(max-width:900px){.ml-model-compare-grid{grid-template-columns:1fr 1fr}.ml-model-compare-col{border-bottom:.5px solid var(--border)}.ml-model-compare-col:nth-child(even){border-right:none}.ml-model-compare-col:nth-last-child(-n+2){border-bottom:none}}
+@media(max-width:1180px){.ml-model-compare-grid{grid-template-columns:1fr 1fr}.ml-model-compare-col{border-bottom:.5px solid var(--border)}.ml-model-compare-col:nth-child(even){border-right:none}.ml-model-compare-col:nth-last-child(-n+2){border-bottom:none}}
 @media(max-width:700px){.ml-model-compare-grid{grid-template-columns:1fr}.ml-model-compare-col:not(:last-child){border-right:none;border-bottom:.5px solid var(--border)}}
 .intel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
 .intel-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
@@ -774,6 +774,14 @@ input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
           <div class="intel-formula" id="starsgem-s28-price">Loading…</div>
           <div class="intel-sub" id="starsgem-s28-note">Loading S28 model…</div>
         </div>
+        <div class="ml-model-compare-col ml-model-compare-col--candidate">
+          <div class="ml-compare-head">
+            <div class="ml-compare-label">Guarded anchor over S28</div>
+            <div class="intel-pill" id="starsgem-s31-model">S31</div>
+          </div>
+          <div class="intel-formula" id="starsgem-s31-price">Loading…</div>
+          <div class="intel-sub" id="starsgem-s31-note">Loading S31 model…</div>
+        </div>
       </div>
     </div>
     <div class="pricing-intel-panel">
@@ -988,6 +996,8 @@ let _starsgemMlS26Model = null;
 let _starsgemMlS26ModelPromise = null;
 let _starsgemS28Model = null;
 let _starsgemS28ModelPromise = null;
+let _starsgemS31Model = null;
+let _starsgemS31ModelPromise = null;
 let _starsgemS23Model = null;
 let _starsgemS23ModelPromise = null;
 let _colorDiamondMlModel = null;
@@ -1178,6 +1188,28 @@ async function loadStarsgemS28Model() {
   return _starsgemS28ModelPromise;
 }
 
+async function loadStarsgemS31Model() {
+  if (_starsgemS31Model) return _starsgemS31Model;
+  if (_starsgemS31ModelPromise) return _starsgemS31ModelPromise;
+  // S31: guarded monotone anchor over the S28 surface, used as the strongest
+  // white-model audit challenger in the app.
+  _starsgemS31ModelPromise = fetch('research/data/starsgem-ml-model-s31-guarded-anchor.json?v=20260601-s31-guarded-anchor')
+    .then(res => {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      _starsgemS31Model = data;
+      updateStarsgemPricingIntel();
+      return data;
+    })
+    .catch(err => {
+      console.warn('StarGem S31 guarded anchor unavailable.', err);
+      return null;
+    });
+  return _starsgemS31ModelPromise;
+}
+
 const S28_COLOR_RANK = { D:0, E:1, F:2, G:3, H:4, I:5, J:6, K:7 };
 const S28_CLARITY_RANK = { IF:0, VVS1:1, VVS:1.5, VVS2:2, VS1:3, VS:3.5, VS2:4, SI1:5, SI2:6 };
 const S28_MAGIC_THRESHOLDS = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 10.0, 20.0];
@@ -1319,6 +1351,141 @@ function predictS28(row, model) {
     maxCarat,
     source: model.trainingData?.source || 'unknown',
     holdoutMape: model.metrics?.holdout?.mape,
+  };
+}
+
+function s31Shape(row) {
+  return String(row?.shape_style ?? row?.Shape_Style ?? row?.shapeStyle ?? row?.shape ?? row?.Shape ?? 'round_standard')
+    .trim()
+    .toLowerCase() || 'round_standard';
+}
+
+function s31CutTier(row) {
+  const cut = starsgemNorm(row?.cut_raw ?? row?.cut ?? row?.Cut ?? '-');
+  const polish = starsgemNorm(row?.polish ?? row?.Polish ?? 'EX');
+  const symmetry = starsgemNorm(row?.symmetry ?? row?.Symmetry ?? 'EX');
+  if ((cut === 'ID' || cut === 'EX') && ['EX', 'IDEAL', 'VG'].includes(polish) && ['EX', 'VG'].includes(symmetry)) {
+    return 'A';
+  }
+  return 'B';
+}
+
+function s31PredictionInput(row) {
+  return {
+    Carat: row?.Carat ?? row?.carat,
+    carat: row?.carat ?? row?.Carat,
+    Shape: row?.Shape ?? row?.shape,
+    shape: row?.shape ?? row?.Shape,
+    Shape_Style: row?.Shape_Style ?? row?.shape_style ?? row?.shapeStyle,
+    shape_style: row?.shape_style ?? row?.Shape_Style ?? row?.shapeStyle,
+    Color: row?.Color ?? row?.color,
+    color: row?.color ?? row?.Color,
+    Clarity: row?.Clarity ?? row?.clarity,
+    clarity: row?.clarity ?? row?.Clarity,
+    Cut: row?.Cut ?? row?.cut ?? row?.cut_raw,
+    cut: row?.cut ?? row?.Cut ?? row?.cut_raw,
+    cut_raw: row?.cut_raw ?? row?.Cut ?? row?.cut,
+    TypeName: row?.TypeName ?? row?.typeName,
+    typeName: row?.typeName ?? row?.TypeName,
+    LengthWidthRatio: row?.LengthWidthRatio ?? row?.lw_ratio ?? row?.lwRatio,
+    lw_ratio: row?.lw_ratio ?? row?.LengthWidthRatio ?? row?.lwRatio,
+    Table_Scale: row?.Table_Scale ?? row?.table_pct ?? row?.tablePct,
+    table_pct: row?.table_pct ?? row?.Table_Scale ?? row?.tablePct,
+    Depth_Scale: row?.Depth_Scale ?? row?.depth_pct ?? row?.depthPct,
+    depth_pct: row?.depth_pct ?? row?.Depth_Scale ?? row?.depthPct,
+    polish: row?.polish ?? row?.Polish,
+    symmetry: row?.symmetry ?? row?.Symmetry,
+  };
+}
+
+function s31GridKey(shape, tier) {
+  return `${shape}||${tier}`;
+}
+
+function s31GridSeries(grids, shape, tier, color, clarity) {
+  const keys = [
+    s31GridKey(shape, tier),
+    s31GridKey(shape, 'ALL'),
+    s31GridKey('_global', tier),
+    s31GridKey('_global', 'ALL'),
+  ];
+  for (const key of keys) {
+    const spec = grids[key]?.[color]?.[clarity];
+    if (Array.isArray(spec)) return spec;
+  }
+  return null;
+}
+
+function s31InterpolateSeries(model, series, carat, fallback = null) {
+  const bands = model?.caratBands || [];
+  if (!series || !bands.length) return fallback;
+  const x = Math.log(Math.max(0.01, carat));
+  const mids = bands.map((b) => Math.log(Number(b.mid)));
+  if (x <= mids[0]) return Number(series[0]) || 0;
+  if (x >= mids[mids.length - 1]) return Number(series[series.length - 1]) || 0;
+  for (let i = 1; i < mids.length; i++) {
+    if (x <= mids[i]) {
+      const t = (x - mids[i - 1]) / Math.max(1e-9, mids[i] - mids[i - 1]);
+      return (Number(series[i - 1]) || 0) * (1 - t) + (Number(series[i]) || 0) * t;
+    }
+  }
+  return fallback;
+}
+
+function s31OffsetSeries(model, shape, tier, color, clarity) {
+  return s31GridSeries(model?.anchorGrids || {}, shape, tier, color, clarity);
+}
+
+function s31LogUpcSeries(model, shape, tier, color, clarity) {
+  return s31GridSeries(model?.anchorLogUpcGrids || {}, shape, tier, color, clarity);
+}
+
+function s31InterpolatedOffset(model, carat, shape, tier, color, clarity) {
+  const series = s31OffsetSeries(model, shape, tier, color, clarity);
+  return s31InterpolateSeries(model, series, carat, 0);
+}
+
+function predictS31(row, model) {
+  if (!model) return null;
+  const carat = Number(row?.Carat ?? row?.carat);
+  if (!Number.isFinite(carat) || carat <= 0) return null;
+  const input = s31PredictionInput(row);
+  const surface = model.surfaceModel || model.surface;
+  const base = surface ? predictS28(input, surface) : null;
+  if (!base?.upc) return null;
+
+  const shape = s31Shape(input);
+  const tier = s31CutTier(input);
+  const color = starsgemNorm(input.color ?? input.Color);
+  const clarity = starsgemNorm(input.clarity ?? input.Clarity);
+  const projectedLogSeries = s31LogUpcSeries(model, shape, tier, color, clarity);
+  if (projectedLogSeries) {
+    const logUpc = s31InterpolateSeries(model, projectedLogSeries, carat, null);
+    const upc = Math.exp(logUpc);
+    if (!Number.isFinite(upc) || upc <= 0) return null;
+    return {
+      price: upc * carat,
+      upc,
+      baseUpc: base.upc,
+      anchorOffset: Math.log(upc / base.upc),
+      anchorMultiplier: upc / base.upc,
+      shape,
+      cutTier: tier,
+      extrapolated: base.extrapolated,
+    };
+  }
+  const offset = s31InterpolatedOffset(model, carat, shape, tier, color, clarity);
+  const upc = base.upc * Math.exp(offset);
+  if (!Number.isFinite(upc) || upc <= 0) return null;
+  return {
+    price: upc * carat,
+    upc,
+    baseUpc: base.upc,
+    anchorOffset: offset,
+    anchorMultiplier: Math.exp(offset),
+    shape,
+    cutTier: tier,
+    extrapolated: base.extrapolated,
   };
 }
 
@@ -3381,6 +3548,40 @@ function updateStarsgemPricingIntel() {
     if (s28PriceEl) s28PriceEl.textContent = 'Loading S28…';
     if (s28NoteEl) s28NoteEl.textContent = 'S28 monotone parametric surface is loading.';
     if (s28ModelEl) s28ModelEl.textContent = 'S28';
+  }
+
+  // ── S31 guarded anchor panel ────────────────────────────────────────────
+  const s31PriceEl = document.getElementById('starsgem-s31-price');
+  const s31NoteEl  = document.getElementById('starsgem-s31-note');
+  const s31ModelEl = document.getElementById('starsgem-s31-model');
+
+  if (isWhite() && _starsgemS31Model) {
+    const s31Pred = predictS31(row, _starsgemS31Model);
+    if (s31Pred && s31PriceEl) {
+      s31PriceEl.textContent = `${fmt(s31Pred.price)} guarded anchor`;
+      if (s31ModelEl) s31ModelEl.textContent = 'S31';
+      if (s31NoteEl) {
+        const surfaceSource = _starsgemS31Model.surfaceModel?.modelVersion || 'S28 surface';
+        const anchorNote = Number.isFinite(s31Pred.anchorMultiplier)
+          ? ` Anchor shift ${s31Pred.anchorMultiplier.toFixed(2)}× vs base surface.`
+          : '';
+        const extrapolation = s31Pred.extrapolated
+          ? ' Base surface extrapolated beyond training support.'
+          : '';
+        s31NoteEl.innerHTML = `<strong>${escapeHTML(row.Shape)} ${escapeHTML(row.Color)} ${escapeHTML(row.Clarity)}</strong> guarded monotone anchor over ${escapeHTML(surfaceSource)}.${anchorNote}${extrapolation}`;
+      }
+    } else if (s31PriceEl) {
+      s31PriceEl.textContent = 'S31 unavailable';
+      if (s31NoteEl) s31NoteEl.textContent = 'S31 could not produce a guarded-anchor prediction for this row.';
+    }
+  } else if (!isWhite()) {
+    if (s31PriceEl) s31PriceEl.textContent = 'White model only';
+    if (s31NoteEl) s31NoteEl.textContent = 'S31 is currently trained only on the clean white-diamond surface and anchor grids.';
+    if (s31ModelEl) s31ModelEl.textContent = 'S31';
+  } else {
+    if (s31PriceEl) s31PriceEl.textContent = 'Loading S31…';
+    if (s31NoteEl) s31NoteEl.textContent = 'S31 guarded monotone anchor is loading.';
+    if (s31ModelEl) s31ModelEl.textContent = 'S31';
   }
 }
 
@@ -6889,6 +7090,7 @@ loadStarsgemS21Model(); // async: S21 fallback for S22 when S20 hits global look
 loadStarsgemS26Model(); // async: S26 champion hybrid replacing the old S25 audit panel
 loadStarsgemS23Model(); // async: loads S23 candidate (grade-agnostic anchor + monotone LightGBM)
 loadStarsgemS28Model(); // async: loads S28 single monotone parametric audit surface
+loadStarsgemS31Model(); // async: loads S31 guarded anchor over the S28 surface
 loadColorDiamondMlModel(); // async: source-adjusted fancy-color ML predictor (ExtraTrees S22)
 loadColorS23Model();       // async: S23-style color model (LightGBM + monotone intensity)
 loadColorS27Model();       // async: S27 color champion (S22-led + S23/comp guardrails)
