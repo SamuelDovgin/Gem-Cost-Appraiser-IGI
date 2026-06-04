@@ -241,7 +241,7 @@ async function main() {
   // ─── Build WhiteProd vNext context ────────────────────────────────────────
 
   const wpCtx = {
-    modelVersion: 'white-prod-vnext-v0.1.0',
+    modelVersion: 'white-prod-vnext-v0.2.0',
     s30: s30Shipped,
     s30Model: fairS30,
     s26Intel: intel,

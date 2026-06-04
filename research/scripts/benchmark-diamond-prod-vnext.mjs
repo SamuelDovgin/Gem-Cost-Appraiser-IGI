@@ -1060,7 +1060,7 @@ async function main() {
 
   const report = {
     date: new Date().toISOString().slice(0, 10),
-    modelVersion: 'diamond-prod-vnext-v0.1.0',
+    modelVersion: 'diamond-prod-vnext-v0.2.0',
     whiteRows: allWhiteRows.length,
     colorRows: allColorRows.length,
     whiteHoldoutN: whiteHoldout.length,

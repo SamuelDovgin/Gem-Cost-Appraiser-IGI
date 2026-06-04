@@ -358,11 +358,24 @@ function routePrediction(row, ctx, opts = {}) {
   }
 
   // ── Expert 3: S33-A constrained anchor surface ────────────────────────────
+  //
+  // S33A quality assessment has two dimensions:
+  //   1. anchorN — how many rows back the anchor at the resolved level
+  //   2. anchorLevel — how specific the anchor is (L1=full-cell, L5=global)
+  //
+  // A "weak evidence" S33A result has either:
+  //   - Low anchorN (< s33MinAnchorN) at any level, OR
+  //   - Broad anchor level (L4 shape-only, L5 global) even with high N
+  //
+  // In either case, we check whether S26 lookup or live comps provide
+  // materially higher, more specific market evidence before displaying
+  // a weak/broad S33A anchor as the primary price.
   const s33Result = predictS33A(row, ctx.s33a);
   const s33AnchorN = s33Result?.anchorN ?? 0;
+  const s33AnchorLevel = s33Result?.anchorLevel ?? null;
 
   // Guard: weak-anchor high-carat cases must go to S28, not S33A.
-  // S33A with anchorN < 5 at high carat produces unreliable extreme prices
+  // S33A with anchorN < threshold at high carat produces unreliable extreme prices
   // (e.g., 40ct cases: $54K from S33A vs $5-10K from S30/S26).
   const s33WeakHighCarat = s33Result?.price > 0
     && s33AnchorN < cfg.s33MinAnchorN
@@ -376,20 +389,75 @@ function routePrediction(row, ctx, opts = {}) {
       { anchorN: s33AnchorN, cellSupport: cellN, extrapolated: s28Result.extrapolated });
   }
 
-  if (s33Result?.price > 0 && s33Result.anchorLevel != null && s33AnchorN >= cfg.s33MinAnchorN) {
-    return makeResult(s33Result.price, s33Result.upc, 'S33A',
-      supportTier(s33AnchorN), s33Result.anchorLevel <= 2 ? 'medium' : 'low', null, {
-        anchorLevel: s33Result.anchorLevel, anchorN: s33AnchorN,
-        anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN,
-      });
+  // ── Classify S33A evidence quality ────────────────────────────────────────
+  const s33WeakN = s33AnchorN > 0 && s33AnchorN < cfg.s33MinAnchorN;
+  const s33BroadLevel = s33AnchorLevel != null && s33AnchorLevel >= 4;
+  // L4 = shape-only anchor, L5 = global anchor — these aggregate over many
+  // grades and lose the specificity of S26's carat-bucket+color+clarity lookups.
+  const s33EvidenceWeak = s33Result?.price > 0 && (s33WeakN || s33BroadLevel);
+
+  if (s33EvidenceWeak) {
+    // ── Check S26 for corroborated, more specific evidence ─────────────────
+    const s26HasLookupData = s26Result?.price > 0
+      && s26Result.lookupCount >= 5
+      && s26LevelIdx >= 0
+      && s26LevelIdx < 7; // any level A-G (not just A-D)
+
+    if (s26HasLookupData) {
+      const s33Upc = s33Result.upc;
+      const s26Upc = s26Result.upc;
+      // Only override when S26 is materially higher than S33A.
+      // A narrow corroborated rule (not blanket S26 switch) per quick-route
+      // experiment: only a tiny holdout slice is affected.
+      const s26MinRatio = cfg.s33WeakS26MinUpcRatio ?? 1.1;
+      if (s26Upc > s33Upc * s26MinRatio) {
+        const reason = s33WeakN
+          ? `weak_s33a_to_s26_lookup_n${s33AnchorN}`
+          : `broad_s33a_to_s26_lookup_l${s33AnchorLevel}`;
+        return makeResult(s26Result.price, s26Result.upc, 'S26',
+          supportTier(s26Result.lookupCount), 'medium', reason, {
+            lookupLevel: s26Result.lookupLevel, lookupCount: s26Result.lookupCount,
+            anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+            s33Upc, s26Upc, cellSupport: cellN,
+          });
+      }
+    }
+
+    // ── Check comp estimate corroboration (if passed through opts) ──────────
+    const compEstimate = Number(opts.compEstimate ?? 0);
+    if (compEstimate > 0) {
+      const compUpc = compEstimate / carat;
+      const compMinRatio = cfg.s33WeakCompMinUpcRatio ?? 1.1;
+      if (compUpc > s33Result.upc * compMinRatio) {
+        return makeResult(compEstimate, compUpc, 'COMP_RECONCILED',
+          tier, 'medium', 'weak_s33a_to_comp_reconciled', {
+            anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+            s33Upc: s33Result.upc, compUpc, cellSupport: cellN,
+          });
+      }
+    }
+
+    // ── No better evidence found — accept S33A with fallback reason ─────────
+    if (s33Result?.price > 0) {
+      const reason = s33WeakN
+        ? `s33a_weak_anchor_n${s33AnchorN}`
+        : s33BroadLevel ? `s33a_broad_anchor_l${s33AnchorLevel}` : null;
+      return makeResult(s33Result.price, s33Result.upc, 'S33A',
+        tier, 'low', reason, {
+          anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+          anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc,
+          cellSupport: cellN,
+        });
+    }
   }
 
-  // ── Expert 3b: S33-A with any anchor (non-high-carat or stronger anchor) ──
-  if (s33Result?.price > 0) {
+  // ── Strong S33A anchor (good N, specific level L1-L3) ─────────────────────
+  if (s33Result?.price > 0 && s33AnchorLevel != null) {
     return makeResult(s33Result.price, s33Result.upc, 'S33A',
-      tier, 'low', `s33a_weak_anchor_n${s33AnchorN}`, {
-        anchorLevel: s33Result.anchorLevel, anchorN: s33AnchorN,
-        anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN,
+      supportTier(s33AnchorN), s33AnchorLevel <= 2 ? 'medium' : 'low', null, {
+        anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+        anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc,
+        cellSupport: cellN,
       });
   }
 
@@ -489,7 +557,7 @@ function isDisplayGridCell(row) {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-const MODEL_VERSION = 'white-prod-vnext-v0.1.0';
+const MODEL_VERSION = 'white-prod-vnext-v0.2.0';
 
 /**
  * Load all model artifacts for the WhiteProd vNext predictor.
@@ -539,10 +607,12 @@ export function loadWhiteProdVNext(overrides = {}) {
  *
  * @param {Object} row - Input with carat, shape_style, color, clarity, cut_raw, typeName, etc.
  * @param {Object} ctx - Loaded predictor context from loadWhiteProdVNext()
+ * @param {Object} [opts] - Optional overrides (compEstimate, routingConfig overrides)
  * @returns {Object} { price, pricePerCarat, modelVersion, selectedExpert, supportTier, confidenceBand, fallbackReason, diagnostics }
  */
-export function predictWhiteProdVNext(row, ctx) {
-  const result = routePrediction(row, ctx, ctx.routingConfig);
+export function predictWhiteProdVNext(row, ctx, opts = {}) {
+  const routingConfig = { ...ctx.routingConfig, ...opts };
+  const result = routePrediction(row, ctx, routingConfig);
   return {
     ...result,
     modelVersion: ctx.modelVersion,
@@ -552,8 +622,8 @@ export function predictWhiteProdVNext(row, ctx) {
 /**
  * Batch predict.
  */
-export function predictWhiteProdVNextBatch(rows, ctx) {
-  return rows.map((row) => predictWhiteProdVNext(row, ctx));
+export function predictWhiteProdVNextBatch(rows, ctx, opts = {}) {
+  return rows.map((row) => predictWhiteProdVNext(row, ctx, opts));
 }
 
 // ─── Re-exports for benchmark convenience ────────────────────────────────────

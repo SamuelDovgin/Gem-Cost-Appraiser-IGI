@@ -28,7 +28,7 @@ export { starsgemNorm, starsgemCaratBucket };
 
 // ─── Model version ──────────────────────────────────────────────────────────
 
-export const DIAMOND_PROD_VNEXT_VERSION = 'diamond-prod-vnext-v0.1.0';
+export const DIAMOND_PROD_VNEXT_VERSION = 'diamond-prod-vnext-v0.2.0';
 
 // ─── White branch (inlined from predict-white-prod-vnext-browser.mjs) ───────
 
@@ -263,13 +263,13 @@ function makeWhiteResult(price, upc, expert, tier, band, reason, diagnostics) {
 
 // ── White routing ───────────────────────────────────────────────────────────
 
-function routeWhitePrediction(row, ctx) {
+function routeWhitePrediction(row, ctx, opts = {}) {
   const carat = Number(row.carat ?? row.Carat);
   if (!Number.isFinite(carat) || carat <= 0) {
     return makeWhiteResult(null, null, null, 'empty', null, 'invalid_carat', { error: 'Carat must be positive finite number' });
   }
 
-  const cfg = ctx.routingConfig || {};
+  const cfg = { ...(ctx.routingConfig || {}), ...opts };
   const ck = whiteCellKey(row);
   const cellN = ctx.cellSupport?.get(ck) ?? 0;
   const tier = supportTier(cellN);
@@ -336,6 +336,7 @@ function routeWhitePrediction(row, ctx) {
 
   const s33Result = predictS33A(row, ctx.s33a);
   const s33AnchorN = s33Result?.anchorN ?? 0;
+  const s33AnchorLevel = s33Result?.anchorLevel ?? null;
   const s33WeakHighCarat = s33Result?.price > 0 && s33AnchorN < (cfg.s33MinAnchorN ?? 10) && carat >= 5 && s28Result?.price > 0;
 
   if (s33WeakHighCarat) {
@@ -344,15 +345,54 @@ function routeWhitePrediction(row, ctx) {
     });
   }
 
-  if (s33Result?.price > 0 && s33Result.anchorLevel != null && s33AnchorN >= (cfg.s33MinAnchorN ?? 10)) {
-    return makeWhiteResult(s33Result.price, s33Result.upc, 'S33A', supportTier(s33AnchorN), s33Result.anchorLevel <= 2 ? 'medium' : 'low', null, {
-      anchorLevel: s33Result.anchorLevel, anchorN: s33AnchorN, anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN,
+  const s33WeakN = s33AnchorN > 0 && s33AnchorN < (cfg.s33MinAnchorN ?? 10);
+  const s33BroadLevel = s33AnchorLevel != null && s33AnchorLevel >= 4;
+  const s33EvidenceWeak = s33Result?.price > 0 && (s33WeakN || s33BroadLevel);
+
+  if (s33EvidenceWeak) {
+    const s26HasLookupData = s26Result?.price > 0
+      && s26Result.lookupCount >= (cfg.s26MinLookupCount ?? 5)
+      && s26LevelIdx >= 0
+      && s26LevelIdx < 7;
+
+    if (s26HasLookupData) {
+      const s26MinRatio = cfg.s33WeakS26MinUpcRatio ?? 1.1;
+      if (s26Result.upc > s33Result.upc * s26MinRatio) {
+        const reason = s33WeakN
+          ? `weak_s33a_to_s26_lookup_n${s33AnchorN}`
+          : `broad_s33a_to_s26_lookup_l${s33AnchorLevel}`;
+        return makeWhiteResult(s26Result.price, s26Result.upc, 'S26',
+          supportTier(s26Result.lookupCount), 'medium', reason, {
+            lookupLevel: s26Result.lookupLevel, lookupCount: s26Result.lookupCount,
+            anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+            s33Upc: s33Result.upc, s26Upc: s26Result.upc, cellSupport: cellN,
+          });
+      }
+    }
+
+    const compEstimate = Number(cfg.compEstimate ?? 0);
+    if (compEstimate > 0) {
+      const compUpc = compEstimate / carat;
+      const compMinRatio = cfg.s33WeakCompMinUpcRatio ?? 1.1;
+      if (compUpc > s33Result.upc * compMinRatio) {
+        return makeWhiteResult(compEstimate, compUpc, 'COMP_RECONCILED',
+          tier, 'medium', 'weak_s33a_to_comp_reconciled', {
+            anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+            s33Upc: s33Result.upc, compUpc, cellSupport: cellN,
+          });
+      }
+    }
+
+    const reason = s33WeakN ? `s33a_weak_anchor_n${s33AnchorN}` : `s33a_broad_anchor_l${s33AnchorLevel}`;
+    return makeWhiteResult(s33Result.price, s33Result.upc, 'S33A', tier, 'low', reason, {
+      anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+      anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN,
     });
   }
 
-  if (s33Result?.price > 0) {
-    return makeWhiteResult(s33Result.price, s33Result.upc, 'S33A', tier, 'low', `s33a_weak_anchor_n${s33AnchorN}`, {
-      anchorLevel: s33Result.anchorLevel, anchorN: s33AnchorN, anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN,
+  if (s33Result?.price > 0 && s33AnchorLevel != null) {
+    return makeWhiteResult(s33Result.price, s33Result.upc, 'S33A', supportTier(s33AnchorN), s33AnchorLevel <= 2 ? 'medium' : 'low', null, {
+      anchorLevel: s33AnchorLevel, anchorN: s33AnchorN, anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN,
     });
   }
 
@@ -837,7 +877,7 @@ export function predictDiamondProdVNext(row, ctx, opts = {}) {
   const colorFamily = classifyColorFamily(row);
 
   if (colorFamily === 'white') {
-    const result = routeWhitePrediction(row, ctx.white);
+    const result = routeWhitePrediction(row, ctx.white, opts);
     const wck = whiteCellKey(row);
     const whiteSupportCount = ctx.white.cellSupport?.get(wck) ?? 0;
     return {

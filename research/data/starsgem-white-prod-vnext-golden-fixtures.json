@@ -1,6 +1,6 @@
 {
-  "date": "2026-06-02",
-  "modelVersion": "white-prod-vnext-v0.1.0",
+  "date": "2026-06-04",
+  "modelVersion": "white-prod-vnext-v0.2.0",
   "tolerance": {
     "price": "0.5%",
     "upc": "1.0%"
@@ -164,12 +164,12 @@
         "typeName": "HPHT"
       },
       "status": "PASS",
-      "price": 106.35,
-      "upc": 70.43,
-      "expert": "S33A",
-      "tier": "empty",
-      "band": "low",
-      "reason": "s33a_weak_anchor_n1"
+      "price": 171.96,
+      "upc": 113.88,
+      "expert": "S26",
+      "tier": "dense",
+      "band": "medium",
+      "reason": "weak_s33a_to_s26_lookup_n1"
     },
     {
       "name": "Typical_3ct_Emerald_H_VS1",
@@ -184,12 +184,12 @@
         "typeName": "CVD"
       },
       "status": "PASS",
-      "price": 268.98,
-      "upc": 88.19,
-      "expert": "S33A",
-      "tier": "empty",
-      "band": "low",
-      "reason": "s33a_weak_anchor_n1"
+      "price": 386.92,
+      "upc": 126.86,
+      "expert": "S26",
+      "tier": "dense",
+      "band": "medium",
+      "reason": "weak_s33a_to_s26_lookup_n1"
     },
     {
       "name": "Typical_2_5ct_Princess_E_VVS2",
@@ -224,12 +224,12 @@
         "typeName": "CVD"
       },
       "status": "PASS",
-      "price": 573.77,
-      "upc": 142.37,
-      "expert": "S33A",
-      "tier": "empty",
-      "band": "low",
-      "reason": "s33a_weak_anchor_n1"
+      "price": 676.93,
+      "upc": 167.97,
+      "expert": "S26",
+      "tier": "dense",
+      "band": "medium",
+      "reason": "weak_s33a_to_s26_lookup_n1"
     },
     {
       "name": "Typical_5ct_Round_J_SI2",
@@ -312,10 +312,114 @@
       "tier": "empty",
       "band": "floor",
       "reason": "display_grid_s28"
+    },
+    {
+      "name": "Regress_LG617442564_1.92ct_Cushion_G_VS2",
+      "input": {
+        "carat": 1.92,
+        "shape_style": "cushion_standard",
+        "color": "G",
+        "clarity": "VS2",
+        "cut_raw": "VG",
+        "polish": "VG",
+        "symmetry": "VG",
+        "typeName": "CVD",
+        "lw_ratio": 1.39,
+        "table_pct": 58,
+        "depth_pct": 65
+      },
+      "expectExpert": "S26",
+      "expectReasonPrefix": "weak_s33a_to_s26_lookup",
+      "priceMin": 180,
+      "priceMax": 280,
+      "desc": "Must not return S33A weak-anchor primary when S26 has lookupCount=2238 at $219",
+      "status": "PASS",
+      "price": 218.65,
+      "upc": 113.88,
+      "expert": "S26",
+      "tier": "dense",
+      "band": "medium",
+      "reason": "weak_s33a_to_s26_lookup_n1"
+    },
+    {
+      "name": "Regress_LG758549300_3.07ct_Radiant_F_VS2",
+      "input": {
+        "carat": 3.07,
+        "shape_style": "radiant_modified",
+        "color": "F",
+        "clarity": "VS2",
+        "cut_raw": "VG",
+        "polish": "VG",
+        "symmetry": "VG",
+        "typeName": "CVD",
+        "lw_ratio": 1.45,
+        "table_pct": 60,
+        "depth_pct": 68
+      },
+      "expectExpert": "S26",
+      "expectReasonPrefix": "weak_s33a_to_s26_lookup",
+      "priceMin": 280,
+      "priceMax": 430,
+      "desc": "Must not return S33A weak-anchor primary when S26 has lookupCount=13 at $346",
+      "status": "PASS",
+      "price": 346.19,
+      "upc": 112.76,
+      "expert": "S26",
+      "tier": "medium",
+      "band": "medium",
+      "reason": "weak_s33a_to_s26_lookup_n1"
+    },
+    {
+      "name": "EmptyTier_2ct_Cushion_H_SI1",
+      "input": {
+        "carat": 2.02,
+        "shape_style": "cushion_standard",
+        "color": "H",
+        "clarity": "SI1",
+        "cut_raw": "VG",
+        "polish": "VG",
+        "symmetry": "VG",
+        "typeName": "CVD",
+        "lw_ratio": 1.3,
+        "table_pct": 58,
+        "depth_pct": 65
+      },
+      "priceMin": 100,
+      "status": "PASS",
+      "price": 255.84,
+      "upc": 126.65,
+      "expert": "S26",
+      "tier": "dense",
+      "band": "medium",
+      "reason": "weak_s33a_to_s26_lookup_n1"
+    },
+    {
+      "name": "EmptyTier_4ct_Heart_J_SI2",
+      "input": {
+        "carat": 4.01,
+        "shape_style": "heart_standard",
+        "color": "J",
+        "clarity": "SI2",
+        "cut_raw": "VG",
+        "polish": "VG",
+        "symmetry": "VG",
+        "typeName": "CVD",
+        "lw_ratio": 1.1,
+        "table_pct": 56,
+        "depth_pct": 62
+      },
+      "priceMin": 100,
+      "status": "PASS",
+      "price": 555.88,
+      "upc": 138.62,
+      "expert": "S26",
+      "tier": "dense",
+      "band": "medium",
+      "reason": "weak_s33a_to_s26_lookup_n1"
     }
   ],
   "summary": {
-    "passed": 15,
+    "passed": 19,
     "failed": 0,
     "gridPassed": 224,
     "gridFailed": 0,

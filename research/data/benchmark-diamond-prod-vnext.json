@@ -1,6 +1,6 @@
 {
-  "date": "2026-06-02",
-  "modelVersion": "diamond-prod-vnext-v0.1.0",
+  "date": "2026-06-04",
+  "modelVersion": "diamond-prod-vnext-v0.2.0",
   "whiteRows": 21982,
   "colorRows": 1657,
   "whiteHoldoutN": 4415,

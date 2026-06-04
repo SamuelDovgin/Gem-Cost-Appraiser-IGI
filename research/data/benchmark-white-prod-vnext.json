@@ -1,11 +1,11 @@
 {
-  "date": "2026-06-02",
+  "date": "2026-06-04",
   "dataset": "research/data/dataset-clean-training.json",
   "totalRows": 21982,
   "rowHoldoutN": 4415,
   "cellHoldoutN": 5225,
   "whiteProdVNext": {
-    "version": "white-prod-vnext-v0.1.0",
+    "version": "white-prod-vnext-v0.2.0",
     "routingConfig": {
       "s30MinSupport": 15,
       "s30MinCaratForPriority": 5,

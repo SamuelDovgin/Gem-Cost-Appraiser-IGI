@@ -76,7 +76,7 @@ function classifyColorFamily(row) {
 
 // ─── Router config ──────────────────────────────────────────────────────────
 
-const ROUTER_VERSION = 'diamond-prod-vnext-v0.1.0';
+const ROUTER_VERSION = 'diamond-prod-vnext-v0.2.0';
 
 /**
  * Load all model artifacts for the unified DiamondProd vNext predictor.
@@ -124,7 +124,7 @@ export function predictDiamondProdVNext(row, ctx, opts = {}) {
 
   // Route to appropriate branch
   if (colorFamily === 'white') {
-    const result = predictWhiteProdVNext(row, ctx.white);
+    const result = predictWhiteProdVNext(row, ctx.white, opts);
     // Compute supportCount from white cell support
     const wck = whiteCellKey(row);
     const whiteSupportCount = ctx.white.cellSupport?.get(wck) ?? 0;

@@ -46,7 +46,7 @@ console.log('✓ Branch classification works');
 
 const ctx = loadDiamondProdVNext();
 assert.ok(ctx, 'should return a context');
-assert.equal(ctx.modelVersion, 'diamond-prod-vnext-v0.1.0');
+assert.equal(ctx.modelVersion, 'diamond-prod-vnext-v0.2.0');
 assert.ok(ctx.white, 'should have white branch');
 assert.ok(ctx.color, 'should have color branch');
 assert.ok(ctx.routerConfig, 'should have router config');

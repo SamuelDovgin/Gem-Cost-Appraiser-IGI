@@ -56,6 +56,32 @@ const GOLDEN_FIXTURES = [
 
   // Selected spec (no lw/table/depth)
   { name: 'Selected_2ct_Round_D_IF', input: { carat: 2.0, shape_style: 'round_standard', color: 'D', clarity: 'IF', cut_raw: 'ID', polish: 'EX', symmetry: 'EX', typeName: 'CVD' } },
+
+  // ═══ P0 Regression: weak S33A anchor + corroborated S26/comps ═══
+  // These two observed cases previously returned S33A weak-anchor primary
+  // despite S26 and live comps corroborating a materially higher price.
+  // Fixed 2026-06-04: weak/broad S33A anchors now check S26 before display.
+  { name: 'Regress_LG617442564_1.92ct_Cushion_G_VS2',
+    input: { carat: 1.92, shape_style: 'cushion_standard', color: 'G', clarity: 'VS2', cut_raw: 'VG', polish: 'VG', symmetry: 'VG', typeName: 'CVD', lw_ratio: 1.39, table_pct: 58, depth_pct: 65 },
+    expectExpert: 'S26',
+    expectReasonPrefix: 'weak_s33a_to_s26_lookup',
+    priceMin: 180, priceMax: 280,  // near the $205-$220 S26/comp cluster
+    desc: 'Must not return S33A weak-anchor primary when S26 has lookupCount=2238 at $219' },
+  { name: 'Regress_LG758549300_3.07ct_Radiant_F_VS2',
+    input: { carat: 3.07, shape_style: 'radiant_modified', color: 'F', clarity: 'VS2', cut_raw: 'VG', polish: 'VG', symmetry: 'VG', typeName: 'CVD', lw_ratio: 1.45, table_pct: 60, depth_pct: 68 },
+    expectExpert: 'S26',
+    expectReasonPrefix: 'weak_s33a_to_s26_lookup',
+    priceMin: 280, priceMax: 430,  // near the $340-$360 S26/comp cluster
+    desc: 'Must not return S33A weak-anchor primary when S26 has lookupCount=13 at $346' },
+
+  // ═══ Empty-tier holdout: ensure coverage for the exact failure mode ═══
+  { name: 'EmptyTier_2ct_Cushion_H_SI1',
+    input: { carat: 2.02, shape_style: 'cushion_standard', color: 'H', clarity: 'SI1', cut_raw: 'VG', polish: 'VG', symmetry: 'VG', typeName: 'CVD', lw_ratio: 1.3, table_pct: 58, depth_pct: 65 },
+    // Expect S33A or S26 (not null) — this verifies empty-tier cells still get a price
+    priceMin: 100 },
+  { name: 'EmptyTier_4ct_Heart_J_SI2',
+    input: { carat: 4.01, shape_style: 'heart_standard', color: 'J', clarity: 'SI2', cut_raw: 'VG', polish: 'VG', symmetry: 'VG', typeName: 'CVD', lw_ratio: 1.1, table_pct: 56, depth_pct: 62 },
+    priceMin: 100 },
 ];
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -74,7 +100,7 @@ async function main() {
   const fairS30 = buildS30Artifact(rowTrain);
 
   const ctx = {
-    modelVersion: 'white-prod-vnext-v0.1.0',
+    modelVersion: 'white-prod-vnext-v0.2.0',
     s30: loadJson('starsgem-ml-model-s30-bounded-smooth.json'),
     s30Model: fairS30,
     s26Intel: loadJson('starsgem-pricing-intelligence.json'),
@@ -142,6 +168,23 @@ async function main() {
     const expectedPriceRange = carat * 50; // at least $50/ct
     if (prediction.price < expectedPriceRange) {
       issues.push(`Price too low: $${prediction.price.toFixed(0)} (expected ≥ $${expectedPriceRange.toFixed(0)})`);
+    }
+
+    // Check fallback reason prefix if expected
+    if (fixture.expectReasonPrefix) {
+      if (!prediction.fallbackReason) {
+        issues.push(`Expected fallback reason prefix "${fixture.expectReasonPrefix}", got no fallbackReason`);
+      } else if (!prediction.fallbackReason.startsWith(fixture.expectReasonPrefix)) {
+        issues.push(`Expected fallback reason prefix "${fixture.expectReasonPrefix}", got "${prediction.fallbackReason}"`);
+      }
+    }
+
+    // Check price range if specified
+    if (fixture.priceMin != null && prediction.price < fixture.priceMin) {
+      issues.push(`Price too low: $${prediction.price.toFixed(0)} (min $${fixture.priceMin})`);
+    }
+    if (fixture.priceMax != null && prediction.price > fixture.priceMax) {
+      issues.push(`Price too high: $${prediction.price.toFixed(0)} (max $${fixture.priceMax})`);
     }
 
     if (issues.length === 0) {

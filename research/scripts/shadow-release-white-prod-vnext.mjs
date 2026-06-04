@@ -59,7 +59,7 @@ async function main() {
   const fairS30 = buildS30Artifact(rowTrain);
 
   const ctx = {
-    modelVersion: 'white-prod-vnext-v0.1.0',
+    modelVersion: 'white-prod-vnext-v0.2.0',
     s30: loadJson('starsgem-ml-model-s30-bounded-smooth.json'),
     s30Model: fairS30,
     s26Intel: loadJson('starsgem-pricing-intelligence.json'),

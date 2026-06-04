@@ -348,7 +348,7 @@ async function main() {
 
   const shadowReport = {
     date: new Date().toISOString().slice(0, 10),
-    modelVersion: 'diamond-prod-vnext-v0.1.0',
+    modelVersion: 'diamond-prod-vnext-v0.2.0',
     sourceAdjustment: { messiToFactoryFactor: adjustment, starsgemDirectFactor: 1.0 },
     whiteTotalRows: whiteHoldout.length,
     colorTotalRows: colorHoldout.length,

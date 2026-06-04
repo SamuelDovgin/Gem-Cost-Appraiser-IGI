@@ -1456,12 +1456,12 @@ function initWhiteProdVNextLocal(artifacts) {
   return ctx;
 }
 
-function predictWhiteProdVNextLocal(row, ctx) {
+function predictWhiteProdVNextLocal(row, ctx, opts = {}) {
   const carat = Number(row.carat ?? row.Carat);
   if (!Number.isFinite(carat) || carat <= 0) {
     return { ...makeWhiteProdResult(null, null, null, 'empty', null, 'invalid_carat', { error: 'Carat must be positive finite number' }), modelVersion: ctx.modelVersion };
   }
-  const cfg = ctx.routingConfig || {};
+  const cfg = { ...(ctx.routingConfig || {}), ...opts };
   const cellN = ctx.cellSupport?.get(whiteProdCellKey(row)) ?? 0;
   const tier = whiteProdSupportTier(cellN);
   const shape = String(row.shape_style ?? 'round_standard').trim().toLowerCase();
@@ -1498,14 +1498,49 @@ function predictWhiteProdVNextLocal(row, ctx) {
   }
   const s33Result = predictS33AForWhiteProd(row, ctx.s33a);
   const s33AnchorN = s33Result?.anchorN ?? 0;
+  const s33AnchorLevel = s33Result?.anchorLevel ?? null;
   if (s33Result?.price > 0 && s33AnchorN < (cfg.s33MinAnchorN ?? 10) && carat >= 5 && s28Result?.price > 0) {
     return withVersion(makeWhiteProdResult(s28Result.price, s28Result.upc, 'S28', tier, 'floor', `s33a_weak_anchor_high_carat_n${s33AnchorN}`, { anchorN: s33AnchorN, cellSupport: cellN, extrapolated: s28Result.extrapolated }));
   }
-  if (s33Result?.price > 0 && s33Result.anchorLevel != null && s33AnchorN >= (cfg.s33MinAnchorN ?? 10)) {
-    return withVersion(makeWhiteProdResult(s33Result.price, s33Result.upc, 'S33A', whiteProdSupportTier(s33AnchorN), s33Result.anchorLevel <= 2 ? 'medium' : 'low', null, { anchorLevel: s33Result.anchorLevel, anchorN: s33AnchorN, anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN }));
+
+  const s33WeakN = s33AnchorN > 0 && s33AnchorN < (cfg.s33MinAnchorN ?? 10);
+  const s33BroadLevel = s33AnchorLevel != null && s33AnchorLevel >= 4;
+  const s33EvidenceWeak = s33Result?.price > 0 && (s33WeakN || s33BroadLevel);
+  if (s33EvidenceWeak) {
+    const s26HasLookupData = s26Result?.price > 0
+      && s26Result.lookupCount >= (cfg.s26MinLookupCount ?? 5)
+      && s26LevelIdx >= 0
+      && s26LevelIdx < 7;
+    if (s26HasLookupData) {
+      const s26MinRatio = cfg.s33WeakS26MinUpcRatio ?? 1.1;
+      if (s26Result.upc > s33Result.upc * s26MinRatio) {
+        const reason = s33WeakN ? `weak_s33a_to_s26_lookup_n${s33AnchorN}` : `broad_s33a_to_s26_lookup_l${s33AnchorLevel}`;
+        return withVersion(makeWhiteProdResult(s26Result.price, s26Result.upc, 'S26', whiteProdSupportTier(s26Result.lookupCount), 'medium', reason, {
+          lookupLevel: s26Result.lookupLevel, lookupCount: s26Result.lookupCount,
+          anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+          s33Upc: s33Result.upc, s26Upc: s26Result.upc, cellSupport: cellN,
+        }));
+      }
+    }
+    const compEstimate = Number(cfg.compEstimate ?? 0);
+    if (compEstimate > 0) {
+      const compUpc = compEstimate / carat;
+      const compMinRatio = cfg.s33WeakCompMinUpcRatio ?? 1.1;
+      if (compUpc > s33Result.upc * compMinRatio) {
+        return withVersion(makeWhiteProdResult(compEstimate, compUpc, 'COMP_RECONCILED', tier, 'medium', 'weak_s33a_to_comp_reconciled', {
+          anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+          s33Upc: s33Result.upc, compUpc, cellSupport: cellN,
+        }));
+      }
+    }
+    const reason = s33WeakN ? `s33a_weak_anchor_n${s33AnchorN}` : `s33a_broad_anchor_l${s33AnchorLevel}`;
+    return withVersion(makeWhiteProdResult(s33Result.price, s33Result.upc, 'S33A', tier, 'low', reason, {
+      anchorLevel: s33AnchorLevel, anchorN: s33AnchorN,
+      anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN,
+    }));
   }
-  if (s33Result?.price > 0) {
-    return withVersion(makeWhiteProdResult(s33Result.price, s33Result.upc, 'S33A', tier, 'low', `s33a_weak_anchor_n${s33AnchorN}`, { anchorLevel: s33Result.anchorLevel, anchorN: s33AnchorN, anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN }));
+  if (s33Result?.price > 0 && s33AnchorLevel != null) {
+    return withVersion(makeWhiteProdResult(s33Result.price, s33Result.upc, 'S33A', whiteProdSupportTier(s33AnchorN), s33AnchorLevel <= 2 ? 'medium' : 'low', null, { anchorLevel: s33AnchorLevel, anchorN: s33AnchorN, anchorOffset: s33Result.anchorOffset, baseUpc: s33Result.baseUpc, cellSupport: cellN }));
   }
   if (s28Result?.price > 0) {
     return withVersion(makeWhiteProdResult(s28Result.price, s28Result.upc, 'S28', tier, 'floor', tier === 'empty' ? 'empty_cell_s28_fallback' : tier === 'sparse' ? 'sparse_cell_s28_fallback' : 'low_confidence_s28_fallback', { extrapolated: s28Result.extrapolated, cellSupport: cellN }));
@@ -1596,7 +1631,7 @@ async function loadDiamondProdVNextModel() {
       const messiFactor = s22?.sourceAdjustment?.messiColorToStarsgemLikeFactor ?? 1.25;
 
       const ctx = {
-        modelVersion: 'diamond-prod-vnext-v0.1.0',
+        modelVersion: 'diamond-prod-vnext-v0.2.0',
         white: whiteCtx,
         color: { s22, s23, sourceAdjustment: { messiToFactoryFactor: messiFactor, starsgemDirectFactor: 1.0 } },
         sourceAdjustment: { messiToFactoryFactor: messiFactor, starsgemDirectFactor: 1.0 },
@@ -1614,12 +1649,12 @@ async function loadDiamondProdVNextModel() {
   return _diamondProdVNextPromise;
 }
 
-function predictDiamondProdVNextLocal(row, ctx) {
+function predictDiamondProdVNextLocal(row, ctx, opts = {}) {
   const colorFamily = dpClassifyColorFamily(row);
 
   if (colorFamily === 'white') {
     const wpRow = whiteProdVNextRowFromStarsgemRow(row);
-    const result = predictWhiteProdVNextLocal(wpRow, ctx.white);
+    const result = predictWhiteProdVNextLocal(wpRow, ctx.white, opts);
     const wck = whiteProdCellKey(wpRow);
     const whiteSupportCount = ctx.white.cellSupport?.get(wck) ?? 0;
     return {
