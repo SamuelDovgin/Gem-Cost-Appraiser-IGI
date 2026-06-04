@@ -1237,7 +1237,9 @@ function whiteProdVNextRowFromStarsgemRow(row) {
     lw_ratio: row.LengthWidthRatio,
     table_pct: row.Table_Scale,
     depth_pct: row.Depth_Scale,
-    _displayGrid: !state.reportMeasurements,
+    // Only benchmark monotonicity scans should set _displayGrid. Manual app
+    // inputs without IGI measurements still need normal production routing.
+    _displayGrid: row._displayGrid === true,
   };
 }
 
